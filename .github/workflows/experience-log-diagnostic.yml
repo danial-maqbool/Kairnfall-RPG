@@ -1,0 +1,35 @@
+name: Read bounded experience test diagnostics
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/experience-log-diagnostic.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download the recorded candidate test artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: danial-maqbool/Kairnfall-RPG
+          run-id: 34155716528
+          artifact-ids: '10030987983'
+          path: evidence
+      - name: Print only native test output and recorded revision
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('evidence')
+          for suffix in ('revision.txt', 'signals.log', 'input.log', 'experience.log'):
+              paths = list(root.rglob(suffix))
+              print('\n=== ' + suffix + ' ===')
+              if not paths:
+                  print('NOT PRODUCED')
+              for path in paths:
+                  text = path.read_text(encoding='utf-8', errors='replace')
+                  print('\n'.join(text.splitlines()[-70:])[:18000])
+          PY
