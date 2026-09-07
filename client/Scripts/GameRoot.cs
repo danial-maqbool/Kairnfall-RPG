@@ -33,9 +33,9 @@ public partial class GameRoot : Control
     private readonly Dictionary<string, Key> bindings = new()
     {
         ["move_left"] = Key.A, ["move_right"] = Key.D, ["move_up"] = Key.W, ["move_down"] = Key.S,
-        ["interact"] = Key.E, ["inventory"] = Key.I, ["character"] = Key.C, ["skills"] = Key.K,
-        ["quests"] = Key.J, ["map"] = Key.M, ["abilities"] = Key.B, ["crafting"] = Key.F,
-        ["social"] = Key.P, ["target_next"] = Key.Tab
+        ["basic_attack"] = Key.Space, ["interact"] = Key.E, ["inventory"] = Key.I, ["character"] = Key.C,
+        ["skills"] = Key.K, ["quests"] = Key.J, ["map"] = Key.M, ["abilities"] = Key.B,
+        ["crafting"] = Key.F, ["social"] = Key.P, ["target_next"] = Key.Tab
     };
     private readonly ConfigFile settings = new();
     private string awaitingBinding = "";
@@ -57,10 +57,10 @@ public partial class GameRoot : Control
     private readonly string[] hotbar = new string[10];
     private readonly Button[] hotbarButtons = new Button[10];
     private Action? refreshPage;
-    private double moveClock, uiClock, attackClock, noticeUntil;
+    private double moveClock, uiClock, noticeUntil;
     private bool actionBusy, movementBusy, autoAttack, closing;
     private Vector2 lastInput;
-    private CancellationTokenSource lifetime = new();
+    private readonly CancellationTokenSource lifetime = new();
     private string lastPageStamp = "";
     private ClientAudio? audio;
     private bool smoke;
@@ -83,6 +83,7 @@ public partial class GameRoot : Control
             frontend = new Control { MouseFilter = MouseFilterEnum.Ignore };
             interfaceRoot.AddChild(frontend); frontend.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             BuildHud();
+            BuildExperienceHud();
             audio = new ClientAudio(); AddChild(audio);
             audio.SetVolumes((float)settings.GetValue("audio", "music", .35).AsDouble(), (float)settings.GetValue("audio", "effects", .65).AsDouble());
             World.WeatherEnabled = settings.GetValue("display", "weather", true).AsBool();
@@ -108,14 +109,19 @@ public partial class GameRoot : Control
             if (settings.HasSectionKey("keys", action)) bindings[action] = (Key)settings.GetValue("keys", action).AsInt64();
             ApplyBinding(action);
         }
-        foreach (var entry in new[] { ("move_left", Key.Left), ("move_right", Key.Right), ("move_up", Key.Up), ("move_down", Key.Down) })
-            InputMap.ActionAddEvent(entry.Item1, new InputEventKey { PhysicalKeycode = entry.Item2 });
     }
     private void ApplyBinding(string action)
     {
         if (!InputMap.HasAction(action)) InputMap.AddAction(action);
         InputMap.ActionEraseEvents(action);
         InputMap.ActionAddEvent(action, new InputEventKey { PhysicalKeycode = bindings[action] });
+        Key alternate = action switch
+        {
+            "move_left" => Key.Left, "move_right" => Key.Right,
+            "move_up" => Key.Up, "move_down" => Key.Down, _ => Key.None
+        };
+        if (alternate != Key.None && alternate != bindings[action])
+            InputMap.ActionAddEvent(action, new InputEventKey { PhysicalKeycode = alternate });
     }
     private bool Typing => GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit;
     private bool Online => Connection?.Connected == true && Snapshot is not null;
@@ -131,10 +137,17 @@ public partial class GameRoot : Control
                 if (packet is null) continue;
                 if (packet.Snapshot is { } snapshot)
                 {
+                    var previous = Snapshot;
                     World.Accept(packet);
+                    ObservePlayerChanges(previous, snapshot);
                     invitations = packet.Invitations ?? [];
                     knownNames[snapshot.Self.Id] = snapshot.Self.Name;
                     foreach (var other in snapshot.Players) knownNames[other.Id] = other.Name;
+                    if (hotbarCharacter != snapshot.Self.Id)
+                    {
+                        hotbarCharacter = snapshot.Self.Id;
+                        SetInitialHotbar();
+                    }
                 }
                 if (packet.Chat is { } chat) AddChat($"[{chat.Channel}] {chat.Name}: {chat.Text}");
                 if (packet.Kind == "error") Notify(packet.Error, true);
@@ -143,9 +156,10 @@ public partial class GameRoot : Control
         if (Online)
         {
             var self = Snapshot!.Self;
-            Vector2 input = !Typing && awaitingBinding == "" ? Input.GetVector("move_left", "move_right", "move_up", "move_down") : Vector2.Zero;
-            if (input.LengthSquared() > .01f) { route.Clear(); pendingInteraction = null; }
-            if (input.LengthSquared() < .01f && route.Count > 0 && !Typing)
+            bool controls = GameplayInputAllowed && awaitingBinding == "";
+            Vector2 input = controls ? Input.GetVector("move_left", "move_right", "move_up", "move_down") : Vector2.Zero;
+            if (!controls || input.LengthSquared() > .01f) { route.Clear(); pendingInteraction = null; }
+            if (input.LengthSquared() < .01f && route.Count > 0 && controls)
             {
                 while (route.Count > 0 && self.Position.Distance(route[0]) < .32) route.RemoveAt(0);
                 if (route.Count > 0)
@@ -153,30 +167,21 @@ public partial class GameRoot : Control
                     var dir = self.Position.Direction(route[0]); input = new Vector2((float)dir.X, (float)dir.Y);
                 }
             }
-            if (pendingInteraction is { } interaction && self.Position.Distance(interaction.Position) < 2.2)
+            if (controls && pendingInteraction is { } interaction && self.Position.Distance(interaction.Position) <= 2.15
+                && WorldMap.LineOfSight(Data.Zone(self.Zone), self.Position, interaction.Position))
             {
                 pendingInteraction = null; route.Clear(); input = Vector2.Zero; Activate(interaction);
             }
             moveClock += delta;
-            if ((moveClock >= .08 || (input - lastInput).LengthSquared() > .1f) && !movementBusy)
+            bool changed = (input - lastInput).LengthSquared() > .0001f;
+            bool moving = input.LengthSquared() > .0001f;
+            if (!movementBusy && (changed || (moving && moveClock >= .08)))
             {
                 moveClock = 0; lastInput = input; SendMovement(input);
             }
-            attackClock += delta;
-            if (autoAttack && attackClock > .3 && !actionBusy && selectedTargetKind == "creature")
-            {
-                attackClock = 0;
-                var target = Snapshot.Creatures.FirstOrDefault(x => x.Id == selectedTarget && x.Health > 0);
-                if (target is null) autoAttack = false;
-                else
-                {
-                    double range = self.Equipment.TryGetValue("weapon", out var weapon) ? Data.Item(Items.Owned(self, weapon).Template).Range : 1.7;
-                    if (self.Position.Distance(target.Position) <= range && self.Cooldowns.GetValueOrDefault("attack") <= Snapshot.Time)
-                        _ = SendAsync(new GameCommand { Kind = "attack", Target = target.Id }, quiet: true);
-                }
-            }
             audio?.SetRegion(Data.Zone(self.Zone), Snapshot.Creatures.Any(x => Data.Mob(x.Template).Boss && x.Target == self.Id));
         }
+        TickExperience(delta);
         uiClock += delta;
         if (uiClock > .2)
         {
@@ -224,73 +229,10 @@ public partial class GameRoot : Control
     private void Send(string kind, string target = "", string item = "", int amount = 1, string arg = "")
         => _ = SendAsync(new GameCommand { Kind = kind, Target = target, Item = item, Amount = amount, Arg = arg });
 
-    public override void _UnhandledInput(InputEvent @event)
+    private void SelectTarget(string kind, string id)
     {
-        if (@event is InputEventKey { Pressed: true, Echo: false } key)
-        {
-            if (awaitingBinding != "")
-            {
-                if (key.PhysicalKeycode != Key.Escape)
-                {
-                    bindings[awaitingBinding] = key.PhysicalKeycode; ApplyBinding(awaitingBinding);
-                    settings.SetValue("keys", awaitingBinding, (long)key.PhysicalKeycode); settings.Save("user://settings.cfg");
-                }
-                awaitingBinding = ""; OpenPage("Settings"); GetViewport().SetInputAsHandled(); return;
-            }
-            if (key.PhysicalKeycode == Key.Escape)
-            {
-                if (Typing) GetViewport().GuiReleaseFocus();
-                else if (placement != "") { placement = ""; Notify("Placement cancelled."); }
-                else if (gameWindow is not null) ClosePage();
-                else { autoAttack = false; route.Clear(); pendingInteraction = null; if (Online) OpenPage("Settings"); }
-                GetViewport().SetInputAsHandled(); return;
-            }
-            if (!Online) return;
-            if (key.PhysicalKeycode == Key.Enter) { chatInput.GrabFocus(); GetViewport().SetInputAsHandled(); return; }
-            if (Typing) return;
-            foreach (string action in new[] { "inventory", "character", "skills", "quests", "map", "abilities", "crafting", "social" })
-                if (key.IsActionPressed(action)) { OpenPage(Ui.Words(action)); GetViewport().SetInputAsHandled(); return; }
-            if (key.IsActionPressed("interact"))
-            {
-                var closest = World.Nearest(Snapshot!.Self.Position);
-                if (closest is { } target) Activate(target); else Notify("Move closer to an NPC, resource, chest, entrance, or dropped item.");
-                GetViewport().SetInputAsHandled(); return;
-            }
-            if (key.IsActionPressed("target_next"))
-            {
-                var targets = Snapshot!.Creatures.Where(x => x.Health > 0).OrderBy(x => x.Position.Distance(Snapshot.Self.Position)).ToList();
-                if (targets.Count > 0) { int index = targets.FindIndex(x => x.Id == selectedTarget); SelectTarget("creature", targets[(index + 1) % targets.Count].Id); }
-                GetViewport().SetInputAsHandled(); return;
-            }
-            int code = (int)key.PhysicalKeycode;
-            if (code is >= 48 and <= 57) { UseHotbar(code == 48 ? 9 : code - 49); GetViewport().SetInputAsHandled(); return; }
-        }
-        if (!Online) return;
-        if (@event is InputEventMouseButton { Pressed: true } mouse)
-        {
-            if (mouse.ButtonIndex == MouseButton.WheelUp || mouse.ButtonIndex == MouseButton.WheelDown)
-            {
-                World.Zoom = Math.Clamp(World.Zoom + (mouse.ButtonIndex == MouseButton.WheelUp ? 1 : -1), 1, 3);
-                settings.SetValue("display", "zoom", World.Zoom); settings.Save("user://settings.cfg"); return;
-            }
-            Point point = World.ScreenToWorld(mouse.Position);
-            if (placement != "" && mouse.ButtonIndex == MouseButton.Left)
-            {
-                _ = SendAsync(new GameCommand { Kind = placement, Item = structureRecipe, X = point.X, Y = point.Y }); placement = ""; return;
-            }
-            if (mouse.ButtonIndex == MouseButton.Right) { WalkTo(point); return; }
-            if (mouse.ButtonIndex == MouseButton.Left && World.Pick(mouse.Position) is { } hit)
-            {
-                SelectTarget(hit.Kind, hit.Id);
-                if (hit.Kind == "creature") autoAttack = true;
-                else if (hit.Kind == "player") OpenPage("Social");
-                else if (Snapshot!.Self.Position.Distance(hit.Position) < 2.2) Activate(hit);
-                else { pendingInteraction = hit; WalkTo(hit.Position, keepInteraction: true); }
-            }
-        }
+        selectedTargetKind = kind; selectedTarget = id; World.TargetId = id; StopCombatInput();
     }
-
-    private void SelectTarget(string kind, string id) { selectedTargetKind = kind; selectedTarget = id; World.TargetId = id; autoAttack = false; }
     private void WalkTo(Point point, bool keepInteraction = false)
     {
         if (Snapshot is null) return;
@@ -320,34 +262,67 @@ public partial class GameRoot : Control
     }
     private void UseHotbar(int index)
     {
-        if (Snapshot is null || index < 0 || index >= hotbar.Length || string.IsNullOrEmpty(hotbar[index])) return;
+        if (!GameplayInputAllowed || index < 0 || index >= hotbar.Length || string.IsNullOrEmpty(hotbar[index])) return;
+        var snapshot = Snapshot!;
         var ability = Data.Ability(hotbar[index]);
-        var target = World.ScreenToWorld(GetGlobalMousePosition());
-        string targetId = selectedTarget;
-        if (targetId == "" && ability.Kind is "heal" or "shield" or "buff") targetId = Snapshot.Self.Id;
-        _ = SendAsync(new GameCommand { Kind = "cast", Item = ability.Id, Target = targetId, X = target.X, Y = target.Y }, true);
+        if (ability.Class != "" && ability.Class != snapshot.Self.Class) { Notify("This ability belongs to another class.", true); return; }
+        if (Progression.Level(snapshot.Self, ability.Skill) < ability.Requirement)
+        { Notify("Requires " + Data.Skill(ability.Skill).Name + " " + ability.Requirement + ".", true); return; }
+        if (snapshot.Self.Mana < ability.Mana) { Notify("Not enough mana for " + ability.Name + ".", true); return; }
+        if (snapshot.Self.Stamina < ability.Stamina) { Notify("Not enough stamina for " + ability.Name + ".", true); return; }
+        var point = World.ScreenToWorld(GetGlobalMousePosition());
+        string targetId = selectedTargetKind is "creature" or "player" ? selectedTarget : "";
+        if (ability.Kind is "heal" or "shield" or "buff")
+        {
+            if (selectedTargetKind != "player") { targetId = snapshot.Self.Id; point = snapshot.Self.Position; }
+        }
+        else if (ability.Kind is "strike" or "projectile" or "interrupt")
+        {
+            var target = ExperienceRules.ChooseTarget(snapshot.Self, snapshot.Creatures, Data, targetId, ability.Range);
+            if (target is null) { Notify("No hostile creature is within this ability's range."); return; }
+            targetId = target.Id; point = target.Position;
+        }
+        else if (snapshot.Self.Position.Distance(point) > ability.Range)
+            point = snapshot.Self.Position.Add(snapshot.Self.Facing.Scale(Math.Max(0, ability.Range - .1)));
+        _ = SendAsync(new GameCommand { Kind = "cast", Item = ability.Id, Target = targetId, X = point.X, Y = point.Y }, true);
     }
     private void SetInitialHotbar()
     {
         if (Snapshot is null) return;
-        var abilities = Data.Abilities.Where(x => (x.Class == "" || x.Class == Snapshot.Self.Class) && Progression.Level(Snapshot.Self, x.Skill) >= x.Requirement).OrderBy(x => x.Requirement).ToList();
+        var abilities = ExperienceRules.StarterAbilities(Snapshot.Self, Data);
+        string section = "hotbar_" + Snapshot.Self.Id;
+        Array.Fill(hotbar, "");
         for (int i = 0; i < hotbar.Length; i++)
         {
-            string saved = settings.GetValue("hotbar_" + Snapshot.Self.Id, i.ToString(), "").AsString();
-            hotbar[i] = Data.Abilities.Any(x => x.Id == saved) ? saved : i < abilities.Count ? abilities[i].Id : "";
+            if (!settings.HasSectionKey(section, i.ToString())) continue;
+            string saved = settings.GetValue(section, i.ToString(), "").AsString();
+            hotbar[i] = abilities.Any(x => x.Id == saved) ? saved : "";
+        }
+        for (int i = 0; i < hotbar.Length; i++)
+        {
+            if (settings.HasSectionKey(section, i.ToString())) continue;
+            hotbar[i] = abilities.FirstOrDefault(x => !hotbar.Contains(x.Id))?.Id ?? "";
         }
     }
     private string PageStamp()
     {
         if (Snapshot is null) return "offline";
-        return currentPage + selectedItem + selectedBag + selectedRecipe + selectedQuest + selectedNpc + JsonSerializer.Serialize(new { Snapshot.Self.LastAction, Snapshot.Self.Inventory, Snapshot.Self.Bank, Snapshot.Self.SkillXp, Snapshot.Self.Quests, Snapshot.Self.Gold, Snapshot.Trades, Snapshot.Auctions, Snapshot.Party, Snapshot.Guild, invitations }, Wire.Json);
+        // Movement sequence numbers do not invalidate inventory controls while the user clicks them.
+        return currentPage + selectedItem + selectedBag + selectedRecipe + selectedQuest + selectedNpc + JsonSerializer.Serialize(new
+        {
+            Snapshot.Self.Inventory, Snapshot.Self.Bank, Snapshot.Self.Equipment, Snapshot.Self.SkillXp,
+            Snapshot.Self.Quests, Snapshot.Self.Gold, Snapshot.Self.Zone, Dead = Snapshot.Self.Health <= 0,
+            Snapshot.Trades, Snapshot.Auctions, Snapshot.Party, Snapshot.Guild, Snapshot.ShopStock, invitations
+        }, Wire.Json);
     }
     private string PlayerName(string id) => knownNames.GetValueOrDefault(id, id == "" ? "None" : "Traveler " + id[..Math.Min(6, id.Length)]);
     private void Notify(string text, bool error = false)
     {
-        if (notice is null || !GodotObject.IsInstanceValid(notice)) return;
-        notice.Text = text; notice.AddThemeColorOverride("font_color", error ? Ui.Danger : Ui.Text); noticeUntil = Time.GetTicksMsec() / 1000.0 + 6;
-        if (text != "") AddChat("[System] " + text);
+        if (notice is null || !GodotObject.IsInstanceValid(notice) || string.IsNullOrWhiteSpace(text)) return;
+        double now = Time.GetTicksMsec() / 1000.0;
+        if (text == lastNoticeText && now - lastNoticeAt < 1.5) return;
+        lastNoticeText = text; lastNoticeAt = now;
+        notice.Text = text; notice.AddThemeColorOverride("font_color", error ? Ui.Danger : Ui.Text); noticeUntil = now + 5;
     }
     private void AddChat(string text)
     {
@@ -356,18 +331,26 @@ public partial class GameRoot : Control
     }
     private async void Logout()
     {
-        ClosePage(); autoAttack = false; route.Clear(); pendingInteraction = null;
+        ClosePage(); StopCombatInput(); route.Clear(); pendingInteraction = null;
         try { if (Connection is not null) { await Connection.SignOutAsync(); await Connection.DisposeAsync(); } }
         catch (Exception e) { GD.PushWarning(e.Message); }
-        Connection = null; World.ClearSession(); ShowLogin();
+        Connection = null; World.ClearSession(); hotbarCharacter = "";
+        history.Clear(); knownNames.Clear(); invitations.Clear(); pickupNotes.Clear();
+        chatLog.Text = ""; progressionHint.Text = ""; RenderPickupFeed(); ShowLogin();
     }
     public override void _Notification(int what)
     {
+        if (what == NotificationApplicationFocusOut)
+        {
+            applicationFocused = false; StopCombatInput(); route.Clear(); pendingInteraction = null;
+            if (!movementBusy && Connection?.Connected == true) { lastInput = Vector2.Zero; SendMovement(Vector2.Zero); }
+        }
+        if (what == NotificationApplicationFocusIn) applicationFocused = true;
         if (what == NotificationWMCloseRequest && !closing) { closing = true; _ = ShutdownAsync(); }
     }
     private async Task ShutdownAsync()
     {
-        lifetime.Cancel();
+        StopCombatInput(); lifetime.Cancel();
         if (Connection is not null) { try { await Connection.DisposeAsync(); } catch (Exception e) { GD.PushWarning(e.Message); } }
         GetTree().Quit();
     }
@@ -376,6 +359,7 @@ public partial class GameRoot : Control
     {
         try
         {
+            if (DisplayServer.GetName() == "headless") throw new InvalidOperationException("The graphical smoke requires a real display.");
             string address = System.Environment.GetEnvironmentVariable("KAIRNFALL_SMOKE_URL") ?? "http://127.0.0.1:5077";
             Connection = new GameConnection(address);
             string suffix = Guid.NewGuid().ToString("N")[..10];
@@ -408,7 +392,7 @@ public partial class GameRoot : Control
     }
     private void SaveScreenshot(string name)
     {
-        if (DisplayServer.GetName() == "headless") return;
+        if (DisplayServer.GetName() == "headless") throw new InvalidOperationException("A headless run cannot produce graphical acceptance evidence.");
         string directory = System.Environment.GetEnvironmentVariable("KAIRNFALL_SCREENSHOTS") ?? ProjectSettings.GlobalizePath("user://screenshots");
         System.IO.Directory.CreateDirectory(directory);
         var image = GetViewport().GetTexture().GetImage();
