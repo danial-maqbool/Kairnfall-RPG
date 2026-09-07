@@ -115,9 +115,9 @@ public partial class ControlRulesContract : Node
             Require(!Field<bool>(game, "attackKeyHeld"), "Native release clears held attack while chat owns focus");
             Require(Field<List<Point>>(game, "route").Count == 0, "Native release cancels the combat approach route");
             Member("attackKeyHeld").SetValue(game, true);
-            game.Notification(NotificationApplicationFocusOut); await Frame();
+            game.Notification(checked((int)NotificationApplicationFocusOut)); await Frame();
             Require(!Field<bool>(game, "attackKeyHeld"), "Native application-focus notification cancels held attack");
-            game.Notification(NotificationApplicationFocusIn); GetViewport().GuiReleaseFocus();
+            game.Notification(checked((int)NotificationApplicationFocusIn)); GetViewport().GuiReleaseFocus();
             foreach (var size in new[] { new Vector2I(1280, 720), new Vector2I(1920, 1080) })
             {
                 GetWindow().Size = size; GetWindow().ContentScaleSize = size;
