@@ -2,6 +2,7 @@ using Kairnfall.Core;
 
 var data = Catalog.Load("content/catalog.json");
 var failures = 0;
+const int testCount = 9;
 
 void Check(bool condition, string message)
 {
@@ -26,7 +27,7 @@ void Test(string name, Action action)
 {
     var realm = new RealmEngine(data);
     var player = realm.CreateCharacter(Guid.NewGuid().ToString("N"), name, "vanguard", new());
-    realm.Active.Add(player.Id);
+    realm.Connect(player.Id);
     return (realm, player);
 }
 
@@ -40,6 +41,15 @@ CommandResult Send(RealmEngine realm, Character player, string kind, string targ
         RequestId = Guid.NewGuid().ToString("N"),
         Sequence = realm.Player(player.Id).LastAction + 1
     });
+
+void Advance(RealmEngine realm, double seconds)
+{
+    for (var elapsed = 0.0; elapsed < seconds - 0.0001; elapsed += 0.1)
+    {
+        realm.Tick(0.1);
+        realm.TickDisconnectGrace();
+    }
+}
 
 Test("Guild leader can promote and demote an officer", () =>
 {
@@ -161,5 +171,39 @@ Test("Player cannot dismantle another player's structure", () =>
     Check(realm.State.Nodes.ContainsKey(node.Id), "Rejected dismantle removed the structure.");
 });
 
-Console.WriteLine($"Completion regression tests: {6 - failures} passed, {failures} failed.");
+Test("Out-of-combat disconnect removes the player immediately", () =>
+{
+    var (realm, player) = Fixture("Safe Logout");
+    Advance(realm, 9);
+    realm.BeginDisconnect(player.Id);
+    Check(!realm.Active.Contains(player.Id), "Safe logout kept an out-of-combat character active.");
+});
+
+Test("Combat disconnect keeps the player vulnerable for ten seconds", () =>
+{
+    var (realm, player) = Fixture("Combat Logout");
+    Advance(realm, 1);
+    player.LastCombat = realm.State.Time;
+    realm.BeginDisconnect(player.Id);
+    Check(realm.Active.Contains(player.Id), "Combat logout removed the player immediately.");
+    Advance(realm, 9.9);
+    Check(realm.Active.Contains(player.Id), "Combat logout grace ended too early.");
+    Advance(realm, 0.2);
+    Check(!realm.Active.Contains(player.Id), "Combat logout grace did not expire.");
+});
+
+Test("Reconnect cancels pending combat logout removal", () =>
+{
+    var (realm, player) = Fixture("Combat Reconnect");
+    Advance(realm, 1);
+    player.LastCombat = realm.State.Time;
+    realm.BeginDisconnect(player.Id);
+    Check(realm.Active.Contains(player.Id), "Combat logout grace was not started.");
+    Advance(realm, 2);
+    realm.Connect(player.Id);
+    Advance(realm, 9);
+    Check(realm.Active.Contains(player.Id), "Reconnect did not cancel pending logout removal.");
+});
+
+Console.WriteLine($"Completion regression tests: {testCount - failures} passed, {failures} failed.");
 return failures == 0 ? 0 : 1;
