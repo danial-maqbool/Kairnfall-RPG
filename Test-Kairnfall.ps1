@@ -37,6 +37,7 @@ try {
     Invoke-CheckedNative -File $dotnet.Source -Arguments @('build', 'Kairnfall.slnx', '-c', 'Release')
     Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.Tests/Kairnfall.Tests.csproj', '-c', 'Release', '--', 'content/catalog.json')
     Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj', '-c', 'Release')
+    Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.CompletionTests/Kairnfall.CompletionTests.csproj', '-c', 'Release')
     if ($WithDatabase) {
         Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.Integration/Kairnfall.Integration.csproj', '-c', 'Release')
         Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj', '-c', 'Release', '--', '--database')
