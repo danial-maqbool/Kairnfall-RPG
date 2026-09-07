@@ -1,0 +1,75 @@
+name: Verify and commit reviewed transaction repair
+on:
+  push:
+    branches: ['team/server/consent-and-stack-repair']
+    paths: ['tools/repairs/materialize_transactions.py', '.github/workflows/materialize-transactions.yml']
+permissions:
+  contents: write
+concurrency:
+  group: materialize-transactions
+  cancel-in-progress: false
+jobs:
+  repair:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/team/server/consent-and-stack-repair'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      KAIRNFALL_TEST_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_DB_TESTS: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Apply exact reviewed source changes
+        run: |
+          set -euo pipefail
+          python3 tools/repairs/materialize_transactions.py
+          python3 tools/build_content.py
+          mkdir -p artifacts/transaction-repair
+      - name: Build and run all backend regressions
+        run: |
+          set -euo pipefail
+          dotnet build Kairnfall.slnx -c Release | tee artifacts/transaction-repair/build.log
+          dotnet run --no-build --project tests/Kairnfall.Tests -c Release -- content/catalog.json | tee artifacts/transaction-repair/core.log
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests -c Release | tee artifacts/transaction-repair/review.log
+          dotnet run --no-build --project tests/Kairnfall.Integration -c Release | tee artifacts/transaction-repair/network.log
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests -c Release -- --database | tee artifacts/transaction-repair/database.log
+          dotnet run --project tests/Kairnfall.SecurityTests -c Release -- content/catalog.json | tee artifacts/transaction-repair/security.log
+      - name: Commit tested source to this repair branch only
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          branch=team/server/consent-and-stack-repair
+          remote=$(git ls-remote origin "refs/heads/$branch" | cut -f1)
+          test "$remote" = "$EXPECTED_HEAD" || { echo 'Concurrent update: refusing to overwrite the branch.'; exit 1; }
+          git config user.name 'Kairnfall build automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/Kairnfall.Core/RealmEngine.cs src/Kairnfall.Core/RealmSocial.cs src/Kairnfall.Core/Models.cs src/Kairnfall.Core/RealmTransactions.cs tests/Kairnfall.SecurityTests/Program.cs
+          git diff --cached --check
+          git commit -m 'fix(server): bind trade approval to item contents and implement atomic stack splits'
+          git push origin "HEAD:refs/heads/$branch"
+          git rev-parse HEAD | tee artifacts/transaction-repair/commit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: transaction-repair-evidence-${{ github.sha }}
+          path: artifacts/transaction-repair/
+          retention-days: 14
