@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import stat
 import urllib.request
@@ -20,17 +21,73 @@ def request(url):
 def download(asset, folder):
     name=asset['name']; path=folder/name
     digest=asset.get('digest') or ''
-    if not digest.startswith('sha256:'):
+    if not re.fullmatch(r'sha256:[0-9a-fA-F]{64}',digest):
         raise RuntimeError('The official release did not publish a SHA-256 digest for '+name+'. Refusing an unverified tool download.')
-    expected=digest.split(':',1)[1]
-    if path.exists() and hashlib.file_digest(path.open('rb'),'sha256').hexdigest()==expected: return path
+    expected=digest.split(':',1)[1].lower()
+    size=asset.get('size')
+    if type(size) is not int or size<=0:
+        raise RuntimeError('The official release did not publish a valid archive size: '+name)
+    def verified(candidate):
+        if not candidate.exists() or candidate.stat().st_size!=size: return False
+        with candidate.open('rb') as data:
+            return hashlib.file_digest(data,'sha256').hexdigest()==expected
+    if verified(path): return path
     partial=path.with_suffix(path.suffix+'.partial')
-    with urllib.request.urlopen(request(asset['browser_download_url']),timeout=90) as source, partial.open('wb') as dest:
-        shutil.copyfileobj(source,dest,1024*1024)
-    with partial.open('rb') as data: actual=hashlib.file_digest(data,'sha256').hexdigest()
-    if actual!=expected:
+    offset=partial.stat().st_size if partial.exists() else 0
+    if offset>size:
+        raise RuntimeError('Partial archive exceeds the official size: '+name)
+    if offset==size:
+        if not verified(partial):
+            partial.unlink(); raise RuntimeError('Official archive checksum mismatch: '+name)
+        partial.replace(path); return path
+    req=request(asset['browser_download_url'])
+    req.add_header('Accept-Encoding','identity')
+    if offset: req.add_header('Range',f'bytes={offset}-')
+    print(f'Downloading {name}: {offset}/{size} bytes retained.',flush=True)
+    with urllib.request.urlopen(req,timeout=90) as source:
+        status=source.status
+        if source.headers.get('Content-Encoding','identity').lower()!='identity':
+            raise RuntimeError('Encoded archive response cannot be resumed safely: '+name)
+        if status==206:
+            match=re.fullmatch(r'bytes (\d+)-(\d+)/(\d+)',source.headers.get('Content-Range',''))
+            if not match:
+                raise RuntimeError('Missing or invalid archive Content-Range: '+name)
+            start,end,total=map(int,match.groups())
+            if start!=offset or total!=size or end<start or end>=size:
+                raise RuntimeError('Archive Content-Range does not match the requested official asset: '+name)
+            length=end-start+1
+        elif status==200:
+            # A server may ignore Range. Only a validated full response permits
+            # restarting; never append the full file onto an existing prefix.
+            if source.headers.get('Content-Range') is not None:
+                raise RuntimeError('Unexpected Content-Range on full archive response: '+name)
+            length=size
+        else:
+            raise RuntimeError('Unexpected archive HTTP status: '+str(status))
+        declared=source.headers.get('Content-Length')
+        if declared is not None and (not declared.isdigit() or int(declared)!=length):
+            raise RuntimeError('Archive Content-Length does not match the official size/range: '+name)
+        if status==200 and offset:
+            print('Server ignored Range; restarting the validated full response.',flush=True)
+            offset=0
+        received=0
+        reported=offset
+        with partial.open('ab' if offset else 'wb') as dest:
+            while chunk:=source.read(1024*1024):
+                if received+len(chunk)>length:
+                    raise RuntimeError('Archive response exceeds its declared range: '+name)
+                dest.write(chunk); dest.flush()
+                received+=len(chunk)
+                if offset+received-reported>=16*1024*1024:
+                    reported=offset+received
+                    print(f'Download progress {name}: {reported}/{size} bytes.',flush=True)
+        if received!=length or partial.stat().st_size!=size:
+            raise RuntimeError(f'Archive download incomplete: {partial.stat().st_size}/{size} bytes retained for retry: '+name)
+    if not verified(partial):
         partial.unlink(missing_ok=True); raise RuntimeError('Official archive checksum mismatch: '+name)
-    partial.replace(path); return path
+    partial.replace(path)
+    print('Verified official SHA-256: '+name,flush=True)
+    return path
 
 def extract(path, target):
     target.mkdir(parents=True,exist_ok=True); base=target.resolve()

@@ -39,9 +39,20 @@ def scrub(text: str, environment: dict[str, str] | None = None) -> str:
 def run(args: list[str | Path], *, env: dict[str, str] | None = None,
         timeout: int = 900, log: Path | None = None, check_godot_errors: bool = False) -> str:
     """Check native exit codes. Do not print environment values or credentials."""
-    result = subprocess.run([str(x) for x in args], cwd=ROOT, env=env,
-                            text=True, encoding='utf-8', errors='replace',
-                            capture_output=True, timeout=timeout)
+    try:
+        result = subprocess.run([str(x) for x in args], cwd=ROOT, env=env,
+                                text=True, encoding='utf-8', errors='replace',
+                                capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        def decoded(value: str | bytes | None) -> str:
+            return value.decode('utf-8', errors='replace') if isinstance(value, bytes) else value or ''
+        output = scrub(decoded(error.stdout) + decoded(error.stderr), env)
+        output += f'\nProcess exceeded {timeout} seconds; completion was not established.\n'
+        if log is not None:
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_text(output, encoding='utf-8')
+        print(output, end='', flush=True)
+        raise RuntimeError(f'{Path(str(args[0])).name} timed out after {timeout} seconds.') from None
     output = scrub(result.stdout + result.stderr, env)
     if log is not None:
         log.parent.mkdir(parents=True, exist_ok=True)
@@ -112,7 +123,7 @@ def prepare(skip_godot: bool = False) -> None:
     if not skip_godot:
         if not os.environ.get('GODOT_BIN'):
             run([py, 'tools/get_godot.py', '--os', 'windows' if os.name == 'nt' else 'linux',
-                 '--with-templates'], timeout=1200)
+                 '--with-templates'], timeout=1200, log=ROOT / 'artifacts/local/toolchain-download.log')
         run([godot_path(), '--headless', '--path', ROOT / 'client', '--editor', '--import'],
             timeout=300, log=ROOT / 'artifacts/local/import.log', check_godot_errors=True)
     print('Source preparation finished. This does not certify gameplay, artwork, or a Windows release.')

@@ -18,6 +18,20 @@ import complete_skill_icons as icons
 
 
 class HandoffTests(unittest.TestCase):
+    def test_timeout_retains_scrubbed_partial_output_and_fails(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            log = Path(temporary) / 'timeout.log'
+            failure = subprocess.TimeoutExpired('fixture', 1, output=b'progress Password=private;\n', stderr=b'fixture-token')
+            with patch.object(dev.subprocess, 'run', side_effect=failure), contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaisesRegex(RuntimeError, 'timed out after 1 seconds'):
+                    dev.run(['fixture'], timeout=1, log=log, env={'TEST_TOKEN': 'fixture-token'})
+            retained = log.read_text(encoding='utf-8')
+            self.assertIn('progress', retained)
+            self.assertIn('completion was not established', retained)
+            self.assertNotIn('private', retained)
+            self.assertNotIn('fixture-token', retained)
+            self.assertEqual(output.getvalue(), retained)
+
     @classmethod
     def setUpClass(cls):
         cls.catalog = json.loads((ROOT / 'content/catalog.json').read_text(encoding='utf-8'))
