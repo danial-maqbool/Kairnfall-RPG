@@ -1,0 +1,1 @@
+<Solution><Project Path="src/Kairnfall.Core/Kairnfall.Core.csproj" /><Project Path="src/Kairnfall.Server/Kairnfall.Server.csproj" /><Project Path="tests/Kairnfall.Tests/Kairnfall.Tests.csproj" /><Project Path="client/Kairnfall.Client.csproj" /></Solution>

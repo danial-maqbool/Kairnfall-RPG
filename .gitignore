@@ -1,0 +1,15 @@
+.godot/
+**/bin/
+**/obj/
+.env
+.env.*
+!.env.example
+.tools/
+artifacts/
+*.log
+*.user
+*.pfx
+*.pem
+__pycache__/
+*.pyc
+.DS_Store
