@@ -7,9 +7,10 @@ using System.Text.Json;
 
 namespace Kairnfall.Core;
 
-/// <summary>Desktop and test-client transport. It sends intentions and never owns game rewards.</summary>
+/// <summary>Desktop and test transport. HTTP owns account exchange; the socket carries gameplay intentions.</summary>
 public sealed class GameConnection : IAsyncDisposable
 {
+    public const string TransportRevision = "http-account-socket-gameplay-v2";
     private readonly HttpClient http;
     private readonly Uri endpoint;
     private ClientWebSocket? socket;
@@ -32,50 +33,84 @@ public sealed class GameConnection : IAsyncDisposable
     public Uri Endpoint => endpoint;
     public long LastSequence => Interlocked.Read(ref sequence);
 
-    public GameConnection(string address)
+    public GameConnection(string address) : this(address, new SocketsHttpHandler { AllowAutoRedirect = false }) { }
+
+    /// <summary>Supply a handler for deterministic HTTP contract tests. This connection owns the handler.</summary>
+    public GameConnection(string address, HttpMessageHandler handler)
     {
+        ArgumentNullException.ThrowIfNull(handler);
         if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") || uri.UserInfo != "" || uri.Query != "" || uri.Fragment != "")
             throw new RuleException("Enter an HTTP or HTTPS server address without embedded credentials, query parameters, or a fragment.");
         bool loopback = uri.IsLoopback || (IPAddress.TryParse(uri.Host, out var ip) && IPAddress.IsLoopback(ip));
         if (uri.Scheme != "https" && !loopback) throw new RuleException("Remote servers require HTTPS and WSS. Plain HTTP is allowed only for localhost.");
         endpoint = new Uri(uri.AbsoluteUri.TrimEnd('/') + "/");
-        http = new HttpClient { BaseAddress = endpoint, Timeout = TimeSpan.FromSeconds(20) };
+        http = new HttpClient(handler, disposeHandler: true) { BaseAddress = endpoint, Timeout = TimeSpan.FromSeconds(20) };
     }
-    private async Task<T> ReadResponseAsync<T>(HttpResponseMessage response, CancellationToken cancel)
+
+    private static async Task<T> ReadResponseAsync<T>(HttpResponseMessage response, CancellationToken cancel)
     {
         if (!response.IsSuccessStatusCode)
         {
             string message = response.StatusCode == HttpStatusCode.Unauthorized ? "Your session expired. Sign in again." : response.StatusCode == (HttpStatusCode)429 ? "The server rate limit was reached. Reduce the request rate." : "The server rejected the request.";
-            try { var error = await response.Content.ReadFromJsonAsync<ApiError>(Wire.Json, cancel); if (!string.IsNullOrWhiteSpace(error?.Error)) message = error.Error; } catch (JsonException) { }
+            try
+            {
+                var error = await response.Content.ReadFromJsonAsync<ApiError>(Wire.Json, cancel).ConfigureAwait(false);
+                if (!string.IsNullOrWhiteSpace(error?.Error)) message = error.Error;
+            }
+            catch (JsonException) { }
             throw new RuleException(message);
         }
-        return await response.Content.ReadFromJsonAsync<T>(Wire.Json, cancel) ?? throw new RuleException("The server returned an empty response.");
+        return await response.Content.ReadFromJsonAsync<T>(Wire.Json, cancel).ConfigureAwait(false)
+            ?? throw new RuleException("The server returned an empty response.");
     }
+
     public void UseSession(LoginResponse session)
     {
-        if (AccountTokenLooksValid(session.Token) && session.Expires > DateTimeOffset.UtcNow)
-        {
-            Session = session; token = session.Token; http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        }
-        else throw new RuleException("The session token is invalid or expired.");
+        ArgumentNullException.ThrowIfNull(session);
+        if (!AccountTokenLooksValid(session.Token) || session.Expires <= DateTimeOffset.UtcNow)
+            throw new RuleException("The session token is invalid or expired.");
+        Session = session;
+        token = session.Token;
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
     private static bool AccountTokenLooksValid(string value) => value is { Length: 43 } && value.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
-    public async Task<LoginResponse> SignInAsync(string username, string password, bool register, CancellationToken cancel = default)
+
+    // This method must never call SendObjectAsync. Authentication precedes the
+    // gameplay WebSocket. Keep it testable before any socket has been created.
+    public Task<LoginResponse> SignInAsync(string username, string password, bool register, CancellationToken cancel = default)
+        => AuthenticateHttpAsync(new LoginRequest { Username = username, Password = password }, register, cancel);
+
+    private async Task<LoginResponse> AuthenticateHttpAsync(LoginRequest credentials, bool register, CancellationToken cancel)
     {
-        using var response = await http.PostAsJsonAsync(register ? "api/register" : "api/login", new LoginRequest { Username = username, Password = password }, Wire.Json, cancel);
-        var session = await ReadResponseAsync<LoginResponse>(response, cancel); UseSession(session); return session;
+        if (Connected) throw new RuleException("Leave the current world before changing accounts.");
+        Session = null;
+        token = "";
+        http.DefaultRequestHeaders.Authorization = null;
+        LastError = "";
+        using var request = new HttpRequestMessage(HttpMethod.Post, register ? "api/register" : "api/login")
+        {
+            Content = JsonContent.Create(credentials, options: Wire.Json)
+        };
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancel).ConfigureAwait(false);
+        var session = await ReadResponseAsync<LoginResponse>(response, cancel).ConfigureAwait(false);
+        UseSession(session);
+        return session;
     }
+
     public async Task<List<CharacterSummary>> CharactersAsync(CancellationToken cancel = default)
     {
-        using var response = await http.GetAsync("api/characters", cancel); return await ReadResponseAsync<List<CharacterSummary>>(response, cancel);
+        using var response = await http.GetAsync("api/characters", cancel).ConfigureAwait(false);
+        return await ReadResponseAsync<List<CharacterSummary>>(response, cancel).ConfigureAwait(false);
     }
     public async Task<CharacterSummary> CreateCharacterAsync(CharacterRequest request, CancellationToken cancel = default)
     {
-        using var response = await http.PostAsJsonAsync("api/characters", request, Wire.Json, cancel); return await ReadResponseAsync<CharacterSummary>(response, cancel);
+        using var response = await http.PostAsJsonAsync("api/characters", request, Wire.Json, cancel).ConfigureAwait(false);
+        return await ReadResponseAsync<CharacterSummary>(response, cancel).ConfigureAwait(false);
     }
     public async Task<Catalog> CatalogAsync(CancellationToken cancel = default)
     {
-        using var response = await http.GetAsync("api/catalog", cancel); return await ReadResponseAsync<Catalog>(response, cancel);
+        using var response = await http.GetAsync("api/catalog", cancel).ConfigureAwait(false);
+        return await ReadResponseAsync<Catalog>(response, cancel).ConfigureAwait(false);
     }
     public async Task ConnectAsync(string character, CancellationToken cancel = default)
     {
@@ -86,10 +121,13 @@ public sealed class GameConnection : IAsyncDisposable
         socket = new ClientWebSocket(); socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(15);
         var target = new UriBuilder(new Uri(endpoint, "play")) { Scheme = endpoint.Scheme == "https" ? "wss" : "ws" };
         firstSnapshot = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        await socket.ConnectAsync(target.Uri, sessionCancel.Token);
-        await SendObjectAsync(new ConnectionHello { Token = token, CharacterId = character }, sessionCancel.Token);
-        connected = true; receiver = ReceiveLoopAsync(socket, sessionCancel.Token);
-        try { await firstSnapshot.Task.WaitAsync(TimeSpan.FromSeconds(15), cancel); }
+        try
+        {
+            await socket.ConnectAsync(target.Uri, sessionCancel.Token);
+            await SendObjectAsync(new ConnectionHello { Token = token, CharacterId = character }, sessionCancel.Token);
+            connected = true; receiver = ReceiveLoopAsync(socket, sessionCancel.Token);
+            await firstSnapshot.Task.WaitAsync(TimeSpan.FromSeconds(15), cancel);
+        }
         catch { await DisconnectAsync(); throw; }
     }
     public bool TryRead(out TransportPacket? packet)
@@ -107,7 +145,7 @@ public sealed class GameConnection : IAsyncDisposable
         try
         {
             var current = socket;
-            if (current is null || current.State != WebSocketState.Open) throw new RuleException("The connection is closed.");
+            if (current is null || current.State != WebSocketState.Open) throw new RuleException("The gameplay connection is closed. Enter the world before sending game commands.");
             await current.SendAsync(bytes, WebSocketMessageType.Text, true, cancel);
         }
         finally { sendGate.Release(); }
@@ -119,7 +157,7 @@ public sealed class GameConnection : IAsyncDisposable
         await actionGate.WaitAsync(cancel);
         try
         {
-            if (!connected) throw new RuleException("The connection is closed.");
+            if (!connected) throw new RuleException("The gameplay connection is closed. Enter the world before sending game commands.");
             command.Version = Wire.Version; command.RequestId = Guid.NewGuid().ToString("N"); command.Sequence = LastSequence + 1;
             var result = new TaskCompletionSource<CommandResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             pending[command.RequestId] = result;
@@ -206,8 +244,8 @@ public sealed class GameConnection : IAsyncDisposable
     public async Task SignOutAsync(CancellationToken cancel = default)
     {
         await DisconnectAsync();
-        if (token != "") { using var response = await http.PostAsync("api/logout", null, cancel); }
-        token = ""; Session = null; http.DefaultRequestHeaders.Authorization = null;
+        try { if (token != "") { using var response = await http.PostAsync("api/logout", null, cancel); } }
+        finally { token = ""; Session = null; http.DefaultRequestHeaders.Authorization = null; }
     }
     public async ValueTask DisposeAsync()
     {
