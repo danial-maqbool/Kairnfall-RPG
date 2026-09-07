@@ -35,6 +35,7 @@ def main():
     expected.update('equipment/'+item['id'] for item in catalog['items'] if item.get('slot'))
     expected.update('structures/'+item['id'] for item in catalog['items'] if item['type']=='structure')
     expected.update('abilities/'+a['id'] for a in catalog['abilities'])
+    expected.update('skills/'+skill['id'] for skill in catalog['skills'])
     expected.update('resources/'+r['id'] for r in catalog['resources'])
     expected.add('resources/crop_wheat')
     expected.update('mobs/'+m['id'] for m in catalog['mobs'])
@@ -62,7 +63,7 @@ def main():
             if entry['animated']:
                 size=image.width//8
                 check(image.width%8==0 and image.height==24*size,'Invalid animation grid: '+key)
-                # Equipment frames can be hidden by occlusion. Standalone actors must remain visible.
+                # Equipment can be hidden by occlusion. Standalone actors must remain visible.
                 if key.startswith(('mobs/','npcs/','people/body_')):
                     for row in range(24):
                         for column in range(8):
@@ -87,7 +88,7 @@ def main():
         with wave.open(str(path),'rb') as audio:
             check(audio.getnchannels()==1 and audio.getsampwidth()==2,'Unsupported audio format: '+key)
             check(audio.getframerate()==22050 and audio.getnframes()>100,'Empty or invalid audio: '+key)
-    report={'technical_checks':checks,'passed':checks-len(errors),'failed':len(errors),'actor_frames_checked':checked_frames,'required_image_keys':len(expected),'generated_image_files':len(entries),'required_audio_files':len(audio_names),'errors':errors,'warnings':warnings,'duplicate_normal_species_silhouettes':duplicate_shapes,'identical_normal_species_images':duplicate_images,'visual_review':'not_performed','visual_acceptance':'not_approved','audio_review':'not_performed','gameplay_acceptance':'not_tested_by_this_tool'}
+    report={'technical_checks':checks,'passed':checks-len(errors),'failed':len(errors),'actor_frames_checked':checked_frames,'required_image_keys':len(expected),'generated_image_files':len(entries),'required_skill_icons':len(catalog['skills']),'required_audio_files':len(audio_names),'errors':errors,'warnings':warnings,'duplicate_normal_species_silhouettes':duplicate_shapes,'identical_normal_species_images':duplicate_images,'visual_review':'not_performed','visual_acceptance':'not_approved','audio_review':'not_performed','gameplay_acceptance':'not_tested_by_this_tool'}
     target=ROOT/'artifacts/test-results/asset-structure.json'; target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(report,indent=2))
