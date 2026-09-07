@@ -1,0 +1,109 @@
+name: Export Windows client
+
+on:
+  push:
+    branches: [main, 'team/**']
+    paths:
+      - 'client/**'
+      - 'src/Kairnfall.Core/**'
+      - 'content/**'
+      - '.github/workflows/windows-release.yml'
+  pull_request:
+    paths:
+      - 'client/**'
+      - 'src/Kairnfall.Core/**'
+      - 'content/**'
+      - '.github/workflows/windows-release.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-export-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+  GODOT_TEMPLATE_VERSION: 4.7.2.stable
+  GODOT_EDITOR_SHA256: a2a48473a7414c5f19fab690518caebb738c09ef9601f6bd2388676a7f53b3c0
+  GODOT_TEMPLATES_SHA256: 92f8681e349ef1f90891b792da95e3b2b0bd1ed610b78018c58feb2d87e15a9d
+
+jobs:
+  export-windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Download verified Godot .NET editor and export templates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cache = Join-Path $env:RUNNER_TEMP 'godot-4.7.2'
+          New-Item -ItemType Directory -Force $cache | Out-Null
+          $editorZip = Join-Path $cache 'editor.zip'
+          $templatesTpz = Join-Path $cache 'templates.tpz'
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/$env:GODOT_VERSION/Godot_v4.7.2-stable_mono_win64.zip" -OutFile $editorZip
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/$env:GODOT_VERSION/Godot_v4.7.2-stable_mono_export_templates.tpz" -OutFile $templatesTpz
+          if ((Get-FileHash $editorZip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:GODOT_EDITOR_SHA256) { throw 'Godot editor archive hash mismatch.' }
+          if ((Get-FileHash $templatesTpz -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:GODOT_TEMPLATES_SHA256) { throw 'Godot export-template archive hash mismatch.' }
+
+      - name: Install Godot and matching .NET export templates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cache = Join-Path $env:RUNNER_TEMP 'godot-4.7.2'
+          $editorDir = Join-Path $cache 'editor'
+          $templatesDir = Join-Path $cache 'templates-unpacked'
+          $templatesZip = Join-Path $cache 'templates.zip'
+          Remove-Item $editorDir,$templatesDir -Recurse -Force -ErrorAction SilentlyContinue
+          Expand-Archive -Path (Join-Path $cache 'editor.zip') -DestinationPath $editorDir -Force
+          Copy-Item (Join-Path $cache 'templates.tpz') $templatesZip -Force
+          Expand-Archive -Path $templatesZip -DestinationPath $templatesDir -Force
+          $templateSource = Join-Path $templatesDir 'templates'
+          if (!(Test-Path $templateSource)) { throw 'Godot template archive did not contain the templates directory.' }
+          $templateTarget = Join-Path $env:APPDATA "Godot\export_templates\$env:GODOT_TEMPLATE_VERSION"
+          New-Item -ItemType Directory -Force $templateTarget | Out-Null
+          Copy-Item (Join-Path $templateSource '*') $templateTarget -Recurse -Force
+          $godot = Get-ChildItem $editorDir -Filter 'Godot_v4.7.2-stable_mono_win64.exe' -Recurse | Select-Object -First 1
+          if ($null -eq $godot) { throw 'Godot .NET editor executable was not found.' }
+          "GODOT_EXE=$($godot.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          & $godot.FullName --version
+          if ($LASTEXITCODE -ne 0) { throw "Godot version check failed with exit code $LASTEXITCODE." }
+
+      - name: Build client C# source
+        shell: pwsh
+        run: |
+          dotnet build client/Kairnfall.Client.csproj -c Release
+          if ($LASTEXITCODE -ne 0) { throw "Client build failed with exit code $LASTEXITCODE." }
+
+      - name: Load project in Godot headless editor
+        shell: pwsh
+        run: |
+          & $env:GODOT_EXE --headless --editor --path "$env:GITHUB_WORKSPACE\client" --quit
+          if ($LASTEXITCODE -ne 0) { throw "Godot headless import failed with exit code $LASTEXITCODE." }
+
+      - name: Export Windows x86-64 release
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:GITHUB_WORKSPACE 'build\client\Kairnfall.exe'
+          New-Item -ItemType Directory -Force (Split-Path $output) | Out-Null
+          & $env:GODOT_EXE --headless --path "$env:GITHUB_WORKSPACE\client" --export-release 'Windows Desktop' $output
+          if ($LASTEXITCODE -ne 0) { throw "Godot export failed with exit code $LASTEXITCODE." }
+          if (!(Test-Path $output)) { throw 'Godot reported success but Kairnfall.exe was not produced.' }
+          $files = Get-ChildItem (Split-Path $output) -Recurse -File
+          if ($files.Count -lt 2) { throw 'Windows export is incomplete.' }
+          $files | Select-Object FullName,Length | Format-Table -AutoSize
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kairnfall-Windows-${{ github.sha }}
+          path: build/client/
+          retention-days: 14
+          if-no-files-found: error
