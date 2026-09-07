@@ -161,12 +161,15 @@ public sealed partial class RealmEngine
             case "party_kick": return GroupKick(p,false,c.Target);
             case "guild_kick": return GroupKick(p,true,c.Target);
             case "guild_message": return GuildMessage(p,c.Arg);
+            case "guild_role": return GuildRole(p,c.Target,c.Arg);
             case "chat": return Chat(p,c.Target,c.Item,c.Arg);
             case "ignore": Need(State.Characters.ContainsKey(c.Target),"Character not found."); if(!p.Ignored.Add(c.Target)) p.Ignored.Remove(c.Target); return "Ignore list updated.";
             case "plant": return Plant(p,new(c.X,c.Y));
             case "build": return Build(p,c.Item,new(c.X,c.Y));
+            case "dismantle": return Dismantle(p,c.Target);
             case "tame": return Tame(p,c.Target);
             case "feed": return Feed(p,c.Item);
+            case "pet_dismiss": return PetDismiss(p);
             case "prospect": return Prospect(p,c.Target);
             case "chart": return Chart(p);
             case "track": Ready(p,"track",30); Need(p.Stamina>=10,"Not enough stamina."); p.Stamina-=10; ApplyStatus(p.Statuses,"tracking",Element.Nature,30,1,p.Id); return "Nearby animal tracks are highlighted.";
