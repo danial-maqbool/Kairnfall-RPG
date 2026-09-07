@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      DOTNET_INSTALL_DIR: ${{ runner.temp }}/kairnfall-dotnet
+      DOTNET_INSTALL_DIR: /home/runner/kairnfall-dotnet
     steps:
       - uses: actions/setup-dotnet@v4
         with:
@@ -24,6 +24,7 @@ jobs:
           curl --fail --location --retry 3 'https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_mono_linux_x86_64.zip' -o "$RUNNER_TEMP/godot-tools.zip"
           unzip -t "$RUNNER_TEMP/godot-tools.zip"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: validation-toolchain
           path: |
