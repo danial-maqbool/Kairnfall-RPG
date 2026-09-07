@@ -1,0 +1,23 @@
+name: Transaction security regression
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'tests/Kairnfall.SecurityTests/**'
+      - '.github/workflows/security.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transactions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: python tools/build_content.py
+      - name: Run isolated adversarial transaction regressions
+        run: dotnet run --project tests/Kairnfall.SecurityTests -c Release -- content/catalog.json

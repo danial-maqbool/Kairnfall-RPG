@@ -47,16 +47,31 @@ public sealed partial class RealmEngine
         {
             Need(long.TryParse(gold,NumberStyles.None,CultureInfo.InvariantCulture,out var value)&&value>=0&&value<=p.Gold,"Invalid gold offer."); offer.Gold=value;
         }
-        trade.Revision++; trade.A.Ready=false; trade.B.Ready=false; trade.A.Confirmed=false; trade.B.Confirmed=false; trade.Expires=State.Time+120;
+        trade.Revision++; trade.A.Ready=false; trade.B.Ready=false; trade.A.Confirmed=false; trade.B.Confirmed=false; trade.A.ApprovedFingerprint=""; trade.B.ApprovedFingerprint=""; trade.Expires=State.Time+120;
         return "Offer changed. Both players must review it again.";
     }
     private string TradeReady(Character p,string id,int revision,bool confirm)
     {
-        var trade=GetTrade(p,id); Need(trade.Revision==revision,"The offer changed. Review the current revision.");
-        var offer=trade.A.Character==p.Id?trade.A:trade.B;
-        if(!confirm) { offer.Ready=true; offer.Confirmed=false; return "Offer marked ready. Confirm after both players are ready."; }
-        Need(trade.A.Ready&&trade.B.Ready,"Both players must first mark their offers ready."); offer.Confirmed=true;
-        if(!trade.A.Confirmed||!trade.B.Confirmed) return "Confirmed. Waiting for the other player.";
+        var trade = GetTrade(p, id);
+        // Persist the reset as an acknowledged state change. Throwing here would
+        // restore the stale consent through Execute's transaction rollback.
+        if (InvalidateTradeConsent(trade))
+            return "The trade contents changed. Both players must review the new offer.";
+        Need(trade.Revision == revision, "The offer changed. Review the current revision.");
+        Need(CanFulfillTradeOffer(trade.A) && CanFulfillTradeOffer(trade.B),
+            "An offered item or the offered gold is no longer available.");
+        var offer = trade.A.Character == p.Id ? trade.A : trade.B;
+        if (!confirm)
+        {
+            offer.Ready = true;
+            offer.Confirmed = false;
+            // Each player approves BOTH offers, including the full item instance.
+            offer.ApprovedFingerprint = TradeContentFingerprint(trade);
+            return "Offer marked ready. Confirm after both players are ready.";
+        }
+        Need(trade.A.Ready && trade.B.Ready, "Both players must first mark their offers ready.");
+        offer.Confirmed = true;
+        if (!trade.A.Confirmed || !trade.B.Confirmed) return "Confirmed. Waiting for the other player.";
         var a=Player(trade.A.Character); var b=Player(trade.B.Character);
         var aItems=trade.A.Items.Select(x=>Items.Take(a.Inventory,x.Key,x.Value,a)).ToList();
         var bItems=trade.B.Items.Select(x=>Items.Take(b.Inventory,x.Key,x.Value,b)).ToList();
