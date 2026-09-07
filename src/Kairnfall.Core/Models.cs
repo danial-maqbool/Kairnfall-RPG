@@ -380,6 +380,7 @@ public sealed class WorldEvent
 }
 public sealed class Telegraph
 {
+    public string Skill { get; set; } = "";
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Zone { get; set; } = "";
     public string Source { get; set; } = "";
