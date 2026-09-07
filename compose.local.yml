@@ -1,0 +1,43 @@
+# Local development only. tools/local_dev.py supplies random private passwords.
+# The PostgreSQL 18 image stores data beneath /var/lib/postgresql/18/docker.
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: kairnfall
+      POSTGRES_DB: kairnfall
+      POSTGRES_PASSWORD: ${KAIRNFALL_DEV_PASSWORD:?Use the local development launcher}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=scram-sha-256
+    ports:
+      - '127.0.0.1:55432:5432'
+    volumes:
+      - realm:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kairnfall -d kairnfall']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+  test-postgres:
+    image: postgres:18-alpine
+    profiles: ['test']
+    environment:
+      POSTGRES_USER: kairnfall_test
+      POSTGRES_DB: kairnfall_test
+      POSTGRES_PASSWORD: ${KAIRNFALL_TEST_PASSWORD:?Use the isolated local test launcher}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=scram-sha-256
+    ports:
+      - '127.0.0.1:55433:5432'
+    volumes:
+      - tests:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kairnfall_test -d kairnfall_test']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+volumes:
+  realm:
+    name: ${KAIRNFALL_COMPOSE_PROJECT:?Use the local launcher}_realm
+  tests:
+    name: ${KAIRNFALL_COMPOSE_PROJECT:?Use the local launcher}_tests
