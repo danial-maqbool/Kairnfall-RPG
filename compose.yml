@@ -1,0 +1,20 @@
+name: kairnfall-local
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kairnfall
+      POSTGRES_DB: kairnfall
+      POSTGRES_PASSWORD: ${KAIRNFALL_DB_PASSWORD:?Start the realm through Start-Kairnfall.ps1}
+    ports:
+      - '127.0.0.1:55432:5432'
+    volumes:
+      - realm-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kairnfall -d kairnfall']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+volumes:
+  realm-data:

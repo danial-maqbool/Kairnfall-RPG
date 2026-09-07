@@ -1,0 +1,157 @@
+name: Build and launch the game
+on:
+  push:
+    branches: ['team/integration/windows-launch']
+  pull_request:
+    paths: ['client/**', 'src/**', 'tools/art/**', 'tools/build_assets.py', 'tools/get_godot.py', '*.ps1', '.github/workflows/playable.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: playable-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  live-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      KAIRNFALL_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_LOCAL_HTTP: '1'
+      ASPNETCORE_ENVIRONMENT: Testing
+      ASPNETCORE_URLS: http://127.0.0.1:5077
+      KAIRNFALL_SCREENSHOTS: ${{ github.workspace }}/artifacts/screenshots
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build the complete client asset pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/logs
+          python -m pip install Pillow==11.3.0
+          python tools/build_content.py | tee artifacts/logs/content.log
+          python tools/build_assets.py --workers 2 | tee artifacts/logs/assets.log
+      - name: Build server and Godot client
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build src/Kairnfall.Server/Kairnfall.Server.csproj -c Release | tee artifacts/logs/server-build.log
+          dotnet build client/Kairnfall.Client.csproj -c Debug | tee artifacts/logs/client-build.log
+          python tools/get_godot.py --os linux
+      - name: Import resources and launch a real client against PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/logs/import.log
+          dotnet src/Kairnfall.Server/bin/Release/net10.0/Kairnfall.Server.dll > artifacts/logs/server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:5077/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:5077/health
+          timeout 100 xvfb-run -a -s '-screen 0 1440x900x24' "$GODOT_BIN" --path client --rendering-method gl_compatibility --audio-driver Dummy -- --smoke 2>&1 | tee artifacts/logs/live-client.log
+          grep -F 'SMOKE: live world, inventory, skills, and map rendered without missing requested assets.' artifacts/logs/live-client.log
+          test -s artifacts/screenshots/01-world.png
+          test -s artifacts/screenshots/02-inventory.png
+          test -s artifacts/screenshots/03-skills.png
+          test -s artifacts/screenshots/04-map.png
+          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/logs/live-client.log; then exit 1; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-client-evidence-${{ github.sha }}
+          path: |
+            artifacts/logs/
+            artifacts/test-results/
+            artifacts/art-review/
+            artifacts/screenshots/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-assets-${{ github.sha }}
+          path: client/Assets/
+          retention-days: 7
+          if-no-files-found: error
+  windows-package:
+    needs: live-client
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: client-assets-${{ github.sha }}
+          path: client/Assets
+      - name: Install pinned Godot and export templates
+        run: python tools/get_godot.py --os windows --with-templates
+      - name: Export development client and self-contained server
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force build/client, build/server, artifacts/logs | Out-Null
+          python tools/build_content.py
+          if ($LASTEXITCODE -ne 0) { throw 'Content build failed.' }
+          dotnet build client/Kairnfall.Client.csproj -c Debug
+          if ($LASTEXITCODE -ne 0) { throw 'Client build failed.' }
+          & $env:GODOT_BIN --headless --editor --path client --import *>&1 | Tee-Object artifacts/logs/windows-import.log
+          if ($LASTEXITCODE -ne 0) { throw 'Client import failed.' }
+          & $env:GODOT_BIN --headless --path client --export-release 'Windows Desktop' '../build/client/Kairnfall.exe' *>&1 | Tee-Object artifacts/logs/windows-export.log
+          if ($LASTEXITCODE -ne 0) { throw 'Windows export failed.' }
+          dotnet publish src/Kairnfall.Server/Kairnfall.Server.csproj -c Release -r win-x64 --self-contained true -o build/server
+          if ($LASTEXITCODE -ne 0) { throw 'Windows server publish failed.' }
+          New-Item -ItemType Directory -Force build/server/content | Out-Null
+          Copy-Item content/catalog.json build/server/content/catalog.json
+          Copy-Item LICENSE, README.md build/
+          foreach ($file in @('Play-Kairnfall.cmd','Start-Kairnfall.ps1','Stop-Kairnfall.ps1','compose.yml')) {
+            if (!(Test-Path $file)) { throw "Missing package launcher: $file" }
+            Copy-Item $file build/
+          }
+          if (!(Test-Path build/client/Kairnfall.exe)) { throw 'Export did not produce the client.' }
+          & build/client/Kairnfall.exe --headless --quit-after 90 *>&1 | Tee-Object artifacts/logs/windows-boot.log
+          if ($LASTEXITCODE -ne 0) { throw 'Exported client failed its Windows boot check.' }
+          if (Select-String -Path artifacts/logs/windows-boot.log -Pattern 'ERROR:|Unhandled exception') { throw 'Windows client logged a startup error.' }
+          Compress-Archive -Path build/* -DestinationPath Kairnfall-Windows-Development.zip
+          Get-FileHash Kairnfall-Windows-Development.zip -Algorithm SHA256 | Format-List | Out-File Kairnfall-Windows-Development.sha256.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-build-evidence-${{ github.sha }}
+          path: artifacts/logs/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kairnfall-Windows-Development
+          path: |
+            Kairnfall-Windows-Development.zip
+            Kairnfall-Windows-Development.sha256.txt
+          retention-days: 14
+          if-no-files-found: error
