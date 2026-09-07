@@ -66,9 +66,15 @@ public static class Ui
     }
     public static Button Button(string text, Action action, bool disabled = false)
     {
-        var button = new Button { Text = text, Disabled = disabled, CustomMinimumSize = new Vector2(0, 36), MouseDefaultCursorShape = Control.CursorShape.PointingHand };
-        button.Pressed += action;
-        return button;
+        ArgumentNullException.ThrowIfNull(action);
+        return new ActionButton
+        {
+            Text = text,
+            Disabled = disabled,
+            PressedAction = action,
+            CustomMinimumSize = new Vector2(0, 36),
+            MouseDefaultCursorShape = Control.CursorShape.PointingHand
+        };
     }
     public static LineEdit Edit(string placeholder, string text = "", bool secret = false)
         => new() { PlaceholderText = placeholder, Text = text, Secret = secret, MaxLength = 128, CustomMinimumSize = new Vector2(0, 38), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
