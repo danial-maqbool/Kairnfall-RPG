@@ -1,0 +1,94 @@
+name: Prepare reviewed client edit
+on:
+  push:
+    branches: [main]
+    paths: ['.ci/client-edit-request.json', '.github/workflows/prepare-client-edit.yml']
+permissions:
+  contents: read
+concurrency:
+  group: prepare-client-edit
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Apply exact reviewed text edits to an unreferenced commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, os, re, urllib.request
+          from pathlib import Path, PurePosixPath
+          request = json.loads(Path('.ci/client-edit-request.json').read_text())
+          def sha(value):
+              if not isinstance(value, str) or not re.fullmatch('[0-9a-f]{40}', value):
+                  raise ValueError('Expected a full immutable Git object ID')
+              return value
+          root = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY']
+          def api(path, payload=None):
+              # This helper never calls refs, branches, merges, or releases.
+              if not re.fullmatch(r'/git/(blobs(?:/[0-9a-f]{40})?|trees(?:/[0-9a-f]{40}(?:\?recursive=1)?)?|commits(?:/[0-9a-f]{40})?)', path):
+                  raise ValueError('Unsupported Git-object operation')
+              data = None if payload is None else json.dumps(payload).encode()
+              req = urllib.request.Request(root + path, data=data, headers={
+                  'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                  'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json',
+                  'X-GitHub-Api-Version': '2022-11-28'})
+              with urllib.request.urlopen(req, timeout=45) as response:
+                  return json.load(response)
+          base = sha(request['base'])
+          commit = api('/git/commits/' + base)
+          tree = api('/git/trees/' + commit['tree']['sha'] + '?recursive=1')
+          if tree.get('truncated'): raise ValueError('Refuse a truncated base tree')
+          entries = {row['path']: row for row in tree['tree']}
+          proposed = []; paths = set()
+          for edit in request['edits']:
+              path = edit['path']; parts = PurePosixPath(path).parts
+              if not parts or path.startswith('/') or '..' in parts or '\\' in path or path in paths:
+                  raise ValueError('Invalid or repeated edit path')
+              if not (parts[0] in {'client','src','content_src','tests','tools','docs'} or path == 'README.md'):
+                  raise ValueError('Edit path is outside the reviewed source areas')
+              paths.add(path)
+              old = entries.get(path)
+              expected = edit.get('expected_blob')
+              if expected is None:
+                  if old is not None: raise ValueError('New path already exists: ' + path)
+              elif old is None or old.get('type') != 'blob' or old['sha'] != sha(expected):
+                  raise ValueError('Base blob differs from the reviewed source: ' + path)
+              if 'source_blob' in edit:
+                  blob = sha(edit['source_blob']); api('/git/blobs/' + blob)
+              else:
+                  if old is None:
+                      text = edit['content']
+                  else:
+                      value = api('/git/blobs/' + old['sha'])
+                      if value['encoding'] != 'base64': raise ValueError('Unsupported source encoding')
+                      raw = base64.b64decode(value['content'])
+                      actual = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+                      if actual != expected: raise ValueError('Source blob integrity mismatch')
+                      text = raw.decode('utf-8')
+                  for patch in edit.get('replacements', []):
+                      before = patch['old']; count = patch.get('count', 1)
+                      if not before or text.count(before) != count:
+                          raise ValueError('Exact replacement count differs: ' + path)
+                      text = text.replace(before, patch['new'])
+                  if 'replace_tail' in edit:
+                      patch = edit['replace_tail']; marker = patch['marker']
+                      if text.count(marker) != 1: raise ValueError('Tail marker is not unique: ' + path)
+                      text = text[:text.index(marker)] + patch['new']
+                  blob = api('/git/blobs', {'content':text, 'encoding':'utf-8'})['sha']
+              proposed.append({'path':path,'mode':old['mode'] if old else '100644','type':'blob','sha':blob})
+          if not proposed: raise ValueError('No source edits requested')
+          newtree = api('/git/trees', {'base_tree':commit['tree']['sha'],'tree':proposed})['sha']
+          result = api('/git/commits', {'message':request['message'],'tree':newtree,'parents':[base]})
+          print('PREPARED_CANDIDATE=' + result['sha'])
+          print('PREPARED_TREE=' + newtree)
+          for item in proposed: print('BLOB ' + item['sha'] + ' ' + item['path'])
+          print('No branch was created or updated. The candidate still requires the complete verification workflow.')
+          PY
