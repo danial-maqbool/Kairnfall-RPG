@@ -5,7 +5,7 @@ namespace Kairnfall.Client;
 
 public static class Ui
 {
-    public static readonly Color Ink = new("111c26"), Panel = new("17252e"), Raised = new("253740"), Gold = new("d1b87c"), Text = new("ece4cf"), Muted = new("a5b5b0"), Danger = new("d98976"), Success = new("a9c78b");
+    public static readonly Color Ink = new("171512"), Panel = new("27231d"), Raised = new("3a3228"), Gold = new("d1b87c"), Text = new("ece4cf"), Muted = new("b2ab99"), Danger = new("e39782"), Success = new("b2cb91");
     public static readonly Color[] RarityColors = [new("c1c5bd"), new("8abd8b"), new("81b0d3"), new("b099d4"), new("dbad69"), new("d5808c"), new("e7d99b")];
     public static Color RarityColor(Rarity rarity) => RarityColors[Math.Clamp((int)rarity, 0, RarityColors.Length - 1)];
     public static string Words(string text) => System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(text.Replace('_', ' '));
@@ -27,11 +27,11 @@ public static class Ui
         theme.SetColor("font_pressed_color", "Button", Gold);
         theme.SetColor("font_disabled_color", "Button", new Color("64787a"));
         theme.SetStylebox("normal", "Button", Box(Raised));
-        theme.SetStylebox("hover", "Button", Box(new Color("354953"), Gold));
+        theme.SetStylebox("hover", "Button", Box(new Color("504333"), Gold));
         theme.SetStylebox("pressed", "Button", Box(Ink, Gold));
-        theme.SetStylebox("disabled", "Button", Box(new Color("1a292f"), new Color("314348")));
+        theme.SetStylebox("disabled", "Button", Box(new Color("211e19"), new Color("494133")));
         theme.SetStylebox("focus", "Button", Box(new Color(0, 0, 0, 0), Gold, 0));
-        theme.SetStylebox("panel", "PanelContainer", Box(Panel, new Color("627471"), 16));
+        theme.SetStylebox("panel", "PanelContainer", Box(Panel, new Color("78664a"), 16));
         theme.SetStylebox("normal", "LineEdit", Box(Ink, new Color("566c70")));
         theme.SetStylebox("focus", "LineEdit", Box(Ink, Gold));
         theme.SetColor("font_color", "LineEdit", Text);

@@ -107,7 +107,7 @@ public partial class GameRoot
             int read = 0;
             while (read++ < 150 && Connection.TryRead(out var packet)) if (packet?.Snapshot is not null) { World.Accept(packet); invitations = packet.Invitations ?? []; }
             frontend.Visible = false; SetInitialHotbar(); ClosePage();
-            Notify("WASD or arrows to move. E to interact. Right-click to walk. Select a creature to attack.");
+            Notify("Move: WASD or arrows. Interact: E. Hold Space to attack. Use your first class ability with 1.");
         }
         catch (Exception error) { Notify(error.Message, true); ShowLogin(error.Message); }
         finally { authenticationBusy = false; }
@@ -157,68 +157,4 @@ public partial class GameRoot
         choice.Selected = Math.Clamp(selected, 0, Math.Max(0, values.Length - 1)); choice.ItemSelected += index => changed((int)index); row.AddChild(choice); return choice;
     }
 
-    private void BuildHud()
-    {
-        hud = new Control { MouseFilter = MouseFilterEnum.Ignore }; interfaceRoot.AddChild(hud); hud.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect); interfaceRoot.MoveChild(hud, 0);
-        var stats = new PanelContainer { Position = new Vector2(18, 18), CustomMinimumSize = new Vector2(300, 0) }; hud.AddChild(stats);
-        var column = Ui.Column(stats); characterTitle = Ui.Label("", 18, Ui.Gold); column.AddChild(characterTitle);
-        healthText = Ui.Label("", 13); column.AddChild(healthText); health = Ui.Bar(new Color("a65759"), 270); column.AddChild(health);
-        manaText = Ui.Label("", 13); column.AddChild(manaText); mana = Ui.Bar(new Color("5b87a8"), 270); column.AddChild(mana);
-        staminaText = Ui.Label("", 13); column.AddChild(staminaText); stamina = Ui.Bar(new Color("94a86e"), 270); column.AddChild(stamina);
-        var titlePanel = new VBoxContainer { AnchorLeft = .5f, AnchorRight = .5f, OffsetLeft = -280, OffsetRight = 280, OffsetTop = 23, MouseFilter = MouseFilterEnum.Ignore }; hud.AddChild(titlePanel);
-        location = Ui.Label("", 23, Ui.Gold); location.HorizontalAlignment = HorizontalAlignment.Center; titlePanel.AddChild(location);
-        targetText = Ui.Label("", 15, Ui.Text); targetText.HorizontalAlignment = HorizontalAlignment.Center; titlePanel.AddChild(targetText);
-        connectionText = Ui.Label("", 14, Ui.Danger); connectionText.HorizontalAlignment = HorizontalAlignment.Center; titlePanel.AddChild(connectionText);
-        var minimapPanel = new PanelContainer { AnchorLeft = 1, AnchorRight = 1, OffsetLeft = -234, OffsetRight = -18, OffsetTop = 18, OffsetBottom = 246 }; hud.AddChild(minimapPanel);
-        var miniColumn = Ui.Column(minimapPanel); miniColumn.AddChild(new MinimapView { World = World, Data = Data, CustomMinimumSize = new Vector2(184, 166) }); miniColumn.AddChild(Ui.Button("World map  [M]", () => OpenPage("Map")));
-        var bottom = new PanelContainer { AnchorLeft = .5f, AnchorRight = .5f, AnchorTop = 1, AnchorBottom = 1, OffsetLeft = -355, OffsetRight = 355, OffsetTop = -89, OffsetBottom = -18 }; hud.AddChild(bottom);
-        var bar = Ui.Row(bottom);
-        for (int i = 0; i < hotbar.Length; i++)
-        {
-            int slot = i; var button = Ui.Button((i == 9 ? 0 : i + 1).ToString(), () => UseHotbar(slot)); button.CustomMinimumSize = new Vector2(58, 44); button.ExpandIcon = true; button.AddThemeConstantOverride("icon_max_width", 28); button.SizeFlagsHorizontal = SizeFlags.ExpandFill; hotbarButtons[i] = button; bar.AddChild(button);
-        }
-        // Reserve the bottom strip for every hotbar slot at the minimum window size.
-        var chatPanel = new PanelContainer { AnchorTop = 1, AnchorBottom = 1, OffsetLeft = 18, OffsetRight = 352, OffsetTop = -335, OffsetBottom = -106 }; hud.AddChild(chatPanel);
-        var chat = Ui.Column(chatPanel); chatLog = new RichTextLabel { BbcodeEnabled = false, ScrollFollowing = true, CustomMinimumSize = new Vector2(295, 135), SizeFlagsVertical = SizeFlags.ExpandFill }; chatLog.AddThemeFontSizeOverride("normal_font_size", 13); chat.AddChild(chatLog);
-        var sendRow = Ui.Row(chat); chatChannel = new OptionButton(); foreach (string channel in new[] { "local", "global", "party", "guild", "whisper" }) chatChannel.AddItem(channel); sendRow.AddChild(chatChannel);
-        chatInput = Ui.Edit("Enter to chat"); chatInput.MaxLength = 300; sendRow.AddChild(chatInput);
-        chatInput.TextSubmitted += text =>
-        {
-            if (text.Trim() != "") Send("chat", chatChannel.GetItemText(chatChannel.Selected), selectedTargetKind == "player" ? selectedTarget : "", arg: text.Trim());
-            chatInput.Text = ""; chatInput.ReleaseFocus();
-        };
-        var menu = new PanelContainer { AnchorLeft = 1, AnchorRight = 1, AnchorTop = 1, AnchorBottom = 1, OffsetLeft = -300, OffsetRight = -18, OffsetTop = -317, OffsetBottom = -106 }; hud.AddChild(menu);
-        var grid = new GridContainer { Columns = 2 }; menu.AddChild(grid);
-        foreach (string entry in new[] { "Inventory", "Character", "Skills", "Abilities", "Quests", "Crafting", "Social", "Settings" }) grid.AddChild(Ui.Button(entry, () => OpenPage(entry)));
-        notice = Ui.Label("", 16, Ui.Text, true); notice.AnchorLeft = .5f; notice.AnchorRight = .5f; notice.AnchorTop = 1; notice.AnchorBottom = 1; notice.OffsetLeft = -360; notice.OffsetRight = 360; notice.OffsetTop = -153; notice.OffsetBottom = -98; notice.HorizontalAlignment = HorizontalAlignment.Center; notice.AddThemeConstantOverride("outline_size", 5); notice.AddThemeColorOverride("font_outline_color", Ui.Ink); hud.AddChild(notice);
-        deathPanel = new PanelContainer { AnchorLeft = .5f, AnchorRight = .5f, AnchorTop = .5f, AnchorBottom = .5f, OffsetLeft = -240, OffsetRight = 240, OffsetTop = -90, OffsetBottom = 100, Visible = false }; hud.AddChild(deathPanel);
-        var death = Ui.Column(deathPanel); death.AddChild(Ui.Label("Your journey continues", 24, Ui.Gold)); deathText = Ui.Label("", 16, Ui.Text, true); death.AddChild(deathText); respawnButton = Ui.Button("Return to safety", () => Send("respawn")); death.AddChild(respawnButton);
-    }
-
-    private void UpdateHud()
-    {
-        if (hud is null) return;
-        hud.Visible = Snapshot is not null;
-        if (Snapshot is not { } snap) return;
-        var self = snap.Self; var stats = CombatMath.Stats(self, Data);
-        characterTitle.Text = self.Name + "  ·  " + Progression.PlayerLevel(self) + "  ·  " + self.Gold + " gold";
-        health.MaxValue = stats.Health; health.Value = self.Health; healthText.Text = $"Health  {Math.Ceiling(self.Health):0} / {stats.Health:0}";
-        mana.MaxValue = stats.Mana; mana.Value = self.Mana; manaText.Text = $"Mana  {Math.Ceiling(self.Mana):0} / {stats.Mana:0}";
-        stamina.MaxValue = stats.Stamina; stamina.Value = self.Stamina; staminaText.Text = $"Stamina  {Math.Ceiling(self.Stamina):0} / {stats.Stamina:0}";
-        var zone = Data.Zone(self.Zone); location.Text = zone.Name + "  ·  " + zone.Layer;
-        var target = snap.Creatures.FirstOrDefault(x => x.Id == selectedTarget && x.Health > 0);
-        targetText.Text = target is null ? WorldTime.Weather(zone, snap.Time) + "  ·  " + (autoAttack ? "Auto-attack" : "E: interact") : Data.Mob(target.Template).Name + "  ·  " + Math.Ceiling(target.Health) + " health";
-        connectionText.Text = Connection?.Connected == true ? "" : "Disconnected. Open Settings to reconnect or sign in again.";
-        deathPanel.Visible = self.Health <= 0;
-        if (deathPanel.Visible) { deathText.Text = "Your equipment remains yours. Repair damaged equipment after returning to a settlement.\nRespawn in " + Math.Max(0, Math.Ceiling(self.DeadUntil - snap.Time)) + " seconds."; respawnButton.Disabled = self.DeadUntil > snap.Time; }
-        for (int i = 0; i < hotbar.Length; i++)
-        {
-            string id = hotbar[i]; var button = hotbarButtons[i];
-            if (string.IsNullOrEmpty(id)) { button.Icon = null; button.Text = (i == 9 ? 0 : i + 1) + "\n—"; button.TooltipText = "Assign an ability from the Abilities window."; continue; }
-            var ability = Data.Ability(id); double cooldown = self.Cooldowns.GetValueOrDefault(id) - snap.Time;
-            button.Icon = Assets.AbilityIcon(id); button.Text = (i == 9 ? 0 : i + 1).ToString() + (cooldown > 0 ? "\n" + Math.Ceiling(cooldown) : "");
-            button.TooltipText = ability.Name + "\n" + ability.Description + $"\nMana {ability.Mana} · Stamina {ability.Stamina} · Cooldown {ability.Cooldown}s";
-            button.Disabled = cooldown > 0 || self.Health <= 0;
-        }
-    }
 }

@@ -43,7 +43,6 @@ public partial class GameRoot : Control
     private Action? refreshPage;
     private double moveClock, uiClock, noticeUntil;
     private bool actionBusy, movementBusy, closing;
-    private readonly bool autoAttack = false;
     private Vector2 lastInput;
     private readonly CancellationTokenSource lifetime = new();
     private string lastPageStamp = "";
@@ -203,6 +202,9 @@ public partial class GameRoot : Control
             if (result.Ok)
             {
                 if (command.Kind is "attack" or "cast" or "gather") World.Animate(Snapshot!.Self.Id, command.Kind == "cast" ? 3 : 2, .6);
+                if (command.Kind == "cast")
+                    for (int i = 0; i < hotbar.Length; i++)
+                        if (hotbar[i] == command.Item && hotbarButtons[i] is AbilitySlot slot) slot.ShowActivation();
                 audio?.PlayEffect(command.Kind); lastPageStamp = "";
             }
             return result;

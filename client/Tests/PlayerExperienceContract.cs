@@ -48,7 +48,7 @@ public partial class PlayerExperienceContract : Node
             Require(gate.TryTake(1, 10, 10, true), "A ready attack may request once");
             Require(!gate.TryTake(1.01, 10, 10, true), "Repeated held input cannot request each frame");
             Require(!gate.TryTake(1.2, 10, 11, true), "Server cooldown prevents an early attack request");
-            Require(!gate.TryTake(1.2, 10, 11, false), "Disabled input does not consume an attack");
+            Require(!gate.TryTake(1.2, 12, 11, false), "Disabled input does not consume an attack");
             Require(gate.TryTake(1.2, 12, 11, true), "A later valid attack is allowed");
             Require(!gate.TryTake(double.NaN, 12, 11, true), "Invalid time is rejected");
             var zone = data.Zone(self.Zone);

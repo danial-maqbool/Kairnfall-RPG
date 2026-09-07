@@ -47,7 +47,7 @@ public partial class GameRoot
             if (key.PhysicalKeycode == Key.Enter)
             {
                 StopCombatInput(); route.Clear(); pendingInteraction = null;
-                chatInput.GrabFocus(); GetViewport().SetInputAsHandled(); return;
+                ShowChat(true); chatInput.GrabFocus(); GetViewport().SetInputAsHandled(); return;
             }
             foreach (string action in new[] { "inventory", "character", "skills", "quests", "map", "abilities", "crafting", "social" })
             {

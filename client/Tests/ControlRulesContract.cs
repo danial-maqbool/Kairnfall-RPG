@@ -102,6 +102,17 @@ public partial class ControlRulesContract : Node
             game.World.Accept(new TransportPacket { Snapshot = new Snapshot { Self = self, Time = 10 } });
             Field<Control>(game, "frontend").Hide();
             Call(game, "UpdateHud"); Call(game, "SetInitialHotbar");
+            string starterAbility = Field<string[]>(game, "hotbar")[0];
+            self.Cooldowns["ability:" + starterAbility] = 12;
+            Call(game, "UpdateHud");
+            var firstSlot = (AbilitySlot)Field<Button[]>(game, "hotbarButtons")[0];
+            Require(firstSlot.CooldownSeconds == 2 && firstSlot.BlockReason.Contains("cooldown"), "The HUD reads the server ability cooldown key");
+            self.Cooldowns.Clear();
+            double savedMana = self.Mana, savedStamina = self.Stamina;
+            self.Mana = 0; self.Stamina = 0; Call(game, "UpdateHud");
+            Require(firstSlot.BlockReason.Contains("mana") || firstSlot.BlockReason.Contains("stamina"), "The HUD explains insufficient ability resources");
+            self.Mana = savedMana; self.Stamina = savedStamina; Call(game, "UpdateHud");
+            Require(firstSlot.KeyLabel == "1" && firstSlot.TooltipText.Contains("Range") && firstSlot.TooltipText.Contains("Requires"), "The first ability shows its key, range, and requirement");
             var input = Field<LineEdit>(game, "chatInput"); input.GrabFocus(); await Frame();
             Member("attackKeyHeld").SetValue(game, true);
             Member("combatApproach").SetValue(game, true);

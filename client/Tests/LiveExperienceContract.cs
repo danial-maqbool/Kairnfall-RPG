@@ -214,13 +214,14 @@ public partial class LiveExperienceContract : Node
                     Call("SaveScreenshot", "10-loot-popup.png");
                 }
             }
+            long checkpointXp = Progression.Total(Self);
             string characterId = Self.Id; sequence = Self.LastAction;
             await connection.DisposeAsync(); Attach(null); game.World.ClearSession();
             var reconnected = new GameConnection(address);
             await reconnected.SignInAsync(username, password, false); await reconnected.ConnectAsync(characterId); Attach(reconnected);
             await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, "Reconnect did not restore acknowledged state.");
             Require(Self.Equipment.GetValueOrDefault("weapon") == weapon, "GUI-equipped item identity survives reconnect");
-            Require(Progression.Total(Self) == skillXp, "Acknowledged skill progress survives reconnect");
+            Require(Progression.Total(Self) == checkpointXp, "Acknowledged skill progress survives reconnect");
             Require(!Field<bool>(game, "attackKeyHeld"), "Reconnect does not resume an old held attack");
             GD.Print($"LIVE_EXPERIENCE_CONTRACT: {checks} checks passed. Native generated input, real server and PostgreSQL; not human playtesting or Windows hardware input.");
             await (Task)Call("ShutdownClientAsync", 0)!;
