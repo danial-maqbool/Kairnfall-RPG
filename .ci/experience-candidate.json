@@ -1,6 +1,6 @@
 {
-  "sha": "8f4d378868b6121b479596f0d417242c4f9d03cc",
+  "sha": "eceab5b68630ceeb3094768fba8e57fdd6461072",
   "base": "bada9aadccfea67ad602bd1503ba96eb772417e9",
   "mode": "repair",
-  "purpose": "Verify native equipment controls and identify the retained-resource cleanup failure. Candidate source is not yet installed on main."
+  "purpose": "Verify the 51 native interaction checks, retained regression suites, audio cleanup, and real graphical startup before promoting gameplay source."
 }
