@@ -1,0 +1,44 @@
+name: Validate generated game assets
+on:
+  push:
+    branches: ['team/release/playable-verification']
+    paths: ['tools/art/**', 'tools/build_game_assets.py', 'content_src/**', '.github/workflows/asset-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: asset-validation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the image-library dependency
+        run: python -m pip install 'Pillow==12.0.0'
+      - name: Generate content and validate asset structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/logs
+          python tools/build_content.py | tee artifacts/logs/asset-content.log
+          python tools/build_game_assets.py | tee artifacts/logs/asset-generation.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated-asset-validation
+          path: |
+            artifacts/logs/asset-content.log
+            artifacts/logs/asset-generation.log
+            artifacts/asset-coverage.json
+            artifacts/screenshots/creature-contact-sheet.png
+            client/Assets/manifest.json
+            client/Assets/CREDITS.txt
+          if-no-files-found: error
+          retention-days: 7
