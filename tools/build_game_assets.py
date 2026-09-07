@@ -19,7 +19,7 @@ from art.common import Pixel,canvas,palette,shade,rgba,seed,sheet,save,STATES,DI
 from art.items import icon
 from art.people import body_frame,hair_frame,equipment_frame,npc_frame
 from art.environment_pack import TERRAINS,PROPS,tile,prop,building,chest,resource,structure,crystal
-from art.creature_pack import frame as creature_frame
+from art.arcane_creatures import frame as creature_frame
 
 
 def ability_icon(a):
@@ -46,7 +46,6 @@ def ability_icon(a):
         if element=='Poison': p.sphere((9,11,20,23),'b7bc7d'); p.rect((12,14,14,17),'4d5350'); p.rect((17,14,19,17),'4d5350')
     else:
         crystal(p,16,27,23,c[3]); p.d.arc((2,2,30,30),30,285,fill=rgba(c[4]),width=1)
-    # Small effect marks distinguish the targeting shape without text-letter tiles.
     if kind in {'area','field'}: p.d.arc((1,19,30,31),0,340,fill=rgba(c[5]),width=1)
     elif kind in {'line','projectile'}: p.line([(2,26),(8,20)],c[5],2)
     elif kind=='cone': p.line([(1,26),(8,19),(11,29)],c[5])
@@ -94,13 +93,34 @@ def audio_pack(root:Path):
         write_wav(root/('effect_'+key+'.wav'),output)
 
 
+def preflight(data):
+    errors=[]
+    for mob in data['mobs']:
+        try:
+            expected=128 if mob['boss'] else 64
+            for direction in range(4):
+                image=creature_frame(mob,'idle',0,direction)
+                if image.size!=(expected,expected) or image.getchannel('A').getbbox() is None:
+                    raise ValueError('Empty or incorrectly sized creature frame.')
+        except Exception as error:
+            errors.append(mob['id']+': '+str(error))
+    if errors:
+        raise ValueError('Creature preflight failed:\n'+'\n'.join(errors))
+    print('ASSETS: preflight passed for',len(data['mobs']),'creature definitions and four directions',flush=True)
+
+
 def main():
     parser=argparse.ArgumentParser(); parser.add_argument('--output',default='client/Assets'); args=parser.parse_args()
-    root=(ROOT/args.output).resolve(); root.mkdir(parents=True,exist_ok=True)
+    root=(ROOT/args.output).resolve()
+    if root!=ROOT/'client/Assets' and not root.is_relative_to(ROOT/'artifacts'):
+        raise SystemExit('Asset output must be client/Assets or a directory under artifacts.')
+    root.mkdir(parents=True,exist_ok=True)
     catalog=ROOT/'content/catalog.json'
     if not catalog.is_file(): raise SystemExit('Run python tools/build_content.py first.')
     data=json.loads(catalog.read_text(encoding='utf-8')); generated=[]; sheets=[]
+    preflight(data)
     def emit(image,key,animated=False):
+        if key in generated: raise ValueError('Duplicate asset key: '+key)
         path=root/(key+'.png'); save(image,path); generated.append(key)
         if animated: sheets.append(key)
     print('ASSETS: terrain and environment',flush=True)
@@ -110,8 +130,9 @@ def main():
     for z in data['zones']:
         for b in z['buildings']: emit(building(z,b),'buildings/'+z['id']+'/'+b['id'])
     for r in data['resources']: emit(resource(r),'resources/'+r['id'])
-    crop=next((x for x in data['resources'] if x['id']=='wheat_crop'),{'id':'crop_wheat','skill':'farming'})
-    emit(resource(crop),'resources/crop_wheat')
+    if not any(r['id']=='crop_wheat' for r in data['resources']):
+        crop=next((x for x in data['resources'] if x['id']=='wheat_crop'),{'id':'crop_wheat','skill':'farming'})
+        emit(resource(crop),'resources/crop_wheat')
     for name in ['weathered','locked','ancient','runic','royal','cursed','mimic']:
         for opened in (False,True): emit(chest(name,opened),'chests/'+name+('_open' if opened else '_closed'))
     print('ASSETS: items and abilities',flush=True)
@@ -137,13 +158,13 @@ def main():
         if index%20==0: print('ASSETS: creatures',index,'/',len(data['mobs']),flush=True)
     print('ASSETS: original audio',flush=True); audio_pack(root/'audio')
     shutil.copyfile(catalog,root/'catalog.json')
-    entries=[]
-    for key in sorted(set(generated)):
+    entries=[]; animated_keys=set(sheets)
+    for key in sorted(generated):
         path=root/(key+'.png')
         with Image.open(path) as im:
-            if im.mode!='RGBA' or im.getbbox() is None: raise ValueError('Empty or non-RGBA asset: '+key)
-            if key in sheets and (im.width%8 or im.height!=im.width//8*24): raise ValueError('Invalid animation grid: '+key)
-            entries.append({'key':key,'width':im.width,'height':im.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'animated':key in sheets})
+            if im.mode!='RGBA' or im.getchannel('A').getbbox() is None: raise ValueError('Empty or non-RGBA asset: '+key)
+            if key in animated_keys and (im.width%8 or im.height!=im.width//8*24): raise ValueError('Invalid animation grid: '+key)
+            entries.append({'key':key,'width':im.width,'height':im.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'animated':key in animated_keys})
     manifest={'schema':1,'source':'Original procedural artwork; source scripts are included.','artistic_review':'not_approved','frame_order':list(STATES),'directions':list(DIRECTIONS),'frames_per_row':8,'assets':entries}
     (root/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     (root/'CREDITS.txt').write_text('Kairnfall original pixel-art generators and synthesized audio. Source code is included under tools/art and tools/build_game_assets.py. Original project source uses the repository MIT license. No third-party artwork is included in this generated pack. Structural validation is not visual approval.\n',encoding='utf-8')
