@@ -1,0 +1,75 @@
+{
+  "run_id": 34113545565,
+  "artifact_id": 10015377675,
+  "tested_merge_commit": "92f88078de58aab50a48724df4e05bf81ecaa3c3",
+  "head_commit": "6d97b2686b695ad79f4a03a49c94aeeef877f9bc",
+  "status": "The live-client job passed. The separate Windows export job failed. These images are not approved artwork or proof of full-game completion.",
+  "files": [
+    {
+      "path": "art-review/equipment.png",
+      "sha256": "bd514daded3d4f99c3f0890097324c34ba5bc6685bd51c284542e91fd1182d2f",
+      "width": 768,
+      "height": 864
+    },
+    {
+      "path": "art-review/item.png",
+      "sha256": "9df206b3005a852a005a41f18d0a658aa90a49679cb51b0f9ea413f163436b92",
+      "width": 768,
+      "height": 864
+    },
+    {
+      "path": "art-review/mob.png",
+      "sha256": "d142fec894b7a367c32e3ec54239b6d585b2e23c02ac9e4e47c5be1e5d56818d",
+      "width": 768,
+      "height": 864
+    },
+    {
+      "path": "art-review/npc.png",
+      "sha256": "a801224d2e046fa3d419083995a29622710d9908d42eb29c6ab32815ee124523",
+      "width": 768,
+      "height": 432
+    },
+    {
+      "path": "art-review/prop.png",
+      "sha256": "f86186295e642dcaf1800aa5fcfc24de222c1388a997feb6cd425a12edea1aaa",
+      "width": 768,
+      "height": 324
+    },
+    {
+      "path": "art-review/skill.png",
+      "sha256": "4b5f931e009297e93d80215522cc1acf8f16137e6520b101f76bf0ba8088e68e",
+      "width": 768,
+      "height": 864
+    },
+    {
+      "path": "art-review/terrain.png",
+      "sha256": "05e55031cebe3b16522a7af02b7564d86b872dbc091c47c2e31f0d65c6b480a4",
+      "width": 768,
+      "height": 756
+    },
+    {
+      "path": "screenshots/01-world.png",
+      "sha256": "523ecc08e5ba726cfb2b69a436af7c5bf73bae418fc3340cd030562ac75f7624",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "screenshots/02-inventory.png",
+      "sha256": "582e8ca6120f28abec7c556805c232bb03a10605a653c24418051e93e3b20c86",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "screenshots/03-skills.png",
+      "sha256": "d458eaa263be80f163f234117d657924967dea1f90beed12da63755dd920e3fe",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "screenshots/04-map.png",
+      "sha256": "d5eb8383c24ebe45bf80fa0a514f1494d61d491dfd4c85322f62f430e11bd079",
+      "width": 1280,
+      "height": 720
+    }
+  ]
+}
