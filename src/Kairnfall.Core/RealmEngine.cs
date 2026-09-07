@@ -93,6 +93,7 @@ public sealed partial class RealmEngine
         {
             if(command.Kind!="respawn") Alive(p);
             string message=Dispatch(p,command);
+            InvalidateTradeConsents();
             p.LastAction=command.Sequence;
             var result=Result(true,message);
             p.Receipts.Add(new(){RequestId=command.RequestId,Result=result});
@@ -120,6 +121,7 @@ public sealed partial class RealmEngine
         {
             case "equip": Items.Equip(p,c.Item,Data); Progress(p,"equip",Data.Item(Items.Owned(p,c.Item).Template).Type); return "Equipment changed.";
             case "unequip": Items.Unequip(p,c.Arg,Data); return "Item unequipped.";
+            case "split": return SplitStack(p,c.Item,c.Amount);
             case "gather": return Gather(p,c.Target);
             case "attack": return Attack(p,c.Target);
             case "cast": return Cast(p,c.Item,c.Target,new(c.X,c.Y));
@@ -224,6 +226,7 @@ public sealed partial class RealmEngine
         foreach(var t in State.Trades.Values.Where(x=>x.Expires<=State.Time).ToList()) { State.Trades.Remove(t.Id); EconomicDirty=true; }
         foreach(var l in Loot.Values.Where(x=>x.Expires<=State.Time).ToList()) { Loot.Remove(l.Id); EconomicDirty=true; }
         TickEvents();
+        InvalidateTradeConsents();
     }
     public Snapshot Snapshot(string player)
     {

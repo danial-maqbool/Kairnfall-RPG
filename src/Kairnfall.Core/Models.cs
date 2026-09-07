@@ -360,6 +360,7 @@ public sealed class TradeOffer
     public long Gold { get; set; }
     public bool Ready { get; set; }
     public bool Confirmed { get; set; }
+    public string ApprovedFingerprint { get; set; } = "";
 }
 public sealed class Trade
 {
