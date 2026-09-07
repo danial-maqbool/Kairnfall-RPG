@@ -1,0 +1,93 @@
+name: Local source handoff checks
+on:
+  push:
+    branches: ['handoff/local-qa']
+    paths: ['tools/**', 'tests/handoff/**', '*.ps1', '*.cmd', 'compose.local.yml', 'content_src/**', '.github/workflows/local-handoff.yml']
+  pull_request:
+    paths: ['tools/**', 'tests/handoff/**', '*.ps1', '*.cmd', 'compose.local.yml', 'content_src/**', '.github/workflows/local-handoff.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: local-handoff-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  contracts:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the pinned build dependency
+        run: python -m pip install -r tools/requirements-art.txt
+      - name: Compile Python source and run local safety contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/handoff
+          python -m compileall -q tools tests/handoff
+          python tools/build_content.py
+          python -m unittest discover -s tests/handoff -p 'test_*.py' -v 2>&1 | tee artifacts/handoff/contracts.log
+      - name: Parse every PowerShell launcher without executing it
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $failed = $false
+          foreach ($file in Get-ChildItem -File -Filter '*.ps1') {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Host $_.Message }
+              $failed = $true
+            }
+          }
+          if ($failed) { throw 'PowerShell syntax validation failed.' }
+          Write-Host 'All root PowerShell scripts parsed. This is not a Windows gameplay test.'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: handoff-contracts-${{ matrix.os }}
+          path: artifacts/handoff/
+          if-no-files-found: warn
+          retention-days: 14
+  asset-references:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r tools/requirements-art.txt
+      - name: Rebuild and validate the complete referenced asset pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/handoff
+          python tools/build_content.py | tee artifacts/handoff/content.log
+          python tools/build_game_assets.py | tee artifacts/handoff/asset-build.log
+          python tools/complete_skill_icons.py | tee artifacts/handoff/skill-icons.log
+          python tools/validate_game_assets.py | tee artifacts/handoff/asset-validation.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: handoff-asset-evidence
+          path: |
+            artifacts/handoff/
+            artifacts/test-results/asset-structure.json
+            artifacts/asset-coverage.json
+            artifacts/screenshots/
+            client/Assets/manifest.json
+          if-no-files-found: warn
+          retention-days: 14
