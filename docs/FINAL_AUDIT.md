@@ -3,7 +3,8 @@
 Release status: NOT APPROVED.
 
 The [local Windows repair record](handoff/LOCAL_ACCEPTANCE_2026-09-07.md) documents
-source `922d429`, passing bounded automated/graphical checks, and repaired defects.
+source `90143df`, passing bounded automated/graphical checks, and repaired defects,
+including reviewed recovery of legacy saved positions and secure download resume.
 Full bootstrap is blocked by a matching-template download timeout. Actual art
 review failed. No complete normal-play sequence, audio approval, load capacity,
 or tested Windows package exists. This development checkpoint is not a release.

@@ -18,6 +18,55 @@ finished content, visual quality, or normal progression.
 - Evidence below belongs to the stated baseline or repair phase. It does not
   automatically approve later working-tree changes or future commits.
 
+## Reviewed follow-up repairs
+
+Source `90143dff664ffd5811316cc924fc8983066e3648` adds save compatibility after
+independent review found that old road positions (including the previous
+Thornhollow stairs at 64.5,88.5) could become solid and prevent startup or movement.
+Recovery accepts only coordinates that fit the historical geometry but fail the
+current geometry, and chooses a nearby position connected to the spawn. It preserves
+valid positions and all other saved fields. Corrupt character coordinates still fail
+closed before any planned relocation is applied. Creature positions/home points,
+nodes, chests, and separately loaded loot use the same narrow recovery policy.
+
+Five executable regression groups cover character progress/possessions, corrupt
+coordinates, world entity identity/ownership/timers, reconstructed legacy seeding,
+and saved loot gold/items. Repeated save-copy loading is idempotent. The reconstructed
+legacy seeded world had no newly blocked placements among 236 creatures, 549 nodes,
+and 309 chests; dynamic saved fixtures demonstrate the recovery paths. This does not
+claim that every historical private save was inspected. The world probe now runs in
+Linux CI as well as the local wrapper.
+
+The complete backend/database rerun passed at this source: 99 existing checks,
+five security probes, 103 zones/3,588 masonry tiles/949 destinations, and five
+save-migration groups; exit 0 (`artifacts/local/migration-integrated-tests.log`).
+The client/UI specialist independently reviewed the migration and found no remaining
+blockers in that bounded change.
+
+At the same source, canonical assets regenerated successfully (45,248 structural
+assertions; `final-assets.log`), the client built without warnings/errors
+(`migration-client-build.log`), and both native contracts passed
+(`migration-native.log`). A fresh real OpenGL smoke exited 0 with no engine errors
+(`migration-smoke.log`); all four images in
+`artifacts/local/smoke/1788790136721130000/` were inspected. The existing manual
+test character also signed in and re-entered after restart (`final-interactive.log`,
+exit 0). These checks do not approve artwork or complete normal progression.
+
+An isolated native input diagnostic explains the unsuccessful automated inventory
+shortcut: Computer Use `press_key('i')` produced logical keycode 73 but physical
+keycode 4194313, rather than physical I (73). The client deliberately uses physical
+bindings. This establishes an automation/input mismatch, not a reproduced physical
+keyboard defect. `artifacts/local/physical-key-diagnostic.log` retains numeric event
+metadata only; the isolated diagnostic exited 0. Actual hardware keyboard acceptance
+still requires verification. No binding semantics were weakened to match the tool.
+
+Tooling commit `de8cfe0` adds resumable official downloads: strict HTTP range/size
+validation, safe handling of ignored ranges, and mandatory full official SHA-256
+verification before installation. Timeout output is retained after sanitization.
+All 35 handoff tests passed, including 17 offline download tests
+(`artifacts/local/resume-handoff-tests.log`). A live resumed template transfer was
+started; these offline checks alone do not establish completed installation.
+
 ## Environment
 
 Windows local execution used Git `2.54.0.windows.1`, Python `3.12.10`, pinned

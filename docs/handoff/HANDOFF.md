@@ -2,11 +2,12 @@
 
 ## Status
 
-Local continuation produced repair source `922d429ffa0112c4de34208a85a1b5502ae872e9`
+Local continuation produced repair source `90143dff664ffd5811316cc924fc8983066e3648`
 on `team/local/acceptance-repair`. Read
 [the Windows acceptance record](LOCAL_ACCEPTANCE_2026-09-07.md) before continuing.
 It records repaired session/status security, world collision, native pointer input,
-and HUD/map layout, with passing bounded tests. Full bootstrap timed out downloading
+and HUD/map layout, with passing bounded tests. A reviewed follow-up preserves
+legacy saved positions and adds secure download resume. Full bootstrap timed out downloading
 templates; art failed review, and full gameplay/release gates remain open.
 
 This is a consolidated source checkpoint for local testing, repair, refinement, and release preparation.

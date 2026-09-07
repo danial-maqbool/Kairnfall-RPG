@@ -8,6 +8,8 @@ The authoritative .NET server stores accounts and world state in PostgreSQL.
 Local Windows repairs and bounded test results are recorded in
 [the acceptance checkpoint](docs/handoff/LOCAL_ACCEPTANCE_2026-09-07.md).
 Security, collision, native mouse input, and 720p HUD/map issues were repaired.
+Reviewed follow-ups preserve legacy saved positions and securely resume interrupted
+official toolchain downloads without bypassing checksum verification.
 Full bootstrap still needs the matching export-template download; art review
 failed, and full gameplay, audio, performance, and package acceptance remain open.
 Catalog counts, compilation, and generated-image validation do not establish complete gameplay or approved artwork.

@@ -9,6 +9,13 @@ The required geography and identities are in accepted requirements R10-R12 and R
 The authored source is `content_src/world.py`, `content_src/mobs.py`, and `content_src/quests.py`.
 The catalog is generated. Do not hand-edit it as the only fix.
 
+The masonry-priority repair includes a narrow saved-position recovery: coordinates
+valid under the historical road geometry but now blocked move to a nearby connected
+walkable point. Valid positions and non-position data are retained, including saved
+creature homes, structures/nodes, chests, and loot. Corrupt character coordinates
+outside that geometry change still reject startup. The world probe verifies saved
+progress preservation and repeated-load stability alongside fresh-world routes.
+
 Wayfarer's Rest is the fixed starting village west of Dawnreach.
 Dawnreach, Emberhold, Thornhollow, Frostgate, and Gloamport must each provide distinct city architecture,
 services, inhabitants, quests, secrets, travel routes, and nearby encounters.
