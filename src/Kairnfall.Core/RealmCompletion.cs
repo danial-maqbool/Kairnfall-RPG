@@ -2,6 +2,47 @@ namespace Kairnfall.Core;
 
 public sealed partial class RealmEngine
 {
+    private readonly Dictionary<string, double> disconnectGrace = [];
+
+    public void Connect(string characterId)
+    {
+        disconnectGrace.Remove(characterId);
+        Active.Add(characterId);
+    }
+
+    public void BeginDisconnect(string characterId)
+    {
+        inputs.Remove(characterId);
+        playerTargets.Remove(characterId);
+        foreach (var trade in State.Trades.Values.Where(value => value.A.Character == characterId || value.B.Character == characterId).ToList())
+            State.Trades.Remove(trade.Id);
+
+        if (State.Characters.TryGetValue(characterId, out var player) && player.Health > 0 && State.Time - player.LastCombat < 8)
+        {
+            disconnectGrace[characterId] = State.Time + 10;
+            Active.Add(characterId);
+        }
+        else
+        {
+            disconnectGrace.Remove(characterId);
+            Active.Remove(characterId);
+        }
+
+        EconomicDirty = true;
+    }
+
+    public void TickDisconnectGrace()
+    {
+        foreach (var entry in disconnectGrace.ToList())
+        {
+            if (!State.Characters.TryGetValue(entry.Key, out var player) || player.Health <= 0 || entry.Value <= State.Time)
+            {
+                disconnectGrace.Remove(entry.Key);
+                Active.Remove(entry.Key);
+            }
+        }
+    }
+
     private string GuildRole(Character player, string target, string requestedRole)
     {
         var guild = MemberGroup(player, true);
