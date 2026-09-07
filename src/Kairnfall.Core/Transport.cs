@@ -39,6 +39,13 @@ public sealed class GroupInvitation
     public string Leader { get; set; } = "";
     public bool Guild { get; set; }
 }
+public sealed class TradePreview
+{
+    public string TradeId { get; set; } = "";
+    public int Revision { get; set; }
+    public string Owner { get; set; } = "";
+    public Item Item { get; set; } = new();
+}
 public sealed class TransportPacket
 {
     public string Kind { get; set; } = "";
@@ -47,6 +54,8 @@ public sealed class TransportPacket
     public ChatMessage? Chat { get; set; }
     public List<LootPile>? Loot { get; set; }
     public List<GroupInvitation>? Invitations { get; set; }
+    public List<TradePreview> TradeItems { get; set; } = [];
+    public Dictionary<string,string> Names { get; set; } = [];
     public string Error { get; set; } = "";
 }
 public sealed class RealmSave
@@ -55,7 +64,4 @@ public sealed class RealmSave
     public RealmState State { get; set; } = new();
     public Dictionary<string,LootPile> Loot { get; set; } = [];
 }
-public sealed class ApiError
-{
-    public string Error { get; set; } = "";
-}
+public sealed class ApiError { public string Error { get; set; } = ""; }
