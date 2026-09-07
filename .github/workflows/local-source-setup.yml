@@ -1,0 +1,68 @@
+name: Local source setup execution
+on:
+  push:
+    branches: ['handoff/local-qa']
+    paths: ['tools/**', '*.ps1', 'compose.local.yml', '.github/workflows/local-source-setup.yml']
+  pull_request:
+    paths: ['tools/**', '*.ps1', 'compose.local.yml', '.github/workflows/local-source-setup.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: local-source-setup-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  setup:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    env:
+      PYTHONUTF8: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Execute bootstrap without the graphical editor download
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./bootstrap.ps1 -SkipGodot
+      - name: Execute the Windows local core and security test wrapper
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./Test-Kairnfall-Local.ps1
+      - name: Execute the isolated local PostgreSQL and network test command
+        if: runner.os == 'Linux'
+        env:
+          KAIRNFALL_ALLOW_DB_TESTS: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          .venv/bin/python tools/local_dev.py test --with-database
+      - name: Preserve sanitized source setup and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-source-setup-${{ matrix.os }}
+          path: |
+            artifacts/local/content.log
+            artifacts/local/assets.log
+            artifacts/local/skill-icons.log
+            artifacts/local/asset-checks.log
+            artifacts/local-tests/
+            artifacts/test-results/
+          if-no-files-found: warn
+          retention-days: 14
