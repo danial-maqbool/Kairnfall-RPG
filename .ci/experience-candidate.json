@@ -1,6 +1,6 @@
 {
-  "sha": "49ecb9ddc45e619c1793b4b3e941a311af7e31ae",
+  "sha": "8f4d378868b6121b479596f0d417242c4f9d03cc",
   "base": "bada9aadccfea67ad602bd1503ba96eb772417e9",
   "mode": "repair",
-  "purpose": "Test contextual attack, notification separation, equipment actions and native input before integrating candidate source into main."
+  "purpose": "Verify native equipment controls and identify the retained-resource cleanup failure. Candidate source is not yet installed on main."
 }

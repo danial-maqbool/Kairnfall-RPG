@@ -21,7 +21,6 @@ jobs:
         with:
           persist-credentials: false
       - id: select
-        name: Validate the explicit same-repository candidate
         run: |
           python3 - <<'PY'
           import json, os, re
@@ -36,7 +35,6 @@ jobs:
               for key in ('sha', 'base', 'mode'):
                   output.write(key + '=' + request[key] + '\n')
           print('Candidate:', request['sha'])
-          print('This workflow tests this candidate, not an unrelated main revision.')
           PY
   verify:
     needs: select
@@ -84,7 +82,7 @@ jobs:
           git rev-parse HEAD | tee artifacts/experience/revision.txt
           git status --porcelain
           python -m pip install Pillow==12.0.0
-      - name: Rebuild deterministic content and compile source
+      - name: Rebuild content and compile source
         run: |
           set -euo pipefail
           python tools/build_content.py | tee artifacts/experience/logs/content.log
@@ -101,7 +99,7 @@ jobs:
           dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release | tee artifacts/experience/logs/network.log
           dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database | tee artifacts/experience/logs/database.log
           python -m unittest discover -s tests/handoff -p 'test_*.py' -v 2>&1 | tee artifacts/experience/logs/handoff.log
-      - name: Reconstruct the canonical asset pack and verified editor
+      - name: Reconstruct assets and the verified editor
         run: |
           set -euo pipefail
           python tools/build_game_assets.py | tee artifacts/experience/logs/assets.log
@@ -112,15 +110,15 @@ jobs:
         run: |
           set -euo pipefail
           timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/experience/logs/import.log
-          timeout 90 "$GODOT_BIN" --headless --path client res://Tests/SignalContract.tscn 2>&1 | tee artifacts/experience/logs/signals.log
-          timeout 90 "$GODOT_BIN" --headless --path client res://Tests/InputContract.tscn 2>&1 | tee artifacts/experience/logs/input.log
+          timeout 90 "$GODOT_BIN" --verbose --headless --path client res://Tests/SignalContract.tscn 2>&1 | tee artifacts/experience/logs/signals.log
+          timeout 90 "$GODOT_BIN" --verbose --headless --path client res://Tests/InputContract.tscn 2>&1 | tee artifacts/experience/logs/input.log
           if [ "$CANDIDATE_MODE" = repair ]; then
             test -f client/Tests/PlayerExperienceContract.tscn
-            timeout 120 "$GODOT_BIN" --headless --path client res://Tests/PlayerExperienceContract.tscn 2>&1 | tee artifacts/experience/logs/experience.log
+            timeout 120 "$GODOT_BIN" --verbose --headless --path client res://Tests/PlayerExperienceContract.tscn 2>&1 | tee artifacts/experience/logs/experience.log
           fi
           if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/experience/logs/{import,signals,input}.log; then exit 1; fi
           if [ -f artifacts/experience/logs/experience.log ] && grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/experience/logs/experience.log; then exit 1; fi
-      - name: Render a real client against a separate disposable realm
+      - name: Render a real client against a disposable realm
         env:
           PG_CONTAINER: ${{ job.services.postgres.id }}
           KAIRNFALL_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_visual;Username=kairnfall_test;Password=disposable-ci-database-only
@@ -137,7 +135,7 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:5077/health
-          timeout 120 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --path client --rendering-method gl_compatibility --audio-driver Dummy -- --smoke 2>&1 | tee artifacts/experience/logs/live-client.log
+          timeout 120 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy -- --smoke 2>&1 | tee artifacts/experience/logs/live-client.log
           for image in 01-world 02-inventory 03-skills 04-map; do test -s "artifacts/experience/screenshots/$image.png"; done
           if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/experience/logs/live-client.log; then exit 1; fi
       - uses: actions/upload-artifact@v4
@@ -147,3 +145,31 @@ jobs:
           path: artifacts/experience/
           retention-days: 14
           if-no-files-found: error
+  diagnostics:
+    if: always() && needs.select.result == 'success'
+    needs: [select, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: player-experience-${{ needs.select.outputs.sha }}
+          path: evidence
+      - name: Bounded test evidence
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('evidence')
+          for suffix in ('revision.txt','client-build.log','core.log','review.log','security.log','security-probe.log','world.log','network.log','database.log','handoff.log','signals.log','input.log','experience.log','live-client.log'):
+              paths = list(root.rglob(suffix))
+              print('\n=== ' + suffix + ' ===')
+              for path in paths:
+                  lines = path.read_text(encoding='utf-8',errors='replace').splitlines()
+                  if suffix in ('signals.log','input.log','experience.log','live-client.log'):
+                      interesting = [i for i,x in enumerate(lines) if any(k in x for k in ('ERROR:', 'WARNING:', 'Leaked instance:', 'Resource still in use:', '_CONTRACT:', 'SMOKE:'))]
+                      take = sorted({j for i in interesting for j in range(max(0,i-1), min(len(lines),i+5))})
+                      print('\n'.join(lines[j] for j in take)[:18000])
+                  else:
+                      print('\n'.join(lines[-5:])[:2000])
+              if not paths: print('NOT PRODUCED')
+          PY
