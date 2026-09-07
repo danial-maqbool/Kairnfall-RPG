@@ -4,4 +4,5 @@
   <Project Path="tests/Kairnfall.Tests/Kairnfall.Tests.csproj" />
   <Project Path="tests/Kairnfall.Integration/Kairnfall.Integration.csproj" />
   <Project Path="tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj" />
+  <Project Path="tests/Kairnfall.CompletionTests/Kairnfall.CompletionTests.csproj" />
 </Solution>
