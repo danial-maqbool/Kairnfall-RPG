@@ -1,0 +1,58 @@
+name: Generate and verify game assets
+on:
+  push:
+    paths:
+      - 'tools/art/**'
+      - 'tools/build_assets.py'
+      - 'tools/requirements-art.txt'
+      - 'content_src/**'
+      - 'tests/art/**'
+      - '.github/workflows/assets.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  art-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned build-only art dependencies
+        run: python -m pip install -r tools/requirements-art.txt
+      - name: Generate catalog
+        run: python tools/build_content.py
+      - name: Validate native art and audio sources
+        run: python -m unittest discover -s tests/art -p 'test_pipeline.py' -v
+      - name: Render explicit review previews
+        run: python tools/build_assets.py --preview --output build/art-preview
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: art-review-${{ github.sha }}
+          path: build/art-preview
+          retention-days: 14
+  complete-pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r tools/requirements-art.txt
+      - run: python tools/build_content.py
+      - name: Build complete non-placeholder game asset pack
+        run: python tools/build_assets.py --output client/Assets --workers 4 --review-dir build/full-art-review
+      - name: Preserve the generated pack and manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: complete-art-pack-${{ github.sha }}
+          path: |
+            client/Assets
+            build/full-art-review
+          retention-days: 14
+          compression-level: 6
