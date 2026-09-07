@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -118,9 +119,12 @@ class HandoffTests(unittest.TestCase):
     def test_git_excludes_local_state_and_generated_output(self):
         paths = ['.local/database.json', '.venv/config', '.tools/editor.zip',
                  'artifacts/private.log', 'client/Assets/catalog.json', 'build/client/game.pck']
-        result = subprocess.run(['git', 'check-ignore', '--no-index', '--stdin'], cwd=ROOT,
-                                input='\n'.join(paths) + '\n', text=True, capture_output=True, check=True)
-        self.assertEqual(set(result.stdout.splitlines()), set(paths))
+        # Binary NUL-separated paths avoid Windows newline translation and Git quoting.
+        result = subprocess.run(['git', 'check-ignore', '--no-index', '-z', '--stdin'], cwd=ROOT,
+                                input=('\0'.join(paths) + '\0').encode('utf-8'),
+                                capture_output=True, check=True)
+        actual = {entry.decode('utf-8') for entry in result.stdout.split(b'\0') if entry}
+        self.assertEqual(actual, set(paths))
 
     def test_compose_is_local_and_test_storage_is_separate(self):
         text = (ROOT / 'compose.local.yml').read_text(encoding='utf-8')
@@ -153,6 +157,16 @@ class HandoffTests(unittest.TestCase):
         body = text[start:end]
         self.assertLess(body.index('build_game_assets.py'), body.index('complete_skill_icons.py'))
         self.assertLess(body.index('complete_skill_icons.py'), body.index('validate_game_assets.py'))
+
+    def test_readme_and_handoff_document_links_exist(self):
+        for name in ('README.md', 'HANDOFF.md'):
+            text = (ROOT / name).read_text(encoding='utf-8')
+            for target in re.findall(r'\[[^\]]+\]\(([^)]+)\)', text):
+                if '://' not in target and not target.startswith('#'):
+                    self.assertTrue((ROOT / target.split('#', 1)[0]).is_file(), (name, target))
+        for name in ('docs/requirements/ACCEPTED_REQUIREMENTS.md', 'docs/handoff/LOCAL_AGENT_PROMPT.md',
+                     'docs/handoff/SOURCE_PROVENANCE.json', 'docs/QA_MATRIX.md', 'docs/FINAL_AUDIT.md'):
+            self.assertTrue((ROOT / name).is_file(), name)
 
 
 if __name__ == '__main__':
