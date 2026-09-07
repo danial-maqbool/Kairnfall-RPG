@@ -2,7 +2,7 @@ name: Validate generated game assets
 on:
   push:
     branches: ['team/release/playable-verification']
-    paths: ['tools/art/**', 'tools/build_game_assets.py', 'content_src/**', '.github/workflows/asset-validation.yml']
+    paths: ['tools/art/**', 'tools/build_game_assets.py', 'tools/validate_game_assets.py', 'content_src/**', '.github/workflows/asset-validation.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,9 +26,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p artifacts/logs
-          python tools/build_content.py | tee artifacts/logs/asset-content.log
-          python tools/build_game_assets.py | tee artifacts/logs/asset-generation.log
+          mkdir -p artifacts/logs artifacts/test-results
+          python tools/build_content.py 2>&1 | tee artifacts/logs/asset-content.log
+          python tools/build_game_assets.py 2>&1 | tee artifacts/logs/asset-generation.log
+          python tools/validate_game_assets.py 2>&1 | tee artifacts/logs/asset-validation.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -36,9 +37,18 @@ jobs:
           path: |
             artifacts/logs/asset-content.log
             artifacts/logs/asset-generation.log
+            artifacts/logs/asset-validation.log
+            artifacts/test-results/asset-structure.json
             artifacts/asset-coverage.json
             artifacts/screenshots/creature-contact-sheet.png
             client/Assets/manifest.json
             client/Assets/CREDITS.txt
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve the art and audio pack for review, not game release
+        uses: actions/upload-artifact@v4
+        with:
+          name: kairnfall-generated-art-and-audio
+          path: client/Assets/
           if-no-files-found: error
           retention-days: 7
