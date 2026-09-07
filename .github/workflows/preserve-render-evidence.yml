@@ -1,0 +1,58 @@
+name: Preserve exact rendered review evidence
+on:
+  push:
+    branches: ['team/qa/render-evidence']
+    paths: ['.github/workflows/preserve-render-evidence.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  preserve:
+    if: github.ref == 'refs/heads/team/qa/render-evidence'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Retrieve only the existing rendered test artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 34113545565 --repo danial-maqbool/Kairnfall-RPG --name live-client-evidence-fa4a719509ffbcf0f2c7c2a52937b443b5128621 --dir /tmp/kairnfall-render-evidence
+      - name: Preserve PNG images and provenance, not logs or credentials
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, shutil, struct
+          source=Path('/tmp/kairnfall-render-evidence')
+          target=Path('docs/reviews/render-34113545565')
+          target.mkdir(parents=True,exist_ok=True)
+          files=[]
+          for path in sorted(source.rglob('*.png')):
+              raw=path.read_bytes()
+              if raw[:8]!=b'\x89PNG\r\n\x1a\n' or len(raw)>8_000_000: raise RuntimeError('Invalid PNG evidence')
+              relative=path.relative_to(source)
+              destination=target/relative
+              destination.parent.mkdir(parents=True,exist_ok=True)
+              destination.write_bytes(raw)
+              width,height=struct.unpack('>II',raw[16:24])
+              files.append({'path':str(relative),'sha256':hashlib.sha256(raw).hexdigest(),'width':width,'height':height})
+          if not files: raise RuntimeError('No rendered images in the evidence artifact')
+          manifest={'run_id':34113545565,'tested_merge_commit':'fa4a719509ffbcf0f2c7c2a52937b443b5128621','status':'Rendered evidence from a failed UI acceptance run. Not approved artwork or a finished game.','files':files}
+          (target/'provenance.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          print(json.dumps(manifest,indent=2))
+          PY
+      - name: Commit images on the isolated evidence branch
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          branch=team/qa/render-evidence
+          test "$(git ls-remote origin "refs/heads/$branch" | cut -f1)" = "$EXPECTED_HEAD"
+          git config user.name 'Kairnfall review evidence'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/reviews/render-34113545565
+          git commit -m 'test(visual): preserve exact live-client render evidence and image hashes'
+          git push origin "HEAD:refs/heads/$branch"
