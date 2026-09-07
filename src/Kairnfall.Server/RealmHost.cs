@@ -91,7 +91,7 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
             if (peers.ContainsKey(character) || peers.Values.Any(x => x.Session.AccountId == session.AccountId)) throw new RuleException("This account already has an active character connection.");
             var peer = new Peer(socket, session, character);
             if (!peers.TryAdd(character, peer)) throw new RuleException("This character is already connected.");
-            Engine.Active.Add(character); SendSnapshot(peer); return peer;
+            Engine.Connect(character); SendSnapshot(peer); return peer;
         }
         finally { gate.Release(); }
     }
@@ -130,7 +130,7 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
             if (peers.TryGetValue(peer.CharacterId, out var current) && ReferenceEquals(current, peer))
             {
                 peers.TryRemove(peer.CharacterId, out _);
-                if (engine is not null) Engine.Disconnect(peer.CharacterId);
+                if (engine is not null) Engine.BeginDisconnect(peer.CharacterId);
                 if (ready) await PersistAsync(cancel);
             }
         }
@@ -156,7 +156,7 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
                 try
                 {
                     if (!ready) break;
-                    Engine.Tick(.05); ticks++;
+                    Engine.Tick(.05); Engine.TickDisconnectGrace(); ticks++;
                     if (Engine.EconomicDirty || Engine.State.Time - lastPeriodicSave >= 5) await PersistAsync(stoppingToken);
                     FlushChat(); if (ticks % 2 == 0) foreach (var peer in peers.Values) SendSnapshot(peer);
                 }
