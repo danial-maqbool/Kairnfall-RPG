@@ -48,8 +48,10 @@ def main():
     alpha_fingerprints={}; rgb_fingerprints={}
     normal_species={m['id'] for m in catalog['mobs'] if not m['boss'] and not m['elite']}
     for entry in entries:
-        key=entry['key']; path=ASSETS/(key+'.png')
-        check(path.is_relative_to(ASSETS),'Unsafe asset path: '+key)
+        key=entry['key']; path=(ASSETS/(key+'.png')).resolve()
+        safe=not any(part in {'','.','..'} for part in key.split('/')) and '\\' not in key and path.is_relative_to(ASSETS.resolve())
+        check(safe,'Unsafe asset path: '+key)
+        if not safe: continue
         if not path.is_file(): check(False,'Missing PNG: '+key); continue
         check(hashlib.sha256(path.read_bytes()).hexdigest()==entry['sha256'],'PNG checksum differs: '+key)
         with Image.open(path) as image:
@@ -60,7 +62,7 @@ def main():
             if entry['animated']:
                 size=image.width//8
                 check(image.width%8==0 and image.height==24*size,'Invalid animation grid: '+key)
-                # Empty equipment frames can be legitimate occlusion. Standalone actors cannot disappear.
+                # Equipment frames can be hidden by occlusion. Standalone actors must remain visible.
                 if key.startswith(('mobs/','npcs/','people/body_')):
                     for row in range(24):
                         for column in range(8):
@@ -74,8 +76,8 @@ def main():
                     rgb_fingerprints.setdefault(rgb_hash,[]).append(key[5:])
     duplicate_shapes=[ids for ids in alpha_fingerprints.values() if len(ids)>1]
     duplicate_images=[ids for ids in rgb_fingerprints.values() if len(ids)>1]
-    if duplicate_shapes: warnings.append('Some normal species share an exact animation alpha silhouette. They need distinct anatomy before visual acceptance.')
-    if duplicate_images: warnings.append('Some normal species share identical complete animation images. Do not count these as distinct approved species.')
+    check(not duplicate_shapes,'Normal species share exact animation silhouettes. Replace duplicate anatomy before integration.')
+    check(not duplicate_images,'Normal species share identical complete animation images. These are not distinct species assets.')
     audio_names={'music_'+key for key in ['menu','dawnreach','emberhold','thornhollow','frostgate','gloamport','wayfarers_rest','wilderness','dungeon','boss']}
     audio_names.update('ambient_'+key for key in ['forest','coast','wind','cave'])
     audio_names.update('effect_'+key for key in ['sword','spell','gather','coins','hammer','equip','drink','ui'])
