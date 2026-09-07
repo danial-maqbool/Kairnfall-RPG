@@ -1,0 +1,40 @@
+name: Account HTTP transport contract
+on:
+  push:
+    branches: ['team/client/native-signal-contract']
+    paths: ['src/Kairnfall.Core/**','tests/Kairnfall.TransportTests/**','.github/workflows/http-transport.yml']
+  pull_request:
+    paths: ['src/Kairnfall.Core/**','tests/Kairnfall.TransportTests/**','.github/workflows/http-transport.yml']
+permissions:
+  contents: read
+concurrency:
+  group: http-contract-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  account-transport:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test account HTTP requests without creating a gameplay socket
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/transport
+          dotnet run --project tests/Kairnfall.TransportTests -c Release 2>&1 | tee artifacts/transport/http.log
+          grep -F 'HTTP_TRANSPORT_RESULTS passed=8 failed=0 revision=http-account-socket-gameplay-v2' artifacts/transport/http.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: http-transport-${{ matrix.os }}-${{ github.sha }}
+          path: artifacts/transport/
+          retention-days: 14
