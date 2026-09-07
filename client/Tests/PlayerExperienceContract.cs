@@ -138,8 +138,13 @@ public partial class PlayerExperienceContract : Node
             Require(action.GetParent().Name == "EquipmentActionBar", "Equip remains outside the statistics scroller");
             Call(game, "OpenPage", "Character"); await Frame(); await Frame();
             Require(game.FindChildren("Equipment_weapon", "Control", true, false).Count == 1, "The equipment page exposes the weapon drop slot");
-            Require(game.FindChildren("*", "EquipmentItemSlot", true, false).Count >= self.Inventory.Count,
+            // Native class filters do not resolve an unregistered C# subclass name.
+            var nativeControls = game.FindChildren("*", "Control", true, false);
+            var itemControls = nativeControls.OfType<EquipmentItemSlot>().ToArray();
+            Require(itemControls.Count(x => x.Item is not null) >= self.Inventory.Count,
                 "Equipment and backpack controls coexist for dragging");
+            Require(self.Inventory.All(item => itemControls.Any(control => control.Item?.Id == item.Id)),
+                "Every backpack item has a real native drag control");
             Call(game, "ClosePage");
             game.QueueFree(); await Frame(); await Frame();
             Require(!GodotObject.IsInstanceValid(game), "Experience UI releases the complete native scene");
