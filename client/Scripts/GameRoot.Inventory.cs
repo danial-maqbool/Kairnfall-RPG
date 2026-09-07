@@ -7,9 +7,10 @@ namespace Kairnfall.Client;
 public partial class GameRoot
 {
     private bool inventoryByName = true;
+    private readonly Dictionary<string, int> transferAmounts = new();
     private bool NearNpc(NpcDef npc) => Snapshot is { } s && s.Self.Zone == npc.Zone && s.Self.Position.Distance(npc.Position) <= 3 && WorldMap.LineOfSight(Data.Zone(npc.Zone), s.Self.Position, npc.Position);
     private bool NearRole(string role) => Data.Npcs.Any(x => x.Role == role && NearNpc(x));
-    private int Quantity(SpinBox control, int maximum = 999) => Math.Clamp((int)control.Value, 1, maximum);
+    private int Quantity(SpinBox control, int maximum = 999) => Math.Clamp((int)control.Value, 1, Math.Max(1, maximum));
     private SpinBox Amount(Node parent, int maximum)
     {
         var row = Ui.Row(parent); row.AddChild(Ui.Label("Quantity", 14, Ui.Muted));
@@ -114,20 +115,32 @@ public partial class GameRoot
         var heading = Ui.Row(parent); heading.AddChild(Ui.Image(Assets.Icon(item.Template), 64)); var names = Ui.Column(heading); names.AddChild(Ui.Label(def.Name, 21, Ui.RarityColor(item.Rarity), true)); names.AddChild(Ui.Label(item.Rarity.ToString(), 14, Ui.Muted));
         parent.AddChild(Ui.Label(ItemDescription(item), 15, Ui.Text, true));
         var quantity = Amount(parent, item.Quantity);
+        string quantityKey = selectedBag + ":" + item.Id;
+        quantity.Value = Math.Clamp(transferAmounts.GetValueOrDefault(quantityKey, 1), 1, item.Quantity);
+        quantity.ValueChanged += value => transferAmounts[quantityKey] = Math.Clamp((int)value, 1, item.Quantity);
         if (selectedBag == "bank")
         {
             parent.AddChild(Ui.Button("Withdraw", () => Send("withdraw", item: item.Id, amount: Quantity(quantity, item.Quantity)), !NearRole("banker"))); return;
         }
+        bool equipped = Items.Equipped(self, item.Id);
+        if (def.StackMax > 1 && item.Quantity > 1 && !equipped && item.Sockets == 0 && item.Runes.Count == 0 && item.Affixes.Count == 0)
+        {
+            var split = Ui.Button("Split stack", () => Send("split", item: item.Id, amount: Quantity(quantity, item.Quantity)));
+            void UpdateSplit(double _) => split.Disabled = quantity.Value >= item.Quantity || self.Inventory.Count >= Items.InventoryCapacity;
+            quantity.ValueChanged += UpdateSplit;
+            UpdateSplit(quantity.Value);
+            parent.AddChild(split);
+            parent.AddChild(Ui.Label("Choose less than the stack total. One empty backpack slot is required.", 13, Ui.Muted, true));
+        }
         if (def.Slot != "")
         {
-            bool equipped = Items.Equipped(self, item.Id);
             parent.AddChild(Ui.Button(equipped ? "Unequip" : "Equip", () => { if (equipped) Send("unequip", arg: def.Slot); else Send("equip", item: item.Id); }));
             if (item.Durability < 100) parent.AddChild(Ui.Button("Repair at blacksmith", () => Send("repair", item: item.Id), !NearRole("blacksmith")));
         }
         if (def.Type is "food" or "potion" or "scroll") parent.AddChild(Ui.Button("Use", () => Send("consume", item: item.Id)));
         if (def.Type is "book" or "treasure_map") parent.AddChild(Ui.Button("Read", () => Send("read", item: item.Id)));
         if (def.Type == "food" && self.Pet != "") parent.AddChild(Ui.Button("Feed companion", () => Send("feed", item: item.Id)));
-        if (bank) parent.AddChild(Ui.Button("Deposit", () => Send("deposit", item: item.Id, amount: Quantity(quantity, item.Quantity)), !NearRole("banker") || Items.Equipped(self, item.Id)));
+        if (bank) parent.AddChild(Ui.Button("Deposit", () => Send("deposit", item: item.Id, amount: Quantity(quantity, item.Quantity)), !NearRole("banker") || equipped));
         if (def.Type == "rune")
         {
             parent.AddChild(Ui.Label("Insert into equipment", 17, Ui.Gold));
@@ -140,7 +153,7 @@ public partial class GameRoot
         {
             int index = i; parent.AddChild(Ui.Button("Extract " + Data.Item(item.Runes[i].Template).Name, () => Confirm("Extract rune", "The enchanter charges an extraction fee. The rune is returned intact.", () => Send("unsocket", item.Id, amount: index)), !NearRole("enchanter")));
         }
-        if (selectedNpc != "" && Data.Npcs.Any(x => x.Id == selectedNpc && x.Stock.Length > 0 && NearNpc(x)) && !Items.Equipped(self, item.Id) && def.Type != "quest")
+        if (selectedNpc != "" && Data.Npcs.Any(x => x.Id == selectedNpc && x.Stock.Length > 0 && NearNpc(x)) && !equipped && def.Type != "quest")
         {
             long unit = Math.Max(1, (long)Math.Floor(def.Value * .30));
             parent.AddChild(Ui.Button($"Sell · {unit} gold each", () =>
@@ -192,7 +205,10 @@ public partial class GameRoot
                 var row = Ui.Row(rows); row.AddChild(Ui.Image(Assets.Icon(template.Id), 48));
                 var description = Ui.Column(row); description.AddChild(Ui.Label(template.Name, 17)); description.AddChild(Ui.Label($"{price} gold each · Stock {stock} · {Ui.Words(template.Type)}", 13, Ui.Muted));
                 row.TooltipText = ItemDescription(new Item { Template = template.Id }, false);
-                var amount = new SpinBox { MinValue = 1, MaxValue = Math.Max(1, Math.Min(99, stock)), Value = 1, CustomMinimumSize = new Vector2(82, 32) }; row.AddChild(amount);
+                string key = "shop:" + npc.Id + ":" + template.Id;
+                int maximum = Math.Max(1, Math.Min(99, stock));
+                var amount = new SpinBox { MinValue = 1, MaxValue = maximum, Value = Math.Clamp(transferAmounts.GetValueOrDefault(key, 1), 1, maximum), CustomMinimumSize = new Vector2(82, 32) }; row.AddChild(amount);
+                amount.ValueChanged += value => transferAmounts[key] = Math.Clamp((int)value, 1, maximum);
                 row.AddChild(Ui.Button("Buy", () =>
                 {
                     int count = Quantity(amount, 99); long total = price * count;
