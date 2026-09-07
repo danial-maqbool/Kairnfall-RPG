@@ -1,0 +1,5 @@
+# Build-only dependencies. Runtime clients do not require Python.
+# Verified package releases: Pillow 12.3.0; NumPy 2.5.2.
+# NumPy 2.5 requires Python 3.12 or newer.
+Pillow==12.3.0
+numpy==2.5.2
