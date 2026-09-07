@@ -186,6 +186,13 @@ public partial class GameRoot
         if (page is null || Snapshot is null) return;
         var top = Ui.Row(page); var search = Ui.Edit("Search recipes, materials, or professions"); top.AddChild(search);
         top.AddChild(Ui.Button("Plant wheat", () => { placement = "plant"; structureRecipe = ""; ClosePage(); Notify("Select clear soil within two tiles. One wheat seed is required."); }));
+        var ownedStructure = Snapshot.Nodes.FirstOrDefault(x => x.Id == selectedTarget && x.Owner == Snapshot.Self.Id && x.Template.StartsWith("structure_", StringComparison.Ordinal) && x.Position.Distance(Snapshot.Self.Position) <= 3);
+        if (ownedStructure is not null)
+        {
+            string structureId = ownedStructure.Id;
+            string structureName = Data.Item(ownedStructure.Template).Name;
+            top.AddChild(Ui.Button("Dismantle " + structureName, () => Confirm("Dismantle structure", "Dismantle " + structureName + "? Half of eligible materials will be recovered.", () => Send("dismantle", structureId))));
+        }
         var body = Ui.Row(page); body.SizeFlagsVertical = SizeFlags.ExpandFill;
         var listing = Ui.Column(Ui.Scroll(body, new Vector2(330, 440))); var detail = Ui.Column(Ui.Scroll(body, new Vector2(490, 440)));
         void Render()
