@@ -1,0 +1,51 @@
+name: Inspect client startup failure
+on:
+  push:
+    branches: ['diagnostics/client-startup']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 34110000929
+          name: live-client-evidence-da20f0425b251cf126971d8ccbdebc75438d71ae
+          path: evidence
+      - name: Print bounded failure contexts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('evidence')
+          files=list(root.rglob('*'))
+          print('Evidence files:', [str(p) for p in files if p.is_file()])
+          for path in files:
+              if not path.is_file() or path.name not in {'live-client.log','import.log','assets.log'}: continue
+              lines=path.read_text(errors='replace').splitlines()
+              print('\nFILE',path,'LINES',len(lines))
+              indexes=[i for i,line in enumerate(lines) if any(k in line for k in ('ERROR:','Exception','SMOKE:','ASSET STRUCTURE:'))]
+              seen=set(); shown=0
+              for i in indexes:
+                  key=lines[i].strip()
+                  if key in seen: continue
+                  seen.add(key)
+                  print('\n'.join(lines[max(0,i-2):min(len(lines),i+9)]))
+                  shown+=1
+                  if shown>=8: break
+          for name in ('GameRoot.cs','GameRoot.Frontend.cs','WorldView.cs'):
+              path=Path('client/Scripts')/name
+              lines=path.read_text().splitlines()
+              for line in (191,394):
+                  if line>len(lines): continue
+                  print('\nSOURCE',name,'AROUND',line)
+                  for i in range(max(0,line-7),min(len(lines),line+6)): print(f'{i+1}: {lines[i]}')
+          PY
