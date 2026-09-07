@@ -24,17 +24,24 @@ public static class WorldMap
             if(Math.Abs(y-ey)<=1 && x>=Math.Min(ex,sx)-1 && x<=Math.Max(ex,sx)+1) return true;
             if(Math.Abs(x-sx)<=1 && y>=Math.Min(ey,sy)-1 && y<=Math.Max(ey,sy)+1) return true;
         }
+        // Keep physical door approaches connected even where rivers or rough terrain
+        // border a building. Masonry still takes precedence over these paths below.
+        foreach(var b in z.Buildings)
+        {
+            int doorX=b.X+b.Width/2, approachY=b.Y+b.Height;
+            if(Math.Abs(y-approachY)<=1 && x>=Math.Min(doorX,sx) && x<=Math.Max(doorX,sx)) return true;
+        }
         return false;
     }
     public static Terrain TileAt(ZoneDef z,int x,int y)
     {
         if(x<1||y<1||x>=z.Width-1||y>=z.Height-1) return Terrain.Wall;
-        if(OnRoad(z,x,y)) return z.Layer=="Surface" ? Terrain.Dirt : Terrain.Stone;
         foreach(var b in z.Buildings)
         {
             if(x>=b.X&&x<b.X+b.Width&&y>=b.Y+1&&y<b.Y+b.Height)
                 return (x==b.X+b.Width/2&&y==b.Y+b.Height-1) ? Terrain.Wood : Terrain.Wall;
         }
+        if(OnRoad(z,x,y)) return z.Layer=="Surface" ? Terrain.Dirt : Terrain.Stone;
         uint h=Hash(x,y,z.Seed);
         if(z.Kind=="interior") return (x>2&&y>2&&x<z.Width-3&&y<z.Height-3)?Terrain.Wood:Terrain.Wall;
         if(z.Layer!="Surface")

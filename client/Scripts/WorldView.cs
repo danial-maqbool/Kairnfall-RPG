@@ -179,7 +179,7 @@ public partial class WorldView : Control
         }
         foreach (var exit in zone.Exits)
         {
-            if (!Visible(exit.Position, 4)) continue;
+            if (!IsWithinCameraBounds(exit.Position, 4)) continue;
             string prop = exit.Kind is "road" ? "signpost" : exit.Kind.Contains("portal", StringComparison.Ordinal) ? "waystone" : "stairs";
             DrawProp("props/" + prop, exit.Position);
             interactions.Add(new WorldTarget("exit", exit.Id, Data.Zone(exit.Target).Name, exit.Position));
@@ -193,11 +193,11 @@ public partial class WorldView : Control
         foreach (var building in zone.Buildings)
         {
             var at = new Point(building.X + building.Width / 2.0, building.Y + building.Height);
-            if (Visible(at, building.Width + building.Height)) visuals.Add(new Visual((float)at.Y, "building", building.Id, at, building));
+            if (IsWithinCameraBounds(at, building.Width + building.Height)) visuals.Add(new Visual((float)at.Y, "building", building.Id, at, building));
         }
         foreach (var npc in Data.Npcs.Where(x => x.Zone == zone.Id))
         {
-            if (!Visible(npc.Position, 5)) continue;
+            if (!IsWithinCameraBounds(npc.Position, 5)) continue;
             visuals.Add(new Visual((float)npc.Position.Y, "npc", npc.Id, npc.Position, npc));
             interactions.Add(new WorldTarget("npc", npc.Id, npc.Name, npc.Position));
         }
@@ -205,7 +205,7 @@ public partial class WorldView : Control
         {
             foreach (var node in snapshot.Nodes)
             {
-                if (!Visible(node.Position, 5)) continue;
+                if (!IsWithinCameraBounds(node.Position, 5)) continue;
                 visuals.Add(new Visual((float)node.Position.Y, "node", node.Id, node.Position, node));
                 string name = Data.Resources.FirstOrDefault(x => x.Id == node.Template)?.Name ?? Ui.Words(node.Template);
                 interactions.Add(new WorldTarget("node", node.Id, name, node.Position));
@@ -222,7 +222,7 @@ public partial class WorldView : Control
             }
             foreach (var mob in snapshot.Creatures)
             {
-                if (!Visible(mob.Position, 5)) continue;
+                if (!IsWithinCameraBounds(mob.Position, 5)) continue;
                 if (mob.Health <= 0 && tracks.TryGetValue(mob.Id, out var dead) && Clock > dead.StateUntil) continue;
                 var pose = Pose(mob.Id, mob.Position);
                 visuals.Add(new Visual((float)pose.Position.Y, "creature", mob.Id, pose.Position, mob));
@@ -251,7 +251,7 @@ public partial class WorldView : Control
         if (WeatherEnabled && zone.Layer == "Surface") DrawWeather(zone);
     }
 
-    private bool Visible(Point p, double margin)
+    private bool IsWithinCameraBounds(Point p, double margin)
         => Math.Abs(p.X - Camera.X) < Size.X / Zoom / Tile / 2 + margin && Math.Abs(p.Y - Camera.Y) < Size.Y / Zoom / Tile / 2 + margin;
 
     private static string? Decoration(ZoneDef zone, Terrain terrain, uint hash)

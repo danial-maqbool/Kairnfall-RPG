@@ -171,6 +171,14 @@ def build(data):
             # Services line the central streets. No NPC is placed inside solid masonry.
             if i<13: location=(64.5,37.5+i*2)
             else: location=(37.5+(i-13)*2,64.5)
+            # These authored halls overlap the nominal service cross. Place staff
+            # beside the walls rather than relying on roads to erase masonry.
+            service_positions={
+                'dawnreach':{2:(67.5,41.5),3:(67.5,43.5),15:(41.5,66.5),17:(45.5,66.5)},
+                'thornhollow':{0:(67.5,37.5)},
+                'gloamport':{13:(37.5,67.5),14:(39.5,67.5)}
+            }
+            location=service_positions.get(ident,{}).get(i,location)
             add_npc(data,z,i,i,faction,location)
     starter=zone('wayfarers_rest',"Wayfarer's Rest",'plains',1,'settlement',size=80,seed=107,lore='A fortified roadside village where displaced travelers rebuild their lives.')
     starter['species']=['field_rat','wild_hare']; starter['resources']=['copper_vein','oak_tree','meadow_leaf_patch','berry_bush','flax_patch','river_trout_pool','buried_pottery']
@@ -197,7 +205,9 @@ def build(data):
     for i,(city_id,city_name,*_) in enumerate(CITIES):
         z=zone(city_id+'_deepway',city_name+' Deepway','crystal' if i==1 else 'fungal' if i==2 else 'ruins',12+i*8,'tunnel','Deepways',128,seed=4100+i*37,lore='An old service tunnel links the city to the roads below Kairnfall.')
         z['resources']=['iron_vein','buried_pottery']; z['species']=['armored_skeleton'] if i>2 else ['field_rat','wood_spider']
-        zones.append(z); by_id[z['id']]=z; connect(by_id[city_id],z,(64.5,88.5),(64.5,118.5),'stairs')
+        # Thornhollow's southern hall occupies the central column at y=88.
+        city_stairs=(67.5,88.5) if city_id=='thornhollow' else (64.5,88.5)
+        zones.append(z); by_id[z['id']]=z; connect(by_id[city_id],z,city_stairs,(64.5,118.5),'stairs')
         if i>0: connect(by_id[CITIES[i-1][0]+'_deepway'],z,(118.5,64.5),(8.5,64.5),'tunnel')
     umbral=zone('umbral_crossroads','Umbral Crossroads','fungal',60,'tunnel','Umbral Depths',128,seed=5501,lore='Mushroom light illuminates roads cut through the remains of buried workshops.')
     umbral['resources']=['cobalt_vein','relic_deposit']; umbral['species']=['myconid_stalker','lantern_fungus','hollow_centipede']

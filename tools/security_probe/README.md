@@ -22,6 +22,6 @@ second fixture. It also checks lethal damage followed by regeneration, and that
 offline damage processing does not award healing, resources, or skill XP.
 It tests damage avoidance, not a required disconnect penalty.
 
-These probes are neither a real-network test nor normal-play acceptance. After
-repair, integrate regression coverage into the regular suites and independently
+These probes run in the local test wrapper and Windows/Linux transaction-security CI.
+They are neither a real-network test nor normal-play acceptance. Independently
 test the authenticated transport and disposable PostgreSQL path.

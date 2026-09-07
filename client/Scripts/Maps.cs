@@ -98,11 +98,15 @@ public partial class GameRoot
     private void BuildMapPage()
     {
         if (page is null || Snapshot is null) return;
+        // Keep the atlas readable while allowing its details and travel controls to
+        // scroll into view when the available window height is smaller than the page.
+        var scroll = Ui.Scroll(page, Vector2.Zero);
+        var content = Ui.Column(scroll);
         var layers = Data.Zones.Select(x => x.Layer).Distinct().ToArray();
-        var top = Ui.Row(page); var layer = new OptionButton(); foreach (string name in layers) layer.AddItem(name); layer.Selected = Math.Max(0, Array.IndexOf(layers, Data.Zone(Snapshot.Self.Zone).Layer)); top.AddChild(layer);
+        var top = Ui.Row(content); var layer = new OptionButton(); foreach (string name in layers) layer.AddItem(name); layer.Selected = Math.Max(0, Array.IndexOf(layers, Data.Zone(Snapshot.Self.Zone).Layer)); top.AddChild(layer);
         top.AddChild(Ui.Button("Record regional chart", () => Send("chart")));
-        var atlas = new AtlasView { Data = Data, Player = () => Snapshot?.Self, Layer = layers[layer.Selected], Selected = selectedZone, CustomMinimumSize = new Vector2(850, 370), SizeFlagsVertical = SizeFlags.ExpandFill }; page.AddChild(atlas);
-        var detail = Ui.Column(page);
+        var atlas = new AtlasView { Data = Data, Player = () => Snapshot?.Self, Layer = layers[layer.Selected], Selected = selectedZone, CustomMinimumSize = new Vector2(0, 370), SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill }; content.AddChild(atlas);
+        var detail = Ui.Column(content);
         void RenderDetail()
         {
             Ui.Clear(detail); if (Snapshot is null) return;

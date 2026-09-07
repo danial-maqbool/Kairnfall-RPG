@@ -54,18 +54,35 @@ public partial class SignalContract : Control
                 transient.EmitSignal(BaseButton.SignalName.Pressed);
                 Require(invocations == 1, "Live button lost its callback after collection.");
                 RemoveChild(transient);
+                transient.EmitSignal(BaseButton.SignalName.Pressed);
+                Require(invocations == 1, "Detached button still invoked its callback.");
                 AddChild(transient);
                 transient.EmitSignal(BaseButton.SignalName.Pressed);
                 Require(invocations == 2, "Reattached button lost or duplicated its callback.");
-                transient.QueueFree();
+
+                var page = new Control();
+                AddChild(page);
+                transient.Reparent(page);
+                Require(transient.GetParent() == page, "Button did not move to its new page.");
+                transient.EmitSignal(BaseButton.SignalName.Pressed);
+                Require(invocations == 3, "Reparented button lost or duplicated its callback.");
+                transient.Reparent(this);
+                transient.EmitSignal(BaseButton.SignalName.Pressed);
+                Require(invocations == 4, "Button callback changed after returning to its original parent.");
+                transient.Reparent(page);
+                page.QueueFree();
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                Require(!GodotObject.IsInstanceValid(page), "Discarded page was not freed.");
+                Require(!GodotObject.IsInstanceValid(transient), "Discarded page retained its button.");
+                Require(invocations == 4, "Page cleanup unexpectedly invoked its button callback.");
             }
             capturedButton.EmitSignal(BaseButton.SignalName.Pressed);
             objectButton.EmitSignal(BaseButton.SignalName.Pressed);
             methodButton.EmitSignal(BaseButton.SignalName.Pressed);
             Require(captured == 2 && counter.Value == 2 && methodCalls == 2,
                 "Long-lived button callbacks changed during page recreation.");
-            GD.Print("SIGNAL_CONTRACT: captured, method, object, async, collection, and reattachment checks passed.");
+            GD.Print("SIGNAL_CONTRACT: captured, method, object, async, collection, detachment, reattachment, reparenting, and cleanup checks passed.");
             GetTree().Quit(0);
         }
         catch (Exception error)

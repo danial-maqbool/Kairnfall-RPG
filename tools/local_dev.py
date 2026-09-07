@@ -37,7 +37,7 @@ def scrub(text: str, environment: dict[str, str] | None = None) -> str:
 
 
 def run(args: list[str | Path], *, env: dict[str, str] | None = None,
-        timeout: int = 900, log: Path | None = None) -> str:
+        timeout: int = 900, log: Path | None = None, check_godot_errors: bool = False) -> str:
     """Check native exit codes. Do not print environment values or credentials."""
     result = subprocess.run([str(x) for x in args], cwd=ROOT, env=env,
                             text=True, encoding='utf-8', errors='replace',
@@ -50,6 +50,8 @@ def run(args: list[str | Path], *, env: dict[str, str] | None = None,
         print(output, end='' if output.endswith('\n') else '\n', flush=True)
     if result.returncode:
         raise RuntimeError(f'{Path(str(args[0])).name} failed with exit code {result.returncode}.')
+    if check_godot_errors and re.search(r'(?m)(?:^|\s)(?:ERROR:|SCRIPT ERROR:|Unhandled exception)', output):
+        raise RuntimeError('Godot reported engine errors despite a zero exit code. Inspect the retained log.')
     return result.stdout.strip()
 
 
@@ -112,7 +114,7 @@ def prepare(skip_godot: bool = False) -> None:
             run([py, 'tools/get_godot.py', '--os', 'windows' if os.name == 'nt' else 'linux',
                  '--with-templates'], timeout=1200)
         run([godot_path(), '--headless', '--path', ROOT / 'client', '--editor', '--import'],
-            timeout=300, log=ROOT / 'artifacts/local/import.log')
+            timeout=300, log=ROOT / 'artifacts/local/import.log', check_godot_errors=True)
     print('Source preparation finished. This does not certify gameplay, artwork, or a Windows release.')
 
 
@@ -255,7 +257,7 @@ def client(smoke: bool = False) -> None:
         env['KAIRNFALL_SMOKE_URL'] = f'http://127.0.0.1:{GAME_PORT}'
         env['KAIRNFALL_SCREENSHOTS'] = str(directory)
         args += ['--', '--smoke']
-        run(args, env=env, timeout=120, log=directory / 'client.log')
+        run(args, env=env, timeout=120, log=directory / 'client.log', check_godot_errors=True)
         expected = ['01-world.png', '02-inventory.png', '03-skills.png', '04-map.png']
         missing = [name for name in expected if not (directory / name).is_file()]
         if missing:
@@ -321,6 +323,12 @@ def tests(with_database: bool = False) -> None:
             if extra:
                 args += ['--'] + extra
             run(args, env=env, timeout=600, log=ROOT / 'artifacts/local-tests' / (name + '.log'))
+        run([dotnet, 'run', '--no-build', '--project', 'tools/security_probe/SecurityProbe.csproj',
+             '-c', 'Release', '--', 'content/catalog.json'], env=env, timeout=120,
+            log=ROOT / 'artifacts/local-tests/session-status-security.log')
+        run([dotnet, 'run', '--no-build', '--project', 'tools/world_probe/world_probe.csproj',
+             '-c', 'Release', '--', 'content/catalog.json'], env=env, timeout=180,
+            log=ROOT / 'artifacts/local-tests/world-paths.log')
     finally:
         if prefix is not None:
             run(prefix + ['stop', 'test-postgres'], env=env, timeout=60)
@@ -343,7 +351,9 @@ def main() -> int:
         elif args.action == 'test': tests(args.with_database)
         elif args.action == 'signals':
             run([godot_path(), '--headless', '--path', ROOT / 'client', 'res://Tests/SignalContract.tscn'],
-                timeout=60, log=ROOT / 'artifacts/local/signal-contract.log')
+                timeout=60, log=ROOT / 'artifacts/local/signal-contract.log', check_godot_errors=True)
+            run([godot_path(), '--headless', '--path', ROOT / 'client', 'res://Tests/InputContract.tscn'],
+                timeout=60, log=ROOT / 'artifacts/local/input-contract.log', check_godot_errors=True)
         elif args.action == 'stop-db':
             prefix = compose_prefix()
             run(prefix + ['--profile', 'test', 'stop'], env=database_environment(load_credentials()), timeout=60)
