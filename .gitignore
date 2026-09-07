@@ -13,3 +13,18 @@ artifacts/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Private launcher state, credentials, process records, and save data.
+.local/
+.cache/
+*.db
+*.db-wal
+*.db-shm
+*.dump
+
+# Deterministic assets and build output are recreated by source tools.
+/client/Assets/
+/client/Data/catalog.json
+/content/catalog.json
+/content/counts.json
+/build/
