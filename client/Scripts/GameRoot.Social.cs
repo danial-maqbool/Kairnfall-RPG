@@ -13,6 +13,7 @@ public partial class GameRoot
         var top = Ui.Row(page); var recipient = Ui.Edit("Character name or selected player", selectedTargetKind == "player" ? SocialName(selectedTarget) : ""); top.AddChild(recipient);
         top.AddChild(Ui.Button("Invite to party", () => Send("party_invite", recipient.Text.Trim())));
         top.AddChild(Ui.Button("Trade", () => Send("trade_invite", recipient.Text.Trim())));
+        if (Snapshot.Self.Pet != "") top.AddChild(Ui.Button("Release companion", () => Confirm("Release companion", "Release your active companion back into the world?", () => Send("pet_dismiss"))));
         var whisperRow = Ui.Row(page); var message = Ui.Edit("Private message"); message.MaxLength = 240; whisperRow.AddChild(message);
         whisperRow.AddChild(Ui.Button("Whisper", () => { Send("chat", "whisper", recipient.Text.Trim(), arg: message.Text.Trim()); message.Text = ""; }));
         var scroll = Ui.Scroll(page, new Vector2(870, 440)); var body = Ui.Column(scroll);
