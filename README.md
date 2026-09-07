@@ -16,12 +16,12 @@ Catalog counts, compilation, and generated-image validation do not establish com
 
 ## Start here
 
-Use the consolidated `handoff/local-qa` branch. It retains the transaction repairs from `main`,
-adds the source asset generators, and includes the native button callback repair.
+Use `main` for the integrated source handoff and reviewed local repairs. It retains
+the transaction repairs, source asset generators, and native button callback repair.
 Do not assemble a checkout by merging every old workstream branch.
 
 ```powershell
-git clone --branch handoff/local-qa https://github.com/danial-maqbool/Kairnfall-RPG.git
+git clone --branch main https://github.com/danial-maqbool/Kairnfall-RPG.git
 cd Kairnfall-RPG
 pwsh -NoProfile -File .\bootstrap.ps1
 pwsh -NoProfile -File .\Test-Kairnfall-Local.ps1 -WithDatabase

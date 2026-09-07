@@ -22,14 +22,15 @@ Recorded checks and their limits are in `docs/handoff/VERIFICATION.md`.
 ## One checkout
 
 ```powershell
-git clone --branch handoff/local-qa https://github.com/danial-maqbool/Kairnfall-RPG.git
+git clone --branch main https://github.com/danial-maqbool/Kairnfall-RPG.git
 cd Kairnfall-RPG
 git status --short
 git rev-parse HEAD
 ```
 
 For an existing clone, preserve local changes before switching branches.
-Fetch `origin`, then check out `handoff/local-qa`. Do not reset, clean, overwrite, or auto-stash unrelated work.
+Fetch `origin` and select the integrated `main` source only when switching can preserve
+that work. Do not reset, clean, overwrite, or auto-stash unrelated work.
 Create a new `team/local/<task>` branch for local repairs. Record the original handoff commit in the local audit.
 
 This branch starts from main commit `c5d80d60f5803958da0a76a61f9aae436f49c310`.
