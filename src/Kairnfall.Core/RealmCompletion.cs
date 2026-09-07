@@ -17,7 +17,7 @@ public sealed partial class RealmEngine
         foreach (var trade in State.Trades.Values.Where(value => value.A.Character == characterId || value.B.Character == characterId).ToList())
             State.Trades.Remove(trade.Id);
 
-        if (State.Characters.TryGetValue(characterId, out var player) && player.Health > 0 && State.Time - player.LastCombat < 8)
+        if (State.Characters.TryGetValue(characterId, out var player) && player.Health > 0 && player.LastCombat > 0 && State.Time - player.LastCombat < 8)
         {
             disconnectGrace[characterId] = State.Time + 10;
             Active.Add(characterId);
