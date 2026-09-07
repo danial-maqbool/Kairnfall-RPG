@@ -63,18 +63,20 @@ public sealed class RealmStore(NpgsqlDataSource source) : IAsyncDisposable
         finally { engine.State.Revision=previous; }
         await using var connection=await source.OpenConnectionAsync(cancel);
         await using var transaction=await connection.BeginTransactionAsync(IsolationLevel.Serializable,cancel);
-        const string sql="""
+        string sql=previous==0 ? """
             INSERT INTO realm_snapshots(id,revision,format_version,payload)
             VALUES(1,$1,1,$2)
-            ON CONFLICT(id) DO UPDATE SET revision=EXCLUDED.revision,
-              format_version=EXCLUDED.format_version,payload=EXCLUDED.payload,updated_at=now()
-            WHERE realm_snapshots.revision=$3
+            ON CONFLICT(id) DO NOTHING
+            RETURNING revision;
+            """ : """
+            UPDATE realm_snapshots SET revision=$1,format_version=1,payload=$2,updated_at=now()
+            WHERE id=1 AND revision=$3
             RETURNING revision;
             """;
         await using var command=new NpgsqlCommand(sql,connection,transaction);
         command.Parameters.AddWithValue(next);
         command.Parameters.AddWithValue(NpgsqlDbType.Jsonb,payload);
-        command.Parameters.AddWithValue(previous);
+        if(previous>0) command.Parameters.AddWithValue(previous);
         var updated=await command.ExecuteScalarAsync(cancel);
         if(updated is not long revision||revision!=next) throw new DBConcurrencyException("The realm revision changed outside the authoritative writer.");
         await transaction.CommitAsync(cancel);
