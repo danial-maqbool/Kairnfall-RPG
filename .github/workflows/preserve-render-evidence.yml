@@ -15,17 +15,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-      - name: Retrieve only the existing rendered test artifact
+      - name: Retrieve the metadata-verified rendered test artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh run download 34113545565 --repo danial-maqbool/Kairnfall-RPG --name live-client-evidence-fa4a719509ffbcf0f2c7c2a52937b443b5128621 --dir /tmp/kairnfall-render-evidence
+          gh run download 34113545565 --repo danial-maqbool/Kairnfall-RPG --name live-client-evidence-92f88078de58aab50a48724df4e05bf81ecaa3c3 --dir /tmp/kairnfall-render-evidence
       - name: Preserve PNG images and provenance, not logs or credentials
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib, json, shutil, struct
+          import hashlib, json, struct
           source=Path('/tmp/kairnfall-render-evidence')
           target=Path('docs/reviews/render-34113545565')
           target.mkdir(parents=True,exist_ok=True)
@@ -40,7 +40,7 @@ jobs:
               width,height=struct.unpack('>II',raw[16:24])
               files.append({'path':str(relative),'sha256':hashlib.sha256(raw).hexdigest(),'width':width,'height':height})
           if not files: raise RuntimeError('No rendered images in the evidence artifact')
-          manifest={'run_id':34113545565,'tested_merge_commit':'fa4a719509ffbcf0f2c7c2a52937b443b5128621','status':'Rendered evidence from a failed UI acceptance run. Not approved artwork or a finished game.','files':files}
+          manifest={'run_id':34113545565,'artifact_id':10015377675,'tested_merge_commit':'92f88078de58aab50a48724df4e05bf81ecaa3c3','head_commit':'6d97b2686b695ad79f4a03a49c94aeeef877f9bc','status':'The live-client job passed. The separate Windows export job failed. These images are not approved artwork or proof of full-game completion.','files':files}
           (target/'provenance.json').write_text(json.dumps(manifest,indent=2)+'\n')
           print(json.dumps(manifest,indent=2))
           PY
