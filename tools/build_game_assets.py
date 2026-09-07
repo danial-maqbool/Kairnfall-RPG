@@ -19,7 +19,7 @@ from art.common import Pixel,canvas,palette,shade,rgba,seed,sheet,save,STATES,DI
 from art.items import icon
 from art.people import body_frame,hair_frame,equipment_frame,npc_frame
 from art.environment_pack import TERRAINS,PROPS,tile,prop,building,chest,resource,structure,crystal
-from art.arcane_creatures import frame as creature_frame
+from art.species_refinement import frame as creature_frame
 
 
 def ability_icon(a):
