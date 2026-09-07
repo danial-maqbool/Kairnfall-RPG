@@ -1,5 +1,10 @@
 # Network interface and local verification
 
+Local repair `7f284b3` rejects expired attachment and expired/closed-peer commands
+inside the authoritative gate. The local/CI security probes include negative and
+valid-session controls. Live expiry/revocation races and unauthenticated WebSocket
+admission bounds remain acceptance work; see the local handoff record.
+
 The server source in `src/Kairnfall.Server/Program.cs` defines the live API.
 It exposes `/health`, registration/login/logout, character list/create, catalog retrieval, and `/play` WebSocket entry.
 Use `GameConnection` and shared models rather than creating a second incompatible client protocol.

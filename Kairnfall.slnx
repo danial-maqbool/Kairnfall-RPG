@@ -5,4 +5,6 @@
   <Project Path="tests/Kairnfall.Integration/Kairnfall.Integration.csproj" />
   <Project Path="tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj" />
   <Project Path="tests/Kairnfall.SecurityTests/Kairnfall.SecurityTests.csproj" />
+  <Project Path="tools/security_probe/SecurityProbe.csproj" />
+  <Project Path="tools/world_probe/world_probe.csproj" />
 </Solution>

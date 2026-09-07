@@ -349,17 +349,23 @@ public sealed partial class RealmEngine
     }
     private void TickEnvironment(double dt)
     {
-        foreach(var p in Active.Where(State.Characters.ContainsKey).Select(Player).ToList())
+        foreach(var p in State.Characters.Values.ToList())
         {
             if(p.Health<=0) continue;
+            bool online=Active.Contains(p.Id);
+            // Logging out does not cancel damage already applied by combat.
+            // Other offline activities, including healing and XP, remain paused.
+            if(!online&&!p.Statuses.Any(x=>x.Until>State.Time&&x.Kind is "poison" or "burn" or "bleed")) continue;
             var stats=CombatMath.Stats(p,Data);
             foreach(var status in p.Statuses.Where(x=>x.Until>State.Time).ToList())
             {
-                if(status.Kind=="regeneration") p.Health=Math.Min(stats.Health,p.Health+status.Power*dt);
+                if(online&&status.Kind=="regeneration") p.Health=Math.Min(stats.Health,p.Health+status.Power*dt);
                 if(status.Kind is "poison" or "burn" or "bleed") p.Health=Math.Max(0,p.Health-status.Power*dt*(1-CombatMath.Resist(stats,status.Element)));
-                if(status.Kind=="meditate"&&p.Mana<stats.Mana-1) Progression.Train(p,"meditation",1,Math.Clamp(Data.Zone(p.Zone).Level,1,100),Data);
+                if(p.Health<=0) break;
+                if(online&&status.Kind=="meditate"&&p.Mana<stats.Mana-1) Progression.Train(p,"meditation",1,Math.Clamp(Data.Zone(p.Zone).Level,1,100),Data);
             }
             if(p.Health<=0) KillPlayer(p);
+            if(!online) continue;
             foreach(var entry in p.Quests)
             {
                 var q=Data.Quest(entry.Key);

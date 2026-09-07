@@ -1,5 +1,12 @@
 # Content acceptance matrix
 
+The [2026-09-07 Windows record](handoff/LOCAL_ACCEPTANCE_2026-09-07.md) reports
+source `922d429`: generated records include 530 items, 132 abilities, 103 zones,
+170 NPCs, and 166 quests. These remain records, not accepted finished content.
+World checks passed for 949 spawn/door/NPC/exit/arrival destinations across 103 zones;
+resource, quest-objective, and boss-arena paths still require coverage.
+Actual creature review failed anatomy/direction/boss-distinction requirements.
+
 Counts below are minimum acceptance targets from the user's specification, not verified finished content.
 Regenerate the current catalog and record its counts and hash in each test report.
 

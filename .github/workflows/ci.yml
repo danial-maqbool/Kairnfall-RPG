@@ -49,6 +49,8 @@ jobs:
         run: dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json | tee artifacts/logs/core.log
       - name: Run gameplay and malformed-input regressions
         run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release | tee artifacts/logs/review-core.log
+      - name: Validate walkable world destinations and old-save geometry recovery
+        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee artifacts/logs/world.log
       - name: Run PostgreSQL and real-network integration suite
         run: dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release | tee artifacts/logs/network.log
       - name: Run isolated PostgreSQL save-conflict tests

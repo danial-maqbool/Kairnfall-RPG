@@ -1,5 +1,10 @@
 # Combat verification guide
 
+Local repair `7f284b3` retains already-applied poison/burn/bleed damage while a
+character is disconnected. Offline healing/training remain paused; lethal damage
+cannot be undone by a later regeneration status in the same tick. Focused probes
+pass. This does not resolve every combat-logout or boss-reset acceptance case.
+
 Read accepted requirements R04-R09 and R15. Inspect `RealmCombat.cs`, `Mechanics.cs`,
 `HandEquipment.cs`, item definitions, ability definitions, and their actual dispatch paths.
 These files exist in the handoff; that does not prove every advertised effect works.

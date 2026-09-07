@@ -24,6 +24,7 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
         var saved = await store.LoadAsync(cancel);
         engine = new RealmEngine(catalog, saved?.State);
         if (saved is not null) engine.Loot = saved.Loot;
+        engine.RecoverLegacyLootPositions();
         engine.State.Trades.Clear();
         ValidatePersistentState(engine);
         await store.SaveAsync(engine, cancel); commits++;
@@ -86,7 +87,9 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
         await gate.WaitAsync(cancel);
         try
         {
-            RequireReady(); var player = Engine.Player(character);
+            RequireReady();
+            if (session.Expires <= DateTimeOffset.UtcNow) throw new RuleException("Your session expired. Sign in again.");
+            var player = Engine.Player(character);
             if (player.Account != session.AccountId) throw new RuleException("This character does not belong to the signed-in account.");
             if (peers.ContainsKey(character) || peers.Values.Any(x => x.Session.AccountId == session.AccountId)) throw new RuleException("This account already has an active character connection.");
             var peer = new Peer(socket, session, character);
@@ -105,6 +108,13 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
         {
             RequireReady();
             if (!peers.TryGetValue(peer.CharacterId, out var current) || !ReferenceEquals(current, peer)) throw new RuleException("This connection is no longer active.");
+            // Check after acquiring the gate: queued commands must not retain
+            // authority across expiry or connection revocation.
+            if (peer.Closed.IsCancellationRequested || peer.Session.Expires <= DateTimeOffset.UtcNow)
+            {
+                peer.Abort();
+                return;
+            }
             var result = Engine.Execute(peer.CharacterId, command);
             if (command.Kind == "move") { if (!result.Ok) peer.Enqueue(new() { Kind = "result", Result = result }); return; }
             if (result.Ok) await PersistAsync(cancel);

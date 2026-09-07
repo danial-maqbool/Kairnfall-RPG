@@ -177,7 +177,8 @@ public partial class GameRoot
         {
             int slot = i; var button = Ui.Button((i == 9 ? 0 : i + 1).ToString(), () => UseHotbar(slot)); button.CustomMinimumSize = new Vector2(58, 44); button.ExpandIcon = true; button.AddThemeConstantOverride("icon_max_width", 28); button.SizeFlagsHorizontal = SizeFlags.ExpandFill; hotbarButtons[i] = button; bar.AddChild(button);
         }
-        var chatPanel = new PanelContainer { AnchorTop = 1, AnchorBottom = 1, OffsetLeft = 18, OffsetRight = 352, OffsetTop = -247, OffsetBottom = -18 }; hud.AddChild(chatPanel);
+        // Reserve the bottom strip for every hotbar slot at the minimum window size.
+        var chatPanel = new PanelContainer { AnchorTop = 1, AnchorBottom = 1, OffsetLeft = 18, OffsetRight = 352, OffsetTop = -335, OffsetBottom = -106 }; hud.AddChild(chatPanel);
         var chat = Ui.Column(chatPanel); chatLog = new RichTextLabel { BbcodeEnabled = false, ScrollFollowing = true, CustomMinimumSize = new Vector2(295, 135), SizeFlagsVertical = SizeFlags.ExpandFill }; chatLog.AddThemeFontSizeOverride("normal_font_size", 13); chat.AddChild(chatLog);
         var sendRow = Ui.Row(chat); chatChannel = new OptionButton(); foreach (string channel in new[] { "local", "global", "party", "guild", "whisper" }) chatChannel.AddItem(channel); sendRow.AddChild(chatChannel);
         chatInput = Ui.Edit("Enter to chat"); chatInput.MaxLength = 300; sendRow.AddChild(chatInput);
@@ -186,7 +187,7 @@ public partial class GameRoot
             if (text.Trim() != "") Send("chat", chatChannel.GetItemText(chatChannel.Selected), selectedTargetKind == "player" ? selectedTarget : "", arg: text.Trim());
             chatInput.Text = ""; chatInput.ReleaseFocus();
         };
-        var menu = new PanelContainer { AnchorLeft = 1, AnchorRight = 1, AnchorTop = 1, AnchorBottom = 1, OffsetLeft = -300, OffsetRight = -18, OffsetTop = -229, OffsetBottom = -18 }; hud.AddChild(menu);
+        var menu = new PanelContainer { AnchorLeft = 1, AnchorRight = 1, AnchorTop = 1, AnchorBottom = 1, OffsetLeft = -300, OffsetRight = -18, OffsetTop = -317, OffsetBottom = -106 }; hud.AddChild(menu);
         var grid = new GridContainer { Columns = 2 }; menu.AddChild(grid);
         foreach (string entry in new[] { "Inventory", "Character", "Skills", "Abilities", "Quests", "Crafting", "Social", "Settings" }) grid.AddChild(Ui.Button(entry, () => OpenPage(entry)));
         notice = Ui.Label("", 16, Ui.Text, true); notice.AnchorLeft = .5f; notice.AnchorRight = .5f; notice.AnchorTop = 1; notice.AnchorBottom = 1; notice.OffsetLeft = -360; notice.OffsetRight = 360; notice.OffsetTop = -153; notice.OffsetBottom = -98; notice.HorizontalAlignment = HorizontalAlignment.Center; notice.AddThemeConstantOverride("outline_size", 5); notice.AddThemeColorOverride("font_outline_color", Ui.Ink); hud.AddChild(notice);

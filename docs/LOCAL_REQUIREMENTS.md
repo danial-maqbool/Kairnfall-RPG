@@ -98,6 +98,14 @@ Never publish a resolved Compose configuration because it contains local passwor
 
 ## Official references
 
+Interrupted official toolchain downloads retain a `.partial` archive for the next
+bootstrap attempt. Resume responses must match the requested byte range and the
+official asset size; the complete archive must still pass the official SHA-256
+digest before extraction. A timeout is a failed setup attempt, not an installed
+toolchain. Sanitized partial output is retained in
+`artifacts/local/toolchain-download.log`. Keep one bootstrap/downloader active per
+checkout so concurrent processes do not write the same partial archive.
+
 - Godot pinned release: https://godotengine.org/article/maintenance-release-godot-4-7-2/
 - Godot Windows/.NET downloads: https://godotengine.org/download/windows/
 - .NET SDK: https://dotnet.microsoft.com/download/dotnet/10.0

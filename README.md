@@ -4,16 +4,24 @@ Persistent 2D top-down medieval fantasy RPG for Windows. The client uses Godot C
 The authoritative .NET server stores accounts and world state in PostgreSQL.
 
 **Status: source handoff for local testing. This is not a completed game release.**
+
+Local Windows repairs and bounded test results are recorded in
+[the acceptance checkpoint](docs/handoff/LOCAL_ACCEPTANCE_2026-09-07.md).
+Security, collision, native mouse input, and 720p HUD/map issues were repaired.
+Reviewed follow-ups preserve legacy saved positions and securely resume interrupted
+official toolchain downloads without bypassing checksum verification.
+Full bootstrap still needs the matching export-template download; art review
+failed, and full gameplay, audio, performance, and package acceptance remain open.
 Catalog counts, compilation, and generated-image validation do not establish complete gameplay or approved artwork.
 
 ## Start here
 
-Use the consolidated `handoff/local-qa` branch. It retains the transaction repairs from `main`,
-adds the source asset generators, and includes the native button callback repair.
+Use `main` for the integrated source handoff and reviewed local repairs. It retains
+the transaction repairs, source asset generators, and native button callback repair.
 Do not assemble a checkout by merging every old workstream branch.
 
 ```powershell
-git clone --branch handoff/local-qa https://github.com/danial-maqbool/Kairnfall-RPG.git
+git clone --branch main https://github.com/danial-maqbool/Kairnfall-RPG.git
 cd Kairnfall-RPG
 pwsh -NoProfile -File .\bootstrap.ps1
 pwsh -NoProfile -File .\Test-Kairnfall-Local.ps1 -WithDatabase

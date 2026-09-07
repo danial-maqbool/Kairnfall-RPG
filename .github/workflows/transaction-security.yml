@@ -2,7 +2,7 @@ name: Transaction integrity on Windows and Linux
 on:
   push:
     branches: [main, 'team/**']
-    paths: ['src/**', 'tests/Kairnfall.SecurityTests/**', '.github/workflows/transaction-security.yml']
+    paths: ['src/**', 'tests/Kairnfall.SecurityTests/**', 'tools/security_probe/**', '.github/workflows/transaction-security.yml']
   pull_request:
 permissions:
   contents: read
@@ -30,6 +30,7 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts/security
           dotnet run --project tests/Kairnfall.SecurityTests -c Release -- content/catalog.json | tee artifacts/security/results.log
+          dotnet run --project tools/security_probe/SecurityProbe.csproj -c Release -- content/catalog.json | tee artifacts/security/session-status.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

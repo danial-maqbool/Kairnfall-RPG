@@ -1,5 +1,25 @@
 # Verification record
 
+## Local Windows repair checkpoint, 2026-09-07
+
+Source `90143dff664ffd5811316cc924fc8983066e3648`: 99 backend/database checks,
+five security probes, five save-migration groups, 103-zone world-path checks,
+35 Python tests, and both native
+Godot contracts passed. Client build: zero warnings/errors. Four new real OpenGL
+screenshots were inspected, and mouse account/character creation, reconnect,
+right-click walking, and map scrolling were exercised. These are bounded checks.
+The later migration repairs old saved road positions without changing progress;
+the downloader now securely resumes interrupted official archives. An isolated
+diagnostic identified mismatched physical keycodes from OS automation, leaving
+actual hardware keyboard acceptance unverified.
+
+Full bootstrap failed at the 1,200-second matching-template download timeout.
+Art review failed; keyboard acceptance, full gameplay, audio, load, and packages
+remain incomplete. See [the local acceptance record](LOCAL_ACCEPTANCE_2026-09-07.md)
+for commands, exact evidence, retained failures, hardware, fixes, and remaining gates.
+Historical results below retain their original revision boundaries. The CS0108
+warning described below was repaired in this local checkpoint.
+
 ## Delivery status
 
 The consolidated source handoff is prepared for local testing and repair.

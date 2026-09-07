@@ -1,5 +1,10 @@
 # Asset and dependency licensing record
 
+The 2026-09-07 acceptance repair added no external artwork or audio. Generated
+creature art failed visual review and remains unapproved. The official Godot
+4.7.2 .NET editor was checksum-verified and executed; matching-template download
+timed out and no binaries were published. Package notice/signing review remains open.
+
 ## Current selected asset pipeline
 
 The handoff generates artwork from checked-in `tools/art/` Python source.

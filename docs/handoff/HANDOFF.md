@@ -2,6 +2,14 @@
 
 ## Status
 
+Local continuation produced repair source `90143dff664ffd5811316cc924fc8983066e3648`
+on `team/local/acceptance-repair`. Read
+[the Windows acceptance record](LOCAL_ACCEPTANCE_2026-09-07.md) before continuing.
+It records repaired session/status security, world collision, native pointer input,
+and HUD/map layout, with passing bounded tests. A reviewed follow-up preserves
+legacy saved positions and adds secure download resume. Full bootstrap timed out downloading
+templates; art failed review, and full gameplay/release gates remain open.
+
 This is a consolidated source checkpoint for local testing, repair, refinement, and release preparation.
 It is not a completed MMORPG. Do not assume that only testing remains.
 Missing or incomplete gameplay must be implemented during the local continuation.
@@ -14,14 +22,15 @@ Recorded checks and their limits are in `docs/handoff/VERIFICATION.md`.
 ## One checkout
 
 ```powershell
-git clone --branch handoff/local-qa https://github.com/danial-maqbool/Kairnfall-RPG.git
+git clone --branch main https://github.com/danial-maqbool/Kairnfall-RPG.git
 cd Kairnfall-RPG
 git status --short
 git rev-parse HEAD
 ```
 
 For an existing clone, preserve local changes before switching branches.
-Fetch `origin`, then check out `handoff/local-qa`. Do not reset, clean, overwrite, or auto-stash unrelated work.
+Fetch `origin` and select the integrated `main` source only when switching can preserve
+that work. Do not reset, clean, overwrite, or auto-stash unrelated work.
 Create a new `team/local/<task>` branch for local repairs. Record the original handoff commit in the local audit.
 
 This branch starts from main commit `c5d80d60f5803958da0a76a61f9aae436f49c310`.

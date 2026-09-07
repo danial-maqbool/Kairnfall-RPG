@@ -18,6 +18,20 @@ import complete_skill_icons as icons
 
 
 class HandoffTests(unittest.TestCase):
+    def test_timeout_retains_scrubbed_partial_output_and_fails(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            log = Path(temporary) / 'timeout.log'
+            failure = subprocess.TimeoutExpired('fixture', 1, output=b'progress Password=private;\n', stderr=b'fixture-token')
+            with patch.object(dev.subprocess, 'run', side_effect=failure), contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaisesRegex(RuntimeError, 'timed out after 1 seconds'):
+                    dev.run(['fixture'], timeout=1, log=log, env={'TEST_TOKEN': 'fixture-token'})
+            retained = log.read_text(encoding='utf-8')
+            self.assertIn('progress', retained)
+            self.assertIn('completion was not established', retained)
+            self.assertNotIn('private', retained)
+            self.assertNotIn('fixture-token', retained)
+            self.assertEqual(output.getvalue(), retained)
+
     @classmethod
     def setUpClass(cls):
         cls.catalog = json.loads((ROOT / 'content/catalog.json').read_text(encoding='utf-8'))
@@ -116,9 +130,22 @@ class HandoffTests(unittest.TestCase):
         self.assertNotIn('db-secret', text)
         self.assertNotIn('bearer-secret', text)
 
+    def test_zero_exit_godot_errors_fail_acceptance_and_preserve_log(self):
+        for stream in ('stdout', 'stderr'):
+            for error in ('ERROR: 2 resources still in use at exit.',
+                          'SCRIPT ERROR: Invalid call.', 'Unhandled exception: native bridge failure'):
+                with self.subTest(stream=stream, error=error), tempfile.TemporaryDirectory() as temporary:
+                    result = subprocess.CompletedProcess(['godot'], 0,
+                        error if stream == 'stdout' else '', error if stream == 'stderr' else '')
+                    target = Path(temporary) / 'godot.log'
+                    with patch.object(dev.subprocess, 'run', return_value=result), contextlib.redirect_stdout(io.StringIO()):
+                        with self.assertRaisesRegex(RuntimeError, 'Godot reported'):
+                            dev.run(['godot'], log=target, check_godot_errors=True)
+                    self.assertIn(error, target.read_text(encoding='utf-8'))
+
     def test_git_excludes_local_state_and_generated_output(self):
         paths = ['.local/database.json', '.venv/config', '.tools/editor.zip',
-                 'artifacts/private.log', 'client/Assets/catalog.json', 'build/client/game.pck']
+                 'artifacts/private.log', 'client/Assets/catalog.json', 'client/Data/catalog.json', 'build/client/game.pck']
         # Binary NUL-separated paths avoid Windows newline translation and Git quoting.
         result = subprocess.run(['git', 'check-ignore', '--no-index', '-z', '--stdin'], cwd=ROOT,
                                 input=('\0'.join(paths) + '\0').encode('utf-8'),
