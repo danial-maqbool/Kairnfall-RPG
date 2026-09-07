@@ -1,6 +1,6 @@
 {
-  "sha": "9c41292ca5ac854f2084e5465366348fe7e67840",
+  "sha": "820d2d39cf097aad2d111dd206af7f9890973be1",
   "base": "4e1259201428635254786e7dad185065fbf4fb55",
   "mode": "repair",
-  "purpose": "Test controls, equipment, native input, live PostgreSQL GUI actions, and audio cleanup before integrating source on main. This selector is not a gameplay acceptance claim."
+  "purpose": "Verify controlled attacks, equipment input, the redesigned HUD, PostgreSQL GUI actions, and audio cleanup. Source integration requires these checks to pass."
 }
