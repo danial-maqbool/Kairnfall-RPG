@@ -21,6 +21,7 @@ public sealed partial class RealmEngine
         Data=data; State=state??new();
         if(State.Schema!=1) throw new InvalidDataException("Unsupported realm schema.");
         SeedWorld();
+        if(state is not null) lastEventCycle=(long)(State.Time/300);
     }
     public void MarkSaved()=>EconomicDirty=false;
     public Character Player(string id)=>State.Characters.GetValueOrDefault(id)??throw new RuleException("Character not found.");
@@ -46,7 +47,7 @@ public sealed partial class RealmEngine
     }
     public Character CreateCharacter(string account,string name,string classId,Appearance appearance)
     {
-        Need(Regex.IsMatch(name??"",@"\A[A-Za-z][A-Za-z0-9_ ]{2,19}\z"),"Use 3–20 letters, digits, spaces, or underscores. Start with a letter.");
+        Need(Regex.IsMatch((name??"").Trim(),@"\A[A-Za-z][A-Za-z0-9_ ]{2,19}\z"),"Use 3–20 letters, digits, spaces, or underscores. Start with a letter.");
         name=name!.Trim();
         Need(!new[]{"admin","moderator","system","gamemaster"}.Contains(name.ToLowerInvariant()),"That name is reserved.");
         Need(State.Characters.Values.Count(x=>x.Account==account)<4,"This account already has four characters.");
@@ -72,6 +73,7 @@ public sealed partial class RealmEngine
         CommandResult Result(bool ok,string message)=>new(){Ok=ok,Message=message,RequestId=command.RequestId,Sequence=Player(character).LastAction};
         if(command.Version!=Wire.Version) return Result(false,"Client protocol version does not match the server.");
         if(!Guid.TryParseExact(command.RequestId,"N",out _)) return Result(false,"Invalid request identifier.");
+        if(command.Kind is null||command.Target is null||command.Item is null||command.Arg is null) return Result(false,"Command fields cannot be null.");
         if(command.Target.Length>128||command.Item.Length>128||command.Arg.Length>512||command.Kind.Length>40) return Result(false,"Command field is too long.");
         if(!double.IsFinite(command.X)||!double.IsFinite(command.Y)) return Result(false,"Invalid coordinates.");
         if(command.Kind=="move")
@@ -117,7 +119,7 @@ public sealed partial class RealmEngine
         switch(c.Kind)
         {
             case "equip": Items.Equip(p,c.Item,Data); Progress(p,"equip",Data.Item(Items.Owned(p,c.Item).Template).Type); return "Equipment changed.";
-            case "unequip": Need(p.Equipment.Remove(c.Arg),"That equipment slot is empty."); return "Item unequipped.";
+            case "unequip": Items.Unequip(p,c.Arg,Data); return "Item unequipped.";
             case "gather": return Gather(p,c.Target);
             case "attack": return Attack(p,c.Target);
             case "cast": return Cast(p,c.Item,c.Target,new(c.X,c.Y));
