@@ -2,46 +2,71 @@
 
 This repository is not a finished game or a playable Windows release.
 
-## Verified evidence
+## Verified backend evidence
 
-The authoritative core and content regression run at commit `2c7c83cdcb92ab48d9e47f39da4bb9bd02215540` passed 29 tests in GitHub Actions run `34099179504`.
+The latest inspected repair run is `34106654485`, job `101693115055`.
+It tested the source committed as `fdfe81a16390c3d7cc3bcfe6495b3fc044a70916`.
+The Ubuntu server build succeeded with zero compiler warnings and zero errors.
+All 86 checks passed: 29 existing core checks, 34 new gameplay/input checks, 18 real-network/PostgreSQL integration checks, and 5 new database conflict checks.
+See `docs/reviews/REPAIR_AUDIT.md` for the run, artifact, individual scope, and limitations.
 
-The generated catalog contains 530 item templates and 132 ability definitions. Counts describe data records. They do not prove that the corresponding presentation, balance, or end-to-end gameplay is complete.
+The network suite connects three clients. It verifies registration, account ownership, whisper privacy, trades, runes, parties, gathering, crafting, quest rewards, city travel, banking, auctions, writer locking, forced restart recovery, and logout revocation.
+It does not establish 100-player capacity or finished client presentation.
 
-The verified regression suite covers progression, movement constraints, physical map connectivity, inventory identity, purchases, banking, crafting, socketing, auction double-purchase rejection, trade consent, chat visibility, quest reward replay, serialization, damage bounds, chest cooldowns, and basic combat.
+The generated catalog contains 530 item templates and 132 ability definitions.
+Counts describe data records. They do not prove presentation, balance, content uniqueness, or complete gameplay.
 
-## Later implementation requiring verification
+## Repairs completed in the continuation batch
 
-Additional source implements a PostgreSQL realm store, account registration, password hashing, expiring sessions, authenticated WebSockets, a reusable client transport, and real network integration tests. Do not describe those integration tests as passed until their actual run logs establish the result.
+- Delayed attacks retain the originating skill through weapon changes and save serialization.
+- Shield block requires a usable equipped shield. Quivers pair with bows and crossbows. Invalid hand pairings fail validation.
+- Spears and halberds use melee reach instead of projectile behavior.
+- Cross-region offensive projectile targets are rejected.
+- Null command fields return a rule failure. Character names are checked after trimming.
+- Expired world events remove their owned objects and attacks. Restores do not repeat an already processed event cycle.
+- Revisioned database updates reject an unexpectedly missing snapshot row.
 
-The network test harness includes account ownership, three connected clients, whisper privacy, trade confirmation, rune insertion, rejected forged operations, parties, gathering, crafting, map transitions, banking, auction purchases, single-writer protection, forced restart recovery, and logout revocation.
+## Build configuration
+
+`Kairnfall.slnx` lists the existing backend and test projects.
+The nonexistent client-project entry was removed; the client remains to be implemented.
+Run `./Test-Kairnfall.ps1` to generate content, build the solution, and run both core suites.
+Database tests require a disposable PostgreSQL database, `KAIRNFALL_TEST_DB`, and `KAIRNFALL_ALLOW_DB_TESTS=1` before `./Test-Kairnfall.ps1 -WithDatabase`.
+Never run database tests against production player data.
+CI requires all four suites on Linux and adds a separate Windows core job.
+Inspect that job's result before claiming Windows verification.
 
 ## Incomplete release requirements
 
 - No tested playable Godot Windows client has been delivered.
-- No complete sprite set has passed visual inspection. The art requirement remains detailed, recognizable pixel-art objects with anatomical or construction detail and aligned animation layers. A color variation is not a distinct species.
+- No complete sprite set has passed visual inspection.
 - No Windows release, final release tag, or production deployment has been verified.
 - No 100-player load test has been verified.
-- No independent multi-agent team execution has been verified. Role separation in documents is not evidence of separate agents.
-- Audio, final UI, world presentation, full content uniqueness, balance, and the complete acceptance playthrough remain unverified or incomplete.
+- Audio, final UI, world presentation, content uniqueness, balance, and the complete acceptance playthrough remain incomplete or unverified.
 
-## Known code review findings
+Sprites must depict recognizable real-object structure, materials, and anatomy in pixel art.
+A color variant is not a distinct species. Animation layers require native-resolution and in-engine review.
 
-1. Delayed attacks need to retain the originating weapon or ability skill when awarding experience.
-2. Some skills need additional actionable progression content before level 100 is reachable.
-3. Shield block must require an actual shield, not any offhand item. Quiver and two-handed bow rules need a compatible slot model.
-4. Low-level dungeon populations must not inherit high-level biome creatures without level-aware encounter selection.
-5. Repeated regional quest templates do not satisfy a requirement for genuinely distinct side quests.
-6. Boss attack definitions must drive their implemented encounter behavior.
-7. Resource and creature placement needs regional coverage beyond the central spawn area.
-8. Expired world events must remove or retire their associated world objects and avoid duplicate creation after restart.
-9. Pet dismissal, structure dismantling, guild role management, and corpse ownership need complete behavior and tests.
-10. Disconnect behavior needs adversarial review for combat escape and reward abuse.
-11. Whole-realm cloning and full snapshot persistence per command require profiling and likely transaction batching before claiming 100 concurrent players.
-12. The database writer must reject an unexpected missing snapshot row during a revisioned update.
+## Remaining code review findings
 
-## Runtime status
+1. Some skills need additional actionable progression before level 100 is reachable.
+2. Low-level dungeon populations need level-aware encounter selection beyond the world-event fix.
+3. Repeated regional quest templates do not satisfy genuinely distinct side-quest requirements.
+4. Boss attack definitions must drive distinct implemented encounter behavior.
+5. Resource and creature placement needs regional coverage beyond the central spawn area.
+6. Pet dismissal, structure dismantling, guild role management, and corpse ownership need complete behavior and tests.
+7. Disconnect behavior needs adversarial review for combat escape and reward abuse.
+8. Whole-realm cloning and full snapshot persistence per command need profiling and likely transaction batching before a 100-player claim.
 
-The local execution environment stopped responding after a large development-tool artifact download. Subsequent local execution and image inspection could not be verified. GitHub Actions is the source of the confirmed build and test evidence above.
+## Agent connection and execution
 
-Keep implementation work on the development branch. Do not label the project complete, claim unobserved tests, or publish a final release until the outstanding acceptance gates pass.
+The user connected Zeiko and selected the team name Kairnfall-RPG.
+The connector returned zero accessible agents in this session.
+Its exposed actions provide customer-support agent operations, not coding-team dispatch or repository workspaces.
+This does not prove the user's team is absent from the Zeiko website.
+No independent coding agents were started through that interface.
+Code review here was sequential. GitHub Actions provided executable tests, not independent AI reviewers.
+
+The local execution environment still returned errors in this session.
+Confirmed executable results come from inspected GitHub Actions logs.
+Keep work on development branches until the remaining release gates pass.
