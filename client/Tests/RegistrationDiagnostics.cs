@@ -1,4 +1,6 @@
 using Godot;
+using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 
 namespace Kairnfall.Client.Tests;
 
@@ -7,6 +9,24 @@ public partial class RegistrationDiagnostics : Node
 {
     private double elapsed;
     private string previous = "";
+    private int traces;
+
+    public override void _EnterTree() => AppDomain.CurrentDomain.FirstChanceException += TraceClosedConnection;
+    public override void _ExitTree() => AppDomain.CurrentDomain.FirstChanceException -= TraceClosedConnection;
+
+    private void TraceClosedConnection(object? sender, FirstChanceExceptionEventArgs args)
+    {
+        if (args.Exception.Message != "The connection is closed." || Interlocked.Increment(ref traces) > 8) return;
+        // Method names locate the failing code. Do not log exception Data,
+        // arguments, request objects, URLs, credentials, or exception messages.
+        string methods = string.Join(" <- ", new StackTrace(args.Exception, false).GetFrames()
+            .Select(frame => frame.GetMethod())
+            .Where(method => method is not null)
+            .Select(method => method!.DeclaringType?.FullName + "." + method.Name)
+            .Take(20));
+        Console.WriteLine("AUTH_CLOSED_TRACE type=" + args.Exception.GetType().FullName + "; methods=" + methods);
+    }
+
     private IEnumerable<T> Walk<T>(Node node) where T : Node
     {
         if (node is T value) yield return value;
@@ -20,8 +40,6 @@ public partial class RegistrationDiagnostics : Node
         elapsed = 0;
         var root = Walk<GameRoot>(GetParent()).FirstOrDefault();
         if (root is null) return;
-        // Labels contain public interface text and error messages. Input fields
-        // and private Connection.Session members are deliberately excluded.
         string labels = string.Join(" | ", Walk<Label>(root)
             .Where(label => label.IsVisibleInTree() && !string.IsNullOrWhiteSpace(label.Text))
             .Select(label => label.Text.Replace('\n', ' ')).Take(24));
