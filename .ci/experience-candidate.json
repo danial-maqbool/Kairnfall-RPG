@@ -1,0 +1,6 @@
+{
+  "sha": "d626a7f68f1fbabde8cfcd5e4ec33f9fb213c97c",
+  "base": "d626a7f68f1fbabde8cfcd5e4ec33f9fb213c97c",
+  "mode": "baseline",
+  "purpose": "Establish the remote test environment before promoting any player-experience source changes. This is not game acceptance."
+}
