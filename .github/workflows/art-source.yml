@@ -1,0 +1,22 @@
+name: Art source inspection
+on:
+  push:
+    branches: ['team/client/visual-world']
+    paths: ['tools/inspect_art_sources.py', '.github/workflows/art-source.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect pinned source and credits
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/inspect_art_sources.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lpc-source-metadata
+          path: .cache/lpc/
+          retention-days: 2

@@ -93,6 +93,7 @@ public sealed partial class RealmEngine
         {
             if(command.Kind!="respawn") Alive(p);
             string message=Dispatch(p,command);
+            InvalidateTradeConsents();
             p.LastAction=command.Sequence;
             var result=Result(true,message);
             p.Receipts.Add(new(){RequestId=command.RequestId,Result=result});
@@ -120,6 +121,7 @@ public sealed partial class RealmEngine
         {
             case "equip": Items.Equip(p,c.Item,Data); Progress(p,"equip",Data.Item(Items.Owned(p,c.Item).Template).Type); return "Equipment changed.";
             case "unequip": Items.Unequip(p,c.Arg,Data); return "Item unequipped.";
+            case "split": return SplitStack(p,c.Item,c.Amount);
             case "gather": return Gather(p,c.Target);
             case "attack": return Attack(p,c.Target);
             case "cast": return Cast(p,c.Item,c.Target,new(c.X,c.Y));
@@ -161,12 +163,15 @@ public sealed partial class RealmEngine
             case "party_kick": return GroupKick(p,false,c.Target);
             case "guild_kick": return GroupKick(p,true,c.Target);
             case "guild_message": return GuildMessage(p,c.Arg);
+            case "guild_role": return GuildRole(p,c.Target,c.Arg);
             case "chat": return Chat(p,c.Target,c.Item,c.Arg);
             case "ignore": Need(State.Characters.ContainsKey(c.Target),"Character not found."); if(!p.Ignored.Add(c.Target)) p.Ignored.Remove(c.Target); return "Ignore list updated.";
             case "plant": return Plant(p,new(c.X,c.Y));
             case "build": return Build(p,c.Item,new(c.X,c.Y));
+            case "dismantle": return Dismantle(p,c.Target);
             case "tame": return Tame(p,c.Target);
             case "feed": return Feed(p,c.Item);
+            case "pet_dismiss": return PetDismiss(p);
             case "prospect": return Prospect(p,c.Target);
             case "chart": return Chart(p);
             case "track": Ready(p,"track",30); Need(p.Stamina>=10,"Not enough stamina."); p.Stamina-=10; ApplyStatus(p.Statuses,"tracking",Element.Nature,30,1,p.Id); return "Nearby animal tracks are highlighted.";
@@ -221,6 +226,7 @@ public sealed partial class RealmEngine
         foreach(var t in State.Trades.Values.Where(x=>x.Expires<=State.Time).ToList()) { State.Trades.Remove(t.Id); EconomicDirty=true; }
         foreach(var l in Loot.Values.Where(x=>x.Expires<=State.Time).ToList()) { Loot.Remove(l.Id); EconomicDirty=true; }
         TickEvents();
+        InvalidateTradeConsents();
     }
     public Snapshot Snapshot(string player)
     {
