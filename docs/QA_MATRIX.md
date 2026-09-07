@@ -1,5 +1,12 @@
 # QA acceptance matrix
 
+Current bounded evidence: [local Windows acceptance](handoff/LOCAL_ACCEPTANCE_2026-09-07.md),
+source `922d429`. Backend/database 99, security probes 5, Python tests 17, native
+signals/input, structural assets, and focused world paths passed. Graphical smoke
+and selected mouse flows passed; art approval failed. Full bootstrap timed out on
+export templates. Keyboard/scaling, full gameplay, audio, sustained load, and
+extracted packages remain open. The matrix below still defines mandatory gates.
+
 This matrix defines required checks. Consult handoff/VERIFICATION.md for actual results.
 Pending rows are not passed by document creation.
 

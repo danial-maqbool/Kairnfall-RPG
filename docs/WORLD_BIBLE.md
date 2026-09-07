@@ -1,5 +1,10 @@
 # World implementation and verification guide
 
+Local repair `922d429` gives building masonry precedence over roads, connects
+door approaches, and relocates obstructed NPCs and Thornhollow stairs. The local
+test wrapper runs `tools/world_probe` across actual actor-fitting tile paths.
+Its 949 tested destinations do not cover every resource, quest objective, or boss.
+
 The required geography and identities are in accepted requirements R10-R12 and R16-R18.
 The authored source is `content_src/world.py`, `content_src/mobs.py`, and `content_src/quests.py`.
 The catalog is generated. Do not hand-edit it as the only fix.
