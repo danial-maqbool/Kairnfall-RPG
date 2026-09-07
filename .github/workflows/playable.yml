@@ -1,9 +1,9 @@
-name: Build and launch the game
+name: Exact-source graphical and Windows acceptance
 on:
   push:
-    branches: ['team/integration/windows-launch']
+    branches: ['team/client/native-signal-contract', 'team/integration/windows-launch']
   pull_request:
-    paths: ['client/**', 'src/**', 'tools/art/**', 'tools/build_assets.py', 'tools/get_godot.py', '*.ps1', '.github/workflows/playable.yml']
+    paths: ['client/**', 'src/**', 'tools/art/**', 'tools/build_assets.py', 'tools/get_godot.py', 'tools/record_build_provenance.py', '*.ps1', '.github/workflows/playable.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,11 +30,13 @@ jobs:
       KAIRNFALL_ALLOW_LOCAL_HTTP: '1'
       ASPNETCORE_ENVIRONMENT: Testing
       ASPNETCORE_URLS: http://127.0.0.1:5077
+      KAIRNFALL_SMOKE_URL: http://127.0.0.1:5077
       KAIRNFALL_SCREENSHOTS: ${{ github.workspace }}/artifacts/screenshots
       LIBGL_ALWAYS_SOFTWARE: '1'
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-dotnet@v4
         with:
@@ -42,26 +44,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build the complete client asset pack
+      - name: Build complete assets and checked-in source
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts/logs
+          git rev-parse HEAD | tee artifacts/source-commit.txt
           python -m pip install Pillow==11.3.0
           python tools/build_content.py | tee artifacts/logs/content.log
           python tools/build_assets.py --workers 2 | tee artifacts/logs/assets.log
-      - name: Build server and Godot client
-        shell: bash
-        run: |
-          set -euo pipefail
-          dotnet build src/Kairnfall.Server/Kairnfall.Server.csproj -c Release | tee artifacts/logs/server-build.log
+          dotnet build Kairnfall.slnx -c Release | tee artifacts/logs/backend-build.log
           dotnet build client/Kairnfall.Client.csproj -c Debug | tee artifacts/logs/client-build.log
+          python tools/record_build_provenance.py | tee artifacts/logs/provenance.log
           python tools/get_godot.py --os linux
-      - name: Import resources and launch a real client against PostgreSQL
+      - name: Verify native callbacks and actual graphical UI against the server
         shell: bash
         run: |
           set -euo pipefail
           "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/logs/import.log
+          timeout 60 "$GODOT_BIN" --headless --path client res://Tests/SignalContract.tscn 2>&1 | tee artifacts/logs/native-signals.log
+          grep -F 'SIGNAL_CONTRACT: captured, method, object, async, collection, and reattachment checks passed.' artifacts/logs/native-signals.log
           dotnet src/Kairnfall.Server/bin/Release/net10.0/Kairnfall.Server.dll > artifacts/logs/server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
@@ -70,26 +72,25 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:5077/health
-          timeout 100 xvfb-run -a -s '-screen 0 1440x900x24' "$GODOT_BIN" --path client --rendering-method gl_compatibility --audio-driver Dummy -- --smoke 2>&1 | tee artifacts/logs/live-client.log
-          grep -F 'SMOKE: live world, inventory, skills, and map rendered without missing requested assets.' artifacts/logs/live-client.log
-          test -s artifacts/screenshots/01-world.png
-          test -s artifacts/screenshots/02-inventory.png
-          test -s artifacts/screenshots/03-skills.png
-          test -s artifacts/screenshots/04-map.png
-          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/logs/live-client.log; then exit 1; fi
+          timeout 180 xvfb-run -a -s '-screen 0 1440x900x24' "$GODOT_BIN" --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/ClientAcceptance.tscn 2>&1 | tee artifacts/logs/live-client.log
+          grep -E 'UI_ACCEPTANCE_V2_COMPLETE passed=[1-9][0-9]* failed=0' artifacts/logs/live-client.log
+          for image in 01-world 02-inventory 03-skills 04-map; do test -s "artifacts/screenshots/$image.png"; done
+          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/logs/native-signals.log artifacts/logs/live-client.log; then exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: live-client-evidence-${{ github.sha }}
+          name: exact-client-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
+            artifacts/provenance.json
+            artifacts/source-commit.txt
             artifacts/logs/
             artifacts/test-results/
             artifacts/art-review/
             artifacts/screenshots/
-          retention-days: 7
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
-          name: client-assets-${{ github.sha }}
+          name: exact-client-assets-${{ github.event.pull_request.head.sha || github.sha }}
           path: client/Assets/
           retention-days: 7
           if-no-files-found: error
@@ -100,6 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-dotnet@v4
         with:
@@ -109,21 +111,21 @@ jobs:
           python-version: '3.12'
       - uses: actions/download-artifact@v4
         with:
-          name: client-assets-${{ github.sha }}
+          name: exact-client-assets-${{ github.event.pull_request.head.sha || github.sha }}
           path: client/Assets
-      - name: Install pinned Godot and export templates
-        run: python tools/get_godot.py --os windows --with-templates
-      - name: Export development client and self-contained server
+      - run: python tools/get_godot.py --os windows --with-templates
+      - name: Test server, export client, and boot the actual Windows executable
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force build/client, build/server, artifacts/logs | Out-Null
-          python tools/build_content.py
-          if ($LASTEXITCODE -ne 0) { throw 'Content build failed.' }
+          ./Test-Kairnfall.ps1 *>&1 | Tee-Object artifacts/logs/windows-backend.log
           dotnet build client/Kairnfall.Client.csproj -c Debug
           if ($LASTEXITCODE -ne 0) { throw 'Client build failed.' }
           & $env:GODOT_BIN --headless --editor --path client --import *>&1 | Tee-Object artifacts/logs/windows-import.log
           if ($LASTEXITCODE -ne 0) { throw 'Client import failed.' }
+          & $env:GODOT_BIN --headless --path client res://Tests/SignalContract.tscn *>&1 | Tee-Object artifacts/logs/windows-signals.log
+          if ($LASTEXITCODE -ne 0) { throw 'Native Windows signal test failed.' }
           & $env:GODOT_BIN --headless --path client --export-release 'Windows Desktop' '../build/client/Kairnfall.exe' *>&1 | Tee-Object artifacts/logs/windows-export.log
           if ($LASTEXITCODE -ne 0) { throw 'Windows export failed.' }
           dotnet publish src/Kairnfall.Server/Kairnfall.Server.csproj -c Release -r win-x64 --self-contained true -o build/server
@@ -131,22 +133,26 @@ jobs:
           New-Item -ItemType Directory -Force build/server/content | Out-Null
           Copy-Item content/catalog.json build/server/content/catalog.json
           Copy-Item LICENSE, README.md build/
+          Copy-Item docs/LOCAL_PLAY.md build/LOCAL_PLAY.md
           foreach ($file in @('Play-Kairnfall.cmd','Start-Kairnfall.ps1','Stop-Kairnfall.ps1','compose.yml')) {
             if (!(Test-Path $file)) { throw "Missing package launcher: $file" }
             Copy-Item $file build/
           }
-          if (!(Test-Path build/client/Kairnfall.exe)) { throw 'Export did not produce the client.' }
+          git rev-parse HEAD | Out-File -Encoding utf8 build/SOURCE_COMMIT.txt
+          'Development package. Full-game content, visual acceptance, load capacity, and production deployment remain separate gates.' | Out-File -Encoding utf8 build/DEVELOPMENT_STATUS.txt
+          if (!(Test-Path build/client/Kairnfall.exe)) { throw 'No exported client.' }
           & build/client/Kairnfall.exe --headless --quit-after 90 *>&1 | Tee-Object artifacts/logs/windows-boot.log
           if ($LASTEXITCODE -ne 0) { throw 'Exported client failed its Windows boot check.' }
-          if (Select-String -Path artifacts/logs/windows-boot.log -Pattern 'ERROR:|Unhandled exception') { throw 'Windows client logged a startup error.' }
+          if (Select-String -Path artifacts/logs/windows-boot.log,artifacts/logs/windows-signals.log -Pattern 'ERROR:|Unhandled exception') { throw 'Windows client logged an error.' }
           Compress-Archive -Path build/* -DestinationPath Kairnfall-Windows-Development.zip
-          Get-FileHash Kairnfall-Windows-Development.zip -Algorithm SHA256 | Format-List | Out-File Kairnfall-Windows-Development.sha256.txt
+          $hash = (Get-FileHash Kairnfall-Windows-Development.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  Kairnfall-Windows-Development.zip" | Out-File -Encoding ascii Kairnfall-Windows-Development.sha256.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: windows-build-evidence-${{ github.sha }}
+          name: exact-windows-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/logs/
-          retention-days: 7
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: Kairnfall-Windows-Development
