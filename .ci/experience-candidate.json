@@ -1,6 +1,6 @@
 {
-  "sha": "d626a7f68f1fbabde8cfcd5e4ec33f9fb213c97c",
-  "base": "d626a7f68f1fbabde8cfcd5e4ec33f9fb213c97c",
-  "mode": "baseline",
-  "purpose": "Establish the remote test environment before promoting any player-experience source changes. This is not game acceptance."
+  "sha": "49ecb9ddc45e619c1793b4b3e941a311af7e31ae",
+  "base": "bada9aadccfea67ad602bd1503ba96eb772417e9",
+  "mode": "repair",
+  "purpose": "Test contextual attack, notification separation, equipment actions and native input before integrating candidate source into main."
 }
