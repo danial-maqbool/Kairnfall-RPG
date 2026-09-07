@@ -5,17 +5,19 @@ using System.Text.RegularExpressions;
 
 namespace Kairnfall.Client;
 
-public sealed class PixelAssets
+public sealed class PixelAssets : IDisposable
 {
     private readonly Dictionary<string, Texture2D> textures = [];
     private readonly Dictionary<string, AtlasTexture> frames = [];
     private readonly HashSet<string> missing = [];
+    private bool disposed;
     public IReadOnlyCollection<string> Missing => missing;
     public const int Frames = 8;
     public static readonly string[] LayerOrder = ["cloak", "body", "legs", "boots", "chest", "belt", "hair", "helmet", "necklace", "charm", "trinket", "gloves", "offhand", "weapon"];
 
     public Texture2D? Texture(string key)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         if (!Regex.IsMatch(key, @"\A[a-zA-Z0-9_/-]+\z")) throw new InvalidDataException("Unsafe asset identifier.");
         if (textures.TryGetValue(key, out var found)) return found;
         if (missing.Contains(key)) return null;
@@ -91,6 +93,23 @@ public sealed class PixelAssets
         var errors = data.Validate();
         if (errors.Count != 0) throw new InvalidDataException(string.Join("\n", errors.Take(12)));
         return data;
+    }
+
+    public void Dispose()
+    {
+        if (disposed) return;
+        disposed = true;
+        // Release atlas references before their backing textures. The scene has exited.
+        foreach (var atlas in frames.Values)
+        {
+            if (!GodotObject.IsInstanceValid(atlas)) continue;
+            atlas.Atlas = null;
+            atlas.Dispose();
+        }
+        frames.Clear();
+        foreach (var texture in textures.Values)
+            if (GodotObject.IsInstanceValid(texture)) texture.Dispose();
+        textures.Clear();
     }
 }
 
