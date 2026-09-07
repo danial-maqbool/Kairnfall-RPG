@@ -69,9 +69,18 @@ public partial class GameRoot
         foreach (string member in group.Members)
         {
             var row = Ui.Row(column); string presence = member == Snapshot.Self.Id || Snapshot.Players.Any(x => x.Id == member) ? "Nearby" : "Elsewhere or offline";
-            var label = Ui.Label(SocialName(member) + " · " + Ui.Words(group.Roles.GetValueOrDefault(member, "member")) + " · " + presence, 15); label.SizeFlagsHorizontal = SizeFlags.ExpandFill; row.AddChild(label);
+            string role = group.Roles.GetValueOrDefault(member, "member");
+            var label = Ui.Label(SocialName(member) + " · " + Ui.Words(role) + " · " + presence, 15); label.SizeFlagsHorizontal = SizeFlags.ExpandFill; row.AddChild(label);
             if (group.Leader == Snapshot.Self.Id && member != Snapshot.Self.Id)
+            {
+                if (guild)
+                {
+                    string nextRole = role == "officer" ? "member" : "officer";
+                    string action = role == "officer" ? "Demote" : "Promote";
+                    row.AddChild(Ui.Button(action, () => Confirm(action + " guild member", action + " " + SocialName(member) + "?", () => Send("guild_role", member, arg: nextRole))));
+                }
                 row.AddChild(Ui.Button("Remove", () => Confirm("Remove member", "Remove " + SocialName(member) + " from " + group.Name + "?", () => Send(guild ? "guild_kick" : "party_kick", member))));
+            }
         }
         var actions = Ui.Row(column);
         actions.AddChild(Ui.Button("Invite selected name", () => Send(guild ? "guild_invite" : "party_invite", recipient.Text.Trim()), group.Leader != Snapshot.Self.Id && group.Roles.GetValueOrDefault(Snapshot.Self.Id) != "officer"));
