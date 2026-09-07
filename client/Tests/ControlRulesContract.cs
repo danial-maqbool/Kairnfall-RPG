@@ -26,7 +26,6 @@ public partial class ControlRulesContract : Node
             && rect.Position.X >= bounds.Position.X && rect.Position.Y >= bounds.Position.Y
             && rect.End.X <= bounds.End.X + 1 && rect.End.Y <= bounds.End.Y + 1;
     }
-
     public override async void _Ready()
     {
         GameRoot? game = null;
@@ -38,11 +37,9 @@ public partial class ControlRulesContract : Node
             Require(ExperienceRules.AttackProblem(self, data, 10) == "", "The valid starter attack is available");
             self.Stamina = 2;
             Require(ExperienceRules.AttackProblem(self, data, 10).Contains("stamina"), "Low stamina prevents repeated rejected attacks");
-            self.Stamina = 100;
-            weapon.Durability = 0;
+            self.Stamina = 100; weapon.Durability = 0;
             Require(ExperienceRules.AttackProblem(self, data, 10).Contains("repair"), "A broken weapon reports repair instead of retrying");
-            weapon.Durability = 100;
-            self.Statuses.Add(new StatusEffect { Kind = "stun", Until = 11 });
+            weapon.Durability = 100; self.Statuses.Add(new StatusEffect { Kind = "stun", Until = 11 });
             Require(ExperienceRules.AttackProblem(self, data, 10).Contains("stunned"), "An active stun pauses the attack request");
             Require(ExperienceRules.AttackProblem(self, data, 12) == "", "An expired stun does not block attacks");
             self.Statuses.Clear();
@@ -127,7 +124,7 @@ public partial class ControlRulesContract : Node
                 Call(game, "ClosePage"); await Frame(); await Frame();
                 Require(Field<Button[]>(game, "hotbarButtons").All(Contained), "All ten hotbar buttons fit the " + size + " viewport");
             }
-            game.QueueFree(); await Frame(); await Frame();
+            await NativeTestLifetime.ReleaseSceneAsync(this, game);
             Require(!GodotObject.IsInstanceValid(game), "The real scene releases after repeated layouts");
             GD.Print($"CONTROL_RULES_CONTRACT: {checks} checks passed. Rule fixtures and native input/layout checks only.");
             GetTree().Quit(0);
@@ -135,7 +132,7 @@ public partial class ControlRulesContract : Node
         catch (Exception error)
         {
             GD.PushError("CONTROL_RULES_CONTRACT: " + error);
-            if (game is not null && GodotObject.IsInstanceValid(game)) { game.QueueFree(); await Frame(); await Frame(); }
+            if (game is not null && GodotObject.IsInstanceValid(game)) await NativeTestLifetime.ReleaseSceneAsync(this, game);
             GetTree().Quit(1);
         }
     }
