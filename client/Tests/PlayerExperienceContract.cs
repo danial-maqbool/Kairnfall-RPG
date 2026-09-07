@@ -1,6 +1,7 @@
 using Godot;
 using Kairnfall.Core;
 using System.Reflection;
+using System.Diagnostics.CodeAnalysis;
 using Point = Kairnfall.Core.Point;
 
 namespace Kairnfall.Client.Tests;
@@ -9,7 +10,7 @@ namespace Kairnfall.Client.Tests;
 public partial class PlayerExperienceContract : Node
 {
     private int checks;
-    private void Require(bool value, string message)
+    private void Require([DoesNotReturnIf(false)] bool value, string message)
     {
         if (!value) throw new InvalidOperationException(message);
         checks++;
@@ -138,7 +139,6 @@ public partial class PlayerExperienceContract : Node
             Require(action.GetParent().Name == "EquipmentActionBar", "Equip remains outside the statistics scroller");
             Call(game, "OpenPage", "Character"); await Frame(); await Frame();
             Require(game.FindChildren("Equipment_weapon", "Control", true, false).Count == 1, "The equipment page exposes the weapon drop slot");
-            // Native class filters do not resolve an unregistered C# subclass name.
             var nativeControls = game.FindChildren("*", "Control", true, false);
             var itemControls = nativeControls.OfType<EquipmentItemSlot>().ToArray();
             Require(itemControls.Count(x => x.Item is not null) >= self.Inventory.Count,
