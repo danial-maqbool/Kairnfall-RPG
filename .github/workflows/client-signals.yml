@@ -1,0 +1,44 @@
+name: Native Godot button signal contract
+on:
+  push:
+    branches: ['team/client/native-signal-contract']
+  pull_request:
+    paths: ['client/**', 'tools/get_godot.py', '.github/workflows/client-signals.yml']
+permissions:
+  contents: read
+concurrency:
+  group: native-client-signals-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  signals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build client and install verified Godot
+        run: |
+          set -euo pipefail
+          dotnet build client/Kairnfall.Client.csproj -c Debug
+          python tools/get_godot.py --os linux
+      - name: Exercise native signal dispatch and callback lifetime
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/signals
+          "$GODOT_BIN" --headless --editor --path client --import > artifacts/signals/import.log 2>&1
+          timeout 60 "$GODOT_BIN" --headless --path client res://Tests/SignalContract.tscn 2>&1 | tee artifacts/signals/test.log
+          grep -F 'SIGNAL_CONTRACT: captured, method, object, async, collection, and reattachment checks passed.' artifacts/signals/test.log
+          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/signals/test.log; then exit 1; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-signals-${{ github.sha }}
+          path: artifacts/signals/
+          retention-days: 14
