@@ -20,10 +20,56 @@ public sealed partial class RealmEngine
     {
         Data=data; State=state??new();
         if(State.Schema!=1) throw new InvalidDataException("Unsupported realm schema.");
+        if(state is not null) RecoverLegacyRoadPositions();
         SeedWorld();
         if(state is not null) lastEventCycle=(long)(State.Time/300);
     }
+    private void RecoverLegacyRoadPositions()
+    {
+        var repairs=new List<Action>();
+        void Plan(string zoneId,Point position,Action<Point> apply,bool character=false)
+        {
+            var zone=Data.Zones.FirstOrDefault(z=>z.Id==zoneId);
+            if(zone is null)
+            {
+                if(character) throw new InvalidDataException("Saved character has an unknown region.");
+                return;
+            }
+            bool inBounds=position.Finite&&position.X>=1&&position.Y>=1&&position.X<zone.Width-1&&position.Y<zone.Height-1;
+            if(inBounds&&WorldMap.Fits(zone,position)) return;
+            if(!WorldMap.TryRecoverLegacyRoadPosition(zone,position,out var recovered))
+            {
+                if(character) throw new InvalidDataException("Saved world position is invalid outside the legacy road geometry repair.");
+                // Do not broaden historical validation policy for unrelated world data.
+                return;
+            }
+            repairs.Add(()=>apply(recovered));
+        }
+        foreach(var player in State.Characters.Values) Plan(player.Zone,player.Position,p=>player.Position=p,true);
+        foreach(var creature in State.Creatures.Values)
+        {
+            Plan(creature.Zone,creature.Position,p=>creature.Position=p);
+            Plan(creature.Zone,creature.Home,p=>creature.Home=p);
+        }
+        foreach(var node in State.Nodes.Values) Plan(node.Zone,node.Position,p=>node.Position=p);
+        foreach(var chest in State.Chests.Values) Plan(chest.Zone,chest.Position,p=>chest.Position=p);
+        // A later corrupt record must not leave the caller's supplied state partly migrated.
+        foreach(var repair in repairs) repair();
+        if(repairs.Count>0) EconomicDirty=true;
+    }
     public void MarkSaved()=>EconomicDirty=false;
+    public void RecoverLegacyLootPositions()
+    {
+        // Loot is loaded separately by RealmHost after the realm-state constructor.
+        foreach(var pile in Loot.Values)
+        {
+            var zone=Data.Zones.FirstOrDefault(z=>z.Id==pile.Zone);
+            if(zone is not null && WorldMap.TryRecoverLegacyRoadPosition(zone,pile.Position,out var recovered))
+            {
+                pile.Position=recovered; EconomicDirty=true;
+            }
+        }
+    }
     public Character Player(string id)=>State.Characters.GetValueOrDefault(id)??throw new RuleException("Character not found.");
     private void Need(bool condition,string message) { if(!condition) throw new RuleException(message); }
     private void Alive(Character p)=>Need(p.Health>0,"You must respawn first.");

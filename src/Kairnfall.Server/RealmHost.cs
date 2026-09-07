@@ -24,6 +24,7 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
         var saved = await store.LoadAsync(cancel);
         engine = new RealmEngine(catalog, saved?.State);
         if (saved is not null) engine.Loot = saved.Loot;
+        engine.RecoverLegacyLootPositions();
         engine.State.Trades.Clear();
         ValidatePersistentState(engine);
         await store.SaveAsync(engine, cancel); commits++;

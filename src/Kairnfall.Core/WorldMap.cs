@@ -14,18 +14,20 @@ public static class WorldMap
             h=(h^(h>>13))*1274126177u; return h^(h>>16);
         }
     }
-    private static bool OnRoad(ZoneDef z,int x,int y)
+    private static bool OnRoad(ZoneDef z,int x,int y,bool legacy=false)
     {
         int sx=(int)z.Spawn.X,sy=(int)z.Spawn.Y;
         if(Math.Abs(x-sx)<=2||Math.Abs(y-sy)<=2) return true;
         foreach(var e in z.Exits)
         {
             var ex=(int)e.Position.X; var ey=(int)e.Position.Y;
+            if(legacy && z.Id=="thornhollow" && e.Id=="thornhollow_to_thornhollow_deepway") { ex=64; ey=88; }
             if(Math.Abs(y-ey)<=1 && x>=Math.Min(ex,sx)-1 && x<=Math.Max(ex,sx)+1) return true;
             if(Math.Abs(x-sx)<=1 && y>=Math.Min(ey,sy)-1 && y<=Math.Max(ey,sy)+1) return true;
         }
         // Keep physical door approaches connected even where rivers or rough terrain
         // border a building. Masonry still takes precedence over these paths below.
+        if(legacy) return false;
         foreach(var b in z.Buildings)
         {
             int doorX=b.X+b.Width/2, approachY=b.Y+b.Height;
@@ -33,15 +35,17 @@ public static class WorldMap
         }
         return false;
     }
-    public static Terrain TileAt(ZoneDef z,int x,int y)
+    public static Terrain TileAt(ZoneDef z,int x,int y)=>TileAt(z,x,y,false);
+    private static Terrain TileAt(ZoneDef z,int x,int y,bool legacy)
     {
         if(x<1||y<1||x>=z.Width-1||y>=z.Height-1) return Terrain.Wall;
+        if(legacy && OnRoad(z,x,y,true)) return z.Layer=="Surface" ? Terrain.Dirt : Terrain.Stone;
         foreach(var b in z.Buildings)
         {
             if(x>=b.X&&x<b.X+b.Width&&y>=b.Y+1&&y<b.Y+b.Height)
                 return (x==b.X+b.Width/2&&y==b.Y+b.Height-1) ? Terrain.Wood : Terrain.Wall;
         }
-        if(OnRoad(z,x,y)) return z.Layer=="Surface" ? Terrain.Dirt : Terrain.Stone;
+        if(!legacy && OnRoad(z,x,y)) return z.Layer=="Surface" ? Terrain.Dirt : Terrain.Stone;
         uint h=Hash(x,y,z.Seed);
         if(z.Kind=="interior") return (x>2&&y>2&&x<z.Width-3&&y<z.Height-3)?Terrain.Wood:Terrain.Wall;
         if(z.Layer!="Surface")
@@ -86,6 +90,30 @@ public static class WorldMap
     public static bool Fits(ZoneDef z,Point p)
     {
         return Walkable(z,new(p.X-ActorRadius,p.Y-ActorRadius))&&Walkable(z,new(p.X+ActorRadius,p.Y-ActorRadius))&&Walkable(z,new(p.X-ActorRadius,p.Y+ActorRadius))&&Walkable(z,new(p.X+ActorRadius,p.Y+ActorRadius));
+    }
+    // Used only while loading saved state after the masonry-priority repair.
+    // Never turn arbitrary corrupt coordinates into a spawn teleport.
+    public static bool TryRecoverLegacyRoadPosition(ZoneDef z,Point saved,out Point recovered)
+    {
+        recovered=saved;
+        if(!saved.Finite || saved.X<1 || saved.Y<1 || saved.X>=z.Width-1 || saved.Y>=z.Height-1 || Fits(z,saved)) return false;
+        foreach(double dx in new[]{-ActorRadius,ActorRadius})
+            foreach(double dy in new[]{-ActorRadius,ActorRadius})
+            {
+                double x=Math.Floor(saved.X+dx),y=Math.Floor(saved.Y+dy);
+                if(x<1||y<1||x>=z.Width-1||y>=z.Height-1 || IsSolid(TileAt(z,(int)x,(int)y,true))) return false;
+            }
+        for(int radius=0;radius<=16;radius++)
+            for(int dy=-radius;dy<=radius;dy++)
+                for(int dx=-radius;dx<=radius;dx++)
+                {
+                    if(Math.Max(Math.Abs(dx),Math.Abs(dy))!=radius) continue;
+                    var candidate=new Point(Math.Floor(saved.X)+dx+.5,Math.Floor(saved.Y)+dy+.5);
+                    if(!Fits(z,candidate)) continue;
+                    if(candidate.Distance(z.Spawn)>.01 && FindPath(z,z.Spawn,candidate,z.Width*z.Height).Count==0) continue;
+                    recovered=candidate; return true;
+                }
+        return false;
     }
     public static Point Move(ZoneDef z,Point from,Point delta)
     {
