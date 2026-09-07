@@ -1,0 +1,131 @@
+# Kairnfall local source handoff
+
+## Status
+
+This is a consolidated source checkpoint for local testing, repair, refinement, and release preparation.
+It is not a completed MMORPG. Do not assume that only testing remains.
+Missing or incomplete gameplay must be implemented during the local continuation.
+
+The requested game scope is in `docs/requirements/ACCEPTED_REQUIREMENTS.md`.
+The exact continuation prompt is in `docs/handoff/LOCAL_AGENT_PROMPT.md`.
+Machine prerequisites and commands are in `docs/LOCAL_REQUIREMENTS.md`.
+Recorded checks and their limits are in `docs/handoff/VERIFICATION.md`.
+
+## One checkout
+
+```powershell
+git clone --branch handoff/local-qa https://github.com/danial-maqbool/Kairnfall-RPG.git
+cd Kairnfall-RPG
+git status --short
+git rev-parse HEAD
+```
+
+For an existing clone, preserve local changes before switching branches.
+Fetch `origin`, then check out `handoff/local-qa`. Do not reset, clean, overwrite, or auto-stash unrelated work.
+Create a new `team/local/<task>` branch for local repairs. Record the original handoff commit in the local audit.
+
+This branch starts from main commit `c5d80d60f5803958da0a76a61f9aae436f49c310`.
+It retains PR #21's actual transaction and stack-splitting fixes.
+It adds the canonical generated-art source from PR #20, not that branch's older server.
+It selects the four native button/signal-test files from the native-client workstream.
+It adds new source setup, database isolation, skill-icon coverage, and handoff tests.
+See `SOURCE_PROVENANCE.json` for exact source revisions.
+
+Do not merge all old branches. There are competing asset builders and old server copies.
+Some old PRs contain only task documents. A merged task document is not a finished feature.
+Read a PR's diff, base, tests, and scope before using it. Preserve IDs, current security fixes, and stable protocol contracts.
+
+## Reconstruct from source
+
+No chat attachment or expiring CI artifact is required.
+The canonical sequence is:
+
+```text
+content_src/* -> tools/build_content.py -> content/catalog.json
+tools/art/* -> tools/build_game_assets.py -> client/Assets/*
+tools/complete_skill_icons.py -> all client skill icons + updated manifest
+tools/validate_game_assets.py -> reference/frame/checksum/audio-format report
+```
+
+Run this sequence through `tools/local_dev.py assets`. Do not omit the skill-icon stage.
+Generated assets are reproducible from checked-in source, but their visual quality is not accepted by generation alone.
+Historical manifests with 1,523 PNG files did not include this handoff's additional 60 skill icons.
+Use the new audit output instead of repeating historical counts.
+
+## Local setup and first checks
+
+Install Git, Python 3.12.x, PowerShell 7.4+, a stable .NET 10 SDK, and Docker Desktop with Linux containers.
+Bootstrap prepares the pinned Pillow dependency and verified Godot 4.7.2 .NET toolchain.
+It will fail rather than silently install a different engine or skip a checksum check.
+
+```powershell
+pwsh -NoProfile -File .\bootstrap.ps1
+pwsh -NoProfile -File .\Test-Kairnfall-Local.ps1 -WithDatabase
+.\.venv\Scripts\python.exe tools/local_dev.py signals
+pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1 -Smoke
+pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1
+```
+
+Inspect real screenshots and interact with the real client. A headless startup or a zero exit code is not sufficient.
+The smoke run must create four fresh PNG files. It does not test all gameplay or prove visual quality.
+For two clients, run the standalone server script and open the client script twice with separate accounts.
+The local address is `http://127.0.0.1:5077`. No public realm is configured.
+
+## Local data safety
+
+The development database uses port 55432. Integration tests use a separate test database on port 55433.
+Their named Docker volumes are separate. The project name depends on the checkout path.
+The launcher creates random passwords in `.local/database.json`. This private file is ignored by Git.
+Treat that file and the volumes as a pair. Keep the workspace private on Windows.
+Do not publish resolved Compose configuration, environment dumps, account tables, or database backups.
+
+`Test-Kairnfall-Local.ps1 -WithDatabase` opts into tests and does not use `KAIRNFALL_DB` from the caller.
+Lower-level direct test commands require deliberate test configuration. Never use a personal or production database.
+
+The combined development command owns its server child and stops it after the client exits.
+Use Ctrl+C for a standalone server. Stop database containers with `Stop-Kairnfall-Database.ps1`.
+No command removes volumes. Do not use volume deletion or source-reset commands as general repair steps.
+
+## Known acceptance gaps at this handoff
+
+1. Full graphical gameplay has not passed acceptance on this consolidated checkout.
+2. A historical native-client branch passed its signal contract but failed its live-client job. Read `VERIFICATION.md`.
+3. The complete sprite set has not passed actual native-scale and in-engine visual review.
+4. File uniqueness does not prove species-specific anatomy. The local agent must inspect and repair inappropriate shapes and animations.
+5. Equipment alignment, directional layering, attack/cast poses, UI focus, resizing, and all interaction paths require local testing.
+6. The 60 skill records need action/effect/unlock evidence. Catalog descriptions are not implementation proof.
+7. Complete world reachability, service paths, all quests, boss encounters, secrets, and progression remain acceptance work.
+8. Economy simulations, audio listening review, sustained multiplayer/load tests, and a clean extracted Windows package remain unverified.
+9. No public persistent production server is deployed. The development realm is local only.
+10. No independent multi-agent review is claimed for the handoff authoring session.
+
+The local agent is authorized to fix defects and implement missing requirements, not only produce a list of problems.
+Do not remove features, lower content requirements, or weaken tests to mark completion.
+
+## First repair priorities
+
+- Confirm the source and generated catalogs agree. Make all setup and test commands pass.
+- Confirm native button callbacks, asynchronous UI actions, and repeated page recreation.
+- Diagnose the first real-client failure from logs. Do not suppress engine errors.
+- Complete the clean-account gameplay sequence without cheats or direct reward injection.
+- Verify two-client ownership, trading, banking, auctions, party/guild/chat, and restart persistence.
+- Inspect every normal species and boss. Inspect representative complete animation cycles in all directions.
+- Audit each skill and each advertised rune/ability effect against a real server execution path.
+- Check region graph plus walkable tile paths to every required exit, NPC, service, and objective.
+- Run balance, security, crash/recovery, and performance tests.
+- Build and test Windows packages locally only after the preceding gates pass.
+
+## Evidence to retain
+
+Keep raw logs, captures, test databases, and diagnostic output in ignored `artifacts/` or private storage.
+Commit sanitized summaries and reproduction tests. Record commit SHA, OS, tool versions, hardware,
+commands, exit codes, timestamps, test counts, failures, and screenshot/recording paths.
+Do not publish personal Windows paths, credentials, session tokens, or account data.
+
+Update `docs/handoff/VERIFICATION.md`, `docs/QA_MATRIX.md`, `docs/CONTENT_MATRIX.md`,
+and `docs/FINAL_AUDIT.md`. Use separate statuses for implementation, automated tests,
+visual review, audio review, gameplay review, load capacity, and package acceptance.
+
+When complete, provide a tested Windows client/server package, launch instructions, real gameplay images,
+checksums, a release/tag, and an audit that matches the tested revision.
+Until then, call the result a development checkpoint and state the exact remaining blockers.
