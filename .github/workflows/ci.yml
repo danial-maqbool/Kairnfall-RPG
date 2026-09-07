@@ -19,12 +19,22 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Compile authoritative simulation
         run: dotnet build src/Kairnfall.Core/Kairnfall.Core.csproj -c Release
-      - name: Build content when present
-        if: hashFiles('tools/build_content.py') != ''
+      - name: Compile dedicated server
+        if: hashFiles('src/Kairnfall.Server/Program.cs') != ''
+        run: dotnet build src/Kairnfall.Server/Kairnfall.Server.csproj -c Release
+      - name: Compile and validate content
         run: python3 tools/build_content.py
-      - name: Run implemented regression suite
-        if: hashFiles('tests/Kairnfall.Tests/Kairnfall.Tests.csproj') != ''
+      - name: Run regression tests
         run: dotnet run --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
+      - name: Preserve test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-evidence-${{ github.sha }}
+          path: |
+            test-results/
+            content/coverage.json
+          retention-days: 14
       - name: Preserve source for reproducibility
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,4 +53,9 @@ jobs:
             *.ps1
             LICENSE
             README.md
+            AGENTS.md
+            !**/bin/**
+            !**/obj/**
+            !**/__pycache__/**
+            !**/.godot/**
           retention-days: 7
