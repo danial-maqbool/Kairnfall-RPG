@@ -1,0 +1,11 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>Kairnfall.Client</RootNamespace>
+    <AssemblyName>Kairnfall.Client</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../src/Kairnfall.Core/Kairnfall.Core.csproj" />
+  </ItemGroup>
+</Project>
