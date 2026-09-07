@@ -6,12 +6,14 @@ on:
     paths:
       - 'client/**'
       - 'src/Kairnfall.Core/**'
+      - 'src/Kairnfall.Server/**'
       - 'content/**'
       - '.github/workflows/windows-release.yml'
   pull_request:
     paths:
       - 'client/**'
       - 'src/Kairnfall.Core/**'
+      - 'src/Kairnfall.Server/**'
       - 'content/**'
       - '.github/workflows/windows-release.yml'
 
@@ -31,7 +33,27 @@ env:
 jobs:
   export-windows:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_smoke
+          POSTGRES_PASSWORD: disposable-smoke-database-only
+          POSTGRES_DB: kairnfall_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_smoke"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KAIRNFALL_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_smoke;Username=kairnfall_smoke;Password=disposable-smoke-database-only
+      KAIRNFALL_ALLOW_LOCAL_HTTP: '1'
+      ASPNETCORE_ENVIRONMENT: Testing
+      ASPNETCORE_URLS: http://127.0.0.1:5077
+      KAIRNFALL_SMOKE_URL: http://127.0.0.1:5077
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,15 +99,52 @@ jobs:
           "$godot_exe" --version
           test -f "$template_target/windows_release_x86_64.exe"
 
-      - name: Build client C# source
+      - name: Build server, core, tests, and client source
         shell: bash
-        run: dotnet build client/Kairnfall.Client.csproj -c Release
+        run: dotnet build Kairnfall.slnx -c Release && dotnet build client/Kairnfall.Client.csproj -c Release
 
       - name: Load project in Godot headless editor
         shell: bash
         run: |
           set -euo pipefail
           "$GODOT_EXE" --headless --editor --path "$GITHUB_WORKSPACE/client" --quit
+
+      - name: Run live Godot client-to-server smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/logs
+          dotnet src/Kairnfall.Server/bin/Release/net10.0/Kairnfall.Server.dll > artifacts/logs/smoke-server.log 2>&1 &
+          server_pid=$!
+          cleanup() { kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true; }
+          trap cleanup EXIT
+          ready=0
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5077/health > artifacts/logs/smoke-health.json; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat artifacts/logs/smoke-server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat artifacts/logs/smoke-server.log
+            exit 1
+          fi
+          set +e
+          "$GODOT_EXE" --headless --path "$GITHUB_WORKSPACE/client" -- --smoke 2>&1 | tee artifacts/logs/godot-smoke.log
+          smoke_status=${PIPESTATUS[0]}
+          set -e
+          cat artifacts/logs/smoke-health.json
+          if [ "$smoke_status" -ne 0 ]; then
+            cat artifacts/logs/smoke-server.log
+            exit "$smoke_status"
+          fi
+          grep -F "SMOKE: authenticated Godot client entered the persistent server." artifacts/logs/godot-smoke.log
+          grep -F "SMOKE: live world, inventory, skills, and map rendered without missing requested assets." artifacts/logs/godot-smoke.log
 
       - name: Export Windows x86-64 release
         shell: bash
@@ -100,8 +159,11 @@ jobs:
           find "$(dirname "$output")" -type f -printf '%P %s bytes\n' | sort
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: Kairnfall-Windows-${{ github.sha }}
-          path: build/client/
+          path: |
+            build/client/
+            artifacts/logs/
           retention-days: 14
           if-no-files-found: error
