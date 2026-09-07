@@ -1,0 +1,3 @@
+# Build-only dependency for the canonical tools/build_game_assets.py pipeline.
+# Python 3.12.x. No external AI service, API key, or NumPy dependency is required.
+Pillow==12.0.0

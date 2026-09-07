@@ -5,7 +5,12 @@
 .env.*
 !.env.example
 .tools/
+.venv/
+.local/
 artifacts/
+build/
+client/Assets/
+content/
 *.log
 *.user
 *.pfx
