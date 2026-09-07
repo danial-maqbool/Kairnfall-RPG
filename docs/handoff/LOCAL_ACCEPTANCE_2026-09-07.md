@@ -64,8 +64,13 @@ Tooling commit `de8cfe0` adds resumable official downloads: strict HTTP range/si
 validation, safe handling of ignored ranges, and mandatory full official SHA-256
 verification before installation. Timeout output is retained after sanitization.
 All 35 handoff tests passed, including 17 offline download tests
-(`artifacts/local/resume-handoff-tests.log`). A live resumed template transfer was
-started; these offline checks alone do not establish completed installation.
+(`artifacts/local/resume-handoff-tests.log`). The live resumed template transfer
+started with 467,664,896 bytes retained and advanced to 910,163,968 of 1,202,598,411
+bytes, then exceeded the unchanged 1,200-second limit and exited 1. The partial
+archive remains available for the next retry. No downloader processes remained
+after that failure. `artifacts/local/resumed-toolchain-download.log` retains the
+sanitized progress and timeout result. Full template hashing/installation, full
+bootstrap completion, and Windows export remain unestablished.
 
 ## Environment
 
