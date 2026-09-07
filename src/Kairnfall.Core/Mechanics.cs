@@ -92,7 +92,7 @@ public static class CombatMath
             Crit=Math.Clamp(0.03+d*0.0015+b.GetValueOrDefault("crit")/100,0,0.5),
             CritDamage=Math.Clamp(1.5+b.GetValueOrDefault("crit_damage")/100,1.5,2.5),
             Evasion=Math.Clamp(d*0.001+Progression.Level(p,"evasion")*0.001+b.GetValueOrDefault("evasion")/100,0,0.45),
-            Block=p.Equipment.ContainsKey("offhand")?Math.Clamp(0.05+Progression.Level(p,"shield_mastery")*0.0015+b.GetValueOrDefault("block")/100,0,0.5):0,
+            Block=HandEquipment.HasUsableShield(p,data)?Math.Clamp(0.05+Progression.Level(p,"shield_mastery")*0.0015+b.GetValueOrDefault("block")/100,0,0.5):0,
             Healing=1+sp*0.01+b.GetValueOrDefault("healing")/100,
             AttackSpeed=Math.Clamp(1+b.GetValueOrDefault("attack_speed")/100,0.5,2),
             CooldownReduction=Math.Clamp(b.GetValueOrDefault("cooldown")/100,0,0.35),
@@ -198,9 +198,17 @@ public static class Items
         var item=Owned(p,id); var def=catalog.Item(item.Template);
         if(def.Slot==""||item.Durability==0) throw new RuleException("This item cannot be equipped.");
         if(def.Skill!=""&&Progression.Level(p,def.Skill)<def.Requirement) throw new RuleException("Your skill level is too low.");
-        if(def.Tags.Contains("two_handed")) p.Equipment.Remove("offhand");
-        if(def.Slot=="offhand"&&p.Equipment.TryGetValue("weapon",out var wid)&&catalog.Item(Owned(p,wid).Template).Tags.Contains("two_handed")) throw new RuleException("Your weapon requires both hands.");
+        if(def.Slot=="weapon"&&!HandEquipment.Compatible(def,HandEquipment.Definition(p,"offhand",catalog)))
+            p.Equipment.Remove("offhand");
+        if(def.Slot=="offhand"&&!HandEquipment.Compatible(HandEquipment.Definition(p,"weapon",catalog),def))
+            throw new RuleException("This offhand item is incompatible with your weapon.");
         p.Equipment[def.Slot]=id;
+    }
+    public static void Unequip(Character p,string slot,Catalog catalog)
+    {
+        if(!p.Equipment.Remove(slot)) throw new RuleException("That equipment slot is empty.");
+        if(slot=="weapon"&&!HandEquipment.Compatible(null,HandEquipment.Definition(p,"offhand",catalog)))
+            p.Equipment.Remove("offhand");
     }
     public static void Socket(Character p,string equipmentId,string runeId,Catalog catalog)
     {
@@ -226,6 +234,7 @@ public static class Items
             if(p.Gold<0||p.Gold>GoldCap||p.Inventory.Count>InventoryCapacity||p.Bank.Count>BankCapacity) errors.Add("Invalid character storage: "+p.Id);
             foreach(var i in p.Inventory.Concat(p.Bank)) Check(i);
             foreach(var e in p.Equipment) if(!p.Inventory.Any(x=>x.Id==e.Value&&data.Item(x.Template).Slot==e.Key)) errors.Add("Invalid equipment: "+p.Id);
+            if(!HandEquipment.Compatible(HandEquipment.Definition(p,"weapon",data),HandEquipment.Definition(p,"offhand",data))) errors.Add("Incompatible hand equipment: "+p.Id);
             if(p.SkillXp.Any(x=>!data.Skills.Any(s=>s.Id==x.Key)||x.Value<0||x.Value>Progression.Threshold(100))) errors.Add("Invalid skill XP: "+p.Id);
         }
         foreach(var a in state.Auctions.Values) Check(a.Item);

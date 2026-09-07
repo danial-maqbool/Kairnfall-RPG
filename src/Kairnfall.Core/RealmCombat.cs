@@ -27,9 +27,9 @@ public sealed partial class RealmEngine
         double raw=stats.Physical*(1+Progression.Level(p,skill)*0.008);
         if(p.Class=="berserker") raw*=1+0.25*(1-p.Health/stats.Health);
         if(CombatMath.Roll(stats.Crit)) raw*=stats.CritDamage;
-        if((weapon?.Range??1.6)>2.2)
+        if(HandEquipment.IsProjectileWeapon(weapon))
         {
-            State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=mob.Position,Direction=p.Facing,Shape="projectile",Element=weapon?.Element??Element.Physical,Radius=0.8,Power=raw,Resolves=State.Time+Math.Min(0.6,p.Position.Distance(mob.Position)/15)});
+            State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=mob.Position,Direction=p.Facing,Shape="projectile",Skill=skill,Element=weapon?.Element??Element.Physical,Radius=0.8,Power=raw,Resolves=State.Time+Math.Min(0.6,p.Position.Distance(mob.Position)/15)});
         }
         else HitCreature(p,mob,raw,weapon?.Element??Element.Physical,skill);
         return "";
@@ -52,6 +52,7 @@ public sealed partial class RealmEngine
         bool selfKind=ability.Kind is "heal" or "shield" or "buff" or "stealth" or "summon" or "purge";
         if(!selfKind)
         {
+            Need(selected is null||selected.Zone==p.Zone,"The ability target is in another region.");
             Need(aim.Finite&&p.Position.Distance(aim)<=ability.Range,"The ability target is out of range.");
             Need(WorldMap.LineOfSight(zone,p.Position,aim),"The target is behind an obstacle.");
             p.Facing=p.Position.Direction(aim);
@@ -105,13 +106,13 @@ public sealed partial class RealmEngine
                 ApplyStatus(p.Statuses,"guard",Element.Physical,ability.Duration,0.35,p.Id); break;
             case "projectile":
                 Need(selected is not null&&selected.Health>0&&selected.Owner=="","Select a living hostile creature.");
-                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Direction=p.Facing,Shape="projectile",Element=ability.Element,Radius=Math.Max(0.8,ability.Radius),Power=basePower,Resolves=State.Time+Math.Clamp(p.Position.Distance(aim)/12,0.1,0.8)}); break;
+                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Direction=p.Facing,Shape="projectile",Skill=ability.Skill,Element=ability.Element,Radius=Math.Max(0.8,ability.Radius),Power=basePower,Resolves=State.Time+Math.Clamp(p.Position.Distance(aim)/12,0.1,0.8)}); break;
             case "area": case "cone": case "line": case "field":
             {
                 string shape=ability.Kind=="area"?"circle":ability.Kind=="field"?"circle":ability.Kind;
                 Point origin=ability.Kind is "cone" or "line"?p.Position:aim;
-                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=origin,Direction=p.Facing,Shape=shape,Element=ability.Element,Radius=ability.Kind is "cone" or "line"?ability.Range:Math.Max(1,ability.Radius),Power=basePower,Resolves=State.Time+0.35});
-                if(ability.Kind=="field") for(int n=1;n<=Math.Min(5,(int)ability.Duration);n++) State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Shape="circle",Element=ability.Element,Radius=Math.Max(1,ability.Radius),Power=basePower*0.3,Resolves=State.Time+n});
+                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=origin,Direction=p.Facing,Shape=shape,Skill=ability.Skill,Element=ability.Element,Radius=ability.Kind is "cone" or "line"?ability.Range:Math.Max(1,ability.Radius),Power=basePower,Resolves=State.Time+0.35});
+                if(ability.Kind=="field") for(int n=1;n<=Math.Min(5,(int)ability.Duration);n++) State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Shape="circle",Skill=ability.Skill,Element=ability.Element,Radius=Math.Max(1,ability.Radius),Power=basePower*0.3,Resolves=State.Time+n});
                 break;
             }
             case "interrupt":
@@ -232,10 +233,6 @@ public sealed partial class RealmEngine
         if(t.Shape=="ring") return distance>=t.Radius*0.55;
         return false;
     }
-    private string ElementSkill(Element element)=>element switch
-    {
-        Element.Fire=>"pyromancy",Element.Frost=>"cryomancy",Element.Lightning=>"stormcalling",Element.Nature=>"nature_magic",Element.Poison=>"shadow_magic",Element.Arcane=>"arcane_magic",Element.Radiant=>"radiance",Element.Shadow=>"shadow_magic",_=>"swordsmanship"
-    };
     private void ResolveTelegraphs()
     {
         foreach(var t in State.Telegraphs.Where(x=>x.Resolves<=State.Time).ToList())
@@ -243,9 +240,9 @@ public sealed partial class RealmEngine
             State.Telegraphs.Remove(t);
             if(State.Characters.TryGetValue(t.Source,out var player))
             {
-                if(player.Health<=0||player.Zone!=t.Zone) continue;
+                if(player.Health<=0||player.Zone!=t.Zone||!Data.Skills.Any(skill=>skill.Id==t.Skill)) continue;
                 foreach(var mob in State.Creatures.Values.Where(x=>x.Health>0&&x.Owner==""&&x.Zone==t.Zone&&InTelegraph(t,x.Position)).ToList())
-                    if(WorldMap.LineOfSight(Data.Zone(t.Zone),t.Position,mob.Position)) HitCreature(player,mob,t.Power,t.Element,ElementSkill(t.Element));
+                    if(WorldMap.LineOfSight(Data.Zone(t.Zone),t.Position,mob.Position)) HitCreature(player,mob,t.Power,t.Element,t.Skill);
             }
             else if(State.Creatures.TryGetValue(t.Source,out var attacker)&&attacker.Health>0)
             {
@@ -387,7 +384,7 @@ public sealed partial class RealmEngine
     }
     private void TickEvents()
     {
-        foreach(var e in State.Events.Where(x=>x.Ends<=State.Time).ToList()) State.Events.Remove(e);
+        if(WorldEventLifecycle.Expire(State,State.Time)>0) EconomicDirty=true;
         long cycle=(long)(State.Time/300); if(cycle==lastEventCycle) return; lastEventCycle=cycle;
         if(State.Events.Count>=4) return;
         var zones=Data.Zones.Where(x=>x.Kind=="wilderness"&&x.Layer=="Surface").ToArray(); if(zones.Length==0) return;
@@ -395,12 +392,13 @@ public sealed partial class RealmEngine
         string[] kinds=["meteor","caravan","undead","arcane_storm"];
         var kind=kinds[(int)(cycle%kinds.Length)];
         var eNew=new WorldEvent{Id="event/"+cycle,Name=kind switch{"meteor"=>"A fallen star","caravan"=>"The wandering caravan","undead"=>"Restless graves",_=>"Arcane storm"},Kind=kind,Zone=zone.Id,Position=WorldMap.FindFree(zone,new(zone.Spawn.X+8,zone.Spawn.Y+6)),Ends=State.Time+240};
+        if(State.Events.Any(value=>value.Id==eNew.Id)) return;
         State.Events.Add(eNew);
         if(kind=="meteor"&&Data.Resources.Any(x=>x.Id=="meteor_ore")) State.Nodes[eNew.Id]=new(){Id=eNew.Id,Template="meteor_ore",Zone=zone.Id,Position=eNew.Position};
         if(kind=="caravan") State.Chests[eNew.Id]=new(){Id=eNew.Id,Zone=zone.Id,Position=eNew.Position,Kind="royal",Requirement=zone.Level};
         if(kind is "undead" or "arcane_storm")
         {
-            var def=Data.Mobs.FirstOrDefault(x=>x.Family==(kind=="undead"?"skeleton":"elemental")&&!x.Boss);
+            var def=Data.Mobs.Where(x=>x.Family==(kind=="undead"?"skeleton":"elemental")&&!x.Boss&&!x.Elite&&x.Level<=zone.Level+5).OrderByDescending(x=>x.Level).FirstOrDefault();
             if(def is not null) for(int n=0;n<3;n++)
             {
                 string id=eNew.Id+"/"+n; var at=WorldMap.FindFree(zone,new(eNew.Position.X+n,eNew.Position.Y));
