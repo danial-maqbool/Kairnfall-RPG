@@ -10,7 +10,7 @@ import re
 import shutil
 from PIL import Image
 from art.common import Pixel, canvas, palette, sheet, ELEMENT_COLORS
-from art import people, items, environment, creatures
+from art import people, items, environment, creatures, skill_icons
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'client'/'Assets'
@@ -44,6 +44,7 @@ def task_image(task):
     elif category=='npc': im=sheet(lambda s,f,d:people.npc_frame(payload,s,f,d))
     elif category=='mob': im=sheet(lambda s,f,d:creatures.frame(payload,s,f,d),128 if payload.get('boss') else 64)
     elif category=='item': im=items.icon(payload)
+    elif category=='skill': im=skill_icons.icon(payload)
     elif category=='ability': im=icon_ability(payload)
     elif category=='terrain': im=environment.terrain(*payload)
     elif category=='prop': im=environment.prop(payload)
@@ -59,6 +60,16 @@ def task_image(task):
 def tasks(data):
     output=[]
     def add(key,category,payload): output.append((key,category,payload))
+    available_skills={s['id'] for s in data['skills']}
+    mapped_skills=set(skill_icons.REFERENCES)|set(skill_icons.MAGIC)|skill_icons.OTHER
+    if available_skills!=mapped_skills:
+        raise ValueError('Skill icon contract differs from catalog: '+repr(sorted(available_skills^mapped_skills)))
+    item_lookup={item['id']:item for item in data['items']}
+    for skill in data['skills']:
+        reference_id=skill_icons.REFERENCES.get(skill['id'])
+        if reference_id is not None and reference_id not in item_lookup:
+            raise ValueError('Skill icon item is missing: '+reference_id)
+        add('skills/'+skill['id'],'skill',{'skill':skill['id'],'reference':item_lookup.get(reference_id)})
     for body in range(2):
         for skin in range(6): add(f'people/body_{body}_{skin}','body',(body,skin))
     for hair in range(6):
@@ -90,6 +101,7 @@ def validate(data, jobs):
         with Image.open(path) as im:
             im.load()
             if im.mode!='RGBA' or im.getchannel('A').getbbox() is None: failures.append('Empty or invalid '+key)
+            if category in {'skill','ability','item'} and im.size!=(32,32): failures.append('Icon dimensions '+key)
             if category in {'body','hair','equipment','npc','mob'}:
                 size=128 if category=='mob' and payload.get('boss') else 64
                 if im.size!=(size*8,size*24): failures.append('Atlas dimensions '+key)
@@ -99,18 +111,21 @@ def validate(data, jobs):
                 if category=='mob' and not payload.get('boss') and not payload.get('elite'):
                     digest=hashlib.sha256(im.crop((0,0,size,size)).tobytes()).hexdigest(); species_hash.setdefault(digest,[]).append(payload['id'])
             entries.append({'key':key,'category':category,'width':im.width,'height':im.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+    skill_keys={entry['key'] for entry in entries if entry['category']=='skill'}
+    if skill_keys!={'skills/'+s['id'] for s in data['skills']}:
+        failures.append('Not every trainable skill has its required icon.')
     duplicates=[values for values in species_hash.values() if len(values)>1]
     manifest={'schema':1,'source_commit':os.environ.get('GITHUB_SHA','local'),'files':entries,'structural_errors':failures,'visual_review':'not_approved','normal_species_matching_first_frames':duplicates,'notice':'Dimensions, existence, and unique hashes do not prove visual quality, distinct anatomy, or complete MMORPG acceptance.'}
     (OUT/'asset-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     report=ROOT/'artifacts'/'test-results'; report.mkdir(parents=True,exist_ok=True)
-    (report/'assets.json').write_text(json.dumps({'files':len(entries),'errors':failures,'matching_species_first_frames':duplicates,'visual_approval':False},indent=2)+'\n',encoding='utf-8')
+    (report/'assets.json').write_text(json.dumps({'files':len(entries),'skill_icons':len(skill_keys),'errors':failures,'matching_species_first_frames':duplicates,'visual_approval':False},indent=2)+'\n',encoding='utf-8')
     if failures: raise RuntimeError('\n'.join(failures[:50]))
-    print(f'ASSET STRUCTURE: {len(entries)} PNG files; zero structural errors; {len(duplicates)} matching species-frame groups. Visual approval remains open.',flush=True)
+    print(f'ASSET STRUCTURE: {len(entries)} PNG files, {len(skill_keys)} skill icons; zero structural errors; {len(duplicates)} matching species-frame groups. Visual approval remains open.',flush=True)
     return manifest
 
 def contact_sheets(jobs):
     dest=ROOT/'artifacts'/'art-review'; dest.mkdir(parents=True,exist_ok=True)
-    for category in ('item','mob','npc','terrain','prop','equipment'):
+    for category in ('skill','item','mob','npc','terrain','prop','equipment'):
         selected=[job for job in jobs if job[1]==category][:64]; cols=8; rows=(len(selected)+cols-1)//cols
         if not selected: continue
         sheet_image=Image.new('RGBA',(cols*96,rows*108),'#333b40')
