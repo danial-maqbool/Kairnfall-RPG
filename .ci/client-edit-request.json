@@ -1,24 +1,17 @@
 {
-  "base": "85de22f923fe7d8f0561a47207ebb1dac901f0fa",
-  "message": "fix(art): give quartz spiders faceted bodies and articulated crystal joints",
-  "purpose": "Repair the duplicate spider silhouette through anatomical construction, not a hash marker. Keep all existing validation gates.",
-  "edits": [
-    {
-      "path": "tools/art/fauna.py",
-      "expected_blob": "47efdb1f32b98045ee7b438d4ad72a71c3b018bd",
-      "replacements": [
-        {"old":"    c=palette(body_colour(m)); step=math.sin(n*math.tau/8) if state=='walk' else 0", "new":"    c=palette(body_colour(m)); step=math.sin(n*math.tau/8) if state=='walk' else 0\n    crystalline=m['family']=='quartz_spider'"},
-        {"old":"            knee=sign*(18-folded*8); tip=sign*(27-folded*14)", "new":"            knee=sign*((21 if crystalline else 18)-folded*8); tip=sign*((28 if crystalline else 27)-folded*14)"},
-        {"old":"            p.line(points,c[0],3); p.line(points,c[3],1)", "new":"            p.line(points,c[0],4 if crystalline else 3); p.line(points,c[3],2 if crystalline else 1)\n            if crystalline:\n                kx,ky=points[1]\n                p.poly([(kx-3,ky),(kx,ky-4),(kx+3,ky),(kx,ky+3)],c[2])\n                p.line([(kx-1,ky),(kx,ky-2)],c[5])"},
-        {"old":"    polygon_oval(p,(abdomen[0]-9,abdomen[1]-10,abdomen[0]+9,abdomen[1]+9),c[3])", "new":"    if crystalline:\n        p.poly([xy(-5,-22),xy(4,-24),xy(12,-15),xy(11,-6),xy(5,1),xy(-7,-1),xy(-12,-10)],c[2])\n        p.poly([xy(-4,-20),xy(3,-21),xy(8,-14),xy(3,-5),xy(-5,-7)],c[3])\n        p.line([xy(-3,-19),xy(2,-20),xy(6,-14)],c[5])\n    else:\n        polygon_oval(p,(abdomen[0]-9,abdomen[1]-10,abdomen[0]+9,abdomen[1]+9),c[3])"}
-      ]
-    },
-    {
-      "path":"tests/handoff/test_visual_art.py",
-      "expected_blob":"b0a0776b762b857943801f8531744154bbb3f118",
-      "replacements":[
-        {"old":"    def test_drawers_do_not_change_catalog_or_equipment(self):", "new":"    def test_spider_species_have_different_body_and_joint_construction(self):\n        wood=next(x for x in self.data['mobs'] if x['id']=='wood_spider')\n        quartz=next(x for x in self.data['mobs'] if x['id']=='quartz_spider')\n        for direction in range(4):\n            a=fauna.frame(wood,'idle',0,direction).getchannel('A')\n            b=fauna.frame(quartz,'idle',0,direction).getchannel('A')\n            from PIL import ImageChops\n            difference=ImageChops.difference(a,b)\n            self.assertGreater(sum(value>0 for value in difference.getdata()),80)\n\n    def test_drawers_do_not_change_catalog_or_equipment(self):"}
-      ]
-    }
+  "base":"53707c4f2c919036cdc5aa36c0536cf9d568946a",
+  "message":"fix(ui): prioritize collectible loot over its overlapping carcass prompt",
+  "purpose":"The live native test exposed an identifier-dependent tie between loot and its carcass. Repair displayed action selection without changing server ownership or rewards.",
+  "edits":[
+    {"path":"client/Scripts/ExperienceRules.cs","expected_blob":"f1d2cc7b8a295b4a38ae9446c3021c3d20c1124b","replacements":[
+      {"old":"    public static WorldTarget? ChooseInteraction(Character self, IEnumerable<WorldTarget> targets, Catalog data)","new":"    public static bool LootAvailable(Character self, LootPile pile, double serverTime)\n        => double.IsFinite(serverTime) && pile.Zone == self.Zone\n            && (pile.Owner == self.Id || pile.PublicAt <= serverTime || (pile.Party != \"\" && pile.Party == self.Party));\n\n    public static WorldTarget? ChooseInteraction(Character self, IEnumerable<WorldTarget> targets, Catalog data)"},
+      {"old":"            .OrderBy(x => self.Position.Distance(x.Position)).ThenBy(x => x.Id, StringComparer.Ordinal)\n            .Select(x => (WorldTarget?)x).FirstOrDefault();","new":"            .OrderBy(x => self.Position.Distance(x.Position))\n            .ThenBy(x => x.Kind == \"loot\" ? 0 : 1).ThenBy(x => x.Id, StringComparer.Ordinal)\n            .Select(x => (WorldTarget?)x).FirstOrDefault();"}
+    ]},
+    {"path":"client/Scripts/GameRoot.Experience.cs","expected_blob":"bbcf6e1f3ee5e120d042d96dab8de852a4eb1fe9","replacements":[
+      {"old":"            if (target.Kind == \"node\") return snapshot.Nodes.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time);","new":"            if (target.Kind == \"loot\") return World.Loot.Any(x => x.Id == target.Id && ExperienceRules.LootAvailable(snapshot.Self, x, snapshot.Time));\n            if (target.Kind == \"node\") return snapshot.Nodes.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time);"}
+    ]},
+    {"path":"client/Tests/ControlRulesContract.cs","expected_blob":"0542cc961d98485d0973b9a72385351551039ea6","replacements":[
+      {"old":"            var foreign = data.Abilities.First(x => x.Class != \"\" && x.Class != self.Class && x.Requirement == 1);","new":"            var carcass = new WorldTarget(\"node\", \"a-carcass\", \"Carcass\", self.Position.Add(new Point(1, 0)));\n            var pickup = new WorldTarget(\"loot\", \"z-pickup\", \"Supplies\", carcass.Position);\n            Require(ExperienceRules.ChooseInteraction(self, [carcass, pickup], data)?.Id == pickup.Id, \"Overlapping loot has priority over a carcass regardless of its identifier\");\n            Require(ExperienceRules.ChooseInteraction(self, [pickup, closeNpc], data)?.Id == closeNpc.Id, \"Loot priority does not override a nearer NPC\");\n            var pile = new LootPile { Zone = self.Zone, Owner = \"foreign\", PublicAt = 100, Party = \"\" };\n            Require(!ExperienceRules.LootAvailable(self, pile, 10), \"Private foreign loot does not promise a pickup action\");\n            pile.Owner = self.Id;\n            Require(ExperienceRules.LootAvailable(self, pile, 10), \"Owned loot remains eligible\");\n            pile.Owner = \"foreign\";\n            Require(ExperienceRules.LootAvailable(self, pile, 100), \"Loot becomes eligible at its authoritative public time\");\n            Require(!ExperienceRules.LootAvailable(self, pile, double.NaN), \"Invalid loot time fails closed\");\n            var foreign = data.Abilities.First(x => x.Class != \"\" && x.Class != self.Class && x.Requirement == 1);"}
+    ]}
   ]
 }
