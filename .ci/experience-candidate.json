@@ -1,6 +1,6 @@
 {
-  "sha": "670948e23b94a105475645da160083359c829f8d",
+  "sha": "b81425e0a16d24d123b714f796e1d9db75a2911e",
   "base": "1a257f8f53413b0989699e6341bf2f79455ba2ef",
   "mode": "repair",
-  "purpose": "Verify the retained furnishing implementation after moving the anvil and practice ring off the river. Non-solid ground art now undergoes underlying-terrain validation too. Keep all backend, saved-state, collision, native input, live equipment, graphical, and security gates."
+  "purpose": "Verify furnished service interiors and village yards after river-safe placement and authored training-stance markings. Retain every backend, migration, furniture collision, Python, native input, live equipment, database, and graphical check."
 }
