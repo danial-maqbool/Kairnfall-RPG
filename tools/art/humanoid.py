@@ -7,6 +7,8 @@ from __future__ import annotations
 import math
 from .common import Pixel, canvas, palette, rgba, shade, seed, INK, ELEMENT_COLORS
 from .items import metal_for
+from .common import WOODS
+from .gear_finish import equipment_details
 from .bow_pose import draw as draw_side_bow
 
 SKINS=('edcba6','d7b28c','bd936f','a57a59','825b45','604435')
@@ -167,10 +169,10 @@ def weapon(p,j,item):
     """Draw model-space fittings around the actual gripping hand. No icon pivot guessing."""
     tags=item.get('tags',[]); family=tags[0] if tags else 'sword'
     if family=='bow' and j['side']:
-        draw_side_bow(p,j)
+        draw_side_bow(p,j,WOODS.get(item.get('_wood',''),'96724f'))
         return
     hx,hy=j['hand_r']; angle=math.radians(j['angle']); cs,sn=math.cos(angle),math.sin(angle)
-    c=palette(metal_for(item)); wood=palette('90704f'); leather=palette('684936')
+    c=palette(metal_for(item)); wood=palette(WOODS.get(item.get('_wood',''),'90704f')); leather=palette('684936')
     def xy(x,y): return (hx+x*cs-y*sn,hy+x*sn+y*cs)
     def poly(points,color): p.poly([xy(x,y) for x,y in points],color)
     def line(points,color,width=1): p.line([xy(x,y) for x,y in points],color,width)
@@ -293,6 +295,7 @@ def equipment_frame(item,state,frame,direction,cached_icon=None):
         else: p.line([(hx+2,hy),(hx+4,hy+2)],'b9a06a')
     elif slot=='ring':
         x,y=j['hand_r']; p.line([(x,y),(x+1,y)],'dac48a')
+    equipment_details(p,j,item)
     return finish(image,state,frame)
 
 

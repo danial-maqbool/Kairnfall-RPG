@@ -34,6 +34,7 @@ public partial class GameRoot
             case "Inventory": BuildInventoryPage(false); break;
             case "Bank": BuildInventoryPage(true); break;
             case "Character": BuildCharacterPage(); break;
+            case "Equipment Guide": BuildEquipmentGuidePage(); break;
             case "Shop": BuildShopPage(); break;
             case "Skills": BuildSkillsPage(); break;
             case "Abilities": BuildAbilitiesPage(); break;
@@ -167,6 +168,7 @@ public partial class GameRoot
     {
         if (page is null || Snapshot is null) return;
         var top = Ui.Row(page); var search = Ui.Edit("Search recipes, materials, or professions"); top.AddChild(search);
+        search.Text=equipmentRecipeSearch; equipmentRecipeSearch="";
         top.AddChild(Ui.Button("Plant wheat", () => { placement = "plant"; structureRecipe = ""; ClosePage(); Notify("Select clear soil within two tiles. One wheat seed is required."); }));
         var body = Ui.Row(page); body.SizeFlagsVertical = SizeFlags.ExpandFill;
         var listing = Ui.Column(Ui.Scroll(body, new Vector2(330, 440))); var detail = Ui.Column(Ui.Scroll(body, new Vector2(490, 440)));

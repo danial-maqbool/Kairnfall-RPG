@@ -82,6 +82,19 @@ def main():
     for zone in data['zones']:
         if zone['id']!='wayfarers_rest': continue
         for value in zone['buildings']: save(building(zone,value),'building-'+value['id'])
+    lookup={item['id']:item for item in data['items']}
+    for tier in data.get('equipmentTiers',[]):
+        contact([(lookup[ident]['name'],icon(lookup[ident])) for ident in tier['entries'].values()],f'equipment-tier-{tier["level"]:03d}',columns=8,cell=(144,104))
+        if tier['level'] in (5,27,55,75,100):
+            gear={slot:lookup[tier['entries']['armor/heavy/'+slot]] for slot in ('helmet','chest','legs','boots','cloak','gloves','belt')}
+            entries=[]
+            for family,ident in tier['entries'].items():
+                if not family.startswith('weapon/'): continue
+                gear['weapon']=lookup[ident]
+                for direction in range(4):
+                    for state,number in (('idle',0),('walk',3),('attack',3),('cast',3),('hit',2),('death',7)):
+                        entries.append((family.split('/')[-1]+' '+state+' '+str(direction),person(0,state,number,direction,gear)))
+            contact(entries,f'equipment-grade-{tier["level"]:03d}',columns=12,cell=(100,92),scale=1)
     revision=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
     (output/'review-manifest.json').write_text(json.dumps({'source_revision':revision,'evidence_kind':'source-rendered contact sheets; not gameplay','visual_approval':'not_reviewed','files':records},indent=2)+'\n',encoding='utf-8')
     print(f'VISUAL_REVIEW: {len(records)} source contact sheets; visual approval not inferred.')
