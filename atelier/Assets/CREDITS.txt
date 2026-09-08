@@ -1,0 +1,14 @@
+Kairnfall Atelier art library.
+
+Every image and sound in this directory is generated from the source in
+atelier/forge by the build script atelier/build.py. There is no third party
+artwork here, and nothing is copied from or shared with any other art pack in
+this repository; this library is a separate, self contained alternative set.
+
+Sprite sheets are laid out eight frames across, with the six animation states
+(idle, walk, attack, cast, hit, death) each occupying four rows, one per facing
+(south, west, east, north). Actor frames are 64x64 with the ground contact at
+y=55; boss frames are 128x128 with the same proportions.
+
+Structural checks confirm that files exist, are the right shape and are not
+blank. They are not an artistic sign off; the art still has to be looked at.

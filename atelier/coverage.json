@@ -1,0 +1,24 @@
+{
+  "groups": {
+    "abilities": 132,
+    "buildings": 164,
+    "chests": 14,
+    "equipment": 331,
+    "gear": 616,
+    "gear_worn": 616,
+    "items": 530,
+    "mobs": 145,
+    "npcs": 26,
+    "people": 60,
+    "props": 23,
+    "resources": 41,
+    "skills": 60,
+    "structures": 5,
+    "terrain": 52
+  },
+  "png_files": 2815,
+  "animation_sheets": 1178,
+  "audio_files": 22,
+  "built_seconds": 5.8,
+  "artistic_review": "pending"
+}
