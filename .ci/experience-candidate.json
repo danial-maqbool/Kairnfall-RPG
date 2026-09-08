@@ -1,6 +1,6 @@
 {
-  "sha":"f73d9ec0c9a677d8440e08748f6cc7af59fe103f",
+  "sha":"68956e42229c609e65071940a1b68f83dfb16a9c",
   "base":"645f81557aaf4787016c5807f3a25c06a380e671",
   "mode":"repair",
-  "purpose":"Verify all requested named skill tiers through 100, complete equipment/tool families, recipe reachability and conservation, exact skill gates, legacy crop/tool behavior, bounded stable crafting pages and native tier rendering. Retain every existing backend, security, migration, PostgreSQL, input, lifecycle and live-game check."
+  "purpose":"Run the complete retained test matrix for all 21 equipment grades, crafting supplies and stable native recipe/upgrade UI. Also verify that NPC and owned workstations cannot be used through solid furniture or walls, while clear approaches retain normal crafting behavior and rejected requests preserve materials, cooldowns and sequence. No reduced coverage or visual-approval claim."
 }
