@@ -1,6 +1,6 @@
 {
-  "sha":"10ff887834d487b4ad5c721461a6835c2a2b2563",
-  "base":"645f81557aaf4787016c5807f3a25c06a380e671",
+  "sha":"fb98472ace9eead2c779ee6d26d77da0eb08a561",
+  "base":"4d8c8817d4bae66e359b2d9bc63d9ca8563016db",
   "mode":"repair",
-  "purpose":"Final exact-source verification of the actual main integration. Retain all 21 named equipment grades, original item and recipe definitions, 1071 crafting paths, 924 equip boundaries, server-selected tools, guarded workstation access, bounded native upgrade/crafting controls, and repairs for all 147 tier tools. Run all security, database, migration, input, native graphical and live-client checks. This request does not claim independent visual approval, Windows DPI approval or a finished release."
+  "purpose":"Recover the prepared controls and beginner/inventory work, preserving the new Atelier assets. Execute the complete retained backend, database, migration, security, native input, graphical and live-client tests. Dash costs, collision, replay and depletion remain authoritative. This is exact-source testing, not source integration or completion. Hunting populations and render integration are a subsequent cohesive change."
 }
