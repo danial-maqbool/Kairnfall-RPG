@@ -1,17 +1,53 @@
 {
-  "base":"53707c4f2c919036cdc5aa36c0536cf9d568946a",
-  "message":"fix(ui): prioritize collectible loot over its overlapping carcass prompt",
-  "purpose":"The live native test exposed an identifier-dependent tie between loot and its carcass. Repair displayed action selection without changing server ownership or rewards.",
-  "edits":[
-    {"path":"client/Scripts/ExperienceRules.cs","expected_blob":"f1d2cc7b8a295b4a38ae9446c3021c3d20c1124b","replacements":[
-      {"old":"    public static WorldTarget? ChooseInteraction(Character self, IEnumerable<WorldTarget> targets, Catalog data)","new":"    public static bool LootAvailable(Character self, LootPile pile, double serverTime)\n        => double.IsFinite(serverTime) && pile.Zone == self.Zone\n            && (pile.Owner == self.Id || pile.PublicAt <= serverTime || (pile.Party != \"\" && pile.Party == self.Party));\n\n    public static WorldTarget? ChooseInteraction(Character self, IEnumerable<WorldTarget> targets, Catalog data)"},
-      {"old":"            .OrderBy(x => self.Position.Distance(x.Position)).ThenBy(x => x.Id, StringComparer.Ordinal)\n            .Select(x => (WorldTarget?)x).FirstOrDefault();","new":"            .OrderBy(x => self.Position.Distance(x.Position))\n            .ThenBy(x => x.Kind == \"loot\" ? 0 : 1).ThenBy(x => x.Id, StringComparer.Ordinal)\n            .Select(x => (WorldTarget?)x).FirstOrDefault();"}
+  "base": "87c0f9e2b448198605938df0b01b818423aad163",
+  "message": "feat(environment): furnish service interiors and compose the starter village",
+  "purpose": "Prepare a cohesive source candidate. Furniture uses shared authoritative footprints, local saved-position recovery, native-resolution artwork and cached surface presentation. Preserve every previous regression and all catalog identities.",
+  "edits": [
+    {"path":"src/Kairnfall.Core/FurnishingDef.cs","expected_blob":"74bf2a6bc9d8dd484caa79928cc48e6184515103","replacements":[
+      {"old":"item.Kind.Length is > 0 and <= 48","new":"item.Kind is { Length: > 0 and <= 48 }"}
     ]},
-    {"path":"client/Scripts/GameRoot.Experience.cs","expected_blob":"bbcf6e1f3ee5e120d042d96dab8de852a4eb1fe9","replacements":[
-      {"old":"            if (target.Kind == \"node\") return snapshot.Nodes.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time);","new":"            if (target.Kind == \"loot\") return World.Loot.Any(x => x.Id == target.Id && ExperienceRules.LootAvailable(snapshot.Self, x, snapshot.Time));\n            if (target.Kind == \"node\") return snapshot.Nodes.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time);"}
+    {"path":"tools/world_probe/FurnishingChecks.cs","expected_blob":"08f32e18f5327ca652856a6f28085a0ab431137b","replacements":[
+      {"old":"realm.CreateCharacter(\"furnishing-recovery\", \"Room\" + realm.State.Characters.Count","new":"realm.CreateCharacter(\"furnishing-recovery-\" + zone.Id, \"Room\" + realm.State.Characters.Count"}
     ]},
-    {"path":"client/Tests/ControlRulesContract.cs","expected_blob":"0542cc961d98485d0973b9a72385351551039ea6","replacements":[
-      {"old":"            var foreign = data.Abilities.First(x => x.Class != \"\" && x.Class != self.Class && x.Requirement == 1);","new":"            var carcass = new WorldTarget(\"node\", \"a-carcass\", \"Carcass\", self.Position.Add(new Point(1, 0)));\n            var pickup = new WorldTarget(\"loot\", \"z-pickup\", \"Supplies\", carcass.Position);\n            Require(ExperienceRules.ChooseInteraction(self, [carcass, pickup], data)?.Id == pickup.Id, \"Overlapping loot has priority over a carcass regardless of its identifier\");\n            Require(ExperienceRules.ChooseInteraction(self, [pickup, closeNpc], data)?.Id == closeNpc.Id, \"Loot priority does not override a nearer NPC\");\n            var pile = new LootPile { Zone = self.Zone, Owner = \"foreign\", PublicAt = 100, Party = \"\" };\n            Require(!ExperienceRules.LootAvailable(self, pile, 10), \"Private foreign loot does not promise a pickup action\");\n            pile.Owner = self.Id;\n            Require(ExperienceRules.LootAvailable(self, pile, 10), \"Owned loot remains eligible\");\n            pile.Owner = \"foreign\";\n            Require(ExperienceRules.LootAvailable(self, pile, 100), \"Loot becomes eligible at its authoritative public time\");\n            Require(!ExperienceRules.LootAvailable(self, pile, double.NaN), \"Invalid loot time fails closed\");\n            var foreign = data.Abilities.First(x => x.Class != \"\" && x.Class != self.Class && x.Requirement == 1);"}
+    {"path":"src/Kairnfall.Core/Models.cs","expected_blob":"40c87b929cd03cfe2a2e0f950976fd0f64c61bbf","replacements":[
+      {"old":"    public List<BuildingDef> Buildings { get; set; } = [];","new":"    public List<BuildingDef> Buildings { get; set; } = [];\n    public List<FurnishingDef> Furnishings { get; set; } = [];"}
+    ]},
+    {"path":"src/Kairnfall.Core/WorldMap.cs","expected_blob":"82627d151175798ceee6a20e91abbd85eb8460b1","replacements":[
+      {"old":"    public static Terrain TileAt(ZoneDef z,int x,int y)=>TileAt(z,x,y,false);","new":"    // The original terrain policy remains available for material rendering and save recovery.\n    public static Terrain GroundTileAt(ZoneDef z,int x,int y)=>TileAt(z,x,y,false);\n    public static Terrain TileAt(ZoneDef z,int x,int y)\n    {\n        var ground=GroundTileAt(z,x,y);\n        if(IsSolid(ground)) return ground;\n        foreach(var furnishing in z.Furnishings)\n            if(furnishing.Solid && furnishing.Covers(x,y)) return Terrain.Wall;\n        return ground;\n    }"},
+      {"old":"    // Used only while loading saved state after the masonry-priority repair.\n    // Never turn arbitrary corrupt coordinates into a spawn teleport.","new":"    // Used only while loading saved state after a known geometry repair.\n    // Furniture can cover previously valid floor. The historical terrain check\n    // below still rejects original masonry, water, and arbitrary corrupt coordinates.\n    // Recover nearby, preserve all non-position state, and never teleport to spawn."}
+    ]},
+    {"path":"src/Kairnfall.Core/Catalog.cs","expected_blob":"db1a46cdff06f700c853879e16ecd566ad2c2479","replacements":[
+      {"old":"        foreach(var zone in Zones)\n        {","new":"        foreach(var zone in Zones)\n        {\n            FurnishingDef.Validate(zone,errors);"}
+    ]},
+    {"path":"tools/build_content.py","expected_blob":"f7cb922bb9eb0052eaa38f02edc35d489b153a84","replacements":[
+      {"old":"from content_src import skills, items, abilities, mobs, world, quests","new":"from content_src import skills, items, abilities, mobs, world, quests, presentation"},
+      {"old":"for module in [skills,items,abilities,mobs,world,quests]: module.build(data)","new":"for module in [skills,items,abilities,mobs,world,quests,presentation]: module.build(data)"}
+    ]},
+    {"path":"tools/build_game_assets.py","expected_blob":"32da80c32d3f4d7929c938bc6271ee39ad8154fc","replacements":[
+      {"old":"sys.path.insert(0,str(ROOT/'tools'))","new":"sys.path.insert(0,str(ROOT/'tools'))\nsys.path.insert(0,str(ROOT))"},
+      {"old":"from art.fauna import frame as creature_frame","new":"from art.fauna import frame as creature_frame\nfrom art.room_art import render as furnishing_image, building, edge as grass_edge\nfrom content_src.presentation import FURNITURE"},
+      {"old":"    for name in PROPS: emit(prop(name),'props/'+name)","new":"    for name in PROPS: emit(prop(name),'props/'+name)\n    for name in FURNITURE: emit(furnishing_image(name),'furnishings/'+name)\n    for mask in range(1,16): emit(grass_edge(mask),'terrain/grass_edge_'+str(mask))"}
+    ]},
+    {"path":"tools/validate_game_assets.py","expected_blob":"9528fddc59af89cf1dea9f5d9b6697c5b770f6b5","replacements":[
+      {"old":"sys.path.insert(0,str(ROOT/'tools'))","new":"sys.path.insert(0,str(ROOT/'tools'))\nsys.path.insert(0,str(ROOT))\nfrom content_src.presentation import FURNITURE"},
+      {"old":"    expected.update('props/'+name for name in PROPS)","new":"    expected.update('props/'+name for name in PROPS)\n    expected.update('furnishings/'+name for name in FURNITURE)\n    expected.update('terrain/grass_edge_'+str(mask) for mask in range(1,16))\n    expected.update('furnishings/'+f['kind'] for z in catalog['zones'] for f in z.get('furnishings',[]))"},
+      {"old":"            alpha=image.getchannel('A')","new":"            if key.startswith('furnishings/'):\n                definition=FURNITURE.get(key.split('/',1)[1])\n                check(definition is not None,'Unknown furnishing asset: '+key)\n                if definition is not None:\n                    width,height,rise,_,_=definition\n                    check(image.size==(width*32,height*32+rise),'Furnishing art differs from the authoritative footprint: '+key)\n            alpha=image.getchannel('A')"}
+    ]},
+    {"path":"client/Scripts/WorldView.cs","expected_blob":"c19bae1179fce925be1c0b2ddc77049c525cdf5d","replacements":[
+      {"old":"        var zone = Data.Zone(ZoneId);\n        Zoom = Math.Clamp(Zoom, 1, 3);","new":"        var zone = Data.Zone(ZoneId);\n        PrepareSurface(zone);\n        Zoom = Math.Clamp(Zoom, 1, 3);"},
+      {"old":"            var terrain = WorldMap.TileAt(zone, x, y);\n            // Indoor routes keep their authoritative walkability, but are timber\n            // flooring, not outdoor dirt roads. Existing saved positions stay valid.\n            if (zone.Kind == \"interior\" && terrain == Terrain.Dirt) terrain = Terrain.Wood;","new":"            var terrain = SurfaceAt(zone, x, y);"},
+      {"old":"            if (texture is not null) DrawTextureRect(texture, new Rect2(x * Tile, y * Tile, Tile, Tile), false);","new":"            if (texture is not null) DrawTextureRect(texture, new Rect2(x * Tile, y * Tile, Tile, Tile), false);\n            DrawSurfaceEdge(zone, x, y);"},
+      {"old":"            string? decoration = Decoration(zone, terrain, hash);","new":"            string? decoration = Decoration(zone, terrain, hash, x, y);"},
+      {"old":"if (decoration is not null && zone.Buildings.All","new":"if (decoration is not null && !zone.Furnishings.Any(f => f.Covers(x, y)) && zone.Buildings.All"},
+      {"old":"        foreach (var exit in zone.Exits)","new":"        GatherFurnishings(zone);\n        foreach (var exit in zone.Exits)"},
+      {"old":"            case \"decoration\":","new":"            case \"furnishing\":\n                DrawFurnishing((FurnishingDef)visual.Value!);\n                break;\n            case \"decoration\":"},
+      {"old":"    private static string? Decoration(ZoneDef zone, Terrain terrain, uint hash)\n    {","new":"    private static string? Decoration(ZoneDef zone, Terrain terrain, uint hash, int x, int y)\n    {\n        if (zone.Kind == \"interior\") return null;\n        if (zone.Id == \"wayfarers_rest\" && Math.Abs(x - zone.Spawn.X) < 22 && Math.Abs(y - zone.Spawn.Y) < 22)\n            return terrain == Terrain.Grass ? hash % 19 == 0 ? \"grass_tuft\" : hash % 67 == 0 ? \"flowers\" : null : null;"},
+      {"old":"        if (WeatherEnabled && zone.Layer == \"Surface\") DrawWeather(zone);","new":"        if (WeatherEnabled && zone.Layer == \"Surface\" && zone.Kind != \"interior\") DrawWeather(zone);"},
+      {"old":"float darkness = zone.Layer != \"Surface\" ? .1f :","new":"float darkness = zone.Kind == \"interior\" ? 0 : zone.Layer != \"Surface\" ? .1f :"},
+      {"old":"            DrawProp(\"props/\" + prop, exit.Position);","new":"            if (exit.Kind != \"door\") DrawProp(\"props/\" + prop, exit.Position);\n            else DrawArc(Pixels(exit.Position), 10, 0, MathF.PI, 12, new Color(.72f, .64f, .43f, .65f), 1);"}
+    ]},
+    {"path":"tools/world_probe/Program.cs","expected_blob":"624d594f1b81f8c101f8d3fa8f80a50e39a1751d","replacements":[
+      {"old":"return failures.Count == 0 ? 0 : 1;","new":"FurnishingChecks.Run(catalog, failures);\nreturn failures.Count == 0 ? 0 : 1;"}
     ]}
   ]
 }
