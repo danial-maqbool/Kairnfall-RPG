@@ -232,6 +232,8 @@ public partial class ControlRulesContract : Node
             await VerifySkillGuide(game, data, self);
             await AbilityGuideChecks.Run(this, game, data, self, Require);
             await PresentationChecks.Run(this, game, Require);
+            await EquipmentGuideChecks.Run(this,game,data,self,Require);
+            await CraftingGuideChecks.Run(this,game,data,Require);
             await NativeTestLifetime.ReleaseSceneAsync(this, game);
             Require(!GodotObject.IsInstanceValid(game), "The real scene releases after repeated layouts");
             GD.Print($"CONTROL_RULES_CONTRACT: {checks} checks passed. Rule fixtures and native input/layout checks only.");

@@ -7,6 +7,7 @@ public sealed class Catalog
     public List<SkillDef> Skills { get; set; } = [];
     public List<ClassDef> Classes { get; set; } = [];
     public List<ItemDef> Items { get; set; } = [];
+    public List<EquipmentTierDef> EquipmentTiers { get; set; } = [];
     public List<AbilityDef> Abilities { get; set; } = [];
     public List<RecipeDef> Recipes { get; set; } = [];
     public List<ZoneDef> Zones { get; set; } = [];
@@ -42,6 +43,8 @@ public sealed class Catalog
         Unique(Skills.Select(x=>x.Id),"skills"); Unique(Classes.Select(x=>x.Id),"classes");
         Unique(Items.Select(x=>x.Id),"items"); Unique(Abilities.Select(x=>x.Id),"abilities");
         Unique(Recipes.Select(x=>x.Id),"recipes"); Unique(Zones.Select(x=>x.Id),"zones");
+        Unique(EquipmentTiers.Select(x=>x.Id),"equipment tiers");
+        EquipmentTierDef.Validate(this,errors);
         Unique(Mobs.Select(x=>x.Id),"mobs"); Unique(Resources.Select(x=>x.Id),"resources");
         Unique(Npcs.Select(x=>x.Id),"NPCs"); Unique(Quests.Select(x=>x.Id),"quests");
         var skills=Skills.Select(x=>x.Id).ToHashSet(); var items=Items.Select(x=>x.Id).ToHashSet();

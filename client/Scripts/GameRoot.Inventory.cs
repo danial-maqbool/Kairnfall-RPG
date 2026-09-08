@@ -63,7 +63,7 @@ public partial class GameRoot
         {
             Item = item, Icon = Assets.Icon(item.Template), Bag = bag,
             Equipped = Snapshot is { } s && Items.Equipped(s.Self, item.Id), Selected = item.Id == selectedItem,
-            TooltipText = ItemDescription(item) + "\n\nDouble-click: equip or unequip. Right-click: item actions.",
+            TooltipText = ItemDescription(item) + (Data.Item(item.Template).Type == "tool" ? "\n\nKeep this tool in your backpack. The best learned tool is selected automatically." : "\n\nDouble-click: equip or unequip. Right-click: item actions."),
             Clicked = clicked ?? (() => { selectedItem = item.Id; selectedBag = bag; lastPageStamp = ""; }),
             Activated = () =>
             {
@@ -92,6 +92,7 @@ public partial class GameRoot
         var search = Ui.Edit("Search by item name, material, or type"); top.AddChild(search);
         top.AddChild(Ui.Button("Sort", () => { inventoryByName = !inventoryByName; lastPageStamp = ""; }));
         top.AddChild(Ui.Button("Equipment & backpack", () => OpenPage("Character")));
+        var upgrades=Ui.Button("Upgrade guide",()=>OpenPage("Equipment Guide")); upgrades.Name="OpenEquipmentGuide"; top.AddChild(upgrades);
         if (bank) top.AddChild(Ui.Button("Deposit unequipped", () => _ = DepositAllAsync(), !NearRole("banker")));
         var summary = Ui.Label("", 14, Ui.Muted, true); page.AddChild(summary);
         var body = Ui.Row(page); body.SizeFlagsVertical = SizeFlags.ExpandFill;

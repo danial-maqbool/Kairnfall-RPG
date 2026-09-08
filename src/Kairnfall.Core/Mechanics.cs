@@ -197,7 +197,7 @@ public static class Items
     {
         var item=Owned(p,id); var def=catalog.Item(item.Template);
         if(def.Slot==""||item.Durability==0) throw new RuleException("This item cannot be equipped.");
-        if(def.Skill!=""&&Progression.Level(p,def.Skill)<def.Requirement) throw new RuleException("Your skill level is too low.");
+        if(def.Skill!=""&&Progression.Level(p,def.Skill)<def.Requirement) throw new RuleException($"Requires {catalog.Skill(def.Skill).Name} {def.Requirement}. Your level: {Progression.Level(p,def.Skill)}.");
         if(def.Slot=="weapon"&&!HandEquipment.Compatible(def,HandEquipment.Definition(p,"offhand",catalog)))
             p.Equipment.Remove("offhand");
         if(def.Slot=="offhand"&&!HandEquipment.Compatible(HandEquipment.Definition(p,"weapon",catalog),def))

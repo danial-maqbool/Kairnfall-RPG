@@ -30,8 +30,8 @@ def geometry(j: dict) -> dict:
             'nock':nock,'drawing':drawing,'arrow':arrow,'direction':direction}
 
 
-def draw(p,j):
-    g=geometry(j); wood=palette('96724f'); string='d4c7a5'; s=g['direction']
+def draw(p,j,wood_color='96724f'):
+    g=geometry(j); wood=palette(wood_color); string='d4c7a5'; s=g['direction']
     p.line(g['curve'],INK,3)
     p.line(g['curve'],wood[3],2)
     # Highlight the lit surface in screen space, independently of the facing row.

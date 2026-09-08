@@ -2,9 +2,12 @@ from __future__ import annotations
 import math
 from PIL import Image
 from .common import Pixel,canvas,palette,rgba,shade,seed,METALS,WOODS,ELEMENT_COLORS,INK
+from .gear_finish import material_icon, finish_icon
 
 
 def metal_for(item):
+    if item.get('_metal_color'): return item['_metal_color']
+    if item.get('_color') and item['id'].endswith('_bar'): return item['_color']
     key=item['id'].split('_')[0]
     return METALS.get(key,METALS.get(item.get('material',''),'a5afb5'))
 
@@ -12,7 +15,7 @@ def metal_for(item):
 def weapon_icon(item):
     image=canvas((32,32)); p=Pixel(image)
     tags=item.get('tags',[]); family=tags[0] if tags else item['id'].split('_')[-1]
-    colors=palette(metal_for(item)); wood=palette(WOODS.get(item.get('material',''),'8d6846'))
+    colors=palette(metal_for(item)); wood=palette(WOODS.get(item.get('_wood',item.get('material','')),'8d6846'))
     leather=palette('80523c')
     if family in {'sword','greatsword','dagger'}:
         top=2 if family=='greatsword' else 4 if family=='sword' else 10
@@ -70,7 +73,7 @@ def weapon_icon(item):
         p.dot(24,5,'fff0cf')
     elif family=='staff':
         top=5
-        p.limb((12,29),(19,top+4),3,WOODS.get(item.get('material',''),'99734f'))
+        p.limb((12,29),(19,top+4),3,WOODS.get(item.get('_wood',item.get('material','')),'99734f'))
         p.line([(12,27),(15,20),(15,15)],wood[5]); p.line([(14,28),(16,21),(18,14)],wood[1])
         p.poly([(16,top+7),(14,top+2),(17,top-2),(23,top-1),(25,top+3),(22,top+7)],colors[2])
         gem=ELEMENT_COLORS.get(item.get('element','Arcane'),'b3a2d4')
@@ -105,6 +108,7 @@ def armor_icon(item):
     tier=item['id'].split('_')[0]
     accents={'linen':'728a79','wool':'807286','silk':'8c5567','moonweave':'8896b0','frostweave':'8ab2b5','duskweave':'745d84','aetherweave':'b3a2c8'}
     if weight=='light': base=accents.get(tier,base)
+    base=item.get('_color',base)
     c=palette(base)
     if slot=='chest':
         p.poly([(8,5),(12,4),(13,8),(19,8),(20,4),(24,5),(29,12),(24,16),(22,13),(23,28),(9,28),(10,13),(8,16),(3,12)],c[2]);
@@ -144,8 +148,10 @@ def armor_icon(item):
 
 def icon(item):
     kind=item['type']; ident=item['id']; mat=item.get('material','');
-    if kind in {'weapon','tool'}: return weapon_icon(item)
-    if kind=='armor': return armor_icon(item)
+    material=material_icon(item)
+    if material is not None: return material
+    if kind in {'weapon','tool'}: return finish_icon(weapon_icon(item),item)
+    if kind=='armor': return finish_icon(armor_icon(item),item)
     image=canvas((32,32)); p=Pixel(image); metal=palette(metal_for(item)); wood=palette('99734f')
     if kind=='offhand':
         family=item['tags'][0]

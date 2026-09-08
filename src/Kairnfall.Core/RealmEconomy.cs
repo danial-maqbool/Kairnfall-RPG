@@ -52,14 +52,16 @@ public sealed partial class RealmEngine
         Need(!crop||node.Owner==p.Id,"This crop belongs to another player.");
         var def=Data.Resource(crop?"wheat_crop":node.Template);
         Need(Progression.Level(p,def.Skill)>=def.Requirement,"Your gathering skill is too low.");
-        if(def.Tool!="") Need(p.Inventory.Any(x=>Data.Item(x.Template).Type=="tool"&&Data.Item(x.Template).Tags.Contains(def.Tool)&&x.Durability>0),"You need a suitable "+def.Tool+".");
-        Need(p.Stamina>=6,"Not enough stamina."); Ready(p,"gather",1.8);
+        var tool=def.Tool==""?null:ToolRules.Best(p,Data,def.Tool,def.Skill=="farming"&&def.Tool=="sickle"?"herbalism":def.Skill);
+        if(def.Tool!="") Need(tool is not null,"Keep a usable "+def.Tool+" in your backpack and meet its skill requirement.");
+        double staminaCost=ToolRules.StaminaCost(tool);
+        Need(p.Stamina>=staminaCost,"Recover stamina before gathering."); Ready(p,"gather",1.8);
         int bonus=(Progression.Level(p,def.Skill)-def.Requirement)/25;
         int quantity=1+RandomNumberGenerator.GetInt32(1+Math.Max(0,bonus));
-        double yield=CombatMath.Stats(p,Data).Bonus("gather_yield");
+        double yield=CombatMath.Stats(p,Data).Bonus("gather_yield")+ToolRules.Yield(tool);
         if(CombatMath.Roll(Math.Clamp(yield/100,0,0.35))) quantity++;
         Items.Add(p.Inventory,Items.Create(Data,def.Item,quantity),Data);
-        p.Stamina-=6;
+        p.Stamina-=staminaCost;
         Progression.Train(p,def.Skill,def.Xp,def.Requirement,Data);
         Progression.Train(p,"endurance",4,def.Requirement,Data);
         if(crop) State.Nodes.Remove(node.Id); else node.ReadyAt=State.Time+def.Respawn;
@@ -74,7 +76,7 @@ public sealed partial class RealmEngine
         var recipe=Data.Recipe(id);
         Need(Progression.Level(p,recipe.Skill)>=recipe.Requirement,"Your crafting skill is too low.");
         Need(AtStation(p,recipe.Station),"Use the "+recipe.Station+" station.");
-        Ready(p,"craft",Math.Max(1,quantity*0.5));
+        Ready(p,"craft",ToolRules.CraftRecovery(p,Data,recipe,quantity));
         foreach(var ingredient in recipe.Ingredients)
             Need(Items.Count(p,ingredient.Key)>=checked(ingredient.Value*quantity),"Missing "+Data.Item(ingredient.Key).Name+".");
         int outputCount=checked(recipe.Quantity*quantity);

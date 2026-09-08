@@ -157,4 +157,5 @@ SaveTest("Separately loaded loot preserves items, gold, ownership, and valid pos
 });
 Console.WriteLine($"SAVE MIGRATION: {saveTests} passed; total probe failures {failures.Count}.");
 FurnishingChecks.Run(catalog, failures);
+GearProgressionChecks.Run(catalog,failures);
 return failures.Count == 0 ? 0 : 1;
