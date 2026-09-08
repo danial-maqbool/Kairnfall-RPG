@@ -1,6 +1,6 @@
 {
-  "sha": "f565e839fc4d88f0b9d1076611ad93b0d641cd22",
-  "base": "1a257f8f53413b0989699e6341bf2f79455ba2ef",
+  "sha": "dd3900bd1dcdb3baa3a7860bcdd7a306e47fa159",
+  "base": "9c6dd629ad96c5c898ae5676b4291401b008d82a",
   "mode": "repair",
-  "purpose": "Verify the wired ability browser, persistent hotbar assignment, native text/pointer/lifetime checks, bounded window dragging, and side-facing bow grip/draw/release geometry. Includes the previously passing furnished environment."
+  "purpose": "Verify complete short-action playback, joint-based spider/turtle attacks and reactions, ability-panel reattachment and cached styles, square hotbar icons, and objective toggle state. Retain all backend, database, migration, furniture, art, native input, and live-client regressions."
 }
