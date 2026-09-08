@@ -1,5 +1,5 @@
 {
-  "source": "6ee0f66221b79035a5bd670dd986477932ea364a",
-  "base": "197e527fc9e0914ff65cda6049d13fc7420aa00f",
-  "purpose": "Validate the source-overlay tool and its safety tests before source integration. This first archive contains delivery tooling only, not accepted game repairs."
+  "source":"fc15be9e4ec48673b44cc43fcf64aee60e92a710",
+  "base":"5a6c63357f7e7adcd18a1c7177833fadee6e7552",
+  "purpose":"Create a repository-structured source overlay for the verified integrated controls, equipment, HUD, skill guide, building interiors, and creature motion checkpoint. This is not a packaged Windows release or full visual acceptance."
 }
