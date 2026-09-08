@@ -135,6 +135,7 @@ public sealed partial class RealmEngine
         var prior=p.Receipts.FirstOrDefault(x=>x.RequestId==command.RequestId);
         if(prior is not null) return prior.Result;
         if(command.Sequence!=p.LastAction+1) return Result(false,"Action sequence is stale. Synchronize before retrying.");
+        if(command.Kind=="dash" && DashRules.Problem(p,State.Time) is { Length: > 0 } dashProblem) return Result(false,dashProblem);
         var backup=Wire.Copy(State); var lootBackup=Wire.Copy(Loot); int chatCount=OutgoingChat.Count;
         try
         {
@@ -166,6 +167,7 @@ public sealed partial class RealmEngine
     {
         switch(c.Kind)
         {
+            case "dash": return Dash(p,c);
             case "equip": Items.Equip(p,c.Item,Data); Progress(p,"equip",Data.Item(Items.Owned(p,c.Item).Template).Type); return "Equipment changed.";
             case "unequip": Items.Unequip(p,c.Arg,Data); return "Item unequipped.";
             case "split": return SplitStack(p,c.Item,c.Amount);

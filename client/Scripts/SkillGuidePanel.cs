@@ -33,7 +33,7 @@ public static class SkillGuideRules
     {
         int current = Progression.Level(self, skillId);
         var items = data.Items.Where(item => item.Skill == skillId && item.Slot != "")
-            .Select(item => new Unlock("Equipment", item.Id, item.Name, item.Requirement));
+            .Select(item => new Unlock("Equipment", item.Id, item.Name, BeginnerProgression.EquipmentRequirement(item)));
         var recipes = data.Recipes.Where(recipe => recipe.Skill == skillId)
             .Select(recipe => new Unlock("Recipe", recipe.Id, recipe.Name, recipe.Requirement));
         var abilities = data.Abilities.Where(ability => ability.Skill == skillId)

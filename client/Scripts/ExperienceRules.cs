@@ -56,13 +56,15 @@ public static class ExperienceRules
             .OrderBy(x => TargetScore(self, x)).ThenBy(x => x.Id, StringComparer.Ordinal).FirstOrDefault();
     }
 
-    public static Creature? CycleTarget(Character self, IEnumerable<Creature> creatures, Catalog data, string selected)
+    public static Creature? CycleTarget(Character self, IEnumerable<Creature> creatures, Catalog data, string selected, bool reverse = false)
     {
-        var list = creatures.Where(x => CanTarget(self, x, data, 12))
+        // Deliberate target cycling includes neutral animals, never pets or corpses.
+        var list = creatures.Where(x => CanTarget(self, x, data, 18, true))
             .OrderBy(x => self.Position.Distance(x.Position)).ThenBy(x => x.Id, StringComparer.Ordinal).ToArray();
         if (list.Length == 0) return null;
         int index = Array.FindIndex(list, x => x.Id == selected);
-        return list[(index + 1) % list.Length];
+        if (index < 0) return reverse ? list[^1] : list[0];
+        return list[(index + (reverse ? list.Length - 1 : 1)) % list.Length];
     }
 
     private static double TargetScore(Character self, Creature creature)
@@ -132,8 +134,9 @@ public static class ExperienceRules
         if (definition.Slot == "") return "This item is not equipment.";
         if (expectedSlot != "" && expectedSlot != definition.Slot) return "Place this item in the " + definition.Slot + " slot.";
         if (Items.Equipped(self, item.Id)) return "";
-        if (definition.Skill != "" && Progression.Level(self, definition.Skill) < definition.Requirement)
-            return "Requires " + data.Skill(definition.Skill).Name + " " + definition.Requirement + ".";
+        int required = BeginnerProgression.EquipmentRequirement(definition);
+        if (definition.Skill != "" && Progression.Level(self, definition.Skill) < required)
+            return "Requires " + data.Skill(definition.Skill).Name + " " + required + ".";
         try { Items.Equip(Wire.Copy(self), item.Id, data); return ""; }
         catch (RuleException error) { return error.Message; }
     }

@@ -160,4 +160,5 @@ FurnishingChecks.Run(catalog, failures);
 GearProgressionChecks.Run(catalog,failures);
 CraftStationChecks.Run(catalog,failures);
 EquipmentMaintenanceChecks.Run(catalog,failures);
+JourneyControlChecks.Run(catalog,failures);
 return failures.Count == 0 ? 0 : 1;

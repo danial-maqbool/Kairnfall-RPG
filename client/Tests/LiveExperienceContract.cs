@@ -132,19 +132,25 @@ public partial class LiveExperienceContract : Node
             await Delay(.4);
             Require(Self.LastAction == sequence && Field<List<string>>(game, "history").Count == chatCount,
                 "Twenty empty-space E presses send no accepted action and no chat message");
+            var dashStart = Self.Position; double dashMana = Self.Mana; long dashSequence = Self.LastAction;
+            KeyEvent(Key.Q, true); KeyEvent(Key.Q, false); KeyEvent(Key.Q, true); KeyEvent(Key.Q, false);
+            await Until(() => Self.LastAction == dashSequence + 1, "Native Q did not produce one authoritative dash.");
+            Require(Self.Position.Distance(dashStart) >= .25 && Self.Position.Distance(dashStart) <= DashRules.Distance + .05, "Native Q performs a bounded server-validated dash");
+            Require(Self.Mana < dashMana && Self.Cooldowns.ContainsKey("dash"), "Dash consumes mana and supplies an authoritative cooldown");
+            sequence = Self.LastAction;
             KeyEvent(Key.Space, true); await Delay(.1);
             Require(Field<bool>(game, "attackKeyHeld"), "Native Space press arms held combat without sending empty-target requests");
             Field<LineEdit>(game, "chatInput").GrabFocus(); await Delay(.2);
             Require(!Field<bool>(game, "attackKeyHeld"), "Chat focus cancels held combat in the running client");
             var still = Self.Position;
-            foreach (var key in new[] { Key.W, Key.E, (Key)49, Key.Tab }) await Tap(key);
+            foreach (var key in new[] { Key.W, Key.E, Key.Q, (Key)49, Key.Tab }) await Tap(key);
             KeyEvent(Key.Space, false); await Delay(.35);
             Require(Self.Position.Distance(still) < .05 && Self.LastAction == sequence, "Typing suppresses movement, interaction, hotbar, and target controls");
             Field<LineEdit>(game, "chatInput").Text = ""; GetViewport().GuiReleaseFocus();
             await Tap(Key.I); await Delay(.3);
             Require(Field<string>(game, "currentPage") == "Inventory", "Native I opens inventory");
             still = Self.Position;
-            foreach (var key in new[] { Key.D, Key.E, Key.Space, (Key)49 }) await Tap(key);
+            foreach (var key in new[] { Key.D, Key.E, Key.Q, Key.Space, (Key)49 }) await Tap(key);
             await Delay(.35);
             Require(Self.Position.Distance(still) < .05 && Self.LastAction == sequence, "An open menu blocks world movement and combat");
             string weapon = Self.Equipment["weapon"];

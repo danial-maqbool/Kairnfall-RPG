@@ -46,7 +46,7 @@ internal static class EquipmentGuideChecks
             check(GodotObject.IsInstanceValid(button) && button.GetInstanceId()==identity,"Selecting a tier retains its native button");
             guide.RefreshSnapshot(); await Frame();
             check(Find<Button>(guide,"GearChoice_"+selected,"Button").GetInstanceId()==identity,"Snapshot refresh retains tier rows");
-            check(Find<Label>(guide,"GearRequirement","Label").Text.Contains("Swordsmanship 5"),"The exact named skill requirement is visible");
+            check(Find<Label>(guide,"GearRequirement","Label").Text.Contains("Swordsmanship 3"),"The exact named skill requirement is visible");
             check(Find<Label>(guide,"GearIngredients","Label").Text.Contains("Bronze Ingot"),"The real recipe ingredients are visible");
             await Click(recipe);
             var recipeId=(string)typeof(GameRoot).GetField("selectedRecipe",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(game)!;

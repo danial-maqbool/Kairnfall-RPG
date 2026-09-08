@@ -56,7 +56,7 @@ public static class ToolRules
         => character.Inventory.Where(i=>i.Durability>0)
             .Select(i=>data.Item(i.Template))
             .Where(d=>d.Type=="tool" && d.Tags.Contains(tag) && d.Skill==skill
-                && Progression.Level(character,d.Skill)>=d.Requirement)
+                && Progression.Level(character,d.Skill)>=BeginnerProgression.EquipmentRequirement(d))
             .OrderByDescending(d=>d.Requirement).ThenBy(d=>d.Id,StringComparer.Ordinal).FirstOrDefault();
 
     public static double Efficiency(ItemDef? tool) => FiniteBonus(tool,"tool_efficiency",15);

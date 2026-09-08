@@ -20,7 +20,7 @@ public static class Progression
     public static long Total(Character p) => p.SkillXp.Values.Sum(x=>Math.Clamp(x,0,Threshold(SkillCap)));
     public static int PlayerLevel(Character p)
     {
-        double ratio=Math.Clamp(Total(p)/(60.0*Threshold(SkillCap)),0,1);
+        double ratio=Math.Clamp(BeginnerProgression.OverallEquivalentXp(Total(p))/(60.0*Threshold(SkillCap)),0,1);
         return Math.Clamp(1+(int)Math.Floor(199*Math.Pow(ratio,0.30)),1,PlayerCap);
     }
     public static long Train(Character p,string skill,int xp,int difficulty,Catalog catalog)
@@ -197,7 +197,8 @@ public static class Items
     {
         var item=Owned(p,id); var def=catalog.Item(item.Template);
         if(def.Slot==""||item.Durability==0) throw new RuleException("This item cannot be equipped.");
-        if(def.Skill!=""&&Progression.Level(p,def.Skill)<def.Requirement) throw new RuleException($"Requires {catalog.Skill(def.Skill).Name} {def.Requirement}. Your level: {Progression.Level(p,def.Skill)}.");
+        int required = BeginnerProgression.EquipmentRequirement(def);
+        if(def.Skill!=""&&Progression.Level(p,def.Skill)<required) throw new RuleException($"Requires {catalog.Skill(def.Skill).Name} {required}. Your level: {Progression.Level(p,def.Skill)}.");
         if(def.Slot=="weapon"&&!HandEquipment.Compatible(def,HandEquipment.Definition(p,"offhand",catalog)))
             p.Equipment.Remove("offhand");
         if(def.Slot=="offhand"&&!HandEquipment.Compatible(HandEquipment.Definition(p,"weapon",catalog),def))

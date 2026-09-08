@@ -46,13 +46,13 @@ internal static class GearProgressionChecks
                 }
                 if(tier.Level>1)
                 {
-                    p.SkillXp[def.Skill]=Progression.Threshold(tier.Level-1);
+                    p.SkillXp[def.Skill]=Progression.Threshold(BeginnerProgression.EquipmentRequirement(def)-1);
                     bool rejected=false;
                     try { Items.Equip(p,item.Id,data); } catch(RuleException) { rejected=true; }
                     Need(rejected,"Equipment ignored its skill gate: "+def.Id);
                     Need(!Items.Equipped(p,item.Id),"Rejected item became equipped.");
                 }
-                p.SkillXp[def.Skill]=Progression.Threshold(tier.Level);
+                p.SkillXp[def.Skill]=Progression.Threshold(BeginnerProgression.EquipmentRequirement(def));
                 Items.Equip(p,item.Id,data);
                 Need(p.Equipment.GetValueOrDefault(def.Slot)==item.Id,"Boundary equip failed: "+def.Id);
                 equipmentChecked++;
@@ -65,12 +65,12 @@ internal static class GearProgressionChecks
             {
                 p=engine.Player(id); p.Inventory.Clear(); p.Equipment.Clear();
                 var def=data.Item(tier.Entries["weapon/sword"]); var item=Items.Create(data,def.Id);
-                Items.Add(p.Inventory,item,data); p.SkillXp[def.Skill]=Progression.Threshold(tier.Level-1);
+                Items.Add(p.Inventory,item,data); p.SkillXp[def.Skill]=Progression.Threshold(BeginnerProgression.EquipmentRequirement(def)-1);
                 string before=Json(p);
                 var result=Command(engine,id,"equip",item.Id);
                 Need(!result.Ok && result.Message.Contains(data.Skill(def.Skill).Name),"Missing useful skill error: "+def.Id);
                 Need(Json(engine.Player(id))==before,"Rejected command mutated the character.");
-                p=engine.Player(id); p.SkillXp[def.Skill]=Progression.Threshold(tier.Level);
+                p=engine.Player(id); p.SkillXp[def.Skill]=Progression.Threshold(BeginnerProgression.EquipmentRequirement(def));
                 Need(Command(engine,id,"equip",item.Id).Ok,"Valid server equip failed.");
                 Need(engine.Player(id).Equipment["weapon"]==item.Id,"Server did not retain item identity.");
             }
