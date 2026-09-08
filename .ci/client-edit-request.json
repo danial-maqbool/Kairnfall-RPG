@@ -1,32 +1,24 @@
 {
-  "base":"85b3f540ec5467da9bc6a081d80b3d8ffff42a07",
-  "message":"fix(animation): align equipment to joints and stabilize directional walk presentation",
-  "purpose":"Visual-only changes. Preserve movement, combat, item identities, network validation, and saves. Candidate objects do not create branches.",
-  "edits":[
-    {"path":"tools/art/humanoid.py","expected_blob":"4a133e19b1649d278f6ac1c84259e0281ca1209d","replacements":[
-      {"old":"'head':(32+(sign if side else 0),18)","new":"'head':(32+(1 if side else 0),18)"},
-      {"old":"j['hand_r']=(hx+sign*swing,hy-abs(swing))","new":"j['hand_r']=(hx+sign*round(swing*.4),hy-abs(swing))"},
-      {"old":"(-20,-38,-58,18,65,43,8,-12)","new":"(-20,-38,-48,18,45,35,8,-12)"},
-      {"old":"j['angle']=(-12+(90+12)*t)*sign","new":"j['angle']=(-12+(-90+12)*t)*sign"},
-      {"old":"    if state=='attack':\n        swing=","new":"    if state=='idle' and frame in (3,4):\n        for name in ('shoulder_l','shoulder_r','elbow_l','elbow_r','hand_l','hand_r'):\n            x,y=j[name]; j[name]=(x,y-1)\n    if state=='attack':\n        swing="}
-    ]},
-    {"path":"tools/build_game_assets.py","expected_blob":"7599b75678d71e269b044416e01b90d369f56990","replacements":[
-      {"old":"from art.species_refinement import frame as creature_frame","new":"from art.fauna import frame as creature_frame"}
-    ]},
-    {"path":"client/Scripts/PixelAssets.cs","expected_blob":"51eba0972e80aa432450ee36528989ecf2f1dff6","replacements":[
-      {"old":"new Rect2(feet - new Vector2(size * .5f, size * .86f), new Vector2(size, size))","new":"new Rect2(feet - SpritePoseRules.Anchor((int)size), new Vector2(size, size))"},
-      {"old":"foreach (string layer in LayerOrder)","new":"foreach (string layer in SpritePoseRules.Layers(direction))"},
-      {"old":"        float scale = Math.Min(Size.X / 72, Size.Y / 72);\n        DrawSetTransform(new Vector2(Size.X / 2, Size.Y * .85f), 0, new Vector2(scale, scale));","new":"        float available = Math.Min(Size.X / 72, Size.Y / 72);\n        float scale = available >= 1 ? MathF.Floor(available) : available;\n        DrawSetTransform(new Vector2(Size.X / 2, Size.Y * .85f).Round(), 0, new Vector2(scale, scale));"}
-    ]},
-    {"path":"client/Scripts/WorldView.cs","expected_blob":"1dd2fe5ce0b57b549eb19d532630d1d66203ee91","replacements":[
-      {"old":"        public double LastMoved;","new":"        public double LastMoved;\n        public double WalkPhase;\n        public int FacingDirection;"},
-      {"old":"Facing = facing, Health = health, LastMoved = -10","new":"Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10"},
-      {"old":"        if (track.Health <= 0 && health > 0)","new":"        if (track.Health > 0 && health <= 0) Animate(id, 5, 6);\n        track.FacingDirection = SpritePoseRules.Direction(facing, track.FacingDirection);\n        if (track.Health <= 0 && health > 0)"},
-      {"old":"            double weight = 1 - Math.Exp(-18 * delta);","new":"            var previousPosition = track.Position;\n            double weight = 1 - Math.Exp(-18 * delta);"},
-      {"old":"track.Position.Y + (track.Target.Y - track.Position.Y) * weight);\n        }","new":"track.Position.Y + (track.Target.Y - track.Position.Y) * weight);\n            double travelled = previousPosition.Distance(track.Position);\n            track.WalkPhase = travelled > 6 ? 0 : SpritePoseRules.AdvanceWalk(track.WalkPhase, travelled);\n        }"},
-      {"old":"Clock - t.LastMoved < .18 ? 1 : 0","new":"Clock - t.LastMoved < .35 ? 1 : 0"},
-      {"old":" : (int)(Clock * (state == 1 ? 11 : 5)) % 8;","new":" : state == 1 ? (int)t.WalkPhase : (int)(Clock * 5) % 8;"},
-      {"old":"return (state, Direction(t.Facing), frame, t.Position);","new":"return (state, t.FacingDirection, frame, t.Position);"}
-    ]}
+  "base": "85de22f923fe7d8f0561a47207ebb1dac901f0fa",
+  "message": "fix(art): give quartz spiders faceted bodies and articulated crystal joints",
+  "purpose": "Repair the duplicate spider silhouette through anatomical construction, not a hash marker. Keep all existing validation gates.",
+  "edits": [
+    {
+      "path": "tools/art/fauna.py",
+      "expected_blob": "47efdb1f32b98045ee7b438d4ad72a71c3b018bd",
+      "replacements": [
+        {"old":"    c=palette(body_colour(m)); step=math.sin(n*math.tau/8) if state=='walk' else 0", "new":"    c=palette(body_colour(m)); step=math.sin(n*math.tau/8) if state=='walk' else 0\n    crystalline=m['family']=='quartz_spider'"},
+        {"old":"            knee=sign*(18-folded*8); tip=sign*(27-folded*14)", "new":"            knee=sign*((21 if crystalline else 18)-folded*8); tip=sign*((28 if crystalline else 27)-folded*14)"},
+        {"old":"            p.line(points,c[0],3); p.line(points,c[3],1)", "new":"            p.line(points,c[0],4 if crystalline else 3); p.line(points,c[3],2 if crystalline else 1)\n            if crystalline:\n                kx,ky=points[1]\n                p.poly([(kx-3,ky),(kx,ky-4),(kx+3,ky),(kx,ky+3)],c[2])\n                p.line([(kx-1,ky),(kx,ky-2)],c[5])"},
+        {"old":"    polygon_oval(p,(abdomen[0]-9,abdomen[1]-10,abdomen[0]+9,abdomen[1]+9),c[3])", "new":"    if crystalline:\n        p.poly([xy(-5,-22),xy(4,-24),xy(12,-15),xy(11,-6),xy(5,1),xy(-7,-1),xy(-12,-10)],c[2])\n        p.poly([xy(-4,-20),xy(3,-21),xy(8,-14),xy(3,-5),xy(-5,-7)],c[3])\n        p.line([xy(-3,-19),xy(2,-20),xy(6,-14)],c[5])\n    else:\n        polygon_oval(p,(abdomen[0]-9,abdomen[1]-10,abdomen[0]+9,abdomen[1]+9),c[3])"}
+      ]
+    },
+    {
+      "path":"tests/handoff/test_visual_art.py",
+      "expected_blob":"b0a0776b762b857943801f8531744154bbb3f118",
+      "replacements":[
+        {"old":"    def test_drawers_do_not_change_catalog_or_equipment(self):", "new":"    def test_spider_species_have_different_body_and_joint_construction(self):\n        wood=next(x for x in self.data['mobs'] if x['id']=='wood_spider')\n        quartz=next(x for x in self.data['mobs'] if x['id']=='quartz_spider')\n        for direction in range(4):\n            a=fauna.frame(wood,'idle',0,direction).getchannel('A')\n            b=fauna.frame(quartz,'idle',0,direction).getchannel('A')\n            from PIL import ImageChops\n            difference=ImageChops.difference(a,b)\n            self.assertGreater(sum(value>0 for value in difference.getdata()),80)\n\n    def test_drawers_do_not_change_catalog_or_equipment(self):"}
+      ]
+    }
   ]
 }
