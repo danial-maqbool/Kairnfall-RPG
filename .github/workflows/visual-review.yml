@@ -20,12 +20,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          fetch-depth: 0
       - id: select
         name: Select immutable visual revision
         shell: bash
         run: |
-          set -euo pipefail
           python3 - <<'PY'
           import json, os, re
           from pathlib import Path
@@ -33,7 +31,6 @@ jobs:
           if not re.fullmatch('[0-9a-f]{40}',value): raise SystemExit('Invalid candidate revision')
           with open(os.environ['GITHUB_OUTPUT'],'a') as out: out.write('candidate='+value+'\n')
           PY
-          git checkout --detach '${{ steps.select.outputs.candidate }}'
       - name: Check out selected source
         uses: actions/checkout@v4
         with:
@@ -119,7 +116,7 @@ jobs:
           if not re.fullmatch('[0-9a-f]{40}',candidate): raise SystemExit('Invalid source revision')
           api_root='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']
           def api(path,payload):
-              # This review operation creates objects only. It never updates a ref or branch.
+              # Review creates objects only. It never updates a ref or branch.
               if path not in ('/git/blobs','/git/trees','/git/commits'): raise ValueError('Unsupported operation')
               req=urllib.request.Request(api_root+path,data=json.dumps(payload).encode(),headers={
                   'Authorization':'Bearer '+os.environ['GH_TOKEN'], 'Accept':'application/vnd.github+json',
