@@ -38,7 +38,7 @@
     },
     {
       "path":"client/Tests/LiveExperienceContract.cs",
-      "expected_blob":"ea1a5aa4cc0e66dcfdd253b7c167305438742e31",
+      "expected_blob":"ac53228723b5524dd08dbc6d891d5671bf3e4083",
       "source_blob":"8bd548d81f067c38b1518f73f0cf60a0a13a0ab9"
     }
   ]
