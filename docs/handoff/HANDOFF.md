@@ -2,6 +2,14 @@
 
 ## Status
 
+Continue only on `main`; do not create branches or pull requests. The
+[September 8 visual checkpoint](LOCAL_VISUAL_REVIEW_2026-09-08.md) supersedes older
+workflow/setup status below. Source preparation, native tests and graphical
+smoke now pass locally, with tested visual/UI repairs. The game and its visual
+acceptance remain incomplete. Preserve all saves and unrelated local files.
+
+### Historical September 7 checkpoint
+
 Local continuation produced repair source `90143dff664ffd5811316cc924fc8983066e3648`
 on `team/local/acceptance-repair`. Read
 [the Windows acceptance record](LOCAL_ACCEPTANCE_2026-09-07.md) before continuing.

@@ -1,5 +1,11 @@
 # Asset and dependency licensing record
 
+The [September 8 repairs](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md) modify original
+MIT-licensed source generators for fauna, floorboards, wand icons and held gear.
+No external artwork/audio was introduced. The verified Godot 4.7.2 .NET editor
+successfully imported and ran the project. No distribution/signing or matching
+export-template acceptance is claimed. The following timeout is historical.
+
 The 2026-09-07 acceptance repair added no external artwork or audio. Generated
 creature art failed visual review and remains unapproved. The official Godot
 4.7.2 .NET editor was checksum-verified and executed; matching-template download

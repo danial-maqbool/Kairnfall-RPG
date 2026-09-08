@@ -1,5 +1,12 @@
 # Content acceptance matrix
 
+The [September 8 visual checkpoint](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md)
+changes presentation and existing NPC positions without increasing scope or
+content counts. Current path probes cover 107 zones and 1,013 destinations.
+Eight common creatures and eight equipment families have sampled native render
+evidence; this is not acceptance of every species, boss, ability or item.
+The counts and failures in the September 7 paragraph below are historical.
+
 The [2026-09-07 Windows record](handoff/LOCAL_ACCEPTANCE_2026-09-07.md) reports
 source `922d429`: generated records include 530 items, 132 abilities, 103 zones,
 170 NPCs, and 166 quests. These remain records, not accepted finished content.

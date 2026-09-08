@@ -1,5 +1,16 @@
 # Verification record
 
+## Local Windows visual repair checkpoint, 2026-09-08
+
+Read [the current detailed record](LOCAL_VISUAL_REVIEW_2026-09-08.md) for the exact
+tested source, commands, hardware, preserved failures and screenshot locations.
+Bootstrap passed using the verified Godot .NET editor. Backend/database suites
+passed 33/34/13/18/5 checks, plus security/world/migration probes; Python 74,
+native presentation 102 and isolated live experience 83 checks passed. Fresh
+GPU-rendered smoke images were inspected. Visual acceptance remains incomplete;
+Windows DPI, full manual play, audio, load and package gates are not approved.
+The following September 7 records are historical, not the current setup status.
+
 ## Local Windows repair checkpoint, 2026-09-07
 
 Source `90143dff664ffd5811316cc924fc8983066e3648`: 99 backend/database checks,

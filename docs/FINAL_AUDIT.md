@@ -2,6 +2,14 @@
 
 Release status: NOT APPROVED.
 
+Latest evidence: [September 8 Windows visual repair](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md).
+Source preparation and bounded automatic/native/graphical checks passed.
+Bear anatomy, common-fauna death poses, wand/mace presentation, NPC layout,
+inventory and HUD readability were repaired. Full visual acceptance is still
+incomplete; sparse interiors, bow occlusion and broader manual/DPI coverage
+remain. No audio, sustained-load or extracted-package approval was added.
+The next paragraph records historical September 7 status.
+
 The [local Windows repair record](handoff/LOCAL_ACCEPTANCE_2026-09-07.md) documents
 source `90143df`, passing bounded automated/graphical checks, and repaired defects,
 including reviewed recovery of legacy saved positions and secure download resume.

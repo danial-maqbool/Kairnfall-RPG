@@ -5,13 +5,20 @@ The authoritative .NET server stores accounts and world state in PostgreSQL.
 
 **Status: source handoff for local testing. This is not a completed game release.**
 
-Local Windows repairs and bounded test results are recorded in
+The [September 8 visual repair checkpoint](docs/handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md)
+records current main's bear/weapon presentation, village placement, inventory and
+HUD repairs. Local bootstrap, isolated database suites, native Godot contracts
+and inspected graphical smoke passed. Full visual acceptance remains incomplete;
+interiors, bow alignment, manual/DPI coverage and release gates remain open.
+
+Historical September 7 Windows repairs and bounded test results are recorded in
 [the acceptance checkpoint](docs/handoff/LOCAL_ACCEPTANCE_2026-09-07.md).
 Security, collision, native mouse input, and 720p HUD/map issues were repaired.
 Reviewed follow-ups preserve legacy saved positions and securely resume interrupted
 official toolchain downloads without bypassing checksum verification.
-Full bootstrap still needs the matching export-template download; art review
-failed, and full gameplay, audio, performance, and package acceptance remain open.
+That run's bootstrap timed out downloading matching templates. September 8 source
+preparation succeeded with the verified local editor; full gameplay, audio,
+performance, export-template and package acceptance remain open.
 Catalog counts, compilation, and generated-image validation do not establish complete gameplay or approved artwork.
 
 ## Start here

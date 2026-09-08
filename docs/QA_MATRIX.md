@@ -1,6 +1,12 @@
 # QA acceptance matrix
 
-Current bounded evidence: [local Windows acceptance](handoff/LOCAL_ACCEPTANCE_2026-09-07.md),
+Current bounded evidence: [September 8 visual repair](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md).
+Bootstrap, 103 backend/database checks, 74 Python tests, native signals/input,
+102 visual-fixture checks, 83 isolated live checks and inspected graphical smoke
+passed. Visual approval is incomplete. DPI, full manual gameplay, audio, load
+and extracted Windows packages remain unapproved.
+
+Historical evidence: [September 7 Windows acceptance](handoff/LOCAL_ACCEPTANCE_2026-09-07.md),
 source `90143df`. Backend/database 99, security probes 5, save-migration groups 5,
 Python tests 35, native
 signals/input, structural assets, and focused world paths passed. Graphical smoke
