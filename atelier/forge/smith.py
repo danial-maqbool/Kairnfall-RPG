@@ -1121,46 +1121,220 @@ def _armour_icon(item):
     return sketch.result()
 
 
+def _stone(sketch, tone, cx, cy, size, cut='faceted'):
+    """A set stone. The cut is what separates a copper band from a star one."""
+    piece = sketch.piece(tone)
+    if cut == 'round':
+        piece.disc(cx, cy, size, 3)
+        piece.disc(cx - size * 0.32, cy - size * 0.34, size * 0.42, 5)
+    elif cut == 'flat':
+        # an emerald cut: clipped corners and a stepped table, not a plain box
+        w, h = size * 0.86, size * 0.66
+        chip = size * 0.30
+        piece.poly([(cx - w + chip, cy - h), (cx + w - chip, cy - h), (cx + w, cy - h + chip),
+                    (cx + w, cy + h - chip), (cx + w - chip, cy + h), (cx - w + chip, cy + h),
+                    (cx - w, cy + h - chip), (cx - w, cy - h + chip)], 3)
+        piece.poly([(cx - w * 0.52, cy - h * 0.46), (cx + w * 0.52, cy - h * 0.46),
+                    (cx + w * 0.34, cy + h * 0.30), (cx - w * 0.34, cy + h * 0.30)], 5)
+    elif cut == 'hollow':
+        piece.disc(cx, cy, size, 3)
+        piece.erase_ellipse((cx - size * 0.5, cy - size * 0.5, cx + size * 0.5, cy + size * 0.5))
+    elif cut == 'point':
+        piece.poly([(cx, cy - size * 1.5), (cx + size * 0.8, cy + size * 0.4),
+                    (cx, cy + size * 1.1), (cx - size * 0.8, cy + size * 0.4)], 3)
+        piece.poly([(cx, cy - size * 1.1), (cx + size * 0.4, cy), (cx - size * 0.4, cy)], 5)
+    elif cut == 'cluster':
+        for dx, dy, scale in ((-0.7, 0.4, 0.6), (0.0, -0.4, 1.0), (0.8, 0.5, 0.65)):
+            piece.poly([(cx + dx * size, cy + dy * size - size * scale),
+                        (cx + dx * size + size * 0.6 * scale, cy + dy * size),
+                        (cx + dx * size, cy + dy * size + size * scale),
+                        (cx + dx * size - size * 0.6 * scale, cy + dy * size)], 3)
+    else:  # faceted
+        piece.poly([(cx, cy - size * 1.2), (cx + size, cy), (cx, cy + size * 1.2), (cx - size, cy)], 3)
+        piece.poly([(cx, cy - size * 0.75), (cx + size * 0.45, cy - size * 0.1),
+                    (cx - size * 0.45, cy - size * 0.1)], 5)
+    sketch.carve(piece, rim=1.0, occlude=0.6, gleam=0.9)
+    return piece
+
+
+STONE_CUT = {'round': 'round', 'disc': 'flat', 'faceted': 'faceted', 'ring': 'hollow',
+             'spike': 'point', 'gem': 'cluster'}
+
+
 def _accessory_icon(item):
     slot = item.get('slot')
-    metal = ramp(pigment.MATERIALS.get(item.get('material', 'gold'), '#c0a24a'))
-    gem = pigment.element_ramp(item.get('element', 'Arcane'))
+    style = gear.style_of(item)
+    ramps = role_ramps(item)
+    metal, trim, gem = ramps['trim'], ramps['metal'], ramps['gem']
+    cut = STONE_CUT.get(style['pommel'], 'faceted')
+    family = style['guard']
+    ornament = style['ornament']
     sketch = Sketch(ICON)
-    piece = sketch.piece(metal)
+
     if slot == 'ring':
-        piece.disc(16, 18, 9, 3)
-        piece.erase_ellipse((11, 13, 21, 23))
-        sketch.stamp(piece, rim=0.9, occlude=0.6)
-        stone = sketch.piece(gem)
-        stone.poly([(16, 3), (20, 8), (16, 13), (12, 8)], 3)
-        stone.poly([(16, 4), (18, 8), (16, 9), (14, 8)], 5)
-        sketch.stamp(stone, rim=0.9, occlude=0.5)
-        return sketch.result()
-    if slot == 'necklace':
-        piece.line(catmull([(6, 6), (9, 15), (16, 20), (23, 15), (26, 6)], 6), 3, 2)
-        sketch.stamp(piece, rim=0.7, occlude=0.5)
-        stone = sketch.piece(gem)
-        stone.poly([(16, 17), (21, 22), (16, 29), (11, 22)], 3)
-        stone.poly([(16, 19), (19, 22), (16, 24), (13, 22)], 5)
-        sketch.stamp(stone, rim=0.9, occlude=0.5)
-        return sketch.result()
-    if slot == 'charm':
-        piece.line([(16, 3), (16, 9)], 3, 2)
-        piece.disc(16, 9, 2.4, 3)
-        sketch.stamp(piece, rim=0.8, occlude=0.5)
-        stone = sketch.piece(gem)
-        stone.poly(catmull([(16, 10), (24, 17), (16, 28), (8, 17)], 6, closed=True), 3)
-        stone.poly([(16, 14), (20, 18), (16, 23), (12, 18)], 5)
-        sketch.stamp(stone, rim=0.9, occlude=0.5)
-        return sketch.result()
-    piece.disc(16, 16, 8.5, 3)
-    piece.erase_ellipse((10, 10, 22, 22))
-    piece.line([(16, 4), (16, 8)], 3, 2)
-    sketch.stamp(piece, rim=0.9, occlude=0.6)
-    core = sketch.piece(gem)
-    core.disc(16, 16, 5.0, 3)
-    core.disc(14.4, 14.2, 2.0, 5)
-    sketch.stamp(core, rim=0.9, occlude=0.5)
+        band = sketch.piece(metal)
+        if family == 'shards':
+            band.disc(16, 19, 8.6, 3)
+            band.erase_ellipse((10.4, 13.4, 21.6, 24.6))
+            for angle in (-2.5, -0.6, 0.9):
+                band.poly([(16 + math.cos(angle) * 7, 19 + math.sin(angle) * 7),
+                           (16 + math.cos(angle) * 12, 19 + math.sin(angle) * 12),
+                           (16 + math.cos(angle + 0.5) * 7.4, 19 + math.sin(angle + 0.5) * 7.4)], 3)
+        elif family == 'hooked':
+            band.disc(16, 19, 8.4, 3)
+            band.erase_ellipse((10.6, 13.6, 21.4, 24.4))
+            for sign in (-1, 1):
+                band.poly([(16 + sign * 4.4, 12.4), (16 + sign * 8.0, 6.0),
+                           (16 + sign * 8.6, 11.4)], 3)
+        elif family == 'wings':
+            band.disc(16, 19, 8.4, 3)
+            band.erase_ellipse((10.6, 13.6, 21.4, 24.4))
+            for sign in (-1, 1):
+                band.poly(catmull([(16 + sign * 5.0, 13.6), (16 + sign * 12.0, 9.0),
+                                   (16 + sign * 10.0, 14.6), (16 + sign * 6.4, 16.4)],
+                                  5, closed=True), 3)
+        elif family == 'cross':
+            band.disc(16, 19, 8.6, 3)
+            band.erase_ellipse((10.8, 13.8, 21.2, 24.2))
+            band.poly([(14.4, 4.0), (17.6, 4.0), (17.6, 14.0), (14.4, 14.0)], 3)
+            band.poly([(10.0, 7.4), (22.0, 7.4), (22.0, 10.2), (10.0, 10.2)], 3)
+        elif family == 'tipped':
+            band.disc(16, 19, 8.6, 3)
+            band.erase_ellipse((10.8, 13.8, 21.2, 24.2))
+            for sign in (-1, 1):
+                band.disc(16 + sign * 6.2, 13.0, 2.0, 3)
+        else:
+            band.disc(16, 19, 8.4, 3)
+            band.erase_ellipse((11.0, 14.0, 21.0, 24.0))
+        sketch.carve(band, rim=0.95, occlude=0.75, form=0.4)
+        _stone(sketch, gem, 16, 9, 4.6, cut)
+        if ornament >= 3:
+            side = sketch.piece(gem)
+            for sign in (-1, 1):
+                side.disc(16 + sign * 6.4, 12.6, 1.5, 4)
+            sketch.carve(side, rim=1.0, occlude=0.5)
+
+    elif slot == 'necklace':
+        chain = sketch.piece(metal)
+        path = catmull([(5, 5), (8, 14), (16, 19), (24, 14), (27, 5)], 7)
+        if family in ('cross', 'shards'):
+            chain.line(path, 3, 3)
+            chain.line(path, 5, 1)
+        elif family in ('tipped', 'wings'):
+            for index in range(0, len(path), 3):
+                chain.disc(path[index][0], path[index][1], 1.7, 3)
+        else:
+            chain.line(path, 3, 2)
+        sketch.carve(chain, rim=0.9, occlude=0.6)
+        if family == 'hooked':
+            fang = sketch.piece(trim)
+            for sign in (-1, 1):
+                fang.poly([(16 + sign * 5.4, 17.0), (16 + sign * 7.4, 25.0),
+                           (16 + sign * 3.4, 19.0)], 3)
+            sketch.carve(fang, rim=0.9, occlude=0.6)
+        setting = sketch.piece(metal)
+        if family == 'wings':
+            for sign in (-1, 1):
+                setting.poly(catmull([(16 + sign * 3.0, 19.0), (16 + sign * 11.0, 17.0),
+                                      (16 + sign * 7.0, 23.0)], 5, closed=True), 3)
+        elif family == 'cross':
+            setting.poly([(14.2, 18.0), (17.8, 18.0), (17.8, 30.0), (14.2, 30.0)], 3)
+            setting.poly([(9.6, 21.0), (22.4, 21.0), (22.4, 24.2), (9.6, 24.2)], 3)
+        else:
+            setting.disc(16, 22, 3.4, 3)
+        sketch.carve(setting, rim=0.95, occlude=0.6)
+        _stone(sketch, gem, 16, 23, 4.4 if family != 'cross' else 3.0, cut)
+
+    elif slot == 'charm':
+        cord = sketch.piece(ramps['grip'])
+        cord.line(catmull([(8, 3), (16, 7), (24, 3)], 6), 3, 2)
+        sketch.stamp(cord, rim=0.6, occlude=0.5)
+        ring = sketch.piece(metal)
+        ring.disc(16, 8, 2.6, 3)
+        ring.erase_ellipse((14.6, 6.6, 17.4, 9.4))
+        sketch.carve(ring, rim=0.95, occlude=0.6)
+        body = sketch.piece(trim)
+        if family == 'shards':
+            for dx, height in ((-4.4, 8.0), (0.4, 12.0), (4.6, 9.0)):
+                body.poly([(16 + dx - 2.2, 28.0), (16 + dx, 28.0 - height), (16 + dx + 2.2, 28.0)], 3)
+        elif family == 'hooked':
+            body.poly(catmull([(16, 11), (23, 17), (19, 29), (16, 24), (13, 29), (9, 17)],
+                              6, closed=True), 3)
+        elif family == 'cross':
+            body.poly([(13.6, 11.0), (18.4, 11.0), (18.4, 18.0), (25.0, 18.0),
+                       (25.0, 22.4), (18.4, 22.4), (18.4, 30.0), (13.6, 30.0),
+                       (13.6, 22.4), (7.0, 22.4), (7.0, 18.0), (13.6, 18.0)], 3)
+        elif family == 'wings':
+            body.poly(catmull([(16, 11), (26, 15), (21, 21), (16, 30), (11, 21), (6, 15)],
+                              6, closed=True), 3)
+        elif family == 'tipped':
+            body.poly(catmull([(16, 11), (24, 20), (16, 29), (8, 20)], 6, closed=True), 3)
+        else:
+            body.disc(16, 20, 8.4, 3)
+        sketch.carve(body, rim=0.95, occlude=0.75, form=0.5)
+        _stone(sketch, gem, 16, 20 if family != 'cross' else 20, 3.6, cut)
+        if ornament >= 4:
+            studs = sketch.piece(metal)
+            for angle in (-2.2, -0.9, 0.4, 1.7):
+                studs.disc(16 + math.cos(angle) * 6.2, 20 + math.sin(angle) * 6.2, 1.1, 4)
+            studs.clip(body)
+            sketch.overlay(studs)
+
+    else:  # trinket
+        if family == 'shards':
+            base = sketch.piece(metal)
+            base.poly([(9, 28), (23, 28), (21, 23), (11, 23)], 3)
+            sketch.carve(base, rim=0.9, occlude=0.7)
+            _stone(sketch, gem, 16, 15, 7.0, 'cluster')
+        elif family == 'hooked':
+            claw = sketch.piece(metal)
+            for sign in (-1, 1):
+                claw.poly(catmull([(16 + sign * 3.0, 26.0), (16 + sign * 10.0, 16.0),
+                                   (16 + sign * 6.4, 8.0), (16 + sign * 7.6, 18.0)],
+                                  5, closed=True), 3)
+            claw.poly([(12, 24), (20, 24), (19, 29), (13, 29)], 3)
+            sketch.carve(claw, rim=0.95, occlude=0.7)
+            _stone(sketch, gem, 16, 17, 5.0, cut)
+        elif family == 'cross':
+            frame = sketch.piece(metal)
+            frame.disc(16, 16, 10.0, 3)
+            frame.erase_ellipse((7.0, 7.0, 25.0, 25.0))
+            frame.poly([(14.6, 4.0), (17.4, 4.0), (17.4, 28.0), (14.6, 28.0)], 3)
+            frame.poly([(4.0, 14.6), (28.0, 14.6), (28.0, 17.4), (4.0, 17.4)], 3)
+            sketch.carve(frame, rim=0.95, occlude=0.7)
+            _stone(sketch, gem, 16, 16, 4.0, cut)
+        elif family == 'wings':
+            wings = sketch.piece(metal)
+            for sign in (-1, 1):
+                wings.poly(catmull([(16 + sign * 3.4, 12.0), (16 + sign * 14.0, 9.0),
+                                    (16 + sign * 11.0, 18.0), (16 + sign * 4.0, 19.0)],
+                                   5, closed=True), 3)
+            sketch.carve(wings, rim=0.95, occlude=0.65)
+            hoop = sketch.piece(trim)
+            hoop.disc(16, 16, 6.4, 3)
+            hoop.erase_ellipse((11.4, 11.4, 20.6, 20.6))
+            sketch.carve(hoop, rim=0.95, occlude=0.7)
+            _stone(sketch, gem, 16, 16, 3.8, cut)
+        elif family == 'tipped':
+            glass = sketch.piece(metal)
+            glass.poly([(9, 5), (23, 5), (17.6, 16), (23, 27), (9, 27), (14.4, 16)], 3)
+            sketch.carve(glass, rim=0.9, occlude=0.7, form=0.5)
+            sand = sketch.piece(gem)
+            sand.poly([(11, 24), (21, 24), (17, 17), (15, 17)], 3)
+            sand.clip(glass)
+            sketch.overlay(sand)
+            caps = sketch.piece(trim)
+            caps.poly([(7, 3), (25, 3), (25, 6), (7, 6)], 3)
+            caps.poly([(7, 26), (25, 26), (25, 29), (7, 29)], 3)
+            sketch.carve(caps, rim=0.95, occlude=0.6)
+        else:
+            hoop = sketch.piece(metal)
+            hoop.disc(16, 17, 9.4, 3)
+            hoop.erase_ellipse((9.6, 10.6, 22.4, 23.4))
+            hoop.poly([(14.6, 3.0), (17.4, 3.0), (17.4, 9.0), (14.6, 9.0)], 3)
+            sketch.carve(hoop, rim=0.95, occlude=0.7)
+            _stone(sketch, gem, 16, 17, 5.4, cut)
+    _aura(sketch, item, 0.9)
     return sketch.result()
 
 

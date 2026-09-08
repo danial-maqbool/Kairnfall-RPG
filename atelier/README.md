@@ -32,21 +32,23 @@ records what the last build produced.
 | buildings | 164 | width×(height+2) tiles | 9 styles, one sprite per zone building |
 | resources | 41 | 48×48 – 112×144 | gathering nodes by skill and material |
 | chests | 14 | 48×48 | 7 kinds, closed and open |
-| items | 530 | 32×32 | every catalogue item |
+| items | 1354 | 32×32 | every catalogue item |
 | structures | 5 | 64×72 | placed crafting stations |
 | abilities | 132 | 32×32 | element motif + kind badge |
 | skills | 60 | 32×32 | one bespoke icon per skill |
 | people | 60 | 512×1536 | 2 builds × 6 skin tones, 6 hair styles × 8 colours |
-| equipment | 331 | 512×1536 | every equippable item as a worn layer |
+| equipment | 966 | 512×1536 | every equippable item as a worn layer |
 | npcs | 26 | 512×1536 | one per townsfolk role, with their tool |
 | mobs | 145 | 512×1536 / 1024×3072 | bosses are double size |
 | gear | 616 | 32×32 | the tiered equipment ladder, as icons |
 | gear_worn | 616 | 512×1536 | the same gear, worn, as animation sheets |
 | audio | 22 | mono 22 050 Hz | 10 music beds, 4 ambiences, 8 effects |
 
-2815 images and 22 sounds. The first thirteen groups match the game catalogue
-key-for-key; `gear` and `gear_worn` are this library's own equipment ladder, with
-records written to `atelier/gear.json` in the catalogue's own format.
+4274 images and 22 sounds. The first thirteen groups are driven by
+`content/catalog.json` and match it key-for-key, so those counts move when the
+game's content does — rerun the build after a content change. `gear` and
+`gear_worn` are this library's own equipment ladder, with records written to
+`atelier/gear.json` in the catalogue's own format.
 
 ## The equipment ladder
 
@@ -143,10 +145,22 @@ standing figure.
 Death is a scripted collapse — stagger, buckle, fall, settle — interpolated
 between authored keys, not a standing frame rotated onto its side.
 
+**Every creature is an individual.** On top of its family's body plan, each mob
+draws its own build from its id: coat markings suited to the body plan (spots,
+stripes, bands, patches, dapple, a dark saddle, countershading), a colour drift,
+and jitter on length, height, girth, leg, head, muzzle, ear and tail — plus a
+chance of horns, a mane or a back ridge. Elites gain plating, scars and harder
+eyes; bosses gain a crest and a mane. Humanoid monsters are told apart by what
+they carry and wear, not by hue: goblins get hoods and daggers, kobolds horns
+and spears, ogres a maul, revenants a helm and a greatsword, scarecrows a hat
+and a sickle.
+
 ## Reviewing it
 
 ```bash
 python atelier/preview.py ladder    # every weapon across every tier
+python atelier/preview.py accessories  # rings, amulets, charms, relics by tier
+python atelier/preview.py kin       # all 145 creatures, one grid
 python atelier/preview.py armour    # every armour slot across every tier
 python atelier/preview.py sets      # full sets, worn, one per tier
 python atelier/preview.py body      # builds and facings

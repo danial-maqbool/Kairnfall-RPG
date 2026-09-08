@@ -666,16 +666,35 @@ def _cloak(sketch, pose, item):
 
 
 def _jewellery(sketch, pose, item, slot):
-    tone = _armour_ramp(item)
-    gem = ramp(pigment.ELEMENTS.get(item.get('element', 'Arcane'), '#a98fd0'))
+    """Worn trinkets are small, so the tier shows in the pendant's outline and
+    in whether it glows, not in surface detail nobody can see at 64px."""
+    tone = _trim_ramp(item)
+    style = gear.style_of(item)
+    gem = _gem_ramp(item)
+    family = style['guard']
     piece = sketch.piece(tone)
     if slot == 'necklace':
         neck = pose.neck
-        piece.line(catmull([(neck[0] - 3.0, neck[1] + 2.2), (neck[0], neck[1] + 4.4), (neck[0] + 3.0, neck[1] + 2.2)], 4), 4, 1)
+        piece.line(catmull([(neck[0] - 3.2, neck[1] + 2.0), (neck[0], neck[1] + 4.6),
+                            (neck[0] + 3.2, neck[1] + 2.0)], 4), 4,
+                   2 if family in ('cross', 'shards') else 1)
         sketch.stamp(piece, outline=False, rim=0, occlude=0)
         stone = sketch.piece(gem)
-        stone.disc(neck[0], neck[1] + 4.6, 1.5, 4)
-        sketch.stamp(stone, rim=0.9, occlude=0.4)
+        cx, cy = neck[0], neck[1] + 5.0
+        if family in ('shards', 'hooked'):
+            stone.poly([(cx, cy - 2.2), (cx + 1.4, cy + 1.4), (cx - 1.4, cy + 1.4)], 3)
+        elif family == 'cross':
+            stone.poly([(cx - 0.9, cy - 2.2), (cx + 0.9, cy - 2.2), (cx + 0.9, cy - 0.6),
+                        (cx + 2.4, cy - 0.6), (cx + 2.4, cy + 0.9), (cx + 0.9, cy + 0.9),
+                        (cx + 0.9, cy + 2.6), (cx - 0.9, cy + 2.6), (cx - 0.9, cy + 0.9),
+                        (cx - 2.4, cy + 0.9), (cx - 2.4, cy - 0.6), (cx - 0.9, cy - 0.6)], 3)
+        elif family == 'wings':
+            stone.poly([(cx, cy - 1.8), (cx + 2.8, cy), (cx, cy + 1.8), (cx - 2.8, cy)], 3)
+        else:
+            stone.disc(cx, cy, 1.6, 4)
+        sketch.carve(stone, rim=1.0, occlude=0.5)
+        if style['glow']:
+            sketch.glow(style['glow'], 2, 0.30)
         return
     if slot == 'ring':
         hand = pose.hand['near']
@@ -694,9 +713,17 @@ def _jewellery(sketch, pose, item, slot):
         sketch.stamp(stone, rim=0.9, occlude=0.5)
         return
     trinket = sketch.piece(gem)
-    trinket.disc(anchor[0] + side * 3.4, anchor[1] + 3.2, 1.9, 3)
-    trinket.disc(anchor[0] + side * 3.0, anchor[1] + 2.6, 0.9, 5)
-    sketch.stamp(trinket, rim=0.8, occlude=0.5)
+    tx, ty = anchor[0] + side * 3.4, anchor[1] + 3.2
+    if family in ('shards', 'crystal'):
+        trinket.poly([(tx, ty - 2.6), (tx + 1.8, ty + 1.4), (tx - 1.8, ty + 1.4)], 3)
+    elif family in ('cross', 'wings'):
+        trinket.poly([(tx, ty - 2.2), (tx + 2.2, ty), (tx, ty + 2.2), (tx - 2.2, ty)], 3)
+    else:
+        trinket.disc(tx, ty, 1.9, 3)
+    trinket.disc(tx - 0.4, ty - 0.6, 0.9, 5)
+    sketch.carve(trinket, rim=0.95, occlude=0.55)
+    if style['glow']:
+        sketch.glow(style['glow'], 2, 0.28)
 
 
 def _held(sketch, pose, item, main=True):

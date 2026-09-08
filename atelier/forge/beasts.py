@@ -14,11 +14,12 @@ the same code serves 64px creatures and 128px bosses.
 from __future__ import annotations
 
 import math
+import random
 from dataclasses import dataclass, replace
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
-from . import folk, pigment, rig
+from . import folk, pigment, rig, smith
 from .brush import Sketch, catmull, taper_shape
 from .pigment import blend, ramp
 
@@ -157,6 +158,13 @@ class Beast:
     shell: float = 0.0
     segments: int = 0
     scale: float = 1.0
+    # per-creature variation, filled in by describe()
+    pattern: str = ''
+    pattern_colour: str = ''
+    family_key: str = ''
+    seed: int = 0
+    scarred: float = 0.0
+    crown: str = ''
 
     def ramps(self):
         coat = ramp(self.coat)
@@ -300,15 +308,84 @@ BIOME_TINT = {
 }
 
 
+# Coat markings that suit each body plan. Two wolves from the same family are
+# still two different wolves: one is dappled, the other has a dark saddle.
+PATTERNS = {
+    'quadruped': ('', '', 'spots', 'stripes', 'patches', 'dapple', 'saddle', 'countershade'),
+    'drake': ('', 'bands', 'patches', 'dapple', 'countershade'),
+    'bird': ('', '', 'speckle', 'bands', 'patches'),
+    'insect': ('', 'bands', 'spots'),
+    'arachnid': ('', 'spots', 'bands'),
+    'serpent': ('bands', 'bands', 'spots', 'patches'),
+    'worm': ('bands', 'bands', ''),
+    'crustacean': ('', 'spots', 'patches'),
+    'aquatic': ('', 'bands', 'spots', 'countershade'),
+    'amphibian': ('', 'spots', 'patches'),
+    'primate': ('', 'patches', 'countershade'),
+    'plant': ('', 'patches', 'speckle'),
+    'mineral': ('', 'bands'),
+    'construct': ('', 'bands', 'patches'),
+}
+
+EYE_COLOURS = ('#e6d089', '#d8a24a', '#c8e07a', '#8fd8e0', '#e08a6a', '#c0b0e8', '#e4e0c8')
+
+
+def _vary(spec, mob):
+    """Give one creature its own build inside its family's body plan."""
+    seed = pigment.keyed(mob.get('id', 'mob'))
+    spec.seed = seed
+    rng = random.Random(seed)
+    archetype = spec.archetype
+
+    choices = PATTERNS.get(archetype, ('',))
+    spec.pattern = choices[seed % len(choices)]
+    if spec.spots:                       # families that always carry markings
+        spec.pattern = 'spots'
+        spec.pattern_colour = spec.spots
+    if spec.pattern and not spec.pattern_colour:
+        toward = (238, 232, 214, 255) if (seed >> 3) & 1 else (34, 30, 40, 255)
+        weight = 0.34 if toward[0] > 128 else 0.40
+        spec.pattern_colour = pigment.hexstr(blend(pigment.rgb(spec.coat), toward, weight))
+
+    # hide colour drifts a little between individuals
+    spec.coat = pigment.hexstr(blend(pigment.rgb(spec.coat),
+                                     (rng.randrange(90, 210), rng.randrange(90, 200),
+                                      rng.randrange(80, 190), 255),
+                                     0.06 + rng.random() * 0.07))
+    spec.eye = EYE_COLOURS[(seed >> 5) % len(EYE_COLOURS)]
+
+    # proportions: same species, different animal
+    spec.length *= 0.93 + rng.random() * 0.14
+    spec.height *= 0.94 + rng.random() * 0.13
+    spec.girth *= 0.92 + rng.random() * 0.17
+    spec.leg *= 0.93 + rng.random() * 0.15
+    spec.head *= 0.94 + rng.random() * 0.12
+    spec.muzzle *= 0.88 + rng.random() * 0.24
+    spec.ear_size *= 0.85 + rng.random() * 0.32
+    spec.tail_length *= 0.84 + rng.random() * 0.34
+    if spec.mane:
+        spec.mane *= 0.7 + rng.random() * 0.7
+    elif archetype == 'quadruped' and (seed >> 7) % 5 == 0:
+        spec.mane = 0.8 + rng.random() * 0.5
+
+    if not spec.horn and archetype in ('quadruped', 'drake') and (seed >> 9) % 6 == 0:
+        spec.horn = ('curl', 'ridge_horn', 'tusk', 'crest')[(seed >> 11) % 4]
+    if not spec.back and archetype in ('quadruped', 'drake') and (seed >> 13) % 7 == 0:
+        spec.back = 'ridge'
+    return spec
+
+
 def describe(mob):
     """Anatomy for one catalogue creature."""
     spec = FAMILIES.get(mob.get('family', ''))
     if spec is None:
         spec = Beast()
     spec = replace(spec)
+    spec.family_key = mob.get('family', '')
     tint = BIOME_TINT.get(mob.get('biome', ''))
     if tint and not mob.get('boss'):
         spec.coat = pigment.hexstr(blend(pigment.rgb(spec.coat), tint[0], tint[1]))
+    _vary(spec, mob)
     element = mob.get('element', 'Physical')
     if element not in ('Physical', ''):
         spec.glow = spec.glow or pigment.ELEMENTS.get(element)
@@ -317,7 +394,15 @@ def describe(mob):
         if not spec.accent and spec.archetype in ('spirit', 'elemental', 'mineral', 'construct'):
             spec.accent = pigment.ELEMENTS.get(element)
     if mob.get('elite') or mob.get('boss'):
+        # veterans carry the marks of it: heavier plating, scars, harder eyes
         spec.plates = 1.0
+        spec.scarred = 1.0
+        spec.back = spec.back or 'spikes'
+        spec.eye = '#f0c060'
+    if mob.get('boss'):
+        spec.crown = 'horns'
+        spec.horn = spec.horn or 'crest'
+        spec.mane = max(spec.mane, 1.2)
     grow = 1.0 + min(0.22, max(0, mob.get('level', 1) - 1) * 0.004)
     spec.length *= grow
     spec.height *= grow
@@ -326,6 +411,89 @@ def describe(mob):
 
 
 # --------------------------------------------------------------- drawing ----
+
+def _markings(stage, spec, body):
+    """Coat markings clipped to a body that has already been drawn."""
+    if not spec.pattern or not spec.pattern_colour:
+        return
+    box = body.image.getbbox()
+    if box is None:
+        return
+    x0, y0, x1, y1 = box
+    width, height = x1 - x0, y1 - y0
+    if width < 4 or height < 4:
+        return
+    marks = stage.piece(ramp(spec.pattern_colour))
+    rng = random.Random(spec.seed + 17)
+    kind = spec.pattern
+    unit = max(1.0, min(width, height) * 0.11)
+    if kind == 'spots':
+        for _ in range(5 + spec.seed % 6):
+            marks.disc(x0 + rng.random() * width, y0 + rng.random() * height,
+                       unit * (0.6 + rng.random() * 0.5), 2)
+    elif kind == 'stripes':
+        count = 4 + spec.seed % 4
+        for index in range(count):
+            x = x0 + width * (index + 0.5) / count
+            lean = (rng.random() - 0.5) * width * 0.06
+            marks.poly([(x - unit * 0.34, y0), (x + unit * 0.34, y0),
+                        (x + unit * 0.34 + lean, y1), (x - unit * 0.34 + lean, y1)], 2)
+    elif kind == 'bands':
+        count = 3 + spec.seed % 4
+        for index in range(count):
+            y = y0 + height * (index + 0.5) / count
+            marks.poly([(x0, y - unit * 0.34), (x1, y - unit * 0.46),
+                        (x1, y + unit * 0.34), (x0, y + unit * 0.46)], 2)
+    elif kind == 'patches':
+        for _ in range(2 + spec.seed % 3):
+            cx = x0 + rng.random() * width
+            cy = y0 + rng.random() * height
+            size = unit * (1.1 + rng.random() * 0.9)
+            marks.poly(catmull([(cx - size, cy), (cx - size * 0.4, cy - size * 0.9),
+                                (cx + size * 0.8, cy - size * 0.5), (cx + size * 0.6, cy + size * 0.7),
+                                (cx - size * 0.5, cy + size * 0.8)], 5, closed=True), 2)
+    elif kind == 'dapple':
+        for _ in range(10 + spec.seed % 8):
+            marks.dot(x0 + rng.random() * width, y0 + rng.random() * height, 4)
+    elif kind == 'speckle':
+        for _ in range(14 + spec.seed % 10):
+            marks.dot(x0 + rng.random() * width, y0 + rng.random() * height, 1)
+    elif kind == 'saddle':
+        marks.poly(catmull([(x0 + width * 0.20, y0 + height * 0.10),
+                            (x0 + width * 0.78, y0 + height * 0.06),
+                            (x0 + width * 0.86, y0 + height * 0.52),
+                            (x0 + width * 0.24, y0 + height * 0.58)], 5, closed=True), 2)
+    elif kind == 'countershade':
+        marks.poly([(x0, y0), (x1, y0), (x1, y0 + height * 0.42), (x0, y0 + height * 0.46)], 2)
+    else:
+        return
+    inner = body.image.getchannel('A').point(lambda v: 255 if v >= 110 else 0)
+    marks.clip(inner.filter(ImageFilter.MinFilter(3)))
+    stage.sketch.overlay(marks)
+
+
+def _scars(stage, spec, body):
+    """A veteran's hide: a couple of pale weals across the flank."""
+    if spec.scarred <= 0:
+        return
+    box = body.image.getbbox()
+    if box is None:
+        return
+    x0, y0, x1, y1 = box
+    width, height = x1 - x0, y1 - y0
+    if width < 8 or height < 6:
+        return
+    rng = random.Random(spec.seed + 41)
+    marks = stage.piece(ramp(pigment.hexstr(blend(pigment.rgb(spec.coat), (240, 230, 214, 255), 0.45))))
+    for _ in range(2):
+        sx = x0 + width * (0.25 + rng.random() * 0.5)
+        sy = y0 + height * (0.2 + rng.random() * 0.5)
+        run = width * (0.12 + rng.random() * 0.12)
+        marks.line([(sx, sy), (sx + run, sy + run * 0.55)], 4, 1)
+    inner = body.image.getchannel('A').point(lambda v: 255 if v >= 110 else 0)
+    marks.clip(inner.filter(ImageFilter.MinFilter(3)))
+    stage.sketch.overlay(marks)
+
 
 def _gait(m, offset, reach=4.2, lift=2.4):
     """Foot displacement for one leg: forward or back, and lifted while swinging."""
@@ -654,13 +822,8 @@ def _quadruped_face(spec, m, direction, stage):
         5, closed=True), 3)
     belly.clip(chest)
     stage.sketch.overlay(belly)
-    if spec.spots:
-        marks = stage.piece(ramp(spec.spots))
-        for index in range(5):
-            x, y = stage.at(math.sin(index * 2.1) * girth * 0.55 + lunge, body_y - girth * 0.4 + index * girth * 0.32)
-            marks.disc(x, y, max(0.9, 1.1 * stage.scale), 2)
-        marks.clip(chest)
-        stage.sketch.overlay(marks)
+    _markings(stage, spec, chest)
+    _scars(stage, spec, chest)
     if spec.mane > 0:
         mane = stage.piece(tones['accent'])
         mane.poly(catmull(stage.path([
@@ -753,16 +916,8 @@ def _quadruped_side(spec, m, direction, stage):
             5, closed=True), 3)
     belly_piece.clip(piece)
     stage.sketch.overlay(belly_piece)
-    if spec.spots:
-        marks = stage.piece(ramp(spec.spots))
-        for index in range(7):
-            angle = index * 2.4
-            mx = rear[0] + (front[0] - rear[0]) * (index / 6.0)
-            my = body_y + math.sin(angle) * spec.girth * 0.45
-            x, y = stage.at(mx, my)
-            marks.disc(x, y, max(0.9, 1.2 * stage.scale), 2)
-        marks.clip(piece)
-        stage.sketch.overlay(marks)
+    _markings(stage, spec, piece)
+    _scars(stage, spec, piece)
     _back(stage, spec, tones, front, rear, body_y, m)
     if spec.mane > 0:
         mane = stage.piece(tones['accent'])
@@ -832,6 +987,7 @@ def bird(spec, m, direction, stage):
         (-length * 0.8 * (facing or 1), body_y - spec.girth * 0.5 - tilt),
     ]), 6, closed=True), 3)
     stage.stamp(body, rim=0.9, occlude=0.6)
+    _markings(stage, spec, body)
     wing = stage.piece(tones['accent'])
     flap = math.sin(m.phase) * 1.2 * (1 if m.stride else 0.3) + m.charge * 3.0
     for sign in ((1,) if side else (-1, 1)):
@@ -909,6 +1065,7 @@ def insect(spec, m, direction, stage, arachnid=False):
         x, y = stage.at(cx, body_y + spec.girth * 0.25)
         body.disc(x, y, radius * stage.scale, 3)
     stage.stamp(body, rim=0.9, occlude=0.65)
+    _markings(stage, spec, body)
     if spec.back == 'shell':
         shell = stage.piece(tones['accent'])
         shell.poly(catmull(stage.path([
@@ -1127,6 +1284,7 @@ def crustacean(spec, m, direction, stage):
             (-girth * 0.85, body_y - girth * 0.55),
         ]), 6, closed=True), 3)
     stage.stamp(body, rim=0.9, occlude=0.65)
+    _markings(stage, spec, body)
     shellwork = stage.piece(tones['accent'])
     if spec.back == 'shell':
         sx, sy = stage.at(0.0, body_y + girth * 0.55)
@@ -1403,6 +1561,7 @@ def aquatic(spec, m, direction, stage):
         (-length * 0.4 * (facing or 1), lift - spec.girth * 0.7),
     ]), 7, closed=True), 3)
     stage.stamp(body, rim=0.9, occlude=0.55)
+    _markings(stage, spec, body)
     fin = stage.piece(tones['accent'])
     fin.poly(catmull(stage.path([
         (-length * 0.9 * (facing or 1), lift + spec.girth * 0.2),
@@ -1504,11 +1663,66 @@ def mimic(spec, m, direction, stage):
     stage.stamp(eyes, outline=False, rim=0, occlude=0)
 
 
+# What a humanoid monster carries and wears. Colour alone will not tell a
+# goblin from a knight; a spear, a hood and a helm will.
+HUMANOID_KIT = {
+    'goblin': ('dagger', 'hood'),
+    'kobold': ('spear', 'horns'),
+    'bandit': ('sword', 'hood'),
+    'pirate': ('sword', 'bandana'),
+    'knight': ('sword', 'helm'),
+    'ogre': ('greatmace', ''),
+    'skeleton': ('sword', ''),
+    'ghoul': ('', ''),
+    'revenant': ('greatsword', 'helm'),
+    'scarecrow': ('sickle', 'hat'),
+}
+
+
+def _headgear(sketch, pose, kind, tone, accent):
+    if not kind:
+        return
+    x, y = pose.head
+    r = pose.head_r
+    piece = sketch.piece(tone)
+    if kind == 'hood':
+        piece.poly(catmull([(x - r - 1.0, y + r * 0.5), (x - r * 0.9, y - r * 1.1),
+                            (x, y - r * 1.35), (x + r * 0.9, y - r * 1.1),
+                            (x + r + 1.0, y + r * 0.5), (x + r * 0.5, y + r * 0.1),
+                            (x, y - r * 0.25), (x - r * 0.5, y + r * 0.1)], 5, closed=True), 3)
+    elif kind == 'helm':
+        piece.poly(catmull([(x - r - 0.8, y + r * 0.4), (x - r * 0.85, y - r * 1.0),
+                            (x, y - r * 1.3), (x + r * 0.85, y - r * 1.0),
+                            (x + r + 0.8, y + r * 0.4), (x, y - r * 0.1)], 5, closed=True), 3)
+        crest = sketch.piece(accent)
+        crest.poly(catmull([(x - 1.0, y - r * 1.2), (x, y - r * 2.1), (x + 1.0, y - r * 1.2)],
+                           4, closed=True), 3)
+        sketch.carve(crest, rim=0.9, occlude=0.6)
+    elif kind == 'bandana':
+        piece.poly([(x - r - 0.6, y - r * 0.15), (x + r + 0.6, y - r * 0.15),
+                    (x + r * 0.9, y - r * 0.85), (x - r * 0.9, y - r * 0.85)], 3)
+        piece.poly([(x - r - 0.4, y - r * 0.5), (x - r - 3.4, y + r * 0.3),
+                    (x - r - 0.6, y + r * 0.2)], 3)
+    elif kind == 'horns':
+        for sign in (-1, 1):
+            piece.poly(catmull([(x + sign * r * 0.7, y - r * 0.5),
+                                (x + sign * (r + 2.2), y - r * 1.5),
+                                (x + sign * (r + 0.6), y - r * 0.35)], 4, closed=True), 3)
+    elif kind == 'hat':
+        piece.poly([(x - r - 2.6, y - r * 0.35), (x + r + 2.6, y - r * 0.35),
+                    (x + r + 1.4, y - r * 0.05), (x - r - 1.4, y - r * 0.05)], 3)
+        piece.poly(catmull([(x - r * 0.8, y - r * 0.4), (x - r * 0.3, y - r * 1.7),
+                            (x + r * 0.7, y - r * 1.5), (x + r * 0.8, y - r * 0.4)],
+                           4, closed=True), 3)
+    sketch.carve(piece, rim=0.9, occlude=0.65)
+
+
 def humanoid(spec, m, direction, stage, state, index):
     """Goblins, bandits and skeletons reuse the person rig at creature scale.
 
     The rig gives them a real gait and a real collapse; the hide colour and the
-    build come from the creature, so a goblin is not a recoloured villager.
+    build come from the creature, so a goblin is not a recoloured villager. What
+    they carry and wear does the rest of the work.
     """
     build = 0 if spec.height >= 16 else 1
     pose = rig.pose(build, state, index, direction)
@@ -1518,6 +1732,19 @@ def humanoid(spec, m, direction, stage, state, index):
     trunk = pigment.hexstr(blend(pigment.rgb(cloth), (30, 26, 32, 255), 0.35))
     folk.body_layers(sketch, pose, 2, cloth=cloth, trunk=trunk, shoe='#43382e', face=True)
     frame_image = _reskin(sketch.result(), hide)
+
+    dressing = Sketch(64)
+    dressing.overlay(frame_image)
+    weapon, headgear = HUMANOID_KIT.get(spec.family_key, ('', ''))
+    trim = ramp(blend(pigment.rgb(cloth), (28, 24, 32, 255), 0.30))
+    _headgear(dressing, pose, headgear, ramp(cloth), ramp(spec.accent or spec.coat))
+    if weapon and m.collapse < 0.5:
+        material = 'iron' if spec.height >= 15 else 'bronze'
+        item = {'id': 'beast_' + weapon, 'type': 'weapon', 'slot': 'weapon',
+                'tags': [weapon, 'two_handed' if weapon in ('greatmace', 'greatsword', 'spear') else 'medium'],
+                'material': material, 'element': 'Physical', 'tier': 2}
+        smith.hold(dressing, item, pose.hand['near'], pose.grip_angle, pose)
+    frame_image = dressing.result()
     grow = spec.height / 16.0
     if grow < 0.95 or grow > 1.05 or stage.size != 64:
         target = max(16, min(stage.size, round(64 * grow * stage.scale)))

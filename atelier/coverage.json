@@ -3,10 +3,10 @@
     "abilities": 132,
     "buildings": 164,
     "chests": 14,
-    "equipment": 331,
+    "equipment": 966,
     "gear": 616,
     "gear_worn": 616,
-    "items": 530,
+    "items": 1354,
     "mobs": 145,
     "npcs": 26,
     "people": 60,
@@ -16,9 +16,9 @@
     "structures": 5,
     "terrain": 52
   },
-  "png_files": 2815,
-  "animation_sheets": 1178,
+  "png_files": 4274,
+  "animation_sheets": 1813,
   "audio_files": 22,
-  "built_seconds": 5.8,
+  "built_seconds": 7.9,
   "artistic_review": "pending"
 }

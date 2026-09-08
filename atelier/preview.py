@@ -303,7 +303,33 @@ def sheet_sets(args):
     return grid(cells, len(gear.TIERS), 3)
 
 
+def sheet_accessories(args):
+    """Rings, amulets, charms and relics across the whole ladder."""
+    from forge import gear
+    items = {item['id']: item for item in gear.catalogue()}
+    cells = []
+    for kind in gear.ACCESSORIES:
+        for tier in gear.TIERS:
+            cells.append((smith.icon(items['%s_%s' % (tier.key, kind)]),
+                          '%s %s' % (tier.metal_name[:6], kind[:4])))
+    return grid(cells, len(gear.TIERS), 5)
+
+
+def sheet_kin(args):
+    """Every creature in the catalogue, to check they read as individuals."""
+    from forge import beasts
+    data = catalog()
+    cells = []
+    for mob in data['mobs']:
+        image = beasts.frame(mob, 'idle', 0, 2)
+        if image.width > 64:
+            image = image.resize((64, 64), Image.Resampling.NEAREST)
+        cells.append((image, mob['id'][:17]))
+    return grid(cells, 12, 2)
+
+
 SHEETS = {
+    'accessories': sheet_accessories, 'kin': sheet_kin,
     'ladder': sheet_ladder, 'armour': sheet_armour, 'sets': sheet_sets,
     'body': sheet_body, 'walk': sheet_walk, 'states': sheet_states, 'hair': sheet_hair,
     'gear': sheet_gear, 'weapons': sheet_weapons, 'items': sheet_items, 'npcs': sheet_npcs,
