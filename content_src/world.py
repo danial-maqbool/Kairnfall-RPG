@@ -167,6 +167,8 @@ def build(data):
             interior=zone(building['id']+'_inside',name+' '+service,biome,level,'interior','Surface',32,seed=z['seed']+i,lore='A working '+service.lower()+' in '+name+'.')
             zones.append(interior); by_id[interior['id']]=interior
             connect(z,interior,(x+3.5,y+4.5),(16.5,27.5),'door')
+            # Indoor staff use new IDs; existing outdoor quest givers retain their IDs and positions.
+            add_npc(data,interior,i,i,faction,(16.5,20.5))
         for i in range(len(ROLES)):
             # Services line the central streets. No NPC is placed inside solid masonry.
             if i<13: location=(64.5,37.5+i*2)
@@ -184,6 +186,14 @@ def build(data):
     starter['species']=['field_rat','wild_hare']; starter['resources']=['copper_vein','oak_tree','meadow_leaf_patch','berry_bush','flax_patch','river_trout_pool','buried_pottery']
     for i,(name,x,y) in enumerate([('The Lantern Hearth',25,28),('Wayfarer Forge',46,28),('Travelers\' Store',25,48),('Mara\'s Workshop',46,48)]):
         starter['buildings'].append(dict(id='starter_building_'+str(i),name=name,x=x,y=y,width=7,height=5,style='cottage',station=''))
+    # The four visible starter doors now enter actual, reciprocal service rooms.
+    # Do not move existing NPCs: active quests and existing saves retain their references.
+    for i,building in enumerate(starter['buildings']):
+        interior=zone(building['id']+'_inside',building['name'],'plains',1,'interior','Surface',32,seed=6107+i,lore='A sheltered working room in the starter village.')
+        zones.append(interior); by_id[interior['id']]=interior
+        connect(starter,interior,(building['x']+building['width']//2+.5,building['y']+building['height']-.5),(16.5,27.5),'door')
+        role_index=[11,0,4,24][i]
+        add_npc(data,interior,role_index,i,'wayfarers',(16.5,20.5))
     zones.insert(0,starter); by_id[starter['id']]=starter
     connect(starter,by_id['kingsmeadow'],(76.5,40.5),(130.5,160.5),'road')
     for i,role_index in enumerate([11,0,4,15,16,14,13,17,5,24]): add_npc(data,starter,role_index,i,'wayfarers',(40.5,26.5+i*2))
