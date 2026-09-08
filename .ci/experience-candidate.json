@@ -1,6 +1,6 @@
 {
-  "sha": "1ffe43ff69eae92a479b2842f6afc742396f7605",
-  "base": "645f81557aaf4787016c5807f3a25c06a380e671",
-  "mode": "repair",
-  "purpose": "Validate complete named equipment tracks through skill level 100, every crafting and equip boundary, real supply chains, capped server-selected tool bonuses, stable native upgrade-guide navigation, legacy save compatibility, and all retained source/native/database/security suites. This is candidate verification, not main source integration or release acceptance."
+  "sha":"f73d9ec0c9a677d8440e08748f6cc7af59fe103f",
+  "base":"645f81557aaf4787016c5807f3a25c06a380e671",
+  "mode":"repair",
+  "purpose":"Verify all requested named skill tiers through 100, complete equipment/tool families, recipe reachability and conservation, exact skill gates, legacy crop/tool behavior, bounded stable crafting pages and native tier rendering. Retain every existing backend, security, migration, PostgreSQL, input, lifecycle and live-game check."
 }
