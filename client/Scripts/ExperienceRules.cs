@@ -72,12 +72,25 @@ public static class ExperienceRules
         return self.Position.Distance(creature.Position) - .35 * facing;
     }
 
-    public static List<Point> ApproachPath(Character self, Creature creature, Catalog data)
+    public static List<Point> ApproachPath(Character self, Creature creature, Catalog data, double remainingDistance = 2.5)
     {
+        if (!double.IsFinite(remainingDistance) || remainingDistance <= 0) return [];
+        double budget = Math.Min(2.5, remainingDistance);
         double range = WeaponRange(self, data);
         if (!CanTarget(self, creature, data, range + 1.75, true)) return [];
-        if (self.Position.Distance(creature.Position) <= range) return [];
+        double distance = self.Position.Distance(creature.Position);
+        if (distance <= range) return [];
         var zone = data.Zone(self.Zone);
+        // Movement consumes a waypoint within .32 tiles. Finish farther inside
+        // weapon range so consuming the final waypoint cannot strand the player.
+        double stopRange = Math.Max(.25, range - .4);
+        var direction = self.Position.Direction(creature.Position);
+        double directLength = distance - stopRange;
+        var delta = direction.Scale(directLength);
+        var destination = new Point(self.Position.X + delta.X, self.Position.Y + delta.Y);
+        if (directLength <= budget && WorldMap.Fits(zone, destination)
+            && WorldMap.Move(zone, self.Position, delta).Distance(destination) < .01)
+            return [destination];
         var path = WorldMap.FindPath(zone, self.Position, creature.Position, 2048);
         var result = new List<Point>();
         var previous = self.Position;
@@ -85,9 +98,9 @@ public static class ExperienceRules
         foreach (var point in path)
         {
             length += previous.Distance(point);
-            if (length > 2.5 || !WorldMap.Fits(zone, point)) return [];
+            if (length > budget || !WorldMap.Fits(zone, point)) return [];
             result.Add(point);
-            if (point.Distance(creature.Position) <= range && WorldMap.LineOfSight(zone, point, creature.Position)) return result;
+            if (point.Distance(creature.Position) <= stopRange && WorldMap.LineOfSight(zone, point, creature.Position)) return result;
             previous = point;
         }
         return [];

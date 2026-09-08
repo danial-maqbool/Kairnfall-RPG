@@ -209,7 +209,21 @@ public partial class LiveExperienceContract : Node
                 "Selecting a creature does not start automatic attacks");
             double began = Now;
             KeyEvent(Key.Space, true);
-            await Until(() => game.Snapshot!.Creatures.Single(x => x.Id == rat).Health <= 0, "Held Space did not resolve the normal starter encounter.", 15);
+            double nextCombatTrace = 0;
+            await Until(() =>
+            {
+                var creature = game.Snapshot!.Creatures.Single(x => x.Id == rat);
+                if (Now >= nextCombatTrace)
+                {
+                    nextCombatTrace = Now + .5;
+                    bool held = Field<bool>(game, "attackKeyHeld");
+                    bool physical = Input.IsActionPressed("basic_attack");
+                    string pageName = Field<string>(game, "currentPage");
+                    double cooldown = Self.Cooldowns.GetValueOrDefault("attack") - game.Snapshot.Time;
+                    GD.Print($"COMBAT_TRACE elapsed={Now - began:0.00} health={creature.Health:0.0} distance={Self.Position.Distance(creature.Position):0.00} range={ExperienceRules.WeaponRange(Self, game.Data):0.00} held={held} physical={physical} page={pageName} stamina={Self.Stamina:0.0} cooldown={cooldown:0.00} sequence={Self.LastAction - sequence}");
+                }
+                return creature.Health <= 0;
+            }, "Held Space did not resolve the normal starter encounter.", 15);
             long attacks = Self.LastAction - sequence;
             Require(attacks >= 2, "Holding Space sends repeated server-validated attacks");
             Require(attacks <= Math.Ceiling((Now - began) / ExperienceRules.AttackInterval(Self, game.Data)) + 1,

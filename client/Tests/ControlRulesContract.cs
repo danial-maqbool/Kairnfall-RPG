@@ -40,6 +40,14 @@ public partial class ControlRulesContract : Node
 
     private async Task VerifySkillGuide(GameRoot game, Catalog data, Character self)
     {
+        var actor = Wire.Copy(self); actor.Position = data.Zone(actor.Zone).Spawn;
+        double reach = ExperienceRules.WeaponRange(actor, data);
+        var approaching = new Creature { Id = "approach-fixture", Zone = actor.Zone, Template = "field_rat", Health = 100, Position = new Point(actor.Position.X + reach + .5, actor.Position.Y) };
+        var approach = ExperienceRules.ApproachPath(actor, approaching, data);
+        Require(approach.Count > 0, "A nearby moving target has a bounded approach route");
+        Require(approach[^1].Distance(approaching.Position) + .32 < reach, "The final waypoint includes movement tolerance inside weapon range");
+        Require(ExperienceRules.ApproachPath(actor, approaching, data, .1).Count == 0, "An exhausted total approach budget does not create another path");
+        Require(ExperienceRules.ApproachPath(actor, approaching, data, double.NaN).Count == 0, "Nonfinite approach budgets fail closed");
         Require(data.Skills.All(skill => SkillGuideRules.Categories.Contains(SkillGuideRules.Group(skill))), "Every skill has one of the six player-facing categories");
         Require(SkillGuideRules.Categories.Sum(category => SkillGuideRules.Filter(data, category, "").Count) == data.Skills.Count, "The category filters cover every skill exactly once");
         Require(SkillGuideRules.Group(data.Skill("shield_mastery")) == "Defense", "Shield training appears under Defense");

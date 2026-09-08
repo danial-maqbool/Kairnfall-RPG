@@ -9,7 +9,8 @@ public partial class GameRoot
     private bool attackKeyHeld;
     private bool applicationFocused = true;
     private bool combatApproach, approachUsed;
-    private double approachDeadline;
+    private double approachDeadline, nextApproachPlan, approachTravelled;
+    private Point lastApproachPosition;
     private string hotbarCharacter = "";
     private readonly AttackRequestGate basicAttackGate = new();
     private readonly AttackRequestGate interactionGate = new();
@@ -44,6 +45,7 @@ public partial class GameRoot
     {
         attackKeyHeld = false;
         approachUsed = false;
+        approachTravelled = 0; nextApproachPlan = 0;
         CancelCombatApproach();
     }
 
@@ -70,7 +72,12 @@ public partial class GameRoot
         if (!GameplayInputAllowed || actionBusy) return;
         var snapshot = Snapshot!;
         double now = Time.GetTicksMsec() / 1000.0;
-        if (combatApproach && now >= approachDeadline) { StopCombatInput(); return; }
+        if (approachUsed)
+        {
+            approachTravelled += lastApproachPosition.Distance(snapshot.Self.Position);
+            lastApproachPosition = snapshot.Self.Position;
+        }
+        if (combatApproach && (now >= approachDeadline || approachTravelled >= 2.5)) { StopCombatInput(); return; }
         if (ExperienceRules.AttackProblem(snapshot.Self, Data, snapshot.Time) != "")
         {
             CancelCombatApproach(); return;
@@ -90,15 +97,27 @@ public partial class GameRoot
             {
                 CancelCombatApproach(); return;
             }
-            if (attackKeyHeld && !approachUsed && settings.GetValue("controls", "approach_attack", true).AsBool())
+            if (!attackKeyHeld || !settings.GetValue("controls", "approach_attack", true).AsBool())
             {
-                approachUsed = true;
-                var path = ExperienceRules.ApproachPath(snapshot.Self, target, Data);
-                if (path.Count > 0)
-                {
-                    pendingInteraction = null; route.Clear(); route.AddRange(path);
-                    combatApproach = true; approachDeadline = now + 1.5;
-                }
+                CancelCombatApproach(); return;
+            }
+            if (!approachUsed)
+            {
+                approachUsed = true; approachDeadline = now + 1.5;
+                lastApproachPosition = snapshot.Self.Position; approachTravelled = 0;
+            }
+            // Replanning never resets the time or total travel budget of this key press.
+            if (now >= approachDeadline || approachTravelled >= 2.5)
+            {
+                StopCombatInput(); return;
+            }
+            if (now >= nextApproachPlan)
+            {
+                nextApproachPlan = now + .12;
+                var path = ExperienceRules.ApproachPath(snapshot.Self, target, Data, 2.5 - approachTravelled);
+                if (path.Count == 0) { CancelCombatApproach(); return; }
+                pendingInteraction = null; route.Clear(); route.AddRange(path);
+                combatApproach = true;
             }
             return;
         }
