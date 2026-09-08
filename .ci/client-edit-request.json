@@ -1,20 +1,31 @@
 {
-  "base": "bb823a89c78c309d7baf1d7827734c0dc97f28b4",
-  "message": "test(ui): type into skill search through native input instead of assigning Text",
-  "purpose": "Godot LineEdit.Text does not emit TextChanged when assigned in code. Retain all filter assertions and exercise the real user keyboard path.",
+  "base": "1699c11bba085a694a5b88f544fbf854c56f1d92",
+  "message": "feat(world): persist guided onboarding and add regional roaming populations",
   "edits": [
-    {
-      "path": "client/Tests/ControlRulesContract.cs",
-      "expected_blob": "fd90037b2790613efa50e4669188eb97aadb2e0b",
-      "replacements": [
-        {
-          "old": "    private async Task VerifySkillGuide(GameRoot game, Catalog data, Character self)",
-          "new": "    private async Task TypeGuideSearch(SkillGuidePanel guide, string text)\n    {\n        var search = guide.SearchBox;\n        search.GrabFocus(); search.SelectAll();\n        using (var press = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = true })\n            GetViewport().PushInput(press, true);\n        using (var release = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = false })\n            GetViewport().PushInput(release, true);\n        await Frame();\n        foreach (char character in text)\n        {\n            var key = (Key)char.ToUpperInvariant(character);\n            using (var press = new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = character, Pressed = true })\n                GetViewport().PushInput(press, true);\n            using (var release = new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false })\n                GetViewport().PushInput(release, true);\n            await Frame();\n        }\n        await Frame(); await Frame();\n        Require(search.Text == text, \"Native keyboard input reaches the skill search\");\n    }\n\n    private async Task VerifySkillGuide(GameRoot game, Catalog data, Character self)"
-        },
-        {"old": "            guide.SearchBox.Text = \"Mining\"; await Frame(); await Frame();", "new": "            await TypeGuideSearch(guide, \"Mining\");"},
-        {"old": "            guide.SearchBox.Text = \"NoSuchSkillFixture\"; await Frame(); await Frame();", "new": "            await TypeGuideSearch(guide, \"NoSuchSkillFixture\");"},
-        {"old": "            guide.SearchBox.Text = \"\"; await Frame(); await Frame();", "new": "            await TypeGuideSearch(guide, \"\");"}
-      ]
-    }
+    {"path":"src/Kairnfall.Core/TutorialProgress.cs","expected_blob":null,"source_blob":"a1f056a23f48b5019f3d7e0b3589d3e464fa2f8c"},
+    {"path":"client/Scripts/GameRoot.Tutorial.cs","expected_blob":null,"source_blob":"69e691e779f9570c456017480790f212fd7ee7bf0"},
+    {"path":"src/Kairnfall.Core/WorldPopulation.cs","expected_blob":null,"source_blob":"37a0f9376ba6c64ae07e5f0f20b0b879f9875134"},
+    {"path":"tests/Kairnfall.Tests/OnboardingRegression.cs","expected_blob":null,"source_blob":"1acc1454a5bf6a57280c0212fc4e94d740c6c6df","replacements":[{"old":"distance <= definition.Speed * .05 + .001","new":"distance <= definition.Speed * .2 + .001"}]},
+    {"path":"src/Kairnfall.Core/Models.cs","expected_blob":"25d36e1f9c83007d426b6dbfdc7cead790ff71dd","replacements":[{"old":"    public HashSet<string> CompletedQuests { get; set; } = [];","new":"    public HashSet<string> CompletedQuests { get; set; } = [];\n    public HashSet<string> Tutorial { get; set; } = [];"}]},
+    {"path":"src/Kairnfall.Core/RealmEngine.cs","expected_blob":"dd1b854cdc668cb87f0d28cdc4b9585b71396d74","replacements":[
+      {"old":"            string message=Dispatch(p,command);","new":"            string previousZone=p.Zone;\n            string message=Dispatch(p,command);\n            RecordTutorialAction(p,command,previousZone);"},
+      {"old":"Chests=State.Chests.Values.Where(x=>x.Zone==p.Zone&&","new":"Chests=State.Chests.Values.Where(x=>WorldPopulation.ChestEnabled(x,Data)&&x.Zone==p.Zone&&"},
+      {"old":"State.Chests.Values.Where(x=>x.Hidden&&!p.DiscoveredSecrets.Contains(x.Id)&&","new":"State.Chests.Values.Where(x=>WorldPopulation.ChestEnabled(x,Data)&&x.Hidden&&!p.DiscoveredSecrets.Contains(x.Id)&&"},
+      {"old":"            p.Position=WorldMap.Move(Data.Zone(p.Zone),p.Position,delta); p.Facing=WorldMap.Normalize(move.X,move.Y);","new":"            Point previousPosition=p.Position;\n            p.Position=WorldMap.Move(Data.Zone(p.Zone),p.Position,delta); p.Facing=WorldMap.Normalize(move.X,move.Y);\n            if(previousPosition.Distance(p.Position)>.001) TutorialProgress.Record(p,\"move\");"},
+      {"old":"                string id=zone.Id+\"/chest/\"+i; if(State.Chests.ContainsKey(id)) continue;","new":"                string id=zone.Id+\"/chest/\"+i; if(State.Chests.ContainsKey(id)||!WorldPopulation.SeededChestEnabled(zone,i)) continue;"},
+      {"old":"        Restock(true);\n    }\n    private void Restock","new":"        EnsureAmbientPopulation();\n        Restock(true);\n    }\n    private void Restock"}
+    ]},
+    {"path":"src/Kairnfall.Core/RealmEconomy.cs","expected_blob":"6a7d6408e212029f9576c88c8694987a3201d3f2","replacements":[{"old":"        Need(State.Chests.TryGetValue(id,out var chest),\"Chest not found.\"); Near(p,chest!.Zone,chest.Position);","new":"        Need(State.Chests.TryGetValue(id,out var chest),\"Chest not found.\");\n        Need(WorldPopulation.ChestEnabled(chest!,Data),\"This chest is no longer available.\");\n        Near(p,chest!.Zone,chest.Position);"}]},
+    {"path":"src/Kairnfall.Core/RealmCombat.cs","expected_blob":"001054cda72868d71b8a62670b12479efd61b3c4","replacements":[
+      {"old":"    private void TickCreatures(double dt)\n    {\n        var live=","new":"    private void TickCreatures(double dt)\n    {\n        PruneWanderPlans();\n        var live="},
+      {"old":"                mob.Target=\"\";\n                if(mob.Position.Distance(mob.Home)>2) MoveCreature(mob,mob.Home,dt,def.Speed);\n                else if(def.Ai is \"patroller\" or \"territorial\")\n                {\n                    double angle=State.Time*0.05+WorldMap.Hash(0,0,def.Level)%6;\n                    MoveCreature(mob,WorldMap.FindFree(zone,new(mob.Home.X+Math.Cos(angle)*3,mob.Home.Y+Math.Sin(angle)*3)),dt,def.Speed*0.4);\n                }","new":"                mob.Target=\"\";\n                TickIdleCreature(mob,def,zone,dt);"},
+      {"old":"            mob.Target=target.Id;\n            if(def.Ai==\"pack_hunter\")","new":"            mob.Target=target.Id;\n            wanderPlans.Remove(mob.Id);\n            if(def.Ai==\"pack_hunter\")"},
+      {"old":"        var zone=Data.Zone(mob.Zone); Point direction=mob.Position.Direction(goal);","new":"        var zone=Data.Zone(mob.Zone); Point destination=goal; Point direction=mob.Position.Direction(goal);"},
+      {"old":"            var path=WorldMap.FindPath(zone,mob.Position,goal,512); if(path.Count==0) return; direction=mob.Position.Direction(path[0]);","new":"            var path=WorldMap.FindPath(zone,mob.Position,goal,512); if(path.Count==0) return; destination=path[0]; direction=mob.Position.Direction(destination);"},
+      {"old":"        mob.Position=WorldMap.Move(zone,mob.Position,direction.Scale(speed*dt)); mob.Facing=direction;","new":"        mob.Position=WorldMap.Move(zone,mob.Position,direction.Scale(Math.Min(speed*dt,mob.Position.Distance(destination)))); mob.Facing=direction;"}
+    ]},
+    {"path":"client/Scripts/GameRoot.Hud.cs","expected_blob":"4af7713251e7911259b8173cc41f3b94f5159d5f","replacements":[{"old":"        for (int i = 0; i < hotbar.Length; i++)","new":"        UpdateTutorialObjective(self);\n        for (int i = 0; i < hotbar.Length; i++)"}]},
+    {"path":"client/Scripts/GameRoot.Panels.cs","expected_blob":"fea61febc93fb76b94ead53d007be72dd5c84400","replacements":[{"old":"        ClosePage(); currentPage = name;","new":"        ClosePage(); currentPage = name;\n        ObserveTutorialPage(name);"}]},
+    {"path":"tests/Kairnfall.Tests/Program.cs","expected_blob":"94c53fbde3be76824ce34560255484f3b6480693","replacements":[{"old":"Directory.CreateDirectory(\"artifacts/test-results\");","new":"OnboardingRegression.Run(Test,data);\nDirectory.CreateDirectory(\"artifacts/test-results\");"}]}
   ]
 }
