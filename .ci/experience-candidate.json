@@ -1,6 +1,6 @@
 {
-  "sha": "1a257f8f53413b0989699e6341bf2f79455ba2ef",
+  "sha": "bc63891e0b707e75f6c61465e4b51839a6aba8d0",
   "base": "1a257f8f53413b0989699e6341bf2f79455ba2ef",
   "mode": "repair",
-  "purpose": "Reproduce the current Windows-reviewed source in the complete isolated regression and graphical-fixture workflows before the interior, village, equipment, and interface pass. This request changes no gameplay source and does not approve artwork."
+  "purpose": "Test authored starter/capital furniture, shared collision footprints, safe saved-occupant recovery, building construction, native-resolution art, and cached village surfaces. Retain backend, database, security, native input, equipment, live-client, and graphical regression checks."
 }
