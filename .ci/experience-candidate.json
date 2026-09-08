@@ -1,6 +1,6 @@
 {
-  "sha": "00ddb5824cd63dc8a96ed480948b37f7cf1eba6a",
+  "sha": "803b483fdbe9b0fa49e617076567a6a732105089",
   "base": "ab022f15540df35393d1ccc474e0cda7afdc4ec8",
   "mode": "repair",
-  "purpose": "Verify recovered controls and HUD with actual native context buttons, complete double-click binding, repeated menu cleanup, authoritative equipment and reconnect, retained headless audio safeguards, and post-render screenshot capture. Integration requires passing results."
+  "purpose": "Verify recovered controls and HUD, real native mouse equipment actions, repeated menu cleanup, current-state validation, frame-synchronized captures, headless audio handling, retained backend/security suites and reconnect. Both earlier candidate histories are preserved. Source integration requires this exact candidate to pass."
 }
