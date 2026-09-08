@@ -52,8 +52,19 @@ public partial class GameRoot
     {
         return new ItemSlot
         {
-            Item = item, Icon = Assets.Icon(item.Template), Bag = bag, Equipped = Snapshot is { } s && Items.Equipped(s.Self, item.Id), Selected = item.Id == selectedItem,
-            TooltipText = ItemDescription(item), Clicked = clicked ?? (() => { selectedItem = item.Id; selectedBag = bag; refreshPage?.Invoke(); }),
+            Item = item,
+            Icon = Assets.Icon(item.Template),
+            Bag = bag,
+            Equipped = Snapshot is { } s && Items.Equipped(s.Self, item.Id),
+            Selected = item.Id == selectedItem,
+            TooltipText = ItemDescription(item),
+            Clicked = clicked ?? (() =>
+            {
+                selectedItem = item.Id;
+                selectedBag = bag;
+                refreshPage?.Invoke();
+            }),
+            RightClicked = () => ShowItemContext(item, bag),
             Dropped = (id, from) =>
             {
                 if (Snapshot is null) return;
@@ -66,6 +77,100 @@ public partial class GameRoot
                 }
             }
         };
+    }
+
+    private void ShowItemContext(Item item, string bag)
+    {
+        if (Snapshot is null) return;
+
+        selectedItem = item.Id;
+        selectedBag = bag;
+        refreshPage?.Invoke();
+
+        var def = Data.Item(item.Template);
+        var popup = new PopupPanel
+        {
+            Name = "ItemContextMenu",
+            Size = new Vector2I(240, 120)
+        };
+
+        AddChild(popup);
+        popup.Theme = Theme;
+
+        var panel = new PanelContainer();
+        popup.AddChild(panel);
+        panel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+        var body = Ui.Column(panel);
+        body.AddChild(Ui.Label(def.Name, 16, Ui.Gold, true));
+
+        string actionText;
+        Action action;
+
+        if (bag == "inventory" && def.Slot != "")
+        {
+            bool equipped = Items.Equipped(Snapshot.Self, item.Id);
+
+            actionText = equipped ? "Unequip" : "Equip";
+            action = () =>
+            {
+                popup.Hide();
+
+                if (equipped)
+                    Send("unequip", arg: def.Slot);
+                else
+                    Send("equip", item: item.Id);
+            };
+        }
+        else if (bag == "bank")
+        {
+            actionText = "Withdraw";
+            action = () =>
+            {
+                popup.Hide();
+                Send("withdraw", item: item.Id);
+            };
+        }
+        else if (def.Type is "food" or "potion" or "scroll")
+        {
+            actionText = "Use";
+            action = () =>
+            {
+                popup.Hide();
+                Send("consume", item: item.Id);
+            };
+        }
+        else if (def.Type is "book" or "treasure_map")
+        {
+            actionText = "Read";
+            action = () =>
+            {
+                popup.Hide();
+                Send("read", item: item.Id);
+            };
+        }
+        else
+        {
+            actionText = "Inspect";
+            action = popup.Hide;
+        }
+
+        var primary = Ui.Button(actionText, action);
+        primary.Name = "ItemContextPrimaryAction";
+        body.AddChild(primary);
+
+        popup.PopupHide += () =>
+        {
+            if (GodotObject.IsInstanceValid(popup))
+                popup.QueueFree();
+        };
+
+        Vector2 mouse = GetViewport().GetMousePosition();
+        popup.Popup(new Rect2I(
+            (int)mouse.X + 8,
+            (int)mouse.Y + 8,
+            240,
+            120));
     }
 
     private void BuildInventoryPage(bool bank)

@@ -13,9 +13,13 @@ public partial class ClientAudio : Node
     private string atmosphere = "";
     private int voice;
     private float musicVolume = .35f, effectsVolume = .65f;
+    private bool disabled;
     public IReadOnlyCollection<string> Missing => missing;
     public override void _Ready()
     {
+        disabled = string.Equals(DisplayServer.GetName(), "headless", StringComparison.OrdinalIgnoreCase);
+        if (disabled) return;
+
         music = new AudioStreamPlayer(); ambience = new AudioStreamPlayer(); AddChild(music); AddChild(ambience);
         music.Finished += () => music.Play(); ambience.Finished += () => ambience.Play();
         for (int i = 0; i < 8; i++) { var player = new AudioStreamPlayer(); voices.Add(player); AddChild(player); }
@@ -34,6 +38,7 @@ public partial class ClientAudio : Node
     }
     private AudioStream? Load(string key)
     {
+        if (disabled) return null;
         if (cache.TryGetValue(key, out var stream)) return stream;
         if (missing.Contains(key)) return null;
         string path = "res://Assets/audio/" + key + ".wav";
@@ -61,5 +66,28 @@ public partial class ClientAudio : Node
         string key = action switch { "attack" => "sword", "cast" => "spell", "gather" => "gather", "loot" or "chest" or "buy" or "sell" => "coins", "craft" or "build" => "hammer", "equip" or "unequip" or "socket" or "unsocket" => "equip", "consume" or "rest" => "drink", _ => "ui" };
         var stream = Load("effect_" + key); if (stream is null) return;
         var player = voices[voice++ % voices.Count]; player.Stop(); player.Stream = stream; player.PitchScale = 1 + (voice % 3 - 1) * .035f; player.Play();
+    }
+    public override void _ExitTree()
+    {
+        if (music is not null)
+        {
+            music.Stop();
+            music.Stream = null;
+        }
+
+        if (ambience is not null)
+        {
+            ambience.Stop();
+            ambience.Stream = null;
+        }
+
+        foreach (var player in voices)
+        {
+            player.Stop();
+            player.Stream = null;
+        }
+
+        cache.Clear();
+        missing.Clear();
     }
 }

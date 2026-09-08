@@ -116,6 +116,8 @@ public partial class ItemSlot : Control
     public bool Equipped { get; set; }
     public bool Selected { get; set; }
     public Action? Clicked { get; set; }
+    public Action? DoubleClicked { get; set; }
+    public Action? RightClicked { get; set; }
     public Action<string, string>? Dropped { get; set; }
     public override void _Ready() { CustomMinimumSize = new Vector2(62, 62); MouseDefaultCursorShape = CursorShape.PointingHand; TextureFilter = TextureFilterEnum.Nearest; }
     public override void _Draw()
@@ -133,7 +135,25 @@ public partial class ItemSlot : Control
     }
     public override void _GuiInput(InputEvent @event)
     {
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) { Clicked?.Invoke(); AcceptEvent(); }
+        if (@event is not InputEventMouseButton { Pressed: true } mouse)
+            return;
+
+        if (mouse.ButtonIndex == MouseButton.Left)
+        {
+            if (mouse.DoubleClick && DoubleClicked is not null)
+                DoubleClicked.Invoke();
+            else
+                Clicked?.Invoke();
+
+            AcceptEvent();
+            return;
+        }
+
+        if (mouse.ButtonIndex == MouseButton.Right)
+        {
+            RightClicked?.Invoke();
+            AcceptEvent();
+        }
     }
     public override Variant _GetDragData(Vector2 position)
     {

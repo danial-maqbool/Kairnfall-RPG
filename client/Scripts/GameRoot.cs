@@ -393,16 +393,62 @@ public partial class GameRoot : Control
     private void TickSmoke(double delta)
     {
         smokeTime += delta;
-        if (!Online && smokeTime > 25) { GD.PushError("SMOKE: connection lost."); GetTree().Quit(1); return; }
+
+        if (!Online && smokeTime > 25)
+        {
+            GD.PushError("SMOKE: connection lost.");
+            GetTree().Quit(1);
+            return;
+        }
+
         if (!Online) return;
-        if (smokeTime > 3 && smokeStage == 0) { SetInitialHotbar(); SaveScreenshot("01-world.png"); OpenPage("Inventory"); smokeStage++; }
-        if (smokeTime > 5 && smokeStage == 1) { SaveScreenshot("02-inventory.png"); OpenPage("Skills"); smokeStage++; }
-        if (smokeTime > 7 && smokeStage == 2) { SaveScreenshot("03-skills.png"); OpenPage("Map"); smokeStage++; }
-        if (smokeTime > 9 && smokeStage == 3) { SaveScreenshot("04-map.png"); ClosePage(); smokeStage++; }
+
+        if (smokeTime > 3 && smokeStage == 0)
+        {
+            SetInitialHotbar();
+            SaveScreenshot("01-world.png");
+            OpenPage("Inventory");
+            smokeStage++;
+            return;
+        }
+
+        if (smokeTime > 5 && smokeStage == 1)
+        {
+            SaveScreenshot("02-inventory.png");
+            OpenPage("Skills");
+            smokeStage++;
+            return;
+        }
+
+        if (smokeTime > 7 && smokeStage == 2)
+        {
+            SaveScreenshot("03-skills.png");
+            OpenPage("Map");
+            smokeStage++;
+            return;
+        }
+
+        if (smokeTime > 9 && smokeStage == 3)
+        {
+            SaveScreenshot("04-map.png");
+            ClosePage();
+            smokeStage++;
+            return;
+        }
+
         if (smokeTime > 11 && smokeStage == 4)
         {
-            if (Assets.Missing.Count != 0) { GD.PushError("SMOKE: missing art: " + string.Join(",", Assets.Missing)); GetTree().Quit(1); }
-            else { GD.Print("SMOKE: live world, inventory, skills, and map rendered without missing requested assets."); GetTree().Quit(0); }
+            if (Assets.Missing.Count != 0)
+            {
+                GD.PushError("SMOKE: missing art: " + string.Join(",", Assets.Missing));
+                GetTree().Quit(1);
+            }
+            else
+            {
+                GD.Print("SMOKE: live world, inventory, skills, and map rendered without missing requested assets.");
+                GetTree().Quit(0);
+            }
+
             smokeStage++;
         }
     }
