@@ -74,13 +74,27 @@ public partial class VisualPresentationContract : Node
             string description = (string)Call(game,"ItemDescription",self.Inventory[0],true)!;
             Check(!description.Contains('\r') && description.Contains('\n'),
                 "Item statistics use native LF line endings on Windows without doubled paragraph gaps");
+            var gradeGallery=new EquipmentTierGallery { Data=game.Data,Assets=game.Assets };
+            AddChild(gradeGallery); await Frame();
+            foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
+            {
+                GetWindow().Size=size; GetWindow().ContentScaleSize=size; await Frame();
+                foreach(int level in new[]{5,27,55,75,100})
+                foreach(var pose in new[]{(State:0,Frame:0),(State:1,Frame:3),(State:2,Frame:3),(State:5,Frame:7)})
+                {
+                    gradeGallery.TierLevel=level; gradeGallery.State=pose.State; gradeGallery.FrameNumber=pose.Frame; gradeGallery.QueueRedraw();
+                    await Capture($"equipment-tier-{level}-{size.X}-state-{pose.State}");
+                }
+            }
+            Check(game.Assets.Missing.Count==0,"Every requested tier weapon and armor renders without missing assets");
+            gradeGallery.QueueFree(); await Frame(); await Frame();
             foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
             {
                 GetWindow().Size=size; GetWindow().ContentScaleSize=size;
                 await Frame(); await Frame(); Refresh();
                 string suffix=size.X.ToString();
                 await Capture("01-village-"+suffix);
-                foreach(string page in new[]{"Inventory","Character","Skills","Abilities","Map"})
+                foreach(string page in new[]{"Inventory","Character","Skills","Abilities","Equipment Guide","Crafting","Map"})
                 {
                     Call(game,"OpenPage",page); await Frame(); await Frame();
                     Check(Contained(Field<PanelContainer>(game,"gameWindow")), page+" window fits "+size);
@@ -89,7 +103,13 @@ public partial class VisualPresentationContract : Node
                         var action=game.FindChildren("PrimaryEquipmentAction","Button",true,false).Cast<Button>().Single();
                         Check(Contained(action), "Equip action remains reachable at "+size);
                     }
-                    await Capture("ui-"+page.ToLowerInvariant()+"-"+suffix);
+                    if(page=="Equipment Guide" || page=="Crafting")
+                    {
+                        string actionName=page=="Crafting"?"CraftPrimaryAction":"GearRecipeAction";
+                        var action=game.FindChildren(actionName,"Button",true,false).Cast<Button>().Single();
+                        Check(Contained(action),actionName+" stays reachable at "+size);
+                    }
+                    await Capture("ui-"+page.ToLowerInvariant().Replace(' ','-')+"-"+suffix);
                     Call(game,"ClosePage"); await Frame(); await Frame();
                 }
             }

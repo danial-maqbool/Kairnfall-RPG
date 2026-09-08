@@ -164,6 +164,12 @@ class EquipmentProgressionTests(unittest.TestCase):
                             image=humanoid.equipment_frame(item,state,number,direction)
                             self.assertEqual(image.size,(64,64)); self.assertIsNotNone(image.getchannel('A').getbbox(),item['id'])
 
+    def test_new_alloys_textiles_and_hides_have_actual_recipe_uses(self):
+        consumed={ident for recipe in self.data['recipes'] for ident in recipe['ingredients']}
+        for ident in self.new:
+            if self.lookup[ident]['type'] in ('material','ore'):
+                self.assertIn(ident,consumed,'Unusable material: '+ident)
+
     def test_deterministic_build_and_duplicate_extension_rejected(self):
         self.assertEqual(self.data,builder.build())
         with self.assertRaises(ValueError): gear_progression.build(copy.deepcopy(self.data))

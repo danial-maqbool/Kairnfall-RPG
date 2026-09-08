@@ -144,6 +144,16 @@ internal static class GearProgressionChecks
             p=engine.Player(id); Need(Math.Abs(p.Stamina-(stamina-ToolRules.StaminaCost(data.Item(tool.Template))))<.00001,"Gather did not use the tool stamina cost.");
             Need(Items.Count(p,"copper_ore")>=1,"Gather did not produce actual ore.");
         });
+        Test("Legacy farming still accepts the original herbalism sickle",()=>
+        {
+            var (engine,p)=Fixture("Farming");
+            var nodeId=Guid.NewGuid().ToString("N");
+            engine.State.Nodes[nodeId]=new() { Id=nodeId,Template="crop_wheat",Zone=p.Zone,Position=p.Position,Owner=p.Id };
+            Items.Add(p.Inventory,Items.Create(data,"sickle"),data);
+            var result=Command(engine,p.Id,"gather",target:nodeId);
+            Need(result.Ok,result.Message);
+            Need(Items.Count(engine.Player(p.Id),"wheat")>=1,"The original crop/tool combination stopped working.");
+        });
         Test("Smithing hammers reduce recovery only for smithing and only when learned",()=>
         {
             var (_,p)=Fixture("Hammer"); var tier=data.EquipmentTiers.Single(t=>t.Level==100);

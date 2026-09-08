@@ -120,12 +120,13 @@ def build(data):
             add(cloth_key,cloth+' Cloth',requirement=level,material='cloth',value=price(inputs),_color=cloth_color,
                 description='Weave at a loom. Used for '+cloth+' light armor.')
             recipe('weave_'+key+'_grade','Weave '+cloth,'tailoring','loom',inputs,cloth_key,level)
-        hide_key = key+'_treated_leather'
-        inputs = {'cured_leather':2,'thread':1}
-        if level >= 27: inputs['rune_dust'] = 1+level//40
-        add(hide_key,leather,material='leather',requirement=level,value=price(inputs),_color=leather_color,
-            description='Prepare at a tannery. Used for '+label+'-grade leather armor and fittings.')
-        recipe('tan_'+key+'_grade','Prepare '+leather,'leatherworking','tannery',inputs,hide_key,level)
+        hide_key = 'cured_leather' if level == 1 else key+'_treated_leather'
+        if level > 1:
+            inputs = {'cured_leather':2,'thread':1}
+            if level >= 27: inputs['rune_dust'] = 1+level//40
+            add(hide_key,leather,material='leather',requirement=level,value=price(inputs),_color=leather_color,
+                description='Prepare at a tannery. Used for '+label+'-grade leather armor and tool fittings.')
+            recipe('tan_'+key+'_grade','Prepare '+leather,'leatherworking','tannery',inputs,hide_key,level)
         for family,name,skill,power,speed,reach,two_handed in WEAPONS:
             ident = key+'_'+family
             if ident not in lookup:
@@ -183,7 +184,7 @@ def build(data):
                 if tag!='hammer': stats['tool_yield']=tool_yield
                 desc = f'Keep in your backpack. Requires {skill.replace("_"," ")} {level}. Best eligible tool is selected automatically. '
                 desc += f'Reduces smithing action recovery by {efficiency:g}%.' if tag=='hammer' else f'{tool_yield:g}% chance of one extra gathered item; {efficiency:g}% less gathering stamina.'
-                new_gear(legacy[starter_id],ident,label+' '+name,level,key,{metal:1,wood+'_plank':1,'cured_leather':1},'tinkering','workbench',
+                new_gear(legacy[starter_id],ident,label+' '+name,level,key,{metal:1,wood+'_plank':1,hide_key:1},'tinkering','workbench',
                     stats=stats,_metal_color=metal_color,_wood=wood,description=desc)
             entries['tool/'+tag] = ident
         data['equipmentTiers'].append(dict(id='equipment_'+str(level),level=level,name=label,cloth=cloth,leather=leather,entries=entries))

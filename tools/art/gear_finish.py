@@ -67,7 +67,7 @@ def finish_icon(image,item):
 
 
 def equipment_details(p,j,item):
-    if not item.get('_color'): return
+    if not item.get('_color') or not item.get('_metal_color'): return
     level=item.get('requirement',1); slot=item.get('slot'); tags=item.get('tags',[])
     x,y=j['hip']; nx,ny=j['neck']; c=palette(item['_color'])
     trim='cbb680' if level>=55 else 'a79370'

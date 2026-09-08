@@ -167,38 +167,16 @@ public partial class GameRoot
     private void BuildCraftingPage()
     {
         if (page is null || Snapshot is null) return;
-        var top = Ui.Row(page); var search = Ui.Edit("Search recipes, materials, or professions"); top.AddChild(search);
-        search.Text=equipmentRecipeSearch; equipmentRecipeSearch="";
-        top.AddChild(Ui.Button("Plant wheat", () => { placement = "plant"; structureRecipe = ""; ClosePage(); Notify("Select clear soil within two tiles. One wheat seed is required."); }));
-        var body = Ui.Row(page); body.SizeFlagsVertical = SizeFlags.ExpandFill;
-        var listing = Ui.Column(Ui.Scroll(body, new Vector2(330, 440))); var detail = Ui.Column(Ui.Scroll(body, new Vector2(490, 440)));
-        void Render()
+        var guide=new CraftingGuidePanel
         {
-            if (Snapshot is null) return; Ui.Clear(listing); Ui.Clear(detail);
-            foreach (var recipe in Data.Recipes.Where(x => (x.Name + " " + x.Skill + " " + x.Station).Contains(search.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Requirement).ThenBy(x => x.Name))
-            {
-                var button = Ui.Button(recipe.Name + "  ·  " + recipe.Requirement, () => { selectedRecipe = recipe.Id; refreshPage?.Invoke(); }); button.Icon = Assets.Icon(recipe.Output); button.ExpandIcon = true; button.AddThemeConstantOverride("icon_max_width", 24); listing.AddChild(button);
-            }
-            var chosen = Data.Recipes.FirstOrDefault(x => x.Id == selectedRecipe);
-            if (chosen is null) { detail.AddChild(Ui.Label("Choose a recipe", 24, Ui.Gold)); detail.AddChild(Ui.Label("Gather materials, train the required profession, and visit the correct work station. Structures are placed in clear wilderness.", 17, Ui.Muted, true)); return; }
-            detail.AddChild(Ui.Image(Assets.Icon(chosen.Output), 80)); detail.AddChild(Ui.Label(chosen.Name, 25, Ui.Gold)); detail.AddChild(Ui.Label(Data.Item(chosen.Output).Description, 16, Ui.Text, true));
-            detail.AddChild(Ui.Label($"Requires {Data.Skill(chosen.Skill).Name} {chosen.Requirement}\nStation: {Ui.Words(chosen.Station)}\nOutput: {chosen.Quantity} · Skill XP per batch: {chosen.Xp}", 15, Ui.Muted, true));
-            foreach (var ingredient in chosen.Ingredients)
-            {
-                int owned = Items.Count(Snapshot.Self, ingredient.Key); var row = Ui.Row(detail); row.AddChild(Ui.Image(Assets.Icon(ingredient.Key), 28)); row.AddChild(Ui.Label($"{Data.Item(ingredient.Key).Name}: {owned}/{ingredient.Value}", 15, owned >= ingredient.Value ? Ui.Success : Ui.Danger));
-            }
-            bool hasSkill = Progression.Level(Snapshot.Self, chosen.Skill) >= chosen.Requirement;
-            if (Data.Item(chosen.Output).Type == "structure")
-            {
-                detail.AddChild(Ui.Button("Place structure", () => { structureRecipe = chosen.Id; placement = "build"; ClosePage(); Notify("Select a clear wilderness position within three tiles. Materials are consumed only after placement succeeds."); }, !hasSkill));
-            }
-            else
-            {
-                var amount = Amount(detail, 20); detail.AddChild(Ui.Button("Craft", () => Send("craft", item: chosen.Id, amount: Quantity(amount, 20)), !hasSkill || !ClientAtStation(chosen.Station)));
-                if (!ClientAtStation(chosen.Station)) detail.AddChild(Ui.Label("Move closer to the required station.", 15, Ui.Danger, true));
-            }
-        }
-        refreshPage = Render; search.TextChanged += _ => Render(); Render();
+            Data=Data, Assets=Assets, ReadCharacter=()=>Snapshot?.Self, ReadTime=()=>Snapshot?.Time??0,
+            AtStation=ClientAtStation, CanSubmit=()=>Online&&!actionBusy,
+            InitialRecipe=selectedRecipe, InitialSearch=equipmentRecipeSearch, RecipeSelected=id=>selectedRecipe=id,
+            CraftRequested=(id,batches)=>Send("craft",item:id,amount:batches),
+            PlaceRequested=id=> { structureRecipe=id; placement="build"; ClosePage(); Notify("Select clear wilderness within three tiles. Materials are consumed only after the server accepts placement."); },
+            PlantRequested=()=> { placement="plant"; structureRecipe=""; ClosePage(); Notify("Select clear soil within two tiles. One wheat seed is required."); }
+        };
+        equipmentRecipeSearch=""; page.AddChild(guide); refreshPage=guide.RefreshSnapshot;
     }
 
     private void BuildBestiaryPage()
