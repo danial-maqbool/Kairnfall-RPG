@@ -1,6 +1,6 @@
 {
-  "sha": "dcc84f50fe2c5f1dcff616df97c9e1ac7112c2c4",
-  "base": "fc15be9e4ec48673b44cc43fcf64aee60e92a710",
+  "sha": "85de22f923fe7d8f0561a47207ebb1dac901f0fa",
+  "base": "dcc84f50fe2c5f1dcff616df97c9e1ac7112c2c4",
   "mode": "repair",
-  "purpose": "Record the live main baseline before the visual-only pass. Retain backend, native input, equipment, persistence, and graphical smoke verification. This is a test request, not a gameplay source change or visual approval."
+  "purpose": "Verify visual-only humanoid, equipped-item alignment, common-fauna, directional layering, and animation cadence changes. Keep all authoritative gameplay, database, security, native input, and live equipment regression tests."
 }
