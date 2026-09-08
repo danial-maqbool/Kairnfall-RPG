@@ -1,0 +1,75 @@
+name: Verify and package source overlay
+on:
+  push:
+    branches: [main]
+    paths: ['.ci/source-overlay.json', '.github/workflows/source-overlay.yml']
+permissions:
+  contents: read
+concurrency:
+  group: source-overlay
+  cancel-in-progress: false
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    outputs:
+      source: ${{ steps.revisions.outputs.source }}
+      base: ${{ steps.revisions.outputs.base }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: revisions
+        shell: python
+        run: |
+          import json, os, re
+          from pathlib import Path
+          request = json.loads(Path('.ci/source-overlay.json').read_text(encoding='utf-8'))
+          values = {key: request[key] for key in ('source', 'base')}
+          if any(not isinstance(value, str) or not re.fullmatch('[0-9a-f]{40}', value) for value in values.values()):
+              raise ValueError('Full immutable commit IDs are required')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              for key, value in values.items():
+                  output.write(key + '=' + value + '\n')
+          print('Source:', values['source'])
+          print('Base:', values['base'])
+  verify:
+    needs: select
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      SOURCE_SHA: ${{ needs.select.outputs.source }}
+      BASE_SHA: ${{ needs.select.outputs.base }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.source }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify source and run delivery regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git merge-base --is-ancestor "$BASE_SHA" "$SOURCE_SHA"
+          python -m unittest discover -s tests/handoff -p 'test_source_overlay.py' -v
+      - name: Build and reopen exact source overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/delivery
+          python tools/source_overlay.py build --base "$BASE_SHA" --target "$SOURCE_SHA" --output artifacts/delivery/Kairnfall-source-updates.zip | tee artifacts/delivery/package-result.json
+          python tools/source_overlay.py verify artifacts/delivery/Kairnfall-source-updates.zip
+      - name: Retain source ZIP and checksum result
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-overlay-${{ matrix.os }}-${{ needs.select.outputs.source }}
+          path: artifacts/delivery/
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,5 @@
+{
+  "source": "6ee0f66221b79035a5bd670dd986477932ea364a",
+  "base": "197e527fc9e0914ff65cda6049d13fc7420aa00f",
+  "purpose": "Validate the source-overlay tool and its safety tests before source integration. This first archive contains delivery tooling only, not accepted game repairs."
+}
