@@ -37,6 +37,8 @@ public partial class WorldView : Control
         public Point Target;
         public Point Facing = new(0, 1);
         public double LastMoved;
+        public double WalkPhase;
+        public int FacingDirection;
         public double Health;
         public double LastAttack;
         public double StateStart;
@@ -86,7 +88,7 @@ public partial class WorldView : Control
     {
         if (!tracks.TryGetValue(id, out var track))
         {
-            track = new ActorTrack { Position = position, Target = position, Facing = facing, Health = health, LastMoved = -10 };
+            track = new ActorTrack { Position = position, Target = position, Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10 };
             tracks[id] = track;
         }
         if (track.Target.Distance(position) > .008) track.LastMoved = Clock;
@@ -96,6 +98,8 @@ public partial class WorldView : Control
             numbers.Add(new FloatingNumber(position, (hurt ? "−" : "+") + Math.Abs(Math.Round(health - track.Health)).ToString(), hurt ? new Color("edb08a") : Ui.Success, Clock));
             if (hurt) Animate(id, health <= 0 ? 5 : 4, health <= 0 ? 6 : .3);
         }
+        if (track.Health > 0 && health <= 0) Animate(id, 5, 6);
+        track.FacingDirection = SpritePoseRules.Direction(facing, track.FacingDirection);
         if (track.Health <= 0 && health > 0) { track.StateUntil = 0; track.State = 0; }
         track.Target = position; track.Facing = facing; track.Health = health;
         return track;
@@ -115,9 +119,12 @@ public partial class WorldView : Control
         if (lastZone != zone.Id && Snapshot is null) { Camera = zone.Spawn; lastZone = zone.Id; }
         foreach (var track in tracks.Values)
         {
+            var previousPosition = track.Position;
             double weight = 1 - Math.Exp(-18 * delta);
             if (track.Position.Distance(track.Target) > 6) track.Position = track.Target;
             else track.Position = new Point(track.Position.X + (track.Target.X - track.Position.X) * weight, track.Position.Y + (track.Target.Y - track.Position.Y) * weight);
+            double travelled = previousPosition.Distance(track.Position);
+            track.WalkPhase = travelled > 6 ? 0 : SpritePoseRules.AdvanceWalk(track.WalkPhase, travelled);
         }
         if (Snapshot is { } snapshot && tracks.TryGetValue(snapshot.Self.Id, out var self)) Camera = self.Position;
         numbers.RemoveAll(x => Clock - x.Started > 1.3);
@@ -148,9 +155,9 @@ public partial class WorldView : Control
     private (int State, int Direction, int Frame, Point Position) Pose(string id, Point at)
     {
         if (!tracks.TryGetValue(id, out var t)) return (0, 0, (int)(Clock * 6) % 8, at);
-        int state = t.Health <= 0 ? 5 : Clock < t.StateUntil ? t.State : Clock - t.LastMoved < .18 ? 1 : 0;
-        int frame = state is 2 or 3 or 4 or 5 ? Math.Clamp((int)((Clock - t.StateStart) * 12), 0, 7) : (int)(Clock * (state == 1 ? 11 : 5)) % 8;
-        return (state, Direction(t.Facing), frame, t.Position);
+        int state = t.Health <= 0 ? 5 : Clock < t.StateUntil ? t.State : Clock - t.LastMoved < .35 ? 1 : 0;
+        int frame = state is 2 or 3 or 4 or 5 ? Math.Clamp((int)((Clock - t.StateStart) * 12), 0, 7) : state == 1 ? (int)t.WalkPhase : (int)(Clock * 5) % 8;
+        return (state, t.FacingDirection, frame, t.Position);
     }
 
     public override void _Draw()
