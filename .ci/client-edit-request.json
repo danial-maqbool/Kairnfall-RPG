@@ -1,20 +1,10 @@
 {
-  "base": "bc63891e0b707e75f6c61465e4b51839a6aba8d0",
-  "message": "fix(environment): keep village furniture and training ground clear of the river",
-  "purpose": "Repair the actual furnishing catalog failure. Move the anvil onto its smithy forecourt and the practice ring onto dry ground. Strengthen underlying-terrain validation for non-solid ground art instead of bypassing collision checks.",
+  "base": "670948e23b94a105475645da160083359c829f8d",
+  "message": "feat(environment): add readable stance markings to the training ring",
+  "purpose": "The repaired furnishing candidate passed backend, security, migration, path, and database suites. Its ring artwork failed the retained detail check. Add authored paired boot stance marks rather than weakening the test or adding meaningless pixels.",
   "edits": [
-    {"path":"content_src/presentation.py","expected_blob":"d7971e2bfdec7831787e25672cdda51aa722b8de","replacements":[
-      {"old":"('anvil',49,35)","new":"('anvil',44,36)"},
-      {"old":"('practice_ring',50,54)","new":"('practice_ring',44,58)"}
-    ]},
-    {"path":"src/Kairnfall.Core/FurnishingDef.cs","expected_blob":"2c9a07e94af25ec993f57455f0e18a1837cebc0d","replacements":[
-      {"old":"            if (!item.Solid) continue;\n","new":""},
-      {"old":"                    if (!occupied.Add((x, y))) errors.Add(\"Overlapping solid furnishings \" + zone.Id);","new":"                    if (item.Solid && !occupied.Add((x, y))) errors.Add(\"Overlapping solid furnishings \" + zone.Id);"},
-      {"old":"                    // Never conceal water, lava, or an existing wall under a furniture sprite.","new":"                    // Ground art also must not make water or masonry look traversable."}
-    ]},
-    {"path":"tools/world_probe/FurnishingChecks.cs","expected_blob":"f619971b1985f61aa8670b0ba8e2f14c151bdf49","replacements":[
-      {"old":"new[] { \"path\", \"width\", \"overlap\", \"ground\" }","new":"new[] { \"path\", \"width\", \"overlap\", \"ground\", \"concealed-wall\" }"},
-      {"old":"                if (mode == \"ground\") f.Ground = true;","new":"                if (mode == \"ground\") f.Ground = true;\n                if (mode == \"concealed-wall\") { f.Solid = false; f.Ground = true; f.X = 1; f.Y = 1; }"}
+    {"path":"tools/art/room_art.py","expected_blob":"a585f71d001787d89074e09641d69b301f2d272d","replacements":[
+      {"old":"                p.line([(x,h/2-8),(x,h/2+8)],(192,182,154,200),2)","new":"                p.line([(x,h/2-8),(x,h/2+8)],(192,182,154,200),2)\n                # Paired chalk boot outlines teach the two practice stances.\n                # Toe, heel, and worn sole marks remain readable at tile scale.\n                for dx,dy in ((-10,-12),(10,7)):\n                    bx,by=x+dx,h/2+dy\n                    p.poly([(bx-3,by-7),(bx+2,by-8),(bx+4,by-4),(bx+3,by+6),(bx-2,by+7),(bx-4,by+3)],\n                           (218,205,169,175),(100,91,76,145))\n                    p.line([(bx-2,by-5),(bx+1,by-6),(bx+2,by-3)],(235,222,190,205))\n                    p.line([(bx-2,by+3),(bx+2,by+3)],(128,116,95,165))"}
     ]}
   ]
 }
