@@ -106,11 +106,16 @@ public static class ExperienceRules
         return [];
     }
 
+    public static bool LootAvailable(Character self, LootPile pile, double serverTime)
+        => double.IsFinite(serverTime) && pile.Zone == self.Zone
+            && (pile.Owner == self.Id || pile.PublicAt <= serverTime || (pile.Party != "" && pile.Party == self.Party));
+
     public static WorldTarget? ChooseInteraction(Character self, IEnumerable<WorldTarget> targets, Catalog data)
         => targets.Where(x => x.Kind is "npc" or "exit" or "node" or "chest" or "loot")
             .Where(x => x.Position.Finite && self.Position.Distance(x.Position) <= 2.15)
             .Where(x => WorldMap.LineOfSight(data.Zone(self.Zone), self.Position, x.Position))
-            .OrderBy(x => self.Position.Distance(x.Position)).ThenBy(x => x.Id, StringComparer.Ordinal)
+            .OrderBy(x => self.Position.Distance(x.Position))
+            .ThenBy(x => x.Kind == "loot" ? 0 : 1).ThenBy(x => x.Id, StringComparer.Ordinal)
             .Select(x => (WorldTarget?)x).FirstOrDefault();
 
     public static string InteractionVerb(string kind) => kind switch

@@ -132,6 +132,7 @@ public partial class GameRoot
         if (Snapshot is not { } snapshot) return null;
         bool Available(WorldTarget target)
         {
+            if (target.Kind == "loot") return World.Loot.Any(x => x.Id == target.Id && ExperienceRules.LootAvailable(snapshot.Self, x, snapshot.Time));
             if (target.Kind == "node") return snapshot.Nodes.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time);
             if (target.Kind == "chest") return snapshot.Chests.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time);
             return true;

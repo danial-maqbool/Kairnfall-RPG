@@ -170,6 +170,17 @@ public partial class ControlRulesContract : Node
             var farDoor = new WorldTarget("exit", "far", "Inn", self.Position.Add(new Point(1.8, 0)));
             Require(ExperienceRules.ChooseInteraction(self, [farDoor, closeNpc], data)?.Id == "close", "Interaction uses distance rather than draw order");
 
+            var carcass = new WorldTarget("node", "a-carcass", "Carcass", self.Position.Add(new Point(1, 0)));
+            var pickup = new WorldTarget("loot", "z-pickup", "Supplies", carcass.Position);
+            Require(ExperienceRules.ChooseInteraction(self, [carcass, pickup], data)?.Id == pickup.Id, "Overlapping loot has priority over a carcass regardless of its identifier");
+            Require(ExperienceRules.ChooseInteraction(self, [pickup, closeNpc], data)?.Id == closeNpc.Id, "Loot priority does not override a nearer NPC");
+            var pile = new LootPile { Zone = self.Zone, Owner = "foreign", PublicAt = 100, Party = "" };
+            Require(!ExperienceRules.LootAvailable(self, pile, 10), "Private foreign loot does not promise a pickup action");
+            pile.Owner = self.Id;
+            Require(ExperienceRules.LootAvailable(self, pile, 10), "Owned loot remains eligible");
+            pile.Owner = "foreign";
+            Require(ExperienceRules.LootAvailable(self, pile, 100), "Loot becomes eligible at its authoritative public time");
+            Require(!ExperienceRules.LootAvailable(self, pile, double.NaN), "Invalid loot time fails closed");
             var foreign = data.Abilities.First(x => x.Class != "" && x.Class != self.Class && x.Requirement == 1);
             int requirement = ExperienceRules.AbilityRequirement(self, foreign);
             Require(requirement == foreign.Requirement + 20, "Cross-class abilities retain the server's extra skill requirement");
