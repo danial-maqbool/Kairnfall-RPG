@@ -1,6 +1,6 @@
 {
-  "sha": "820d2d39cf097aad2d111dd206af7f9890973be1",
-  "base": "4e1259201428635254786e7dad185065fbf4fb55",
+  "sha": "00ddb5824cd63dc8a96ed480948b37f7cf1eba6a",
+  "base": "ab022f15540df35393d1ccc474e0cda7afdc4ec8",
   "mode": "repair",
-  "purpose": "Verify controlled attacks, equipment input, the redesigned HUD, PostgreSQL GUI actions, and audio cleanup. Source integration requires these checks to pass."
+  "purpose": "Verify recovered controls and HUD with actual native context buttons, complete double-click binding, repeated menu cleanup, authoritative equipment and reconnect, retained headless audio safeguards, and post-render screenshot capture. Integration requires passing results."
 }
