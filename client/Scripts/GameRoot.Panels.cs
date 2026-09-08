@@ -25,7 +25,7 @@ public partial class GameRoot
             if (e is InputEventMouseMotion motion && (motion.ButtonMask & MouseButtonMask.Left) != 0 && gameWindow is not null)
             {
                 var position = gameWindow.Position + motion.Relative;
-                gameWindow.Position = new Vector2(Math.Clamp(position.X, 0, Math.Max(0, Size.X - gameWindow.Size.X)), Math.Clamp(position.Y, 0, Math.Max(0, Size.Y - 40)));
+                gameWindow.Position = new Vector2(Math.Clamp(position.X, 0, Math.Max(0, Size.X - gameWindow.Size.X)), Math.Clamp(position.Y, 0, Math.Max(0, Size.Y - gameWindow.Size.Y)));
             }
         };
         contents.AddChild(new HSeparator()); page = Ui.Column(contents, true);
@@ -66,27 +66,21 @@ public partial class GameRoot
     private void BuildAbilitiesPage()
     {
         if (page is null || Snapshot is null) return;
-        var top = Ui.Row(page); var search = Ui.Edit("Search abilities or magic elements"); top.AddChild(search);
-        var slot = new OptionButton(); for (int i = 0; i < 10; i++) slot.AddItem("Hotbar " + (i == 9 ? 0 : i + 1)); top.AddChild(slot);
-        page.AddChild(Ui.Label("Class abilities use your class identity. Shared weapon and magic abilities use their own skill requirements.", 14, Ui.Muted, true));
-        var scroll = Ui.Scroll(page, new Vector2(850, 450)); var rows = Ui.Column(scroll);
-        void Render()
+        var guide = new AbilityGuidePanel
         {
-            if (Snapshot is null) return;
-            Ui.Clear(rows);
-            foreach (var ability in Data.Abilities.Where(x => (x.Class == "" || x.Class == Snapshot.Self.Class) && (x.Name + " " + x.Element + " " + x.Description).Contains(search.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Requirement).ThenBy(x => x.Name))
+            Data = Data, Assets = Assets, ReadCharacter = () => Snapshot?.Self,
+            ReadTime = () => Snapshot?.Time ?? 0, ReadHotbar = () => hotbar,
+            AssignToHotbar = (id, index) =>
             {
-                var row = Ui.Row(rows); row.AddChild(Ui.Image(Assets.AbilityIcon(ability.Id), 48)); var description = Ui.Column(row);
-                description.AddChild(Ui.Label(ability.Name + " · " + ability.Element, 18, WorldView.ElementColor(ability.Element)));
-                description.AddChild(Ui.Label(ability.Description, 14, Ui.Text, true)); description.AddChild(Ui.Label($"{Data.Skill(ability.Skill).Name} {ability.Requirement} · Mana {ability.Mana} · Stamina {ability.Stamina} · {ability.Cooldown}s cooldown", 13, Ui.Muted, true));
-                bool learned = Progression.Level(Snapshot.Self, ability.Skill) >= ability.Requirement;
-                row.AddChild(Ui.Button(learned ? "Assign" : "Skill locked", () =>
-                {
-                    hotbar[slot.Selected] = ability.Id; settings.SetValue("hotbar_" + Snapshot.Self.Id, slot.Selected.ToString(), ability.Id); settings.Save("user://settings.cfg"); Notify(ability.Name + " assigned to the hotbar.");
-                }, !learned));
+                if (Snapshot is not { } snapshot || index < 0 || index >= hotbar.Length) return;
+                var ability = Data.Abilities.FirstOrDefault(a => a.Id == id);
+                if (ability is null || Progression.Level(snapshot.Self, ability.Skill) < ExperienceRules.AbilityRequirement(snapshot.Self, ability)) return;
+                hotbar[index] = id;
+                settings.SetValue("hotbar_" + snapshot.Self.Id, index.ToString(), id); settings.Save("user://settings.cfg");
+                Notify(ability.Name + " assigned to key " + (index == 9 ? "0" : (index + 1).ToString()) + ".");
             }
-        }
-        refreshPage = Render; search.TextChanged += _ => Render(); Render();
+        };
+        page.AddChild(guide); refreshPage = guide.RefreshSnapshot;
     }
 
     private void BuildDialoguePage()

@@ -7,6 +7,7 @@ from __future__ import annotations
 import math
 from .common import Pixel, canvas, palette, rgba, shade, seed, INK, ELEMENT_COLORS
 from .items import metal_for
+from .bow_pose import draw as draw_side_bow
 
 SKINS=('edcba6','d7b28c','bd936f','a57a59','825b45','604435')
 HAIRS=('463b36','72543d','9d7749','c9ad70','8d4f3f','3a353e','b4bab4','765d77')
@@ -27,7 +28,7 @@ def rig(state, frame, direction, body=0):
        'knee_l':(29,48),'knee_r':(35,48),
        'foot_l':(28+round(stride*3),55-max(0,round(stride*3))),
        'foot_r':(36-round(stride*3),55-max(0,round(-stride*3))),
-       'angle':-12,'side':side,'back':direction==3,'sign':sign,'stride':stride,'collapse':0.0}
+       'angle':-12,'side':side,'back':direction==3,'sign':sign,'stride':stride,'collapse':0.0,'state':state,'frame':frame}
     if side:
         j['foot_l']=(32+round(stride*5),55-max(0,round(stride*3)))
         j['foot_r']=(34-round(stride*5),55-max(0,round(-stride*3)))
@@ -165,6 +166,9 @@ def clothing_base(item):
 def weapon(p,j,item):
     """Draw model-space fittings around the actual gripping hand. No icon pivot guessing."""
     tags=item.get('tags',[]); family=tags[0] if tags else 'sword'
+    if family=='bow' and j['side']:
+        draw_side_bow(p,j)
+        return
     hx,hy=j['hand_r']; angle=math.radians(j['angle']); cs,sn=math.cos(angle),math.sin(angle)
     c=palette(metal_for(item)); wood=palette('90704f'); leather=palette('684936')
     def xy(x,y): return (hx+x*cs-y*sn,hy+x*sn+y*cs)
