@@ -1,28 +1,79 @@
 {
-  "base":"4cce9433989f8c3a19f1996d493e7d098cb464e2",
-  "message":"fix(equipment): repair damaged tools and expose exact skill requirements",
-  "purpose":"Preserve every integrated tier and crafting change. Let existing blacksmith repair transactions handle tools, expose tool condition in the inventory, and name unmet gathering/crafting skills. Verify all 147 grade tools, repair prices, replay, ownership, bank exclusion, native inventory reachability and existing regressions before integration.",
+  "base":"4d8c8817d4bae66e359b2d9bc63d9ca8563016db",
+  "message":"feat(journey): add mana dash, deliberate target cycling and early equipment access",
+  "purpose":"Recover the locally compiled controls and inventory work without replacing the newer Atelier source. Add authoritative dash and real/native regressions. Keep item grades, recipes, raw XP, saved identities and one shared backpack capacity. Existing equipment boundary tests now check the explicitly requested lower early use gates; recipe boundaries remain unchanged. This is preparation, not source integration.",
   "edits":[
-    {"path":"src/Kairnfall.Core/RealmEconomy.cs","expected_blob":"0853eb0d493300f6d3f28408f1b0bf6c8898a56c","replacements":[
-      {"old":"Need(def.Slot!=\"\"&&item.Durability<100,\"This item does not need repair.\");","new":"Need((def.Slot!=\"\"||def.Type==\"tool\")&&item.Durability<100,\"This item does not need repair.\");"},
-      {"old":"Need(Progression.Level(p,def.Skill)>=def.Requirement,\"Your gathering skill is too low.\");","new":"Need(Progression.Level(p,def.Skill)>=def.Requirement,\"Requires \"+Data.Skill(def.Skill).Name+\" \"+def.Requirement+\".\");"},
-      {"old":"Need(Progression.Level(p,recipe.Skill)>=recipe.Requirement,\"Your crafting skill is too low.\");","new":"Need(Progression.Level(p,recipe.Skill)>=recipe.Requirement,\"Requires \"+Data.Skill(recipe.Skill).Name+\" \"+recipe.Requirement+\".\");"}
+    {"path":"src/Kairnfall.Core/DashRules.cs","expected_blob":null,"source_blob":"873e7cb134600b05bba3eda6b68b2ccb51831eb4"},
+    {"path":"src/Kairnfall.Core/BeginnerProgression.cs","expected_blob":null,"source_blob":"97dee98efb4099e34567dd2a87b3439e5cb71597"},
+    {"path":"client/Scripts/GameRoot.MobControls.cs","expected_blob":null,"source_blob":"eed8212f8ba12d8d35aaf4013bd618ed7205b1ec"},
+    {"path":"client/Scripts/InventorySections.cs","expected_blob":null,"source_blob":"63e9c927b0feadb93061b0b2cdab3184cbed1af1"},
+    {"path":"tools/world_probe/JourneyControlChecks.cs","expected_blob":null,"source_blob":"6d268b6998bf448f1446ec1bbbbebbccf963260e"},
+    {"path":"client/Tests/JourneyUiChecks.cs","expected_blob":null,"source_blob":"465ffc6741cbbf41e1b5e73cb4e731fdab1bb750"},
+    {"path":"src/Kairnfall.Core/RealmEngine.cs","expected_blob":"f72224ce5ebe49bb843b5494638e062e29566418","replacements":[
+      {"old":"            case \"equip\":","new":"            case \"dash\": return Dash(p,c);\n            case \"equip\":"},
+      {"old":"        var backup=Wire.Copy(State);","new":"        if(command.Kind==\"dash\" && DashRules.Problem(p,State.Time) is { Length: > 0 } dashProblem) return Result(false,dashProblem);\n        var backup=Wire.Copy(State);"}
     ]},
-    {"path":"client/Scripts/GameRoot.Inventory.cs","expected_blob":"fd2b8a8c2cb7f249c7f6bc4ea1570d2cf9f500e9","replacements":[
-      {"old":"        if (def.Slot != \"\") text.AppendLine($\"Durability: {item.Durability}% · Runes: {item.Runes.Count}/{item.Sockets}\");","new":"        if (def.Slot != \"\") text.AppendLine($\"Durability: {item.Durability}% · Runes: {item.Runes.Count}/{item.Sockets}\");\n        else if (def.Type == \"tool\") text.AppendLine($\"Tool durability: {item.Durability}%\");"},
-      {"old":"        if (def.Slot != \"\" && item.Durability < 100)\n            parent.AddChild(Ui.Button(\"Repair at blacksmith\", () => Send(\"repair\", item: item.Id), !NearRole(\"blacksmith\")));","new":"        if ((def.Slot != \"\" || def.Type == \"tool\") && item.Durability < 100)\n        {\n            var repair = Ui.Button(\"Repair at blacksmith\", () => Send(\"repair\", item: item.Id), !NearRole(\"blacksmith\"));\n            repair.Name = \"RepairEquipmentAction\"; parent.AddChild(repair);\n        }"}
+    {"path":"src/Kairnfall.Core/Mechanics.cs","expected_blob":"9abb1b1ff147c33707bccc421f68931dcb4a3b0d","replacements":[
+      {"old":"Math.Clamp(Total(p)/(60.0*Threshold(SkillCap)),0,1)","new":"Math.Clamp(BeginnerProgression.OverallEquivalentXp(Total(p))/(60.0*Threshold(SkillCap)),0,1)"},
+      {"old":"if(def.Skill!=\"\"&&Progression.Level(p,def.Skill)<def.Requirement) throw new RuleException($\"Requires {catalog.Skill(def.Skill).Name} {def.Requirement}. Your level: {Progression.Level(p,def.Skill)}.\");","new":"int required = BeginnerProgression.EquipmentRequirement(def);\n        if(def.Skill!=\"\"&&Progression.Level(p,def.Skill)<required) throw new RuleException($\"Requires {catalog.Skill(def.Skill).Name} {required}. Your level: {Progression.Level(p,def.Skill)}.\");"}
     ]},
-    {"path":"tools/world_probe/EquipmentMaintenanceChecks.cs","expected_blob":"4b2f769a04ec23c4be0a57b96518d617e5693bb1","replacements":[
-      {"old":"        Console.WriteLine($\"EQUIPMENT MAINTENANCE: {passed} groups passed; {toolsChecked} tier tools repaired and replay-checked; total failures {failures.Count}.\");","new":"        Test(\"Rejected gathering and crafting name the exact required skill without consuming anything\",()=>\n        {\n            var p=Reset();\n            var node=realm.State.Nodes.Values.First(n=>data.Resources.Any(r=>r.Id==n.Template&&r.Requirement>1));\n            var resource=data.Resource(node.Template); node.ReadyAt=0; p.Zone=node.Zone; p.Position=node.Position; p.SkillXp[resource.Skill]=0;\n            string before=Json(realm.State);\n            var gathering=realm.Execute(owner,new GameCommand{Kind=\"gather\",Target=node.Id,Sequence=p.LastAction+1});\n            Need(!gathering.Ok&&gathering.Message==\"Requires \"+data.Skill(resource.Skill).Name+\" \"+resource.Requirement+\".\",\"Gathering did not name its required skill.\");\n            Need(Json(realm.State)==before,\"Untrained gathering consumed state.\");\n            p=Reset(); var recipe=data.Recipes.First(r=>r.Requirement>1); p.SkillXp[recipe.Skill]=0; before=Json(realm.State);\n            var crafting=realm.Execute(owner,new GameCommand{Kind=\"craft\",Item=recipe.Id,Sequence=p.LastAction+1});\n            Need(!crafting.Ok&&crafting.Message==\"Requires \"+data.Skill(recipe.Skill).Name+\" \"+recipe.Requirement+\".\",\"Crafting did not name its required skill.\");\n            Need(Json(realm.State)==before,\"Untrained crafting consumed state.\");\n        });\n        Console.WriteLine($\"EQUIPMENT MAINTENANCE: {passed} groups passed; {toolsChecked} tier tools repaired and replay-checked; total failures {failures.Count}.\");"}
+    {"path":"src/Kairnfall.Core/EquipmentProgression.cs","expected_blob":"295354fd6df0d4dc7d3f6e4bf09165b27193d88a","replacements":[
+      {"old":"Progression.Level(character,d.Skill)>=d.Requirement","new":"Progression.Level(character,d.Skill)>=BeginnerProgression.EquipmentRequirement(d)"}
     ]},
-    {"path":"tools/world_probe/Program.cs","expected_blob":"caed3f3bdd157ea2ac39ebbcaa5e9af12382dedb","replacements":[
-      {"old":"CraftStationChecks.Run(catalog,failures);","new":"CraftStationChecks.Run(catalog,failures);\nEquipmentMaintenanceChecks.Run(catalog,failures);"}
+    {"path":"client/Scripts/GameRoot.cs","expected_blob":"d3470742b636b83ebfe7ebe384a831db6e0ce3c3","replacements":[
+      {"old":"[\"target_next\"] = Key.Tab","new":"[\"target_next\"] = Key.Tab, [\"dash\"] = Key.Q"}
     ]},
-    {"path":"client/Tests/ControlRulesContract.cs","expected_blob":"5cfae73682d925c64563ce646acb097a662cdbb3","replacements":[
-      {"old":"            await CraftingGuideChecks.Run(this,game,data,Require);","new":"            await CraftingGuideChecks.Run(this,game,data,Require);\n            await EquipmentMaintenanceUiChecks.Run(this,game,Require);"}
+    {"path":"client/Scripts/GameRoot.Controls.cs","expected_blob":"a161a2da35bd377b937bbf6e0223f741101a855f","replacements":[
+      {"old":"            if (key.IsActionPressed(\"basic_attack\"))","new":"            if (key.IsActionPressed(\"dash\"))\n            {\n                RequestDash(); GetViewport().SetInputAsHandled(); return;\n            }\n            if (key.IsActionPressed(\"basic_attack\"))"},
+      {"old":"                CycleHostileTarget();","new":"                CycleHostileTarget(key.ShiftPressed);"}
     ]},
-    {"path":"docs/EQUIPMENT_PROGRESSION.md","expected_blob":"7b26b569b036f985b7d37d67e71b96866d58980a","replacements":[
-      {"old":"Carrying multiple tools does not stack their benefits.","new":"Carrying multiple tools does not stack their benefits.\n\nThe inventory shows tool durability. A damaged or broken backpack tool can use the same blacksmith repair action as wearable equipment. Repair restores durability and retains the item's identity, rarity, and bonuses. The server checks ownership, distance, health and gold before charging. Banked tools must be withdrawn first. Undamaged tools and consumables cannot use repair."}
+    {"path":"client/Scripts/GameRoot.Experience.cs","expected_blob":"ab66278c538c219e644254d5815fea2ca4a93cd9","replacements":[
+      {"old":"    private void CycleHostileTarget()","new":"    private void CycleHostileTarget(bool reverse = false)"},
+      {"old":"ExperienceRules.CycleTarget(snapshot.Self, snapshot.Creatures, Data, selectedTarget)","new":"ExperienceRules.CycleTarget(snapshot.Self, snapshot.Creatures, Data, selectedTarget, reverse)"},
+      {"old":"OffsetLeft = -245, OffsetRight = 245, OffsetTop = -142","new":"OffsetLeft = -330, OffsetRight = 330, OffsetTop = -142"},
+      {"old":"        controls.AddChild(interactionButton);","new":"        controls.AddChild(interactionButton);\n        targetNextButton = Ui.Button(\"Target [Tab]\", () => CycleHostileTarget());\n        targetNextButton.Name = \"CycleHostileTarget\"; targetNextButton.FocusMode = FocusModeEnum.None;\n        targetNextButton.TooltipText = \"Tab: next living creature. Shift+Tab: previous. Walls and pets are excluded.\";\n        controls.AddChild(targetNextButton);\n        dashButton = Ui.Button(\"Dash [Q]\", RequestDash); dashButton.Name = \"DashAction\";\n        dashButton.FocusMode = FocusModeEnum.None; controls.AddChild(dashButton);"},
+      {"old":"        interactionButton.Disabled = context is null;","new":"        UpdateMobControls();\n        interactionButton.Disabled = context is null;"},
+      {"old":"\" to attack  ·  Tab selects a hostile  ·  1–0 uses abilities\"","new":"\" to attack · \" + bindings[\"target_next\"] + \" cycles targets · \" + bindings[\"dash\"] + \" dashes (4 mana)\""}
+    ]},
+    {"path":"client/Scripts/ExperienceRules.cs","expected_blob":"641c05886969d1b62d15720fd0e483b1e5309237","replacements":[
+      {"old":"string selected)\n    {\n        var list = creatures.Where(x => CanTarget(self, x, data, 12))","new":"string selected, bool reverse = false)\n    {\n        // Deliberate target cycling includes neutral animals, never pets or corpses.\n        var list = creatures.Where(x => CanTarget(self, x, data, 18, true))"},
+      {"old":"        return list[(index + 1) % list.Length];","new":"        if (index < 0) return reverse ? list[^1] : list[0];\n        return list[(index + (reverse ? list.Length - 1 : 1)) % list.Length];"},
+      {"old":"if (definition.Skill != \"\" && Progression.Level(self, definition.Skill) < definition.Requirement)\n            return \"Requires \" + data.Skill(definition.Skill).Name + \" \" + definition.Requirement + \".\";","new":"int required = BeginnerProgression.EquipmentRequirement(definition);\n        if (definition.Skill != \"\" && Progression.Level(self, definition.Skill) < required)\n            return \"Requires \" + data.Skill(definition.Skill).Name + \" \" + required + \".\";"}
+    ]},
+    {"path":"client/Scripts/GameRoot.Inventory.cs","expected_blob":"7c2a237eb633e6fbeed209ed3a10f88f654598c6","replacements":[
+      {"old":"text.AppendLine($\"Requires {Data.Skill(def.Skill).Name} {def.Requirement}\");","new":"text.AppendLine($\"Requires {Data.Skill(def.Skill).Name} {BeginnerProgression.EquipmentRequirement(def)}\" + (BeginnerProgression.EquipmentRequirement(def) < def.Requirement ? $\" · Grade {def.Requirement}\" : \"\"));"},
+      {"old":"        var grid = new GridContainer { Columns = 5 }; scroll.AddChild(grid);","new":"        var sections = Ui.Column(scroll); sections.Name = \"InventorySections\";\n        var view = new OptionButton { Name = \"InventoryView\" };\n        foreach (string label in new[] { \"All items\", \"Ready to equip\", \"Locked equipment\", \"Tools and supplies\" }) view.AddItem(label);\n        left.AddChild(view);\n        left.AddChild(Ui.Label(\"All sections share the same 64 backpack slots. Bank capacity is separate.\", 12, Ui.Muted, true));"},
+      {"old":"            Ui.Clear(grid); Ui.Clear(details); Ui.Clear(primary);","new":"            Ui.Clear(sections); Ui.Clear(details); Ui.Clear(primary);"},
+      {"old":"            foreach (var item in sorted) grid.AddChild(MakeSlot(item, selectedBag));\n            for (int i = grid.GetChildCount(); i < 30; i++)","new":"            var grouped = sorted.GroupBy(item => selectedBag == \"bank\" ? 3 : InventorySections.Group(self, item, Data)).OrderBy(group => group.Key);\n            foreach (var group in grouped)\n            {\n                if (view.Selected != 0 && group.Key != view.Selected) continue;\n                sections.AddChild(Ui.Label((selectedBag == \"bank\" ? \"Bank storage\" : InventorySections.Names[group.Key]) + \" · \" + group.Count(), 14, group.Key == 1 ? Ui.Success : Ui.Gold));\n                var slots = new GridContainer { Columns = 5, Name = \"InventoryGroup\" + group.Key };\n                sections.AddChild(slots);\n                foreach (var item in group)\n                {\n                    var slot = MakeSlot(item, selectedBag);\n                    if (group.Key == 2) slot.TooltipText += \"\\n\" + ExperienceRules.EquipmentProblem(self, item, Data);\n                    slots.AddChild(slot);\n                }\n            }\n            var grid = new GridContainer { Columns = 5 }; sections.AddChild(grid);\n            for (int i = 0; i < Math.Min(5, Math.Max(0, (selectedBag == \"bank\" ? Items.BankCapacity : Items.InventoryCapacity) - source.Count)); i++)"},
+      {"old":"        refreshPage = Render; search.TextChanged += _ => Render(); Render();\n    }\n\n    private void DrawItemDetails","new":"        refreshPage = Render; search.TextChanged += _ => Render(); view.ItemSelected += _ => Render(); Render();\n    }\n\n    private void DrawItemDetails"}
+    ]},
+    {"path":"client/Scripts/EquipmentGuidePanel.cs","expected_blob":"4611a62fbf101a14458e826714d201a8f86b629b","replacements":[
+      {"old":"Tier levels require the named skill, not your overall level. Rarity and runes are separate from the material tier.","new":"Grade is separate from skill requirements. Early grade 5 / 10 / 15 equipment needs skill 3 / 6 / 10. Recipes keep their own requirements."},
+      {"old":"+item.Requirement;","new":"+BeginnerProgression.EquipmentRequirement(item);"},
+      {"old":"+item.Requirement+\". Your skill: \"+trained","new":"+BeginnerProgression.EquipmentRequirement(item)+\". Your skill: \"+trained"},
+      {"old":"trained>=item.Requirement?","new":"trained>=BeginnerProgression.EquipmentRequirement(item)?"},
+      {"old":"Data.Item(id).Requirement>Progression.Level(self,Data.Item(id).Skill)","new":"BeginnerProgression.EquipmentRequirement(Data.Item(id))>Progression.Level(self,Data.Item(id).Skill)"}
+    ]},
+    {"path":"client/Scripts/SkillGuidePanel.cs","expected_blob":"48cb49a1db5c4870a28fe46e7b590882c29bf0ec","replacements":[
+      {"old":"item.Name, item.Requirement","new":"item.Name, BeginnerProgression.EquipmentRequirement(item)"}
+    ]},
+    {"path":"tools/world_probe/Program.cs","expected_blob":"a722c2cd17c35742f2a3623774467b6e44691601","replacements":[
+      {"old":"EquipmentMaintenanceChecks.Run(catalog,failures);","new":"EquipmentMaintenanceChecks.Run(catalog,failures);\nJourneyControlChecks.Run(catalog,failures);"}
+    ]},
+    {"path":"tools/world_probe/GearProgressionChecks.cs","expected_blob":"59e894a8c968277ed92a90c80002bd9d263a9dc6","replacements":[
+      {"old":"Progression.Threshold(tier.Level-1)","new":"Progression.Threshold(BeginnerProgression.EquipmentRequirement(def)-1)","count":2},
+      {"old":"p.SkillXp[def.Skill]=Progression.Threshold(tier.Level);","new":"p.SkillXp[def.Skill]=Progression.Threshold(BeginnerProgression.EquipmentRequirement(def));","count":2}
+    ]},
+    {"path":"client/Tests/EquipmentGuideChecks.cs","expected_blob":"2e043c8b6a763722bdc65a28ec5826a2b463755a","replacements":[
+      {"old":"Text.Contains(\"Swordsmanship 5\")","new":"Text.Contains(\"Swordsmanship 3\")"}
+    ]},
+    {"path":"client/Tests/ControlRulesContract.cs","expected_blob":"0ab08628d17134d881ad2622d7033a5ce4a84727","replacements":[
+      {"old":"            await EquipmentMaintenanceUiChecks.Run(this,game,Require);","new":"            await EquipmentMaintenanceUiChecks.Run(this,game,Require);\n            await JourneyUiChecks.Run(this,game,Require);"}
+    ]},
+    {"path":"client/Tests/LiveExperienceContract.cs","expected_blob":"ad58b85a0c77b7284c677e7761ef6d242e39ff0f","replacements":[
+      {"old":"            KeyEvent(Key.Space, true); await Delay(.1);","new":"            var dashStart = Self.Position; double dashMana = Self.Mana; long dashSequence = Self.LastAction;\n            KeyEvent(Key.Q, true); KeyEvent(Key.Q, false); KeyEvent(Key.Q, true); KeyEvent(Key.Q, false);\n            await Until(() => Self.LastAction == dashSequence + 1, \"Native Q did not produce one authoritative dash.\");\n            Require(Self.Position.Distance(dashStart) >= .25 && Self.Position.Distance(dashStart) <= DashRules.Distance + .05, \"Native Q performs a bounded server-validated dash\");\n            Require(Self.Mana < dashMana && Self.Cooldowns.ContainsKey(\"dash\"), \"Dash consumes mana and supplies an authoritative cooldown\");\n            sequence = Self.LastAction;\n            KeyEvent(Key.Space, true); await Delay(.1);"},
+      {"old":"new[] { Key.W, Key.E, (Key)49, Key.Tab }","new":"new[] { Key.W, Key.E, Key.Q, (Key)49, Key.Tab }"},
+      {"old":"new[] { Key.D, Key.E, Key.Space, (Key)49 }","new":"new[] { Key.D, Key.E, Key.Q, Key.Space, (Key)49 }"}
     ]}
   ]
 }
