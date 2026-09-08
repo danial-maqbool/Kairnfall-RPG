@@ -1,16 +1,32 @@
 {
-  "base":"3b1d629723fe09fb74f7460d3e9d8e7803fdc56d",
-  "message":"test(saves): reconstruct legacy chest populations independently from current spawn policy",
-  "purpose":"The migration test assumed today's fresh realm still creates all three historical chests per zone. Reconstruct those old records explicitly and retain full position, non-position state, and idempotence checks.",
+  "base":"85b3f540ec5467da9bc6a081d80b3d8ffff42a07",
+  "message":"fix(animation): align equipment to joints and stabilize directional walk presentation",
+  "purpose":"Visual-only changes. Preserve movement, combat, item identities, network validation, and saves. Candidate objects do not create branches.",
   "edits":[
-    {
-      "path":"tools/world_probe/Program.cs",
-      "expected_blob":"624d594f1b81f8c101f8d3fa8f80a50e39a1751d",
-      "replacements":[
-        {"old":"    // Reconstruct SeedWorld's unchanged placement rules with the historical tile policy.","new":"    // Reconstruct historical placement and chest records independently from\n    // the current fresh-world population policy. Retired records must still load."},
-        {"old":"        for (int i = 0; i < 3; i++) state.Chests[$\"{zone.Id}/chest/{i}\"].Position = OldFree(zone, new(zone.Spawn.X + 10 + i * 6, zone.Spawn.Y - 8 - i * 3));","new":"        for (int i = 0; i < 3; i++)\n        {\n            string id = $\"{zone.Id}/chest/{i}\";\n            state.Chests[id] = new Chest\n            {\n                Id = id, Zone = zone.Id,\n                Position = OldFree(zone, new(zone.Spawn.X + 10 + i * 6, zone.Spawn.Y - 8 - i * 3)),\n                Kind = i == 0 ? \"weathered\" : i == 1 ? \"locked\" : zone.Layer == \"Surface\" ? \"runic\" : \"ancient\",\n                Requirement = Math.Clamp(zone.Level, 1, 100), Hidden = i == 2, ReadyAt = 456 + i\n            };\n        }"},
-        {"old":"    var loaded = new RealmEngine(catalog, Wire.Copy(state));\n    Assert(loaded.State.Creatures.Values.All(c => WorldMap.Fits(catalog.Zone(c.Zone), c.Position) && WorldMap.Fits(catalog.Zone(c.Zone), c.Home)), \"Legacy seeded creature remains blocked.\");","new":"    Assert(state.Chests.Count == catalog.Zones.Count * 3, \"The legacy fixture did not recreate every historical ambient chest.\");\n    var loaded = new RealmEngine(catalog, Wire.Copy(state));\n    Assert(loaded.State.Chests.Count == state.Chests.Count, \"Loading discarded historical chest records.\");\n    foreach (var original in state.Chests.Values)\n    {\n        var preserved = loaded.State.Chests[original.Id];\n        Assert(preserved.Zone == original.Zone && preserved.Kind == original.Kind\n            && preserved.ReadyAt == original.ReadyAt && preserved.Requirement == original.Requirement\n            && preserved.Hidden == original.Hidden, \"Migration altered non-position chest state: \" + original.Id);\n    }\n    Assert(loaded.State.Creatures.Values.All(c => WorldMap.Fits(catalog.Zone(c.Zone), c.Position) && WorldMap.Fits(catalog.Zone(c.Zone), c.Home)), \"Legacy seeded creature remains blocked.\");"}
-      ]
-    }
+    {"path":"tools/art/humanoid.py","expected_blob":"4a133e19b1649d278f6ac1c84259e0281ca1209d","replacements":[
+      {"old":"'head':(32+(sign if side else 0),18)","new":"'head':(32+(1 if side else 0),18)"},
+      {"old":"j['hand_r']=(hx+sign*swing,hy-abs(swing))","new":"j['hand_r']=(hx+sign*round(swing*.4),hy-abs(swing))"},
+      {"old":"(-20,-38,-58,18,65,43,8,-12)","new":"(-20,-38,-48,18,45,35,8,-12)"},
+      {"old":"j['angle']=(-12+(90+12)*t)*sign","new":"j['angle']=(-12+(-90+12)*t)*sign"},
+      {"old":"    if state=='attack':\n        swing=","new":"    if state=='idle' and frame in (3,4):\n        for name in ('shoulder_l','shoulder_r','elbow_l','elbow_r','hand_l','hand_r'):\n            x,y=j[name]; j[name]=(x,y-1)\n    if state=='attack':\n        swing="}
+    ]},
+    {"path":"tools/build_game_assets.py","expected_blob":"7599b75678d71e269b044416e01b90d369f56990","replacements":[
+      {"old":"from art.species_refinement import frame as creature_frame","new":"from art.fauna import frame as creature_frame"}
+    ]},
+    {"path":"client/Scripts/PixelAssets.cs","expected_blob":"51eba0972e80aa432450ee36528989ecf2f1dff6","replacements":[
+      {"old":"new Rect2(feet - new Vector2(size * .5f, size * .86f), new Vector2(size, size))","new":"new Rect2(feet - SpritePoseRules.Anchor((int)size), new Vector2(size, size))"},
+      {"old":"foreach (string layer in LayerOrder)","new":"foreach (string layer in SpritePoseRules.Layers(direction))"},
+      {"old":"        float scale = Math.Min(Size.X / 72, Size.Y / 72);\n        DrawSetTransform(new Vector2(Size.X / 2, Size.Y * .85f), 0, new Vector2(scale, scale));","new":"        float available = Math.Min(Size.X / 72, Size.Y / 72);\n        float scale = available >= 1 ? MathF.Floor(available) : available;\n        DrawSetTransform(new Vector2(Size.X / 2, Size.Y * .85f).Round(), 0, new Vector2(scale, scale));"}
+    ]},
+    {"path":"client/Scripts/WorldView.cs","expected_blob":"1dd2fe5ce0b57b549eb19d532630d1d66203ee91","replacements":[
+      {"old":"        public double LastMoved;","new":"        public double LastMoved;\n        public double WalkPhase;\n        public int FacingDirection;"},
+      {"old":"Facing = facing, Health = health, LastMoved = -10","new":"Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10"},
+      {"old":"        if (track.Health <= 0 && health > 0)","new":"        if (track.Health > 0 && health <= 0) Animate(id, 5, 6);\n        track.FacingDirection = SpritePoseRules.Direction(facing, track.FacingDirection);\n        if (track.Health <= 0 && health > 0)"},
+      {"old":"            double weight = 1 - Math.Exp(-18 * delta);","new":"            var previousPosition = track.Position;\n            double weight = 1 - Math.Exp(-18 * delta);"},
+      {"old":"track.Position.Y + (track.Target.Y - track.Position.Y) * weight);\n        }","new":"track.Position.Y + (track.Target.Y - track.Position.Y) * weight);\n            double travelled = previousPosition.Distance(track.Position);\n            track.WalkPhase = travelled > 6 ? 0 : SpritePoseRules.AdvanceWalk(track.WalkPhase, travelled);\n        }"},
+      {"old":"Clock - t.LastMoved < .18 ? 1 : 0","new":"Clock - t.LastMoved < .35 ? 1 : 0"},
+      {"old":" : (int)(Clock * (state == 1 ? 11 : 5)) % 8;","new":" : state == 1 ? (int)t.WalkPhase : (int)(Clock * 5) % 8;"},
+      {"old":"return (state, Direction(t.Facing), frame, t.Position);","new":"return (state, t.FacingDirection, frame, t.Position);"}
+    ]}
   ]
 }
