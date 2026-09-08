@@ -1,5 +1,9 @@
 # Pixel-art direction and review contract
 
+## Equipment materials — 2026-09-09
+
+The [gear extension](EQUIPMENT_PROGRESSION.md) retains 32 by 32 icons and 64 by 64 equipment frames. Original source adds material highlights, cloth folds, hide contours, stitching and fittings. Equipped layers retain shared body anchors, four directions, six states and nearest-neighbor presentation. Grade metadata does not rewrite old saved templates. Every grade has a contact sheet; representative full sets render in Godot at two resolutions. File construction checks and rendered frames are not independent visual approval. See the [review evidence and limits](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md).
+
 ## Current action presentation
 
 See [the action checkpoint](handoff/ACTION_PRESENTATION_2026-09-08.md). The player and gear

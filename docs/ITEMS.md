@@ -1,5 +1,9 @@
 # Item and rune audit contract
 
+## Named equipment progression — 2026-09-09
+
+See [Equipment progression](EQUIPMENT_PROGRESSION.md) for 21 matching-skill tiers and all 51 families. The extension in `content_src/gear_progression.py` preserves the original 530 item definitions and 463 recipes. It adds obtainable supplies, exact equip requirements, working tools and a native Upgrade guide. Material grade remains separate from rarity, sockets and runes. [Verification](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md) does not close the broader rune or artwork audit below.
+
 Read accepted requirements R08-R09. Item definitions are authored in `content_src/items.py`.
 The server source owns item instances, quantities, equipment rules, transactions, and stat application.
 Generated catalog entries and art files are necessary but do not establish useful gameplay.

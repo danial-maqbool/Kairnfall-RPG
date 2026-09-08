@@ -1,5 +1,9 @@
 # Verification record
 
+## Equipment verification — 2026-09-09
+
+The [equipment checkpoint](EQUIPMENT_PROGRESSION_2026-09-09.md) records exact source `68956e42229c609e65071940a1b68f83dfb16a9c`, full passing run `34270827868`, and graphical run `34270827850`. Retained suites passed with 11 gear groups, 924 equip boundaries, 1,071 authoritative crafting paths, two workstation-access groups, 107 Python tests, 871 native control checks and 83 live-client checks. These results do not constitute independent image inspection, human playtesting, Windows DPI review, measured performance or a release package.
+
 ## Integrated action presentation checkpoint, 2026-09-08
 
 Read [ACTION_PRESENTATION_2026-09-08](ACTION_PRESENTATION_2026-09-08.md) for exact source blobs,
