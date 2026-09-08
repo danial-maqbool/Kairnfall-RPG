@@ -48,8 +48,6 @@ public partial class GameRoot : Control
     private string lastPageStamp = "";
     private ClientAudio? audio;
     private bool smoke, smokeStarted;
-    private double smokeTime;
-    private int smokeStage;
 
     public override void _Ready()
     {
@@ -268,7 +266,6 @@ public partial class GameRoot : Control
         }
         else
         {
-            // Ground actions must not inherit a stale creature target instead of the pointer aim.
             targetId = "";
             if (snapshot.Self.Position.Distance(point) > ability.Range)
                 point = snapshot.Self.Position.Add(snapshot.Self.Facing.Scale(Math.Max(0, ability.Range - .1)));
@@ -337,51 +334,5 @@ public partial class GameRoot : Control
         }
         if (what == NotificationApplicationFocusIn) applicationFocused = true;
         if (what == NotificationWMCloseRequest) _ = ShutdownAsync();
-    }
-
-    private async Task StartSmokeAsync()
-    {
-        try
-        {
-            if (DisplayServer.GetName() == "headless") throw new InvalidOperationException("The graphical smoke requires a real display.");
-            string address = System.Environment.GetEnvironmentVariable("KAIRNFALL_SMOKE_URL") ?? "http://127.0.0.1:5077";
-            Connection = new GameConnection(address);
-            string suffix = Guid.NewGuid().ToString("N")[..10];
-            await Connection.SignInAsync("visual_" + suffix, "QA_" + Guid.NewGuid().ToString("N"), true, lifetime.Token);
-            var remote = await Connection.CatalogAsync(lifetime.Token);
-            if (remote.Validate().Count > 0) throw new InvalidDataException("Server catalog validation failed.");
-            Data = remote; World.Data = Data;
-            var character = await Connection.CreateCharacterAsync(new CharacterRequest { Name = "Visual " + suffix, Class = "vanguard", Appearance = new Appearance { Body = 0, Skin = 2, Hair = 4, HairColor = 1 } }, lifetime.Token);
-            await Connection.ConnectAsync(character.Id, lifetime.Token);
-            frontend.Visible = false; smokeStarted = true;
-            GD.Print("SMOKE: authenticated Godot client entered the persistent server.");
-        }
-        catch (Exception error) { GD.PushError(error.ToString()); await ShutdownClientAsync(1); }
-    }
-    private void TickSmoke(double delta)
-    {
-        if (closing) return;
-        smokeTime += delta;
-        if (!Online && smokeTime > 25) { GD.PushError("SMOKE: connection lost."); _ = ShutdownClientAsync(1); return; }
-        if (!Online) return;
-        if (smokeTime > 3 && smokeStage == 0) { SetInitialHotbar(); SaveScreenshot("01-world.png"); OpenPage("Inventory"); smokeStage++; }
-        if (smokeTime > 5 && smokeStage == 1) { SaveScreenshot("02-inventory.png"); OpenPage("Skills"); smokeStage++; }
-        if (smokeTime > 7 && smokeStage == 2) { SaveScreenshot("03-skills.png"); OpenPage("Map"); smokeStage++; }
-        if (smokeTime > 9 && smokeStage == 3) { SaveScreenshot("04-map.png"); ClosePage(); smokeStage++; }
-        if (smokeTime > 11 && smokeStage == 4)
-        {
-            smokeStage++;
-            if (Assets.Missing.Count != 0) { GD.PushError("SMOKE: missing art: " + string.Join(",", Assets.Missing)); _ = ShutdownClientAsync(1); }
-            else { GD.Print("SMOKE: live world, inventory, skills, and map rendered without missing requested assets."); _ = ShutdownClientAsync(0); }
-        }
-    }
-    private void SaveScreenshot(string name)
-    {
-        if (DisplayServer.GetName() == "headless") throw new InvalidOperationException("A headless run cannot produce graphical acceptance evidence.");
-        string directory = System.Environment.GetEnvironmentVariable("KAIRNFALL_SCREENSHOTS") ?? ProjectSettings.GlobalizePath("user://screenshots");
-        System.IO.Directory.CreateDirectory(directory);
-        using var image = GetViewport().GetTexture().GetImage();
-        Error error = image.SavePng(System.IO.Path.Combine(directory, name));
-        if (error != Error.Ok) throw new IOException("Could not save render evidence: " + error);
     }
 }
