@@ -88,8 +88,9 @@ public sealed partial class RealmEngine
     private bool AtStation(Character p,string station)
     {
         if(station=="hand") return true;
-        if(Data.Npcs.Any(x=>x.Zone==p.Zone&&x.Station==station&&x.Position.Distance(p.Position)<=3)) return true;
-        return State.Nodes.Values.Any(x=>x.Zone==p.Zone&&x.Owner==p.Id&&x.Position.Distance(p.Position)<=3&&x.Template=="structure_"+station);
+        var zone=Data.Zone(p.Zone);
+        if(Data.Npcs.Any(x=>x.Zone==p.Zone&&x.Station==station&&x.Position.Distance(p.Position)<=3&&WorldMap.LineOfSight(zone,p.Position,x.Position))) return true;
+        return State.Nodes.Values.Any(x=>x.Zone==p.Zone&&x.Owner==p.Id&&x.Position.Distance(p.Position)<=3&&x.Template=="structure_"+station&&WorldMap.LineOfSight(zone,p.Position,x.Position));
     }
     public Character CreateCharacter(string account,string name,string classId,Appearance appearance)
     {

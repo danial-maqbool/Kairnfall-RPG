@@ -162,7 +162,7 @@ public partial class GameRoot
     private bool ClientAtStation(string station)
     {
         if (Snapshot is null) return false;
-        return station == "hand" || Data.Npcs.Any(x => x.Station == station && NearNpc(x)) || Snapshot.Nodes.Any(x => x.Owner == Snapshot.Self.Id && x.Template == "structure_" + station && x.Position.Distance(Snapshot.Self.Position) <= 3);
+        return station == "hand" || Data.Npcs.Any(x => x.Station == station && NearNpc(x)) || Snapshot.Nodes.Any(x => x.Zone == Snapshot.Self.Zone && x.Owner == Snapshot.Self.Id && x.Template == "structure_" + station && x.Position.Distance(Snapshot.Self.Position) <= 3 && WorldMap.LineOfSight(Data.Zone(Snapshot.Self.Zone), Snapshot.Self.Position, x.Position));
     }
     private void BuildCraftingPage()
     {
