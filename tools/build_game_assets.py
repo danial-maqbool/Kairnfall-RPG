@@ -15,11 +15,14 @@ from PIL import Image, ImageDraw
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
+sys.path.insert(0,str(ROOT))
 from art.common import Pixel,canvas,palette,shade,rgba,seed,sheet,save,STATES,DIRECTIONS,ELEMENT_COLORS
 from art.items import icon
 from art.people import body_frame,hair_frame,equipment_frame,npc_frame
 from art.environment_pack import TERRAINS,PROPS,tile,prop,building,chest,resource,structure,crystal
 from art.fauna import frame as creature_frame
+from art.room_art import render as furnishing_image, building, edge as grass_edge
+from content_src.presentation import FURNITURE
 
 
 def ability_icon(a):
@@ -127,6 +130,8 @@ def main():
     for kind in TERRAINS:
         for n in range(4): emit(tile(kind,n),f'terrain/{kind}_{n}')
     for name in PROPS: emit(prop(name),'props/'+name)
+    for name in FURNITURE: emit(furnishing_image(name),'furnishings/'+name)
+    for mask in range(1,16): emit(grass_edge(mask),'terrain/grass_edge_'+str(mask))
     for z in data['zones']:
         for b in z['buildings']: emit(building(z,b),'buildings/'+z['id']+'/'+b['id'])
     for r in data['resources']: emit(resource(r),'resources/'+r['id'])

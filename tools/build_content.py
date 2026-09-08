@@ -8,12 +8,12 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from content_src import skills, items, abilities, mobs, world, quests
+from content_src import skills, items, abilities, mobs, world, quests, presentation
 
 
 def build() -> dict:
     data={name:[] for name in ['skills','classes','items','abilities','recipes','zones','mobs','resources','npcs','quests']}
-    for module in [skills,items,abilities,mobs,world,quests]: module.build(data)
+    for module in [skills,items,abilities,mobs,world,quests,presentation]: module.build(data)
     for category,entries in data.items():
         seen=set()
         for entry in entries:

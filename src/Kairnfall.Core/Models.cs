@@ -165,6 +165,7 @@ public sealed class ZoneDef
     public int WorldY { get; set; }
     public List<ExitDef> Exits { get; set; } = [];
     public List<BuildingDef> Buildings { get; set; } = [];
+    public List<FurnishingDef> Furnishings { get; set; } = [];
     public string[] Species { get; set; } = [];
     public string Boss { get; set; } = "";
     public string[] Resources { get; set; } = [];

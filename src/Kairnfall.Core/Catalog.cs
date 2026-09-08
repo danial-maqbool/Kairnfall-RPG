@@ -75,6 +75,7 @@ public sealed class Catalog
         }
         foreach(var zone in Zones)
         {
+            FurnishingDef.Validate(zone,errors);
             if(zone.Width<16||zone.Height<16||!WorldMap.Walkable(zone,zone.Spawn)) errors.Add($"Invalid spawn {zone.Id}");
             if(zone.Species.Any(x=>!mobs.Contains(x))||(zone.Boss!=""&&!mobs.Contains(zone.Boss))) errors.Add($"Invalid zone creature {zone.Id}");
             foreach(var exit in zone.Exits)

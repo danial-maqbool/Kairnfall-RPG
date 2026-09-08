@@ -156,4 +156,5 @@ SaveTest("Separately loaded loot preserves items, gold, ownership, and valid pos
     Assert(Json(realm.Loot) == Json(reload.Loot) && !reload.EconomicDirty, "Loot recovery is not idempotent.");
 });
 Console.WriteLine($"SAVE MIGRATION: {saveTests} passed; total probe failures {failures.Count}.");
+FurnishingChecks.Run(catalog, failures);
 return failures.Count == 0 ? 0 : 1;

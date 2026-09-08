@@ -35,7 +35,16 @@ public static class WorldMap
         }
         return false;
     }
-    public static Terrain TileAt(ZoneDef z,int x,int y)=>TileAt(z,x,y,false);
+    // The original terrain policy remains available for material rendering and save recovery.
+    public static Terrain GroundTileAt(ZoneDef z,int x,int y)=>TileAt(z,x,y,false);
+    public static Terrain TileAt(ZoneDef z,int x,int y)
+    {
+        var ground=GroundTileAt(z,x,y);
+        if(IsSolid(ground)) return ground;
+        foreach(var furnishing in z.Furnishings)
+            if(furnishing.Solid && furnishing.Covers(x,y)) return Terrain.Wall;
+        return ground;
+    }
     private static Terrain TileAt(ZoneDef z,int x,int y,bool legacy)
     {
         if(x<1||y<1||x>=z.Width-1||y>=z.Height-1) return Terrain.Wall;
@@ -91,8 +100,10 @@ public static class WorldMap
     {
         return Walkable(z,new(p.X-ActorRadius,p.Y-ActorRadius))&&Walkable(z,new(p.X+ActorRadius,p.Y-ActorRadius))&&Walkable(z,new(p.X-ActorRadius,p.Y+ActorRadius))&&Walkable(z,new(p.X+ActorRadius,p.Y+ActorRadius));
     }
-    // Used only while loading saved state after the masonry-priority repair.
-    // Never turn arbitrary corrupt coordinates into a spawn teleport.
+    // Used only while loading saved state after a known geometry repair.
+    // Furniture can cover previously valid floor. The historical terrain check
+    // below still rejects original masonry, water, and arbitrary corrupt coordinates.
+    // Recover nearby, preserve all non-position state, and never teleport to spawn.
     public static bool TryRecoverLegacyRoadPosition(ZoneDef z,Point saved,out Point recovered)
     {
         recovered=saved;

@@ -11,6 +11,8 @@ from PIL import Image
 ROOT=Path(__file__).resolve().parents[1]
 ASSETS=ROOT/'client/Assets'
 sys.path.insert(0,str(ROOT/'tools'))
+sys.path.insert(0,str(ROOT))
+from content_src.presentation import FURNITURE
 from art.common import STATES,DIRECTIONS
 from art.environment_pack import TERRAINS,PROPS
 
@@ -31,6 +33,9 @@ def main():
     check(manifest['frames_per_row']==8,'The client requires eight columns per animation sheet.')
     expected={f'terrain/{terrain}_{n}' for terrain in TERRAINS for n in range(4)}
     expected.update('props/'+name for name in PROPS)
+    expected.update('furnishings/'+name for name in FURNITURE)
+    expected.update('terrain/grass_edge_'+str(mask) for mask in range(1,16))
+    expected.update('furnishings/'+f['kind'] for z in catalog['zones'] for f in z.get('furnishings',[]))
     expected.update('items/'+item['id'] for item in catalog['items'])
     expected.update('equipment/'+item['id'] for item in catalog['items'] if item.get('slot'))
     expected.update('structures/'+item['id'] for item in catalog['items'] if item['type']=='structure')
@@ -58,6 +63,12 @@ def main():
         with Image.open(path) as image:
             check(image.mode=='RGBA','PNG is not RGBA: '+key)
             check(image.size==(entry['width'],entry['height']),'Recorded image size differs: '+key)
+            if key.startswith('furnishings/'):
+                definition=FURNITURE.get(key.split('/',1)[1])
+                check(definition is not None,'Unknown furnishing asset: '+key)
+                if definition is not None:
+                    width,height,rise,_,_=definition
+                    check(image.size==(width*32,height*32+rise),'Furnishing art differs from the authoritative footprint: '+key)
             alpha=image.getchannel('A')
             check(alpha.getbbox() is not None,'Completely transparent PNG: '+key)
             if entry['animated']:

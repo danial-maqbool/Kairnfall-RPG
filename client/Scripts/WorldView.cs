@@ -129,7 +129,7 @@ public partial class WorldView : Control
         if (Snapshot is { } snapshot && tracks.TryGetValue(snapshot.Self.Id, out var self)) Camera = self.Position;
         numbers.RemoveAll(x => Clock - x.Started > 1.3);
         double day = WorldTime.DayFraction(RealmTime);
-        float darkness = zone.Layer != "Surface" ? .1f : (float)Math.Clamp((Math.Cos(day * Math.Tau) - .1) * .23, 0, .22);
+        float darkness = zone.Kind == "interior" ? 0 : zone.Layer != "Surface" ? .1f : (float)Math.Clamp((Math.Cos(day * Math.Tau) - .1) * .23, 0, .22);
         SelfModulate = Colors.White.Lerp(new Color("61758d"), darkness);
         QueueRedraw();
     }
@@ -164,6 +164,7 @@ public partial class WorldView : Control
     {
         if (Data is null || Assets is null) return;
         var zone = Data.Zone(ZoneId);
+        PrepareSurface(zone);
         Zoom = Math.Clamp(Zoom, 1, 3);
         origin = (Size / 2 - Pixels(Camera) * Zoom).Round();
         DrawSetTransform(origin, 0, new Vector2(Zoom, Zoom));
@@ -174,24 +175,24 @@ public partial class WorldView : Control
         visuals.Clear(); interactions.Clear();
         for (int y = minY; y <= maxY; y++) for (int x = minX; x <= maxX; x++)
         {
-            var terrain = WorldMap.TileAt(zone, x, y);
-            // Indoor routes keep their authoritative walkability, but are timber
-            // flooring, not outdoor dirt roads. Existing saved positions stay valid.
-            if (zone.Kind == "interior" && terrain == Terrain.Dirt) terrain = Terrain.Wood;
+            var terrain = SurfaceAt(zone, x, y);
             uint hash = WorldMap.Hash(x, y, zone.Seed);
             int variant = terrain is Terrain.Water or Terrain.Lava ? (int)(Clock * 3) % 4 : (int)(hash % 4);
             var texture = Assets.Texture("terrain/" + terrain.ToString().ToLowerInvariant() + "_" + variant);
             if (texture is not null) DrawTextureRect(texture, new Rect2(x * Tile, y * Tile, Tile, Tile), false);
-            string? decoration = Decoration(zone, terrain, hash);
+            DrawSurfaceEdge(zone, x, y);
+            string? decoration = Decoration(zone, terrain, hash, x, y);
             var at = new Point(x + .5, y + .75);
-            if (decoration is not null && zone.Buildings.All(b => x < b.X - 1 || x > b.X + b.Width || y < b.Y - 3 || y > b.Y + b.Height + 1))
+            if (decoration is not null && !zone.Furnishings.Any(f => f.Covers(x, y)) && zone.Buildings.All(b => x < b.X - 1 || x > b.X + b.Width || y < b.Y - 3 || y > b.Y + b.Height + 1))
                 visuals.Add(new Visual((float)at.Y, "decoration", decoration, at));
         }
+        GatherFurnishings(zone);
         foreach (var exit in zone.Exits)
         {
             if (!IsWithinCameraBounds(exit.Position, 4)) continue;
             string prop = exit.Kind is "road" ? "signpost" : exit.Kind.Contains("portal", StringComparison.Ordinal) ? "waystone" : "stairs";
-            DrawProp("props/" + prop, exit.Position);
+            if (exit.Kind != "door") DrawProp("props/" + prop, exit.Position);
+            else DrawArc(Pixels(exit.Position), 10, 0, MathF.PI, 12, new Color(.72f, .64f, .43f, .65f), 1);
             interactions.Add(new WorldTarget("exit", exit.Id, Data.Zone(exit.Target).Name, exit.Position));
             if (exit.Position.Distance(Camera) < 6) Nameplate(exit.Position, "→ " + Data.Zone(exit.Target).Name, Ui.Gold, -72);
         }
@@ -258,14 +259,17 @@ public partial class WorldView : Control
             Text(position, number.Text, color, 12);
         }
         DrawSetTransform(Vector2.Zero);
-        if (WeatherEnabled && zone.Layer == "Surface") DrawWeather(zone);
+        if (WeatherEnabled && zone.Layer == "Surface" && zone.Kind != "interior") DrawWeather(zone);
     }
 
     private bool IsWithinCameraBounds(Point p, double margin)
         => Math.Abs(p.X - Camera.X) < Size.X / Zoom / Tile / 2 + margin && Math.Abs(p.Y - Camera.Y) < Size.Y / Zoom / Tile / 2 + margin;
 
-    private static string? Decoration(ZoneDef zone, Terrain terrain, uint hash)
+    private static string? Decoration(ZoneDef zone, Terrain terrain, uint hash, int x, int y)
     {
+        if (zone.Kind == "interior") return null;
+        if (zone.Id == "wayfarers_rest" && Math.Abs(x - zone.Spawn.X) < 22 && Math.Abs(y - zone.Spawn.Y) < 22)
+            return terrain == Terrain.Grass ? hash % 19 == 0 ? "grass_tuft" : hash % 67 == 0 ? "flowers" : null : null;
         if (terrain is Terrain.Grass or Terrain.Moss)
         {
             uint density = zone.Biome.Contains("forest", StringComparison.Ordinal) ? 29u : 89u;
@@ -290,6 +294,9 @@ public partial class WorldView : Control
         if (visual.Id == TargetId) DrawArc(feet, 12, 0, MathF.Tau, 24, Ui.Gold, 1.5f);
         switch (visual.Kind)
         {
+            case "furnishing":
+                DrawFurnishing((FurnishingDef)visual.Value!);
+                break;
             case "decoration":
                 DrawProp("props/" + visual.Id, visual.At, visual.Id.Contains("tree", StringComparison.Ordinal) || visual.Id.Contains("oak", StringComparison.Ordinal) || visual.Id.Contains("pine", StringComparison.Ordinal) ? CanopyTint(visual.At) : Colors.White);
                 break;
