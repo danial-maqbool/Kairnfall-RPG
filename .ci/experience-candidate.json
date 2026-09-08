@@ -1,6 +1,6 @@
 {
-  "sha":"68956e42229c609e65071940a1b68f83dfb16a9c",
+  "sha":"13cea4201bbc181c2a93d8b7db2cab56f94bfa9e",
   "base":"645f81557aaf4787016c5807f3a25c06a380e671",
   "mode":"repair",
-  "purpose":"Run the complete retained test matrix for all 21 equipment grades, crafting supplies and stable native recipe/upgrade UI. Also verify that NPC and owned workstations cannot be used through solid furniture or walls, while clear approaches retain normal crafting behavior and rejected requests preserve materials, cooldowns and sequence. No reduced coverage or visual-approval claim."
+  "purpose":"Final exact-source verification after actual main integration: all named equipment tiers, acquisition recipes, server tool selection, complete equip/craft boundaries, bounded native upgrade/crafting controls, workstation collision and ownership, updated documentation, all retained security/persistence/input suites and graphical fixtures. No release or independent visual-approval claim."
 }
