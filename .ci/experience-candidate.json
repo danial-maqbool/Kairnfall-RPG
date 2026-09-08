@@ -1,6 +1,6 @@
 {
-  "sha": "1699c11bba085a694a5b88f544fbf854c56f1d92",
+  "sha": "51a48ce5316c85c380bd67c4053215916744e967",
   "base": "ab022f15540df35393d1ccc474e0cda7afdc4ec8",
   "mode": "repair",
-  "purpose": "Verify controls, equipment, staffed starter/capital interiors, native keyboard skill search, and bounded moving-target approach. Keep all previous security, persistence, and 15-second live encounter assertions."
+  "purpose": "Run all existing controls/equipment, skill-browser, interior, backend, security and persistence gates. Verify new idle-motion and bounded-retreat regressions. The native 15-second encounter assertion remains unchanged."
 }
