@@ -131,6 +131,7 @@ def mammal(p,m,state,n,direction):
 
 def arachnid(p,m,state,n,direction):
     c=palette(body_colour(m)); step=math.sin(n*math.tau/8) if state=='walk' else 0
+    crystalline=m['family']=='quartz_spider'
     folded=(0,0,.2,.4,.7,1,1,1)[n] if state=='death' else 0
     # Four attachment pairs. Projection changes the longitudinal body axis, not the bitmap.
     def xy(lateral,longitudinal):
@@ -141,11 +142,20 @@ def arachnid(p,m,state,n,direction):
     for sign in (-1,1):
         for i in range(4):
             attach=(-5+i*3); gait=round(step*2)*(1 if i%2 else -1)
-            knee=sign*(18-folded*8); tip=sign*(27-folded*14)
+            knee=sign*((21 if crystalline else 18)-folded*8); tip=sign*((28 if crystalline else 27)-folded*14)
             points=[xy(sign*5,attach),xy(knee,attach-8+i*4+gait),xy(tip,attach-13+i*7+gait)]
-            p.line(points,c[0],3); p.line(points,c[3],1)
+            p.line(points,c[0],4 if crystalline else 3); p.line(points,c[3],2 if crystalline else 1)
+            if crystalline:
+                kx,ky=points[1]
+                p.poly([(kx-3,ky),(kx,ky-4),(kx+3,ky),(kx,ky+3)],c[2])
+                p.line([(kx-1,ky),(kx,ky-2)],c[5])
     abdomen=xy(0,-8); thorax=xy(0,5); head=xy(0,11)
-    polygon_oval(p,(abdomen[0]-9,abdomen[1]-10,abdomen[0]+9,abdomen[1]+9),c[3])
+    if crystalline:
+        p.poly([xy(-5,-22),xy(4,-24),xy(12,-15),xy(11,-6),xy(5,1),xy(-7,-1),xy(-12,-10)],c[2])
+        p.poly([xy(-4,-20),xy(3,-21),xy(8,-14),xy(3,-5),xy(-5,-7)],c[3])
+        p.line([xy(-3,-19),xy(2,-20),xy(6,-14)],c[5])
+    else:
+        polygon_oval(p,(abdomen[0]-9,abdomen[1]-10,abdomen[0]+9,abdomen[1]+9),c[3])
     polygon_oval(p,(thorax[0]-6,thorax[1]-5,thorax[0]+6,thorax[1]+5),c[2])
     p.line([xy(-3,13),xy(-2,17)],c[4],2); p.line([xy(3,13),xy(2,17)],c[4],2)
     for side in (-1,1):

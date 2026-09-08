@@ -109,6 +109,16 @@ class VisualArtTests(unittest.TestCase):
             views=[fauna.frame(mob,'idle',0,d).tobytes() for d in range(4)]
             self.assertEqual(len(set(views)),4,ident)
 
+    def test_spider_species_have_different_body_and_joint_construction(self):
+        wood=next(x for x in self.data['mobs'] if x['id']=='wood_spider')
+        quartz=next(x for x in self.data['mobs'] if x['id']=='quartz_spider')
+        for direction in range(4):
+            a=fauna.frame(wood,'idle',0,direction).getchannel('A')
+            b=fauna.frame(quartz,'idle',0,direction).getchannel('A')
+            from PIL import ImageChops
+            difference=ImageChops.difference(a,b)
+            self.assertGreater(sum(value>0 for value in difference.getdata()),80)
+
     def test_drawers_do_not_change_catalog_or_equipment(self):
         item=copy.deepcopy(next(x for x in self.equipment if x['slot']=='weapon'))
         before=copy.deepcopy(item); humanoid.equipment_frame(item,'attack',4,2)
