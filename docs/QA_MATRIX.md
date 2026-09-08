@@ -1,5 +1,9 @@
 # QA acceptance matrix
 
+## Equipment and crafting QA — 2026-09-09
+
+Current equipment results are in the [exact-source checkpoint](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md). Every grade has skill-boundary and authoritative crafting coverage. Native tests cover guide selection, pinned actions, ingredient errors, bounded recipe pages, snapshot stability and scene cleanup. Server tests reject blocked or foreign workstations without state changes. Graphical renders cover 1280 by 720 and 1920 by 1080. Independent image review and Windows 125%/150% scaling remain open. Historical results below remain scoped to their stated revisions.
+
 Current exact-source results: [action presentation checkpoint](handoff/ACTION_PRESENTATION_2026-09-08.md).
 Full run `34258153781` and graphical run `34258153880` passed for source `dd3900bd1dcdb3baa3a7860bcdd7a306e47fa159`.
 Results include 33/34/13/18/5 backend/database checks, five security probes, five migration groups,

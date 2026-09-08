@@ -1,5 +1,9 @@
 # Kairnfall local source handoff
 
+## Latest equipment integration — 2026-09-09
+
+Start from live main and read [Equipment progression checkpoint](EQUIPMENT_PROGRESSION_2026-09-09.md). Actual source is integrated in `b9dadef30bfd5747ff8a44c85c534bf22852dae7` and `4c560ccadf6a43ab4d0601844a8e200190795bd9`. The latest work adds all named gear tiers, real recipes, a native Upgrade guide, bounded crafting controls and clear workstation access. Rebuild client and server catalogs together. Preserve saves, credentials and prior repairs. Whole-game and Windows package acceptance remain incomplete.
+
 ## Latest integrated presentation checkpoint
 
 Continue from live main, not an older candidate. Read [ACTION_PRESENTATION_2026-09-08](ACTION_PRESENTATION_2026-09-08.md).

@@ -1,6 +1,8 @@
 # Kairnfall
 
-Latest source repair: [action presentation and native UI checkpoint](docs/handoff/ACTION_PRESENTATION_2026-09-08.md), integrated in `4d840b5f802fcf79f0e048ba2223ccf6fbecdcae`.
+Current equipment update: [named gear tiers and in-game upgrade guide](docs/EQUIPMENT_PROGRESSION.md). All 51 equipment families have tracks through skill level 100. Inventory opens the Upgrade guide; crafting uses a bounded recipe browser. Existing saved templates and recipes are preserved. [Exact-source verification and remaining acceptance gates](docs/handoff/EQUIPMENT_PROGRESSION_2026-09-09.md). The project is not a verified Windows release.
+
+Previous presentation repair: [action presentation and native UI checkpoint](docs/handoff/ACTION_PRESENTATION_2026-09-08.md), integrated in `4d840b5f802fcf79f0e048ba2223ccf6fbecdcae`.
 Furnished interiors, chalk stance markings, the side-facing bow, and the ability browser are retained.
 New repairs complete short action playback, add spider/turtle action poses, preserve ability-panel state,
 and correct hotbar icon proportions and objective toggles. Full Linux/native/PostgreSQL verification

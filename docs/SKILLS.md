@@ -1,5 +1,9 @@
 # Skill audit contract
 
+## Equipment requirements — 2026-09-09
+
+[Named equipment tiers](EQUIPMENT_PROGRESSION.md) use the item's matching skill. They do not require the same overall player level. Equipment and crafting skills are separate requirements. The skill cap remains 100. The Upgrade guide displays the exact skill, the requirement and the player's current skill level. Server-boundary and crafting tests cover every tracked gear item; this does not approve the pacing or benefits of every other skill.
+
 All 60 named skills are listed in accepted requirements R05 and defined in `content_src/skills.py`.
 Use its action and benefit fields as claims to verify, not proof that the action/effect exists.
 The handoff completes all catalog skill-icon references through `tools/complete_skill_icons.py`.

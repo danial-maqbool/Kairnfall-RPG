@@ -1,5 +1,9 @@
 # Content acceptance matrix
 
+## Equipment coverage — 2026-09-09
+
+[Complete gear tracks](EQUIPMENT_PROGRESSION.md): 21 skill tiers, 51 families and 1,071 tracked entries. Generated totals are 1,354 item templates and 1,286 recipes. All original 530 templates and 463 recipes are retained unchanged. Each new track has server-tested equip/craft behavior and reachable supplies. These counts do not prove artwork, economy pacing or full-world completion. [Acceptance evidence](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md).
+
 Latest bounded repair: [action presentation and native UI](handoff/ACTION_PRESENTATION_2026-09-08.md).
 No classes, quests, items, zones, rewards, or creature records were added in this pass.
 Spider/quartz-spider and turtle/tortoise attack/hit presentation changed. Short action playback,

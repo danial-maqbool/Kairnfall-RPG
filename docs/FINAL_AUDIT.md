@@ -1,5 +1,9 @@
 # Final game audit — pending local acceptance
 
+## Equipment extension — 2026-09-09
+
+Named gear tracks, obtainable crafting routes, working tool benefits, a native Upgrade guide and a bounded crafting browser are implemented and tested. Actual integrations are `b9dadef30bfd5747ff8a44c85c534bf22852dae7` and `4c560ccadf6a43ab4d0601844a8e200190795bd9`. The full retained suite and graphical fixture generation passed. See the [exact checkpoint](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md). No failed or unrun gate is promoted to accepted. Independent artwork review, full ordinary-account playtesting, Windows DPI, audio, sustained multiplayer, performance targets and Windows package acceptance still prevent project closure.
+
 Release status: NOT APPROVED.
 
 Latest integrated repair: [action presentation and native UI](handoff/ACTION_PRESENTATION_2026-09-08.md),

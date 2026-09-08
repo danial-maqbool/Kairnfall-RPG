@@ -1,5 +1,9 @@
 # Economy test plan
 
+## Equipment supply verification — 2026-09-09
+
+[Equipment progression](EQUIPMENT_PROGRESSION.md) adds reachable alloys, textiles, hides and gear recipes. Tin ore is sold by existing miners and blacksmiths. New materials have actual recipe uses; tests reject circular dependencies and forward skill gates. Added output sell values remain below the minimum tested NPC purchase cost of their ingredients. This is not a full gold-per-hour or player-market balance approval. Workstation line of sight and ownership are enforced on the server. See the [checkpoint](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md).
+
 Accepted requirements R13-R14 define gathering, professions, shops, banks, auctions, and atomic trades.
 Inspect `RealmEconomy.cs`, `RealmSocial.cs`, the transaction repair source, and authored recipes/prices/drop tables.
 
