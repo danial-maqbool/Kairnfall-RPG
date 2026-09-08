@@ -12,12 +12,15 @@ public partial class ClientAudio : Node
     private string region = "", atmosphere = "";
     private int voice;
     private bool releasing;
+    private bool disabled;
     private float musicVolume = .35f, effectsVolume = .65f;
     public IReadOnlyCollection<string> Missing => missing;
 
     public override void _Ready()
     {
         releasing = false;
+        disabled = string.Equals(DisplayServer.GetName(), "headless", StringComparison.OrdinalIgnoreCase);
+        if (disabled) return;
         music = new AudioStreamPlayer(); ambience = new AudioStreamPlayer();
         AddChild(music); AddChild(ambience);
         music.Finished += RestartMusic; ambience.Finished += RestartAmbience;
@@ -72,7 +75,7 @@ public partial class ClientAudio : Node
     }
     private AudioStream? Load(string key)
     {
-        if (releasing) return null;
+        if (disabled || releasing) return null;
         if (cache.TryGetValue(key, out var stream)) return stream;
         if (missing.Contains(key)) return null;
         string path = "res://Assets/audio/" + key + ".wav";

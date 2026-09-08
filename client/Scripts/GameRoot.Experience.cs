@@ -300,20 +300,53 @@ public partial class GameRoot
 
     private void ItemContext(Item item, string bag, Vector2 at)
     {
-        if (gameWindow is null || Snapshot is null) return;
+        if (gameWindow is null || Snapshot is not { } opened || !Online) return;
+        if (bag is not ("inventory" or "bank")) return;
+        foreach (var oldMenu in interfaceRoot.FindChildren("*", "Control", true, false).OfType<EquipmentMenu>())
+            oldMenu.Close();
         selectedItem = item.Id; selectedBag = bag; lastPageStamp = "";
-        var menu = new EquipmentMenu();
-        if (Data.Item(item.Template).Slot != "" && bag == "inventory") menu.AddItem(Items.Equipped(Snapshot.Self, item.Id) ? "Unequip" : "Equip", 0);
+        var definition = Data.Item(item.Template);
+        var ownerWindow = gameWindow;
+        string ownerId = opened.Self.Id;
+        bool wasEquipped = Items.Equipped(opened.Self, item.Id);
+        var menu = new EquipmentMenu
+        {
+            ItemName = definition.Name, ItemIcon = Assets.Icon(item.Template),
+            ItemColor = Ui.RarityColor(item.Rarity), Subtitle = item.Rarity + " · " + Ui.Words(definition.Type),
+            ContextValid = () => Online && Snapshot?.Self.Id == ownerId
+                && GodotObject.IsInstanceValid(ownerWindow) && !ownerWindow.IsQueuedForDeletion()
+                && ownerWindow.IsInsideTree() && gameWindow == ownerWindow
+        };
+        if (definition.Slot != "" && bag == "inventory") menu.AddItem(wasEquipped ? "Unequip" : "Equip", 0);
+        if (bag == "bank") menu.AddItem("Withdraw", 3, !NearRole("banker"));
+        if (bag == "inventory" && definition.Type is "food" or "potion" or "scroll") menu.AddItem("Use", 2);
+        if (bag == "inventory" && definition.Type is "book" or "treasure_map") menu.AddItem("Read", 4);
         menu.AddItem("Inspect item", 1);
-        if (bag == "inventory" && Data.Item(item.Template).Type is "food" or "potion" or "scroll") menu.AddItem("Use", 2);
         menu.SelectedAction = choice =>
         {
-            if (choice == 0) ToggleEquipment(item.Id);
-            if (choice == 1) { selectedItem = item.Id; selectedBag = bag; lastPageStamp = ""; }
-            if (choice == 2) Send("consume", item: item.Id);
+            if (Snapshot is not { } current || current.Self.Id != ownerId || !Online) return;
+            var source = bag == "bank" ? current.Self.Bank : current.Self.Inventory;
+            var currentItem = source.FirstOrDefault(x => x.Id == item.Id);
+            if (currentItem is null) { Notify("This item moved. Open its actions again.", true); return; }
+            if (choice == 0)
+            {
+                if (Items.Equipped(current.Self, item.Id) != wasEquipped)
+                {
+                    Notify("Equipment changed. Open its actions again.", true); return;
+                }
+                ToggleEquipment(item.Id);
+            }
+            else if (choice == 1) { selectedItem = item.Id; selectedBag = bag; lastPageStamp = ""; }
+            else if (choice == 2) Send("consume", item: item.Id);
+            else if (choice == 3)
+            {
+                if (NearRole("banker")) Send("withdraw", item: item.Id);
+                else Notify("Move closer to the banker.", true);
+            }
+            else if (choice == 4) Send("read", item: item.Id);
         };
-        gameWindow.AddChild(menu);
-        menu.Popup(new Rect2I((Vector2I)at, new Vector2I(1, 1)));
+        interfaceRoot.AddChild(menu);
+        menu.OpenAt(at);
     }
 
     private void BuildEquipmentAction(Node parent, Item? item, string bag)
@@ -330,11 +363,3 @@ public partial class GameRoot
     }
 }
 
-public partial class EquipmentMenu : PopupMenu
-{
-    public Action<long>? SelectedAction { get; set; }
-    public override void _Ready() { IdPressed += Select; PopupHide += Closed; }
-    private void Select(long id) { var action = SelectedAction; Hide(); action?.Invoke(id); }
-    private void Closed() => QueueFree();
-    public override void _ExitTree() { IdPressed -= Select; PopupHide -= Closed; SelectedAction = null; }
-}

@@ -163,13 +163,33 @@ public partial class LiveExperienceContract : Node
             await Until(() => Self.Equipment.GetValueOrDefault("weapon") == weapon, "Native double-click did not equip the item.");
             Require(true, "Native double-click supports equip and unequip");
             await Delay(.3); await Click(ItemControl(weapon), MouseButton.Right); await Delay(.15);
-            var menu = game.FindChildren("*", "PopupMenu", true, false).OfType<EquipmentMenu>().Single(x => !x.IsQueuedForDeletion());
-            Require(menu.GetItemText(0) == "Unequip", "Native right-click opens the equipment context menu");
-            menu.SetFocusedItem(0);
-            using (var enter = new InputEventKey { PhysicalKeycode = Key.Enter, Keycode = Key.Enter, Pressed = true }) menu.PushInput(enter);
-            using (var release = new InputEventKey { PhysicalKeycode = Key.Enter, Keycode = Key.Enter, Pressed = false }) menu.PushInput(release);
-            await Until(() => !Self.Equipment.ContainsKey("weapon"), "Native context-menu input did not unequip the item.");
-            Require(true, "The native context-menu action reaches the authoritative server");
+            EquipmentMenu OpenMenu() => game.FindChildren("*", "Control", true, false).OfType<EquipmentMenu>().Single(x => !x.IsQueuedForDeletion());
+            var menu = OpenMenu();
+            Require(menu.GetActionButton(0).Text == "Unequip", "Native right-click opens the equipment context menu");
+            await Click(menu.GetActionButton(0));
+            await Until(() => !Self.Equipment.ContainsKey("weapon"), "Native context-menu Unequip did not change server equipment.");
+            Require(true, "A native mouse click on context Unequip reaches the authoritative server");
+            await Delay(.3); await Click(ItemControl(weapon), MouseButton.Right); await Delay(.15);
+            menu = OpenMenu();
+            Require(menu.GetActionButton(0).Text == "Equip", "The reopened context menu reflects authoritative unequipped state");
+            await Click(menu.GetActionButton(0));
+            await Until(() => Self.Equipment.GetValueOrDefault("weapon") == weapon, "Native context-menu Equip did not change server equipment.");
+            Require(true, "A native mouse click on context Equip reaches the authoritative server");
+            await Delay(.3); sequence = Self.LastAction;
+            for (int cycle = 0; cycle < 8; cycle++)
+            {
+                await Click(ItemControl(weapon), MouseButton.Right); await Delay(.1);
+                Require(OpenMenu().IsVisibleInTree(), "Repeated context menu opens without an orphan overlay");
+                await Tap(Key.Escape); await Frame();
+                Require(!game.FindChildren("*", "Control", true, false).OfType<EquipmentMenu>().Any(x => !x.IsQueuedForDeletion()), "Escape removes the context menu");
+                Require(Field<string>(game, "currentPage") == "Inventory", "Closing a context menu retains the inventory window");
+            }
+            await Delay(.3);
+            Require(Self.LastAction == sequence, "Cancelled context actions send no equipment requests");
+            await Click(ItemControl(weapon), MouseButton.Right); await Delay(.15);
+            await Click(OpenMenu().GetActionButton(0));
+            await Until(() => !Self.Equipment.ContainsKey("weapon"), "The context menu failed after repeated recreation.");
+            Require(true, "Context Unequip still works after repeated recreation");
             Call("SaveScreenshot", "06-inventory.png");
             GetViewport().GuiReleaseFocus(); await Tap(Key.C); await Delay(.4);
             var weaponSlot = game.FindChildren("Equipment_weapon", "Control", true, false).Cast<Control>().Single();
