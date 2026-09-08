@@ -1,6 +1,6 @@
 {
-  "sha": "43ca7e78e643e375abe2804da46ded12658e551b",
+  "sha": "1699c11bba085a694a5b88f544fbf854c56f1d92",
   "base": "ab022f15540df35393d1ccc474e0cda7afdc4ec8",
   "mode": "repair",
-  "purpose": "Verify recovered controls/equipment, grouped Skills UI, moving-target approach with cumulative distance/time bounds, and all prior regressions. The normal 15-second encounter assertion remains unchanged."
+  "purpose": "Verify controls, equipment, staffed starter/capital interiors, native keyboard skill search, and bounded moving-target approach. Keep all previous security, persistence, and 15-second live encounter assertions."
 }
