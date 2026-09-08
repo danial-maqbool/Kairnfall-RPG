@@ -1,6 +1,6 @@
 {
-  "sha": "51a48ce5316c85c380bd67c4053215916744e967",
-  "base": "ab022f15540df35393d1ccc474e0cda7afdc4ec8",
-  "mode": "repair",
-  "purpose": "Run all existing controls/equipment, skill-browser, interior, backend, security and persistence gates. Verify new idle-motion and bounded-retreat regressions. The native 15-second encounter assertion remains unchanged."
+  "sha":"0648442cc6d7065fe7f2258f2c212d8eec944bcb",
+  "base":"fc15be9e4ec48673b44cc43fcf64aee60e92a710",
+  "mode":"repair",
+  "purpose":"Verify 18-step action-driven guidance, seven new authoritative tutorial regressions, and all retained native equipment, held-Space, security, persistence, and graphical smoke gates."
 }
