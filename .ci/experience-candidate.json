@@ -1,6 +1,6 @@
 {
-  "sha": "55e4658638a80bd0d66e5547755a16e007cf1a42",
+  "sha": "43ca7e78e643e375abe2804da46ded12658e551b",
   "base": "ab022f15540df35393d1ccc474e0cda7afdc4ec8",
   "mode": "repair",
-  "purpose": "Retain all existing checks and the 15-second live combat requirement. Record bounded non-sensitive attack state to diagnose the encounter timeout after equipment, menu lifecycle, native input, and graphical checks passed."
+  "purpose": "Verify recovered controls/equipment, grouped Skills UI, moving-target approach with cumulative distance/time bounds, and all prior regressions. The normal 15-second encounter assertion remains unchanged."
 }
