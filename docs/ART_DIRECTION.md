@@ -1,5 +1,18 @@
 # Pixel-art direction and review contract
 
+## Current action presentation
+
+See [the action checkpoint](handoff/ACTION_PRESENTATION_2026-09-08.md). The player and gear
+retain their shared 64-pixel canvas and integer foot anchor. WorldView now plays all eight
+action frames across the actual action duration. Corpses complete a 0.65-second collapse
+and hold the final pose separately from corpse retention. Spider and turtle actions use
+authored joint/neck offsets, not bitmap rotation or meaningless per-frame pixel changes.
+Review galleries now sample frames 0, 1, 2, 3, 4, and 7 in every state and direction.
+The tests and native renderer passed. Independent PNG inspection and final visual approval
+were not completed in the chat runtime; the evidence locations are in the checkpoint.
+
+## Required visual standard
+
 The user requires pixel art based on the construction of real objects and recognizable anatomy.
 This is a visual acceptance contract. Generated files have not received final visual approval.
 

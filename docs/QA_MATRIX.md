@@ -1,6 +1,16 @@
 # QA acceptance matrix
 
-Current bounded evidence: [September 8 visual repair](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md).
+Current exact-source results: [action presentation checkpoint](handoff/ACTION_PRESENTATION_2026-09-08.md).
+Full run `34258153781` and graphical run `34258153880` passed for source `dd3900bd1dcdb3baa3a7860bcdd7a306e47fa159`.
+Results include 33/34/13/18/5 backend/database checks, five security probes, five migration groups,
+seven furnishing checks, 94 Python tests, 51 native player checks, 601 native control checks,
+83 live client/server checks, and 126 graphical fixture checks.
+New coverage includes real WorldView timing, native objective clicks, ability-panel reattachment,
+style resource reuse, icon geometry, and species-specific action phases.
+Graphically rendered is not independently visually approved. Windows DPI, human playtesting,
+audio listening, measured performance, and extracted packages remain unapproved.
+
+Previous Windows evidence: [September 8 visual repair](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md).
 Bootstrap, 103 backend/database checks, 74 Python tests, native signals/input,
 102 visual-fixture checks, 83 isolated live checks and inspected graphical smoke
 passed. Visual approval is incomplete. DPI, full manual gameplay, audio, load

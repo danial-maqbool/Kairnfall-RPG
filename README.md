@@ -1,12 +1,19 @@
 # Kairnfall
 
+Latest source repair: [action presentation and native UI checkpoint](docs/handoff/ACTION_PRESENTATION_2026-09-08.md), integrated in `4d840b5f802fcf79f0e048ba2223ccf6fbecdcae`.
+Furnished interiors, chalk stance markings, the side-facing bow, and the ability browser are retained.
+New repairs complete short action playback, add spider/turtle action poses, preserve ability-panel state,
+and correct hotbar icon proportions and objective toggles. Full Linux/native/PostgreSQL verification
+and graphical fixture generation passed. Independent review of the new PNGs and Windows DPI acceptance
+remain open. This is not a Windows release.
+
 Persistent 2D top-down medieval fantasy RPG for Windows. The client uses Godot C#.
 The authoritative .NET server stores accounts and world state in PostgreSQL.
 
 **Status: source handoff for local testing. This is not a completed game release.**
 
 The [September 8 visual repair checkpoint](docs/handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md)
-records current main's bear/weapon presentation, village placement, inventory and
+records the earlier Windows checkpoint's bear/weapon presentation, village placement, inventory and
 HUD repairs. Local bootstrap, isolated database suites, native Godot contracts
 and inspected graphical smoke passed. Full visual acceptance remains incomplete;
 interiors, bow alignment, manual/DPI coverage and release gates remain open.

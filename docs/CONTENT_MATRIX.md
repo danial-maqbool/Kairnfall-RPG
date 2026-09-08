@@ -1,5 +1,14 @@
 # Content acceptance matrix
 
+Latest bounded repair: [action presentation and native UI](handoff/ACTION_PRESENTATION_2026-09-08.md).
+No classes, quests, items, zones, rewards, or creature records were added in this pass.
+Spider/quartz-spider and turtle/tortoise attack/hit presentation changed. Short action playback,
+ability-browser lifecycle, hotbar framing, and objective feedback were repaired.
+Status: implemented, automatically tested, and graphically rendered. Individual artwork
+acceptance, the complete roster review, and full manual gameplay remain open.
+
+### Previous Windows checkpoint
+
 The [September 8 visual checkpoint](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md)
 changes presentation and existing NPC positions without increasing scope or
 content counts. Current path probes cover 107 zones and 1,013 destinations.

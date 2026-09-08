@@ -2,7 +2,14 @@
 
 Release status: NOT APPROVED.
 
-Latest evidence: [September 8 Windows visual repair](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md).
+Latest integrated repair: [action presentation and native UI](handoff/ACTION_PRESENTATION_2026-09-08.md),
+source integration `4d840b5f802fcf79f0e048ba2223ccf6fbecdcae`. The furnishing/practice-ring failure
+and side-facing bow source repair are no longer outstanding integration blockers.
+New creature action, short-animation timing, and UI lifetime/HUD fixes passed the retained
+full verification and graphical fixture workflows. Independent inspection of the new
+images remains open. This does not close full visual, gameplay, DPI, audio, load, or package gates.
+
+Previous Windows evidence: [September 8 Windows visual repair](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md).
 Source preparation and bounded automatic/native/graphical checks passed.
 Bear anatomy, common-fauna death poses, wand/mace presentation, NPC layout,
 inventory and HUD readability were repaired. Full visual acceptance is still

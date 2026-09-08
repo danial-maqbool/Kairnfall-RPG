@@ -1,6 +1,16 @@
 # Kairnfall local source handoff
 
-## Status
+## Latest integrated presentation checkpoint
+
+Continue from live main, not an older candidate. Read [ACTION_PRESENTATION_2026-09-08](ACTION_PRESENTATION_2026-09-08.md).
+Implementation `4d840b5f802fcf79f0e048ba2223ccf6fbecdcae` retains the furnished rooms and bow/browser
+repairs and adds tested creature action playback, ability-panel lifecycle and HUD corrections.
+The checkpoint records 94 Python tests, 601 native control checks, 83 live server checks,
+and 126 graphical fixture checks. Native rendering passed; independent image inspection
+was blocked by the chat runtime. Full visual and whole-game acceptance are not granted.
+Preserve saved data and keep only main. Do not reset to an evidence or preparation commit.
+
+## Previous local Windows status
 
 Continue only on `main`; do not create branches or pull requests. The
 [September 8 visual checkpoint](LOCAL_VISUAL_REVIEW_2026-09-08.md) supersedes older

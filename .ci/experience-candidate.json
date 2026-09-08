@@ -1,6 +1,6 @@
 {
-  "sha": "dd3900bd1dcdb3baa3a7860bcdd7a306e47fa159",
-  "base": "9c6dd629ad96c5c898ae5676b4291401b008d82a",
+  "sha": "13a6ef95b4f4ad26131df5a7279257b7931bf22a",
+  "base": "4d840b5f802fcf79f0e048ba2223ccf6fbecdcae",
   "mode": "repair",
-  "purpose": "Verify complete short-action playback, joint-based spider/turtle attacks and reactions, ability-panel reattachment and cached styles, square hotbar icons, and objective toggle state. Retain all backend, database, migration, furniture, art, native input, and live-client regressions."
+  "purpose": "Final re-verification of the integrated action presentation source plus documentation. Preserve all backend, security, migration, furnishing, native UI, live-client and graphical checks. Independent image inspection and Windows manual acceptance remain separate."
 }

@@ -1,5 +1,19 @@
 # Verification record
 
+## Integrated action presentation checkpoint, 2026-09-08
+
+Read [ACTION_PRESENTATION_2026-09-08](ACTION_PRESENTATION_2026-09-08.md) for exact source blobs,
+coverage, artifact identifiers, and limits. The implementation integrated in `4d840b5f802fcf79f0e048ba2223ccf6fbecdcae`
+was tested as `dd3900bd1dcdb3baa3a7860bcdd7a306e47fa159`. Full verification run `34258153781`
+and graphical fixture run `34258153880` passed. Backend/database counts remain 33/34/13/18/5;
+security probes 5, migration groups 5, furnishing checks 7, Python tests 94, native player 51,
+native controls 601, live client/server 83, and graphical fixture checks 126 passed.
+Signals, input cleanup, and 45,610 asset structural assertions also passed.
+The graphical contract produced 92 PNG fixtures. The integration owner read the logs but could
+not independently open those images in this chat runtime. These are Linux/native automated
+results, not human gameplay, Windows DPI, audio listening, or package acceptance.
+The local Windows result below describes an earlier source revision.
+
 ## Local Windows visual repair checkpoint, 2026-09-08
 
 Read [the current detailed record](LOCAL_VISUAL_REVIEW_2026-09-08.md) for the exact
