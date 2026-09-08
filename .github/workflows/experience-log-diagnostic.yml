@@ -16,20 +16,21 @@ jobs:
         with:
           github-token: ${{ github.token }}
           repository: danial-maqbool/Kairnfall-RPG
-          run-id: 34155716528
-          artifact-ids: '10030987983'
+          run-id: 34184723299
+          artifact-ids: '10040210436'
           path: evidence
-      - name: Print only native test output and recorded revision
+      - name: Print bounded combat evidence
         run: |
           python3 - <<'PY'
           from pathlib import Path
           root = Path('evidence')
-          for suffix in ('revision.txt', 'signals.log', 'input.log', 'experience.log'):
+          for suffix in ('revision.txt', 'live-experience.log'):
               paths = list(root.rglob(suffix))
               print('\n=== ' + suffix + ' ===')
               if not paths:
-                  print('NOT PRODUCED')
+                  raise SystemExit('Required diagnostic file was not produced')
               for path in paths:
-                  text = path.read_text(encoding='utf-8', errors='replace')
-                  print('\n'.join(text.splitlines()[-70:])[:18000])
+                  lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
+                  selected = [line for line in lines if suffix == 'revision.txt' or any(key in line for key in ('COMBAT_TRACE', 'ERROR:', 'TimeoutException', 'PASS LIVE EXPERIENCE:', 'LIVE_EXPERIENCE_CONTRACT:'))]
+                  print('\n'.join(selected[-90:])[-20000:])
           PY
