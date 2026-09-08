@@ -32,7 +32,7 @@ public partial class EquipmentGuidePanel : VBoxContainer
         selectedStyle=Ui.Box(Ui.Raised.Lightened(.12f),Ui.Gold,8);
         ordinaryStyle=Ui.Box(Ui.Ink,new Color("665941"),8);
         AddChild(Ui.Label("EQUIPMENT PROGRESSION",20,Ui.Gold));
-        AddChild(Ui.Label("Tier levels require the named skill, not your overall level. Rarity and runes are separate from the material tier.",14,Ui.Muted,true));
+        AddChild(Ui.Label("Grade is separate from skill requirements. Early grade 5 / 10 / 15 equipment needs skill 3 / 6 / 10. Recipes keep their own requirements.",14,Ui.Muted,true));
         var filters=Ui.Row(this);
         category=new OptionButton{Name="GearCategory",SizeFlagsHorizontal=SizeFlags.ExpandFill};
         foreach(string name in new[]{"Weapons","Light armor","Medium armor","Heavy armor","Offhands","Accessories","Working tools"}) category.AddItem(name);
@@ -113,13 +113,13 @@ public partial class EquipmentGuidePanel : VBoxContainer
             button.Name="GearChoice_"+id; button.Icon=Assets.Icon(id); button.ExpandIcon=true;
             button.Alignment=HorizontalAlignment.Left; button.ClipText=true;
             button.AddThemeConstantOverride("icon_max_width",32); button.CustomMinimumSize=new Vector2(0,48);
-            button.TooltipText=item.Name+"\nRequires "+Data.Skill(item.Skill).Name+" "+item.Requirement;
+            button.TooltipText=item.Name+"\nRequires "+Data.Skill(item.Skill).Name+" "+BeginnerProgression.EquipmentRequirement(item);
             rows.AddChild(button); choices.Add(id,button); visible.Add(id);
         }
         if(!visible.Contains(SelectedItem))
         {
             var self=ReadCharacter();
-            SelectedItem=self is null?visible.FirstOrDefault()??"":visible.FirstOrDefault(id=>Data.Item(id).Requirement>Progression.Level(self,Data.Item(id).Skill))??visible.LastOrDefault()??"";
+            SelectedItem=self is null?visible.FirstOrDefault()??"":visible.FirstOrDefault(id=>BeginnerProgression.EquipmentRequirement(Data.Item(id))>Progression.Level(self,Data.Item(id).Skill))??visible.LastOrDefault()??"";
         }
         RefreshSnapshot();
     }
@@ -145,8 +145,8 @@ public partial class EquipmentGuidePanel : VBoxContainer
         foreach(var stat in item.Stats) text.AppendLine($"{Ui.Words(stat.Key)} +{stat.Value:0.##}");
         text.AppendLine().Append(item.Description);
         details.Text=text.ToString().ReplaceLineEndings("\n");
-        status.Text="Requires "+Data.Skill(item.Skill).Name+" "+item.Requirement+". Your skill: "+trained+".\n"+
-            (trained>=item.Requirement?(item.Type=="tool"?"Usable from your backpack.":"Skill requirement met. Hand compatibility still applies."):"Train this skill before using the item.");
+        status.Text="Requires "+Data.Skill(item.Skill).Name+" "+BeginnerProgression.EquipmentRequirement(item)+". Your skill: "+trained+".\n"+
+            (trained>=BeginnerProgression.EquipmentRequirement(item)?(item.Type=="tool"?"Usable from your backpack.":"Skill requirement met. Hand compatibility still applies."):"Train this skill before using the item.");
         var recipe=Data.Recipes.FirstOrDefault(r=>r.Output==item.Id);
         ingredients.Text=recipe is null?"No recipe found.":"CRAFT AT "+Ui.Words(recipe.Station)+"\n"+Data.Skill(recipe.Skill).Name+" "+recipe.Requirement+"\n"+
             string.Join("\n",recipe.Ingredients.Select(x=>Data.Item(x.Key).Name+"  "+(self is null?0:Items.Count(self,x.Key))+" / "+x.Value));

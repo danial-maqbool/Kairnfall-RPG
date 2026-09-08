@@ -58,6 +58,10 @@ public partial class GameRoot
                 GetViewport().SetInputAsHandled(); return;
             }
             if (!GameplayInputAllowed) return;
+            if (key.IsActionPressed("dash"))
+            {
+                RequestDash(); GetViewport().SetInputAsHandled(); return;
+            }
             if (key.IsActionPressed("basic_attack"))
             {
                 BeginBasicAttack(true); GetViewport().SetInputAsHandled(); return;
@@ -68,7 +72,7 @@ public partial class GameRoot
             }
             if (key.IsActionPressed("target_next"))
             {
-                CycleHostileTarget(); GetViewport().SetInputAsHandled(); return;
+                CycleHostileTarget(key.ShiftPressed); GetViewport().SetInputAsHandled(); return;
             }
             int hotkey = (int)key.PhysicalKeycode;
             if (hotkey is >= 48 and <= 57)

@@ -159,11 +159,11 @@ public partial class GameRoot
         // Empty-space input sends no request and adds nothing to chat.
     }
 
-    private void CycleHostileTarget()
+    private void CycleHostileTarget(bool reverse = false)
     {
         if (!GameplayInputAllowed) return;
         var snapshot = Snapshot!;
-        if (ExperienceRules.CycleTarget(snapshot.Self, snapshot.Creatures, Data, selectedTarget) is { } target)
+        if (ExperienceRules.CycleTarget(snapshot.Self, snapshot.Creatures, Data, selectedTarget, reverse) is { } target)
             SelectTarget("creature", target.Id);
     }
 
@@ -172,7 +172,7 @@ public partial class GameRoot
         var controls = new HBoxContainer
         {
             Name = "CombatControls", AnchorLeft = .5f, AnchorRight = .5f, AnchorTop = 1, AnchorBottom = 1,
-            OffsetLeft = -245, OffsetRight = 245, OffsetTop = -142, OffsetBottom = -101,
+            OffsetLeft = -330, OffsetRight = 330, OffsetTop = -142, OffsetBottom = -101,
             MouseFilter = MouseFilterEnum.Ignore
         };
         hud.AddChild(controls);
@@ -187,6 +187,12 @@ public partial class GameRoot
         interactionButton.FocusMode = FocusModeEnum.None;
         interactionButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         controls.AddChild(interactionButton);
+        targetNextButton = Ui.Button("Target [Tab]", () => CycleHostileTarget());
+        targetNextButton.Name = "CycleHostileTarget"; targetNextButton.FocusMode = FocusModeEnum.None;
+        targetNextButton.TooltipText = "Tab: next living creature. Shift+Tab: previous. Walls and pets are excluded.";
+        controls.AddChild(targetNextButton);
+        dashButton = Ui.Button("Dash [Q]", RequestDash); dashButton.Name = "DashAction";
+        dashButton.FocusMode = FocusModeEnum.None; controls.AddChild(dashButton);
         interactionHint = Ui.Label("", 15, Ui.Gold, true);
         interactionHint.Name = "InteractionPrompt";
         interactionHint.AnchorLeft = interactionHint.AnchorRight = .5f;
@@ -227,13 +233,14 @@ public partial class GameRoot
         contextClock = 0;
         double now = Time.GetTicksMsec() / 1000.0;
         var context = GameplayInputAllowed ? ContextTarget() : null;
+        UpdateMobControls();
         interactionButton.Disabled = context is null;
         basicAttackButton.Disabled = !GameplayInputAllowed;
         basicAttackButton.Text = "Attack [" + bindings["basic_attack"] + "]";
         interactionButton.Text = "Interact [" + bindings["interact"] + "]";
         interactionHint.Text = context is { } target
             ? "[" + bindings["interact"] + "] " + ContextVerb(target) + " " + target.Name
-            : GameplayInputAllowed ? "Hold " + bindings["basic_attack"] + " to attack  ·  Tab selects a hostile  ·  1–0 uses abilities" : "";
+            : GameplayInputAllowed ? "Hold " + bindings["basic_attack"] + " to attack · " + bindings["target_next"] + " cycles targets · " + bindings["dash"] + " dashes (4 mana)" : "";
         if (now >= nextProgressionNote && pendingSkillGains.Count > 0)
         {
             var keys = pendingSkillGains.Keys.OrderByDescending(x => pendingSkillLevels.ContainsKey(x)).Take(3).ToArray();

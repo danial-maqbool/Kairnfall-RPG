@@ -34,7 +34,7 @@ public partial class GameRoot
         if (def.Slot == "weapon") text.AppendLine($"Range: {def.Range:0.0} tiles · {def.Element}");
         foreach (var stat in def.Stats) text.AppendLine($"{stat.Value:+0.0;-0.0;0} {Ui.Words(stat.Key)}");
         foreach (var affix in item.Affixes) text.AppendLine($"{affix.Value:+0.0;-0.0;0} {Ui.Words(affix.Stat)}");
-        if (def.Skill != "") text.AppendLine($"Requires {Data.Skill(def.Skill).Name} {def.Requirement}");
+        if (def.Skill != "") text.AppendLine($"Requires {Data.Skill(def.Skill).Name} {BeginnerProgression.EquipmentRequirement(def)}" + (BeginnerProgression.EquipmentRequirement(def) < def.Requirement ? $" · Grade {def.Requirement}" : ""));
         if (def.Slot != "") text.AppendLine($"Durability: {item.Durability}% · Runes: {item.Runes.Count}/{item.Sockets}");
         else if (def.Type == "tool") text.AppendLine($"Tool durability: {item.Durability}%");
         foreach (var rune in item.Runes) text.AppendLine("Rune: " + Data.Item(rune.Template).Name);
@@ -105,7 +105,11 @@ public partial class GameRoot
         }
         else selectedBag = "inventory";
         var scroll = Ui.Scroll(left, new Vector2(350, 250));
-        var grid = new GridContainer { Columns = 5 }; scroll.AddChild(grid);
+        var sections = Ui.Column(scroll); sections.Name = "InventorySections";
+        var view = new OptionButton { Name = "InventoryView" };
+        foreach (string label in new[] { "All items", "Ready to equip", "Locked equipment", "Tools and supplies" }) view.AddItem(label);
+        left.AddChild(view);
+        left.AddChild(Ui.Label("All sections share the same 64 backpack slots. Bank capacity is separate.", 12, Ui.Muted, true));
         left.AddChild(Ui.Label("Select to inspect · Double-click to equip · Right-click for actions", 12, Ui.Muted, true));
         var inspector = Ui.Column(body, true); inspector.CustomMinimumSize = new Vector2(300, 0);
         // The primary action stays outside the scrolling statistics panel.
@@ -116,7 +120,7 @@ public partial class GameRoot
         {
             if (Snapshot is not { } snap) return;
             var self = snap.Self;
-            Ui.Clear(grid); Ui.Clear(details); Ui.Clear(primary);
+            Ui.Clear(sections); Ui.Clear(details); Ui.Clear(primary);
             var source = bank && selectedBag == "bank" ? self.Bank : self.Inventory;
             summary.Text = $"Backpack {self.Inventory.Count}/{Items.InventoryCapacity} · Bank {self.Bank.Count}/{Items.BankCapacity} · {self.Gold:N0} gold"
                 + (bank && !NearRole("banker") ? " · Visit a banker to transfer items." : "");
@@ -124,8 +128,22 @@ public partial class GameRoot
             var sorted = (inventoryByName ? filtered.OrderBy(x => Data.Item(x.Template).Name) : filtered.OrderByDescending(x => x.Rarity).ThenBy(x => Data.Item(x.Template).Type)).ToArray();
             if (!source.Any(x => x.Id == selectedItem))
                 selectedItem = sorted.FirstOrDefault(x => Data.Item(x.Template).Slot != "")?.Id ?? sorted.FirstOrDefault()?.Id ?? "";
-            foreach (var item in sorted) grid.AddChild(MakeSlot(item, selectedBag));
-            for (int i = grid.GetChildCount(); i < 30; i++)
+            var grouped = sorted.GroupBy(item => selectedBag == "bank" ? 3 : InventorySections.Group(self, item, Data)).OrderBy(group => group.Key);
+            foreach (var group in grouped)
+            {
+                if (view.Selected != 0 && group.Key != view.Selected) continue;
+                sections.AddChild(Ui.Label((selectedBag == "bank" ? "Bank storage" : InventorySections.Names[group.Key]) + " · " + group.Count(), 14, group.Key == 1 ? Ui.Success : Ui.Gold));
+                var slots = new GridContainer { Columns = 5, Name = "InventoryGroup" + group.Key };
+                sections.AddChild(slots);
+                foreach (var item in group)
+                {
+                    var slot = MakeSlot(item, selectedBag);
+                    if (group.Key == 2) slot.TooltipText += "\n" + ExperienceRules.EquipmentProblem(self, item, Data);
+                    slots.AddChild(slot);
+                }
+            }
+            var grid = new GridContainer { Columns = 5 }; sections.AddChild(grid);
+            for (int i = 0; i < Math.Min(5, Math.Max(0, (selectedBag == "bank" ? Items.BankCapacity : Items.InventoryCapacity) - source.Count)); i++)
             {
                 string targetBag = selectedBag;
                 grid.AddChild(new EquipmentItemSlot
@@ -144,7 +162,7 @@ public partial class GameRoot
             BuildEquipmentAction(primary, selected, selectedBag);
             DrawItemDetails(details, selected, bank);
         }
-        refreshPage = Render; search.TextChanged += _ => Render(); Render();
+        refreshPage = Render; search.TextChanged += _ => Render(); view.ItemSelected += _ => Render(); Render();
     }
 
     private void DrawItemDetails(VBoxContainer parent, Item item, bool bank)
