@@ -26,6 +26,59 @@ public partial class ControlRulesContract : Node
             && rect.Position.X >= bounds.Position.X && rect.Position.Y >= bounds.Position.Y
             && rect.End.X <= bounds.End.X + 1 && rect.End.Y <= bounds.End.Y + 1;
     }
+    private async Task ClickGuideControl(Control control)
+    {
+        var at = control.GetGlobalRect().GetCenter();
+        Require(Contained(control), "The skill control is visible and reachable: " + control.Name);
+        using (var press = new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, ButtonMask = MouseButtonMask.Left, Pressed = true })
+            GetViewport().PushInput(press, true);
+        await Frame();
+        using (var release = new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = false })
+            GetViewport().PushInput(release, true);
+        await Frame(); await Frame();
+    }
+
+    private async Task VerifySkillGuide(GameRoot game, Catalog data, Character self)
+    {
+        Require(data.Skills.All(skill => SkillGuideRules.Categories.Contains(SkillGuideRules.Group(skill))), "Every skill has one of the six player-facing categories");
+        Require(SkillGuideRules.Categories.Sum(category => SkillGuideRules.Filter(data, category, "").Count) == data.Skills.Count, "The category filters cover every skill exactly once");
+        Require(SkillGuideRules.Group(data.Skill("shield_mastery")) == "Defense", "Shield training appears under Defense");
+        Require(SkillGuideRules.Filter(data, "All", "  mInInG  ").Any(skill => skill.Id == "mining"), "Skill search ignores case and surrounding spaces");
+        foreach (var skill in data.Skills)
+        {
+            var unlocks = SkillGuideRules.FutureUnlocks(data, self, skill.Id);
+            Require(unlocks.All(unlock => unlock.Level > Progression.Level(self, skill.Id) && unlock.Level <= 100), "Future unlocks use real later requirements for " + skill.Id);
+        }
+        foreach (var size in new[] { new Vector2I(1280, 720), new Vector2I(1920, 1080) })
+        {
+            GetWindow().Size = size; GetWindow().ContentScaleSize = size;
+            Call(game, "OpenPage", "Skills");
+            await Frame(); await Frame(); await Frame();
+            var guide = game.FindChildren("SkillGuide", "VBoxContainer", true, false).OfType<SkillGuidePanel>().Single();
+            Require(guide.VisibleSkillCount == data.Skills.Count, "The skill browser initially exposes the full catalog at " + size);
+            var gathering = guide.FindChildren("SkillCategory_Gathering", "Button", true, false).Cast<Button>().Single();
+            await ClickGuideControl(gathering);
+            Require(guide.ActiveCategory == "Gathering" && guide.VisibleSkillCount == SkillGuideRules.Filter(data, "Gathering", "").Count, "A native category click filters the skill list");
+            guide.SearchBox.Text = "Mining"; await Frame(); await Frame();
+            Require(guide.VisibleSkillCount == 1 && guide.SelectedSkillId == "mining", "The search signal selects the matching skill");
+            var training = guide.FindChildren("SkillTrainingAction", "Label", true, false).Cast<Label>().Single();
+            Require(training.Text == data.Skill("mining").Action, "The detail panel states the actual catalog training action");
+            var item = guide.FindChildren("SkillEntry_mining", "Button", true, false).Cast<Button>().Single();
+            ulong identity = item.GetInstanceId();
+            long original = self.SkillXp.GetValueOrDefault("mining");
+            self.SkillXp["mining"] = original + 1; guide.RefreshSnapshot(); await Frame();
+            Require(guide.FindChildren("SkillEntry_mining", "Button", true, false).Cast<Button>().Single().GetInstanceId() == identity, "A live XP refresh preserves the navigation node and scroll state");
+            self.SkillXp["mining"] = original; guide.RefreshSnapshot();
+            guide.SearchBox.Text = "NoSuchSkillFixture"; await Frame(); await Frame();
+            Require(guide.VisibleSkillCount == 0 && guide.SelectedSkillId == "", "An empty search clears stale skill details");
+            guide.SearchBox.Text = ""; await Frame(); await Frame();
+            Require(guide.VisibleSkillCount == SkillGuideRules.Filter(data, "Gathering", "").Count, "Clearing search restores the active category");
+            Require(Contained(guide.SearchBox), "The skill search stays in the viewport at " + size);
+            Call(game, "ClosePage"); await Frame(); await Frame();
+            Require(!GodotObject.IsInstanceValid(guide), "Closing the skill browser releases the native panel");
+        }
+    }
+
     public override async void _Ready()
     {
         GameRoot? game = null;
@@ -135,6 +188,7 @@ public partial class ControlRulesContract : Node
                 Call(game, "ClosePage"); await Frame(); await Frame();
                 Require(Field<Button[]>(game, "hotbarButtons").All(Contained), "All ten hotbar buttons fit the " + size + " viewport");
             }
+            await VerifySkillGuide(game, data, self);
             await NativeTestLifetime.ReleaseSceneAsync(this, game);
             Require(!GodotObject.IsInstanceValid(game), "The real scene releases after repeated layouts");
             GD.Print($"CONTROL_RULES_CONTRACT: {checks} checks passed. Rule fixtures and native input/layout checks only.");
