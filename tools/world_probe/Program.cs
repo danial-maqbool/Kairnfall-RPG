@@ -159,4 +159,5 @@ Console.WriteLine($"SAVE MIGRATION: {saveTests} passed; total probe failures {fa
 FurnishingChecks.Run(catalog, failures);
 GearProgressionChecks.Run(catalog,failures);
 CraftStationChecks.Run(catalog,failures);
+EquipmentMaintenanceChecks.Run(catalog,failures);
 return failures.Count == 0 ? 0 : 1;

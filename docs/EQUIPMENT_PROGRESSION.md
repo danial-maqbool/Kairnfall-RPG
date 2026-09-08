@@ -74,6 +74,8 @@ Existing merchants receive bounded, role-specific additions. The upgrade guide l
 
 Keep a tool in the backpack. Tools do not occupy an armor or weapon slot. The server chooses the highest-grade usable tool for the requested action. It excludes banked, broken, unlearned, and wrong-skill tools. Carrying multiple tools does not stack their benefits.
 
+The inventory shows tool durability. A damaged or broken backpack tool can use the same blacksmith repair action as wearable equipment. Repair restores durability and retains the item's identity, rarity, and bonuses. The server checks ownership, distance, health and gold before charging. Banked tools must be withdrawn first. Undamaged tools and consumables cannot use repair.
+
 Gathering tools add a chance of one extra item, up to 20% at skill tier 100. Their stamina-cost reduction reaches 15%, reducing the ordinary six-point cost to 5.1. The existing combined gathering-yield cap remains in force. Gathering cooldown and server action validation do not change.
 
 Crafting hammers reduce smithing action recovery by up to 15%. They do not reduce the crafting skill requirement, remove ingredients, or accelerate unrelated professions. The original farming interaction still accepts the original herbalism sickle.

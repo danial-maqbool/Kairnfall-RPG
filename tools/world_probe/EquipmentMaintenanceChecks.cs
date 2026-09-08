@@ -90,6 +90,20 @@ internal static class EquipmentMaintenanceChecks
                 Rejected(Command(item.Id),condition+" repair");
             }
         });
+        Test("Rejected gathering and crafting name the exact required skill without consuming anything",()=>
+        {
+            var p=Reset();
+            var node=realm.State.Nodes.Values.First(n=>data.Resources.Any(r=>r.Id==n.Template&&r.Requirement>1));
+            var resource=data.Resource(node.Template); node.ReadyAt=0; p.Zone=node.Zone; p.Position=node.Position; p.SkillXp[resource.Skill]=0;
+            string before=Json(realm.State);
+            var gathering=realm.Execute(owner,new GameCommand{Kind="gather",Target=node.Id,Sequence=p.LastAction+1});
+            Need(!gathering.Ok&&gathering.Message=="Requires "+data.Skill(resource.Skill).Name+" "+resource.Requirement+".","Gathering did not name its required skill.");
+            Need(Json(realm.State)==before,"Untrained gathering consumed state.");
+            p=Reset(); var recipe=data.Recipes.First(r=>r.Requirement>1); p.SkillXp[recipe.Skill]=0; before=Json(realm.State);
+            var crafting=realm.Execute(owner,new GameCommand{Kind="craft",Item=recipe.Id,Sequence=p.LastAction+1});
+            Need(!crafting.Ok&&crafting.Message=="Requires "+data.Skill(recipe.Skill).Name+" "+recipe.Requirement+".","Crafting did not name its required skill.");
+            Need(Json(realm.State)==before,"Untrained crafting consumed state.");
+        });
         Console.WriteLine($"EQUIPMENT MAINTENANCE: {passed} groups passed; {toolsChecked} tier tools repaired and replay-checked; total failures {failures.Count}.");
     }
 }
