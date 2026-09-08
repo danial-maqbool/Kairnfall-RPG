@@ -36,6 +36,7 @@ public partial class GameRoot
         foreach (var affix in item.Affixes) text.AppendLine($"{affix.Value:+0.0;-0.0;0} {Ui.Words(affix.Stat)}");
         if (def.Skill != "") text.AppendLine($"Requires {Data.Skill(def.Skill).Name} {def.Requirement}");
         if (def.Slot != "") text.AppendLine($"Durability: {item.Durability}% · Runes: {item.Runes.Count}/{item.Sockets}");
+        else if (def.Type == "tool") text.AppendLine($"Tool durability: {item.Durability}%");
         foreach (var rune in item.Runes) text.AppendLine("Rune: " + Data.Item(rune.Template).Name);
         text.AppendLine().Append(def.Description);
         if (compare && Snapshot is { } s && def.Slot != "" && !Items.Equipped(s.Self, item.Id) && s.Self.Inventory.Any(x => x.Id == item.Id))
@@ -163,8 +164,11 @@ public partial class GameRoot
             parent.AddChild(Ui.Button("Withdraw", () => Send("withdraw", item: item.Id, amount: Quantity(quantity, item.Quantity)), !NearRole("banker")));
             return;
         }
-        if (def.Slot != "" && item.Durability < 100)
-            parent.AddChild(Ui.Button("Repair at blacksmith", () => Send("repair", item: item.Id), !NearRole("blacksmith")));
+        if ((def.Slot != "" || def.Type == "tool") && item.Durability < 100)
+        {
+            var repair = Ui.Button("Repair at blacksmith", () => Send("repair", item: item.Id), !NearRole("blacksmith"));
+            repair.Name = "RepairEquipmentAction"; parent.AddChild(repair);
+        }
         if (def.Type is "food" or "potion" or "scroll") parent.AddChild(Ui.Button("Use", () => Send("consume", item: item.Id)));
         if (def.Type is "book" or "treasure_map") parent.AddChild(Ui.Button("Read", () => Send("read", item: item.Id)));
         if (def.Type == "food" && self.Pet != "") parent.AddChild(Ui.Button("Feed companion", () => Send("feed", item: item.Id)));

@@ -51,7 +51,7 @@ public sealed partial class RealmEngine
         bool crop=node.Template=="crop_wheat";
         Need(!crop||node.Owner==p.Id,"This crop belongs to another player.");
         var def=Data.Resource(crop?"wheat_crop":node.Template);
-        Need(Progression.Level(p,def.Skill)>=def.Requirement,"Your gathering skill is too low.");
+        Need(Progression.Level(p,def.Skill)>=def.Requirement,"Requires "+Data.Skill(def.Skill).Name+" "+def.Requirement+".");
         var tool=def.Tool==""?null:ToolRules.Best(p,Data,def.Tool,def.Skill=="farming"&&def.Tool=="sickle"?"herbalism":def.Skill);
         if(def.Tool!="") Need(tool is not null,"Keep a usable "+def.Tool+" in your backpack and meet its skill requirement.");
         double staminaCost=ToolRules.StaminaCost(tool);
@@ -74,7 +74,7 @@ public sealed partial class RealmEngine
     {
         Need(quantity is >0 and <=20,"Craft between 1 and 20 batches.");
         var recipe=Data.Recipe(id);
-        Need(Progression.Level(p,recipe.Skill)>=recipe.Requirement,"Your crafting skill is too low.");
+        Need(Progression.Level(p,recipe.Skill)>=recipe.Requirement,"Requires "+Data.Skill(recipe.Skill).Name+" "+recipe.Requirement+".");
         Need(AtStation(p,recipe.Station),"Use the "+recipe.Station+" station.");
         Ready(p,"craft",ToolRules.CraftRecovery(p,Data,recipe,quantity));
         foreach(var ingredient in recipe.Ingredients)
@@ -110,7 +110,7 @@ public sealed partial class RealmEngine
     private string Repair(Character p,string id)
     {
         Service(p,"blacksmith"); var item=Items.Owned(p,id); var def=Data.Item(item.Template);
-        Need(def.Slot!=""&&item.Durability<100,"This item does not need repair.");
+        Need((def.Slot!=""||def.Type=="tool")&&item.Durability<100,"This item does not need repair.");
         long price=Math.Max(1,(long)Math.Ceiling((100-item.Durability)*Math.Max(1,def.Value)/500.0));
         Items.Spend(p,price); item.Durability=100; return $"Repaired for {price} gold.";
     }
