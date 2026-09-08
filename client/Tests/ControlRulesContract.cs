@@ -38,6 +38,28 @@ public partial class ControlRulesContract : Node
         await Frame(); await Frame();
     }
 
+    private async Task TypeGuideSearch(SkillGuidePanel guide, string text)
+    {
+        var search = guide.SearchBox;
+        search.GrabFocus(); search.SelectAll();
+        using (var press = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = true })
+            GetViewport().PushInput(press, true);
+        using (var release = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = false })
+            GetViewport().PushInput(release, true);
+        await Frame();
+        foreach (char character in text)
+        {
+            var key = (Key)char.ToUpperInvariant(character);
+            using (var press = new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = character, Pressed = true })
+                GetViewport().PushInput(press, true);
+            using (var release = new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false })
+                GetViewport().PushInput(release, true);
+            await Frame();
+        }
+        await Frame(); await Frame();
+        Require(search.Text == text, "Native keyboard input reaches the skill search");
+    }
+
     private async Task VerifySkillGuide(GameRoot game, Catalog data, Character self)
     {
         var actor = Wire.Copy(self); actor.Position = data.Zone(actor.Zone).Spawn;
@@ -67,7 +89,7 @@ public partial class ControlRulesContract : Node
             var gathering = guide.FindChildren("SkillCategory_Gathering", "Button", true, false).Cast<Button>().Single();
             await ClickGuideControl(gathering);
             Require(guide.ActiveCategory == "Gathering" && guide.VisibleSkillCount == SkillGuideRules.Filter(data, "Gathering", "").Count, "A native category click filters the skill list");
-            guide.SearchBox.Text = "Mining"; await Frame(); await Frame();
+            await TypeGuideSearch(guide, "Mining");
             Require(guide.VisibleSkillCount == 1 && guide.SelectedSkillId == "mining", "The search signal selects the matching skill");
             var training = guide.FindChildren("SkillTrainingAction", "Label", true, false).Cast<Label>().Single();
             Require(training.Text == data.Skill("mining").Action, "The detail panel states the actual catalog training action");
@@ -77,9 +99,9 @@ public partial class ControlRulesContract : Node
             self.SkillXp["mining"] = original + 1; guide.RefreshSnapshot(); await Frame();
             Require(guide.FindChildren("SkillEntry_mining", "Button", true, false).Cast<Button>().Single().GetInstanceId() == identity, "A live XP refresh preserves the navigation node and scroll state");
             self.SkillXp["mining"] = original; guide.RefreshSnapshot();
-            guide.SearchBox.Text = "NoSuchSkillFixture"; await Frame(); await Frame();
+            await TypeGuideSearch(guide, "NoSuchSkillFixture");
             Require(guide.VisibleSkillCount == 0 && guide.SelectedSkillId == "", "An empty search clears stale skill details");
-            guide.SearchBox.Text = ""; await Frame(); await Frame();
+            await TypeGuideSearch(guide, "");
             Require(guide.VisibleSkillCount == SkillGuideRules.Filter(data, "Gathering", "").Count, "Clearing search restores the active category");
             Require(Contained(guide.SearchBox), "The skill search stays in the viewport at " + size);
             Call(game, "ClosePage"); await Frame(); await Frame();
