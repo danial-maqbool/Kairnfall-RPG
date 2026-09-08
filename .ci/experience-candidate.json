@@ -1,6 +1,6 @@
 {
-  "sha":"13cea4201bbc181c2a93d8b7db2cab56f94bfa9e",
+  "sha":"f4ca6d09f5075651f8b555adc8adab50a16d54bd",
   "base":"645f81557aaf4787016c5807f3a25c06a380e671",
   "mode":"repair",
-  "purpose":"Final exact-source verification after actual main integration: all named equipment tiers, acquisition recipes, server tool selection, complete equip/craft boundaries, bounded native upgrade/crafting controls, workstation collision and ownership, updated documentation, all retained security/persistence/input suites and graphical fixtures. No release or independent visual-approval claim."
+  "purpose":"Verify the complete equipment update plus blacksmith repairs for every tier tool, unchanged repair pricing and replay behavior, exact skill-error messages, and native inventory tool-condition/repair controls at both resolutions. Retain every existing backend, database, gear, furnishing, security, native input, graphical and live-client test. No visual or Windows release approval is implied."
 }
