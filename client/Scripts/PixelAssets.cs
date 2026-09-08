@@ -55,12 +55,12 @@ public sealed class PixelAssets
         if (texture is null) return;
         float size = texture.GetWidth() / (float)Frames;
         var source = new Rect2(Math.Clamp(frame, 0, 7) * size, (Math.Clamp(state, 0, 5) * 4 + Math.Clamp(direction, 0, 3)) * size, size, size);
-        canvas.DrawTextureRectRegion(texture, new Rect2(feet - new Vector2(size * .5f, size * .86f), new Vector2(size, size)), source, tint ?? Colors.White);
+        canvas.DrawTextureRectRegion(texture, new Rect2(feet - SpritePoseRules.Anchor((int)size), new Vector2(size, size)), source, tint ?? Colors.White);
     }
 
     public void DrawPerson(CanvasItem canvas, Appearance appearance, IReadOnlyDictionary<string, string> equipment, Vector2 feet, int state, int direction, int frame)
     {
-        foreach (string layer in LayerOrder)
+        foreach (string layer in SpritePoseRules.Layers(direction))
         {
             string? key = layer switch
             {
@@ -106,8 +106,9 @@ public partial class AvatarPreview : Control
     public override void _Draw()
     {
         if (Assets is null) return;
-        float scale = Math.Min(Size.X / 72, Size.Y / 72);
-        DrawSetTransform(new Vector2(Size.X / 2, Size.Y * .85f), 0, new Vector2(scale, scale));
+        float available = Math.Min(Size.X / 72, Size.Y / 72);
+        float scale = available >= 1 ? MathF.Floor(available) : available;
+        DrawSetTransform(new Vector2(Size.X / 2, Size.Y * .85f).Round(), 0, new Vector2(scale, scale));
         DrawEllipseShadow();
         Assets.DrawPerson(this, Appearance, Equipment, Vector2.Zero, 0, Direction, (int)(clock * 6) % 8);
         DrawSetTransform(Vector2.Zero);

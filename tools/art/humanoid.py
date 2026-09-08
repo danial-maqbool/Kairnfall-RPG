@@ -19,7 +19,7 @@ def rig(state, frame, direction, body=0):
     side=direction in (1,2); sign=-1 if direction==1 else 1
     stride=math.sin(frame*math.tau/8) if state=='walk' else 0
     # Head and pelvis do not jump at the idle/walk boundary. Lift only the moving foot.
-    j={'head':(32+(sign if side else 0),18),'neck':(32,26),'hip':(32,42),
+    j={'head':(32+(1 if side else 0),18),'neck':(32,26),'hip':(32,42),
        'shoulder_l':(28 if not side else 31,28),'shoulder_r':(36 if not side else 34,28),
        'elbow_l':(25 if not side else 29,34),'elbow_r':(39 if not side else 37,34),
        'hand_l':(24 if not side else 28,39+round(stride*2)),
@@ -35,11 +35,14 @@ def rig(state, frame, direction, body=0):
         if sign<0:
             for name in tuple(j):
                 if isinstance(j[name],tuple): j[name]=(64-j[name][0],j[name][1])
+    if state=='idle' and frame in (3,4):
+        for name in ('shoulder_l','shoulder_r','elbow_l','elbow_r','hand_l','hand_r'):
+            x,y=j[name]; j[name]=(x,y-1)
     if state=='attack':
         swing=(-2,-4,-5,1,5,4,1,0)[frame]
-        hx,hy=j['hand_r']; j['hand_r']=(hx+sign*swing,hy-abs(swing))
+        hx,hy=j['hand_r']; j['hand_r']=(hx+sign*round(swing*.4),hy-abs(swing))
         ex,ey=j['elbow_r']; j['elbow_r']=(ex+sign*round(swing*.4),ey-abs(swing)//2)
-        j['angle']=(-20,-38,-58,18,65,43,8,-12)[frame]*sign
+        j['angle']=(-20,-38,-48,18,45,35,8,-12)[frame]*sign
     elif state=='cast':
         lift=(0,3,6,8,8,6,3,0)[frame]
         for hand in ('hand_l','hand_r'):
@@ -57,7 +60,7 @@ def rig(state, frame, direction, body=0):
         for name,target in end.items():
             if direction==1: target=(64-target[0],target[1])
             origin=j[name]; j[name]=tuple(round(a+(b-a)*t) for a,b in zip(origin,target))
-        j['angle']=(-12+(90+12)*t)*sign
+        j['angle']=(-12+(-90+12)*t)*sign
     return j
 
 
