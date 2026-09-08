@@ -1,0 +1,45 @@
+name: Offline source review bundle
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full commit SHA to inspect (empty uses the triggering commit)
+        required: false
+        default: ''
+  push:
+    branches: [main]
+    paths: ['.github/workflows/review-bundle.yml']
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Select and archive only tracked repository files
+        env:
+          REQUESTED_SHA: ${{ inputs.revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="${REQUESTED_SHA:-$GITHUB_SHA}"
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          if [ "$revision" != "$(git rev-parse HEAD)" ]; then
+            git fetch --no-tags --depth=1 origin "$revision"
+          fi
+          test "$(git rev-parse "$revision^{commit}")" = "$revision"
+          mkdir -p artifacts/offline-review
+          git archive --format=zip "$revision" > artifacts/offline-review/source.zip
+          git ls-tree -r "$revision" > artifacts/offline-review/tracked-tree.txt
+          printf '%s\n' "$revision" > artifacts/offline-review/revision.txt
+          (cd artifacts/offline-review && sha256sum source.zip tracked-tree.txt revision.txt > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: offline-review-${{ github.sha }}
+          path: artifacts/offline-review/
+          if-no-files-found: error
+          retention-days: 7
