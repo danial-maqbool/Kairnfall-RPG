@@ -1,6 +1,6 @@
 {
-  "sha":"60302d9c48050ae2b18fa55659d8c7abf35a7f92",
-  "base":"fc15be9e4ec48673b44cc43fcf64aee60e92a710",
-  "mode":"repair",
-  "purpose":"Verify tutorial, population, chest rarity, eligible-loot interaction, local setup recovery, and complete historical chest migration fixtures. Preserve all gameplay, native input, security, persistence, and graphical checks."
+  "sha": "dcc84f50fe2c5f1dcff616df97c9e1ac7112c2c4",
+  "base": "fc15be9e4ec48673b44cc43fcf64aee60e92a710",
+  "mode": "repair",
+  "purpose": "Record the live main baseline before the visual-only pass. Retain backend, native input, equipment, persistence, and graphical smoke verification. This is a test request, not a gameplay source change or visual approval."
 }
