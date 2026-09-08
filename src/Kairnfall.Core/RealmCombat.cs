@@ -255,6 +255,7 @@ public sealed partial class RealmEngine
     }
     private void TickCreatures(double dt)
     {
+        PruneCreatureMotion();
         var live=Active.Where(State.Characters.ContainsKey).Select(Player).Where(x=>x.Health>0).ToList();
         var zones=live.Select(x=>x.Zone).ToHashSet();
         foreach(var mob in State.Creatures.Values.Where(x=>zones.Contains(x.Zone)).ToList())
@@ -273,18 +274,13 @@ public sealed partial class RealmEngine
             if(target is null&&def.Ai!="passive") target=nearby.Where(x=>x.Position.Distance(mob.Position)<=def.Aggro&&!x.Statuses.Any(s=>s.Kind=="stealth"&&s.Until>State.Time)&&WorldMap.LineOfSight(zone,mob.Position,x.Position)).OrderBy(x=>x.Position.Distance(mob.Position)).FirstOrDefault();
             if(mob.Position.Distance(mob.Home)>25)
             {
-                mob.Target=""; mob.Threat.Clear(); MoveCreature(mob,mob.Home,dt,def.Speed*1.3);
+                mob.Target=""; mob.Threat.Clear(); creatureMotion.Remove(mob.Id); MoveCreature(mob,mob.Home,dt,def.Speed*1.3);
                 mob.Health=Math.Min(def.Health,mob.Health+def.Health*dt/4); continue;
             }
             if(target is null)
             {
                 mob.Target="";
-                if(mob.Position.Distance(mob.Home)>2) MoveCreature(mob,mob.Home,dt,def.Speed);
-                else if(def.Ai is "patroller" or "territorial")
-                {
-                    double angle=State.Time*0.05+WorldMap.Hash(0,0,def.Level)%6;
-                    MoveCreature(mob,WorldMap.FindFree(zone,new(mob.Home.X+Math.Cos(angle)*3,mob.Home.Y+Math.Sin(angle)*3)),dt,def.Speed*0.4);
-                }
+                WanderCreature(mob,def,dt);
                 continue;
             }
             mob.Target=target.Id;
@@ -292,7 +288,7 @@ public sealed partial class RealmEngine
             if(CombatMath.StatusPower(mob.Statuses,"stun",State.Time)>0) continue;
             double distance=mob.Position.Distance(target.Position);
             bool fleeing=def.Ai=="fleeing"||def.Ai=="passive"||(def.Ai=="ranged_kiter"&&distance<3);
-            if(fleeing&&mob.Health<def.Health*0.5) MoveCreature(mob,mob.Position.Add(target.Position.Direction(mob.Position).Scale(4)),dt,def.Speed*1.15);
+            if(fleeing&&mob.Health<def.Health*0.5) RetreatCreature(mob,target,def,dt);
             else if(distance>def.Range||!WorldMap.LineOfSight(zone,mob.Position,target.Position)) MoveCreature(mob,target.Position,dt,def.Speed);
             if(def.Boss)
             {
@@ -323,14 +319,15 @@ public sealed partial class RealmEngine
     }
     private void MoveCreature(Creature mob,Point goal,double dt,double speed)
     {
-        if(CombatMath.StatusPower(mob.Statuses,"root",State.Time)>0) return;
+        if(CombatMath.StatusPower(mob.Statuses,"root",State.Time)>0||CombatMath.StatusPower(mob.Statuses,"stun",State.Time)>0) return;
+        double remaining=mob.Position.Distance(goal); if(remaining<.08) return;
         var zone=Data.Zone(mob.Zone); Point direction=mob.Position.Direction(goal);
         if(!WorldMap.LineOfSight(zone,mob.Position,goal))
         {
             var path=WorldMap.FindPath(zone,mob.Position,goal,512); if(path.Count==0) return; direction=mob.Position.Direction(path[0]);
         }
         speed*=Math.Clamp(1-CombatMath.StatusPower(mob.Statuses,"chill",State.Time),0.3,1);
-        mob.Position=WorldMap.Move(zone,mob.Position,direction.Scale(speed*dt)); mob.Facing=direction;
+        mob.Position=WorldMap.Move(zone,mob.Position,direction.Scale(Math.Min(remaining,speed*dt))); mob.Facing=direction;
     }
     private void TickCompanion(Creature pet,double dt)
     {

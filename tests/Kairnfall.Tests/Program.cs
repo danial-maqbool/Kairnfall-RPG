@@ -20,6 +20,7 @@ Character NewPlayer(RealmEngine r,string name="Test Player",string cls="vanguard
 CommandResult Send(RealmEngine r,Character p,string kind,string target="",string item="",int amount=1,string arg="")=>r.Execute(p.Id,new(){Kind=kind,Target=target,Item=item,Amount=amount,Arg=arg,Sequence=r.Player(p.Id).LastAction+1});
 void MoveTo(RealmEngine r,Character p,NpcDef npc) { p.Zone=npc.Zone; p.Position=npc.Position; }
 
+CreatureMotionCases.Run(Test,data);
 Test("Catalog references and world graph",()=>Check(data.Validate().Count==0,"Catalog validation failed."));
 Test("Required content counts",()=>
 {

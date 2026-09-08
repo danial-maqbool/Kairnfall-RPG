@@ -54,25 +54,13 @@ public partial class GameRoot
     private void BuildSkillsPage()
     {
         if (page is null || Snapshot is null) return;
-        page.AddChild(Ui.Label("Every trained skill contributes to overall level. Class affinity improves selected skills by 10%.", 16, Ui.Muted, true));
-        var search = Ui.Edit("Search skills, training actions, or benefits"); page.AddChild(search);
-        var scroll = Ui.Scroll(page, new Vector2(850, 450)); var rows = Ui.Column(scroll);
-        void Render()
+        var guide = new SkillGuidePanel
         {
-            if (Snapshot is null) return;
-            Ui.Clear(rows);
-            foreach (var skill in Data.Skills.Where(x => (x.Name + " " + x.Action + " " + x.Benefit).Contains(search.Text, StringComparison.OrdinalIgnoreCase)))
-            {
-                int level = Progression.Level(Snapshot.Self, skill.Id); long xp = Snapshot.Self.SkillXp.GetValueOrDefault(skill.Id);
-                var card = new PanelContainer(); rows.AddChild(card); var row = Ui.Row(card); row.AddChild(Ui.Image(Assets.Texture("skills/" + skill.Id), 40));
-                var description = Ui.Column(row); description.AddChild(Ui.Label(skill.Name + "  ·  " + level + "/100", 18, Ui.Gold)); description.AddChild(Ui.Label(skill.Action + "\n" + skill.Benefit, 14, Ui.Text, true));
-                var progress = Ui.Column(row); progress.CustomMinimumSize = new Vector2(220, 0);
-                var bar = Ui.Bar(new Color("8b9d75"), 210); bar.MaxValue = level >= 100 ? 1 : Progression.Threshold(level + 1) - Progression.Threshold(level); bar.Value = level >= 100 ? 1 : xp - Progression.Threshold(level); progress.AddChild(bar);
-                progress.AddChild(Ui.Label(level >= 100 ? "Mastered" : $"{xp - Progression.Threshold(level):N0} / {Progression.Threshold(level + 1) - Progression.Threshold(level):N0} XP", 13, Ui.Muted));
-                progress.AddChild(Ui.Label("Unlock levels: " + string.Join(" · ", skill.Unlocks), 12, Ui.Muted, true));
-            }
-        }
-        refreshPage = Render; search.TextChanged += _ => Render(); Render();
+            Data = Data, Assets = Assets, ReadCharacter = () => Snapshot?.Self
+        };
+        page.AddChild(guide);
+        refreshPage = guide.RefreshSnapshot;
+        guide.RefreshSnapshot();
     }
 
     private void BuildAbilitiesPage()
