@@ -41,10 +41,18 @@ public partial class AbilitySlot : ActionButton
         QueueRedraw();
     }
     public void ShowActivation() { activeUntil = Time.GetTicksMsec() / 1000.0 + .4; QueueRedraw(); }
+
+    public static Rect2 IconBounds(Vector2 size)
+    {
+        if (!float.IsFinite(size.X) || !float.IsFinite(size.Y) || size.X <= 16 || size.Y <= 18) return new Rect2();
+        float width = size.X - 16, height = size.Y - 18;
+        float side = MathF.Floor(MathF.Min(width, height));
+        return new Rect2(new Vector2(MathF.Floor(8 + (width - side) / 2), MathF.Floor(10 + (height - side) / 2)), new Vector2(side, side));
+    }
     public override void _Draw()
     {
-        var area = new Rect2(8, 10, Size.X - 16, Size.Y - 18);
-        if (AbilityIcon is not null)
+        var area = IconBounds(Size);
+        if (AbilityIcon is not null && area.Size.X > 0)
         {
             DrawTextureRect(AbilityIcon, area, false, Disabled ? new Color(.64f, .62f, .57f) : Colors.White);
             if (CooldownSeconds > 0)

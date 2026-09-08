@@ -116,7 +116,7 @@ public partial class VisualPresentationContract : Node
             for(int state=0;state<6;state++)
             {
                 gallery.State=state;
-                foreach(int frame in new[]{0,2,4,7})
+                foreach(int frame in new[]{0,1,2,3,4,7})
                 {
                     gallery.FrameNumber=frame; gallery.QueueRedraw();
                     await Capture($"equipment-state-{state}-frame-{frame}");
@@ -127,7 +127,7 @@ public partial class VisualPresentationContract : Node
             for(int state=0;state<6;state++)
             {
                 gallery.State=state;
-                foreach(int frame in new[]{0,2,4,7})
+                foreach(int frame in new[]{0,1,2,3,4,7})
                 {
                     gallery.FrameNumber=frame; gallery.QueueRedraw();
                     await Capture($"mobs-state-{state}-frame-{frame}");

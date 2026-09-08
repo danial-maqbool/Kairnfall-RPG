@@ -9,6 +9,7 @@ from .common import Pixel, canvas, palette, shade, INK
 from .creature_pack import body_colour
 from .species_refinement import frame as previous_frame
 from .humanoid import limb, finish
+from .creature_actions import pose as action_pose
 
 # body half-length, body half-height, head size, muzzle length, leg height, tail length
 PROFILES={
@@ -248,8 +249,10 @@ def arachnid(p,m,state,n,direction):
     c=palette(body_colour(m)); step=math.sin(n*math.tau/8) if state=='walk' else 0
     crystalline=m['family']=='quartz_spider'
     folded=(0,0,.2,.4,.7,1,1,1)[n] if state=='death' else 0
+    action=action_pose(m['family'],state,n)
     # Four attachment pairs. Projection changes the longitudinal body axis, not the bitmap.
     def xy(lateral,longitudinal):
+        longitudinal += action.advance
         if direction==0: return (32+lateral,34+longitudinal)
         if direction==3: return (32-lateral,34-longitudinal)
         if direction==2: return (32+longitudinal,34+lateral*.7)
@@ -258,7 +261,8 @@ def arachnid(p,m,state,n,direction):
         for i in range(4):
             attach=(-5+i*3); gait=round(step*2)*(1 if i%2 else -1)
             knee=sign*((21 if crystalline else 18)-folded*8); tip=sign*((28 if crystalline else 27)-folded*14)
-            points=[xy(sign*5,attach),xy(knee,attach-8+i*4+gait),xy(tip,attach-13+i*7+gait)]
+            strike=action.foreleg if i>=2 else 0
+            points=[xy(sign*5,attach),xy(knee,attach-8+i*4+gait+strike),xy(tip,attach-13+i*7+gait+strike)]
             p.line(points,c[0],4 if crystalline else 3); p.line(points,c[3],2 if crystalline else 1)
             if crystalline:
                 kx,ky=points[1]
@@ -272,7 +276,8 @@ def arachnid(p,m,state,n,direction):
     else:
         polygon_oval(p,(abdomen[0]-9,abdomen[1]-10,abdomen[0]+9,abdomen[1]+9),c[3])
     polygon_oval(p,(thorax[0]-6,thorax[1]-5,thorax[0]+6,thorax[1]+5),c[2])
-    p.line([xy(-3,13),xy(-2,17)],c[4],2); p.line([xy(3,13),xy(2,17)],c[4],2)
+    p.line([xy(-3,13),xy(-2,17+action.fang)],c[4],2)
+    p.line([xy(3,13),xy(2,17+action.fang)],c[4],2)
     for side in (-1,1):
         for offset in (0,2): p.dot(*xy(side*(2+offset),10+offset//2),'d5bc88')
     if m['family']=='quartz_spider':
@@ -283,7 +288,8 @@ def arachnid(p,m,state,n,direction):
 def turtle(p,m,state,n,direction):
     sea=m['family']=='turtle'; c=palette('849871' if sea else '727c64')
     wave=math.sin(n*math.tau/8) if state in ('walk','idle') else 0
-    tuck=(0,0,.2,.5,.8,1,1,1)[n] if state=='death' else 0
+    action=action_pose(m['family'],state,n)
+    tuck=((0,0,.2,.5,.8,1,1,1)[n] if state=='death' else 0)+action.tuck
     def xy(lateral,longitudinal):
         if direction==0: return (32+lateral,33+longitudinal)
         if direction==3: return (32-lateral,33-longitudinal)
@@ -293,12 +299,15 @@ def turtle(p,m,state,n,direction):
         for front in (True,False):
             start=9 if front else -9; reach=(27 if front and sea else 17 if sea else 15)*(1-.25*tuck)
             sway=round(wave*(3 if front else 2))*sign
+            if front and state=='attack' and n in (3,4): sway-=2
             points=[xy(sign*8,start),xy(sign*reach,start-8+sway),xy(sign*(reach-2),start-12+sway),xy(sign*10,start-6)]
             p.poly(points,c[2]); p.line([xy(sign*10,start-2),xy(sign*(reach-3),start-9+sway)],c[4])
-    head=xy(0,20-5*tuck)
+    head=xy(0,20-5*tuck+action.neck)
     p.line([xy(0,12),head],c[1],7); p.line([xy(-1,13),(head[0]-1,head[1])],c[3],4)
     p.ellipse((head[0]-4,head[1]-4,head[0]+4,head[1]+4),c[3],INK)
-    for sign in (-1,1): p.dot(*xy(sign*2,21-5*tuck),INK)
+    for sign in (-1,1): p.dot(*xy(sign*2,21-5*tuck+action.neck),INK)
+    if state=='attack' and n in (3,4):
+        p.line([xy(-2,22-5*tuck+action.neck),xy(2,22-5*tuck+action.neck)],c[0])
     p.poly([xy(-2,-14),xy(0,-22),xy(2,-14)],c[2])
     shell=palette('776c4d' if sea else '85806a')
     outline=[(-9,-15),(8,-15),(13,-9),(14,7),(8,14),(-8,14),(-14,7),(-13,-9)]

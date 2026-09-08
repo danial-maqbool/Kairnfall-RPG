@@ -9,7 +9,7 @@ public partial class GameRoot
     private ProgressBar targetHealth = null!;
     private Label targetDetail = null!, objectiveText = null!;
     private VBoxContainer chatBody = null!;
-    private Button chatToggle = null!;
+    private Button chatToggle = null!, objectiveToggle = null!;
     private bool chatExpanded = true;
 
     private void BuildHud()
@@ -49,9 +49,10 @@ public partial class GameRoot
         objectiveText = Ui.Label("", 14, Ui.Text, true); objectiveText.CustomMinimumSize = new Vector2(264, 0);
         bool expanded = settings.GetValue("hud", "objectives", true).AsBool();
         objectiveText.Visible = expanded;
-        var objectiveToggle = Ui.Button(expanded ? "−" : "+", () =>
+        objectiveToggle = Ui.Button(expanded ? "−" : "+", () =>
         {
             objectiveText.Visible = !objectiveText.Visible;
+            objectiveToggle.Text = objectiveText.Visible ? "−" : "+";
             settings.SetValue("hud", "objectives", objectiveText.Visible); settings.Save("user://settings.cfg");
         });
         objectiveToggle.Name = "ToggleObjectives"; objectiveToggle.FocusMode = FocusModeEnum.None;

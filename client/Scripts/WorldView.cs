@@ -156,7 +156,9 @@ public partial class WorldView : Control
     {
         if (!tracks.TryGetValue(id, out var t)) return (0, 0, (int)(Clock * 6) % 8, at);
         int state = t.Health <= 0 ? 5 : Clock < t.StateUntil ? t.State : Clock - t.LastMoved < .35 ? 1 : 0;
-        int frame = state is 2 or 3 or 4 or 5 ? Math.Clamp((int)((Clock - t.StateStart) * 12), 0, 7) : state == 1 ? (int)t.WalkPhase : (int)(Clock * 5) % 8;
+        int frame = state is 2 or 3 or 4 or 5
+            ? SpritePoseRules.ActionFrame(state, Clock - t.StateStart, t.StateUntil - t.StateStart)
+            : state == 1 ? (int)t.WalkPhase : (int)(Clock * 5) % 8;
         return (state, t.FacingDirection, frame, t.Position);
     }
 

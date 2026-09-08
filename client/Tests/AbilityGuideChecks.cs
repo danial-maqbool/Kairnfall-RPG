@@ -74,6 +74,18 @@ internal static class AbilityGuideChecks
             var hotbar = (string[])typeof(GameRoot).GetField("hotbar", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(game)!;
             check(hotbar[0] == second, "The actual GameRoot callback assigns the selected ability to key 1");
             check(Find<Label>(guide, "AbilityAssignedSlots", "Label").Text.Contains("1"), "Assigned hotbar keys are shown in the inspector");
+            ulong selectedStyle = button.GetThemeStylebox("normal").GetInstanceId();
+            for (int repeat = 0; repeat < 12; repeat++) guide.RefreshSnapshot();
+            check(button.GetThemeStylebox("normal").GetInstanceId() == selectedStyle, "Repeated snapshots reuse the selected ability style resource");
+            var parent = guide.GetParent(); int childIndex = guide.GetIndex();
+            for (int repeat = 0; repeat < 2; repeat++)
+            {
+                parent.RemoveChild(guide); await Frame();
+                parent.AddChild(guide); parent.MoveChild(guide, childIndex); await Frame(); await Frame();
+                await Type(search, "Shield");
+                check(guide.VisibleAbilityIds.Contains("vanguard_shield_breaker"), "Reattached ability search retains its native signal subscription");
+                await Type(search, "");
+            }
             await Type(search, "Shield");
             check(guide.VisibleAbilityIds.Contains("vanguard_shield_breaker"), "Native search finds the starter class strike");
             check(Fits(assign) && Fits(search), "The search and pinned assignment action fit " + size);

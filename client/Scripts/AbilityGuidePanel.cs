@@ -22,11 +22,25 @@ public partial class AbilityGuidePanel : VBoxContainer
     private Label resultCount = null!, title = null!, classification = null!, description = null!, numbers = null!, effect = null!, requirement = null!, readiness = null!, assigned = null!;
     private TextureRect icon = null!;
     private Button assign = null!;
-    private string signature = "";
+    private string signature = "", styledSelection = "";
+    private bool controlsSubscribed, restyleChoices = true;
+    private StyleBoxFlat choiceStyle = null!, selectedChoiceStyle = null!;
+
+    public override void _EnterTree() => ConnectControls();
+
+    private void ConnectControls()
+    {
+        if (controlsSubscribed || search is null || !GodotObject.IsInstanceValid(search)) return;
+        search.TextChanged += SearchChanged;
+        scope.ItemSelected += FilterChanged; availability.ItemSelected += FilterChanged; element.ItemSelected += FilterChanged;
+        controlsSubscribed = true;
+    }
 
     public override void _Ready()
     {
         Name = "AbilityGuide";
+        choiceStyle = Ui.Box(Ui.Ink, new Color("665941"), 8);
+        selectedChoiceStyle = Ui.Box(Ui.Raised.Lightened(.12f), Ui.Gold, 8);
         SizeFlagsHorizontal = SizeFlags.ExpandFill; SizeFlagsVertical = SizeFlags.ExpandFill;
         var filters = Ui.Row(this);
         search = Ui.Edit("Find an ability, skill, or effect"); search.Name = "AbilitySearch"; filters.AddChild(search);
@@ -64,16 +78,16 @@ public partial class AbilityGuidePanel : VBoxContainer
         actions.AddChild(hotbarSlot);
         assign = Ui.Button("Assign to hotbar", () => TryAssignSelected()); assign.Name = "AssignAbility";
         assign.SizeFlagsHorizontal = SizeFlags.ExpandFill; actions.AddChild(assign);
-        search.TextChanged += SearchChanged;
-        scope.ItemSelected += FilterChanged; availability.ItemSelected += FilterChanged; element.ItemSelected += FilterChanged;
+        ConnectControls();
         RefreshSnapshot();
     }
 
     public override void _ExitTree()
     {
-        if (search is null) return;
+        if (!controlsSubscribed) return;
         search.TextChanged -= SearchChanged;
         scope.ItemSelected -= FilterChanged; availability.ItemSelected -= FilterChanged; element.ItemSelected -= FilterChanged;
+        controlsSubscribed = false;
     }
     private void SearchChanged(string _) { signature = ""; RefreshSnapshot(); }
     private void FilterChanged(long _) { signature = ""; RefreshSnapshot(); }
@@ -104,7 +118,7 @@ public partial class AbilityGuidePanel : VBoxContainer
             + search.Text + ":" + scope.Selected + ":" + availability.Selected + ":" + element.Selected;
         if (next != signature)
         {
-            signature = next; Ui.Clear(rows); choices.Clear(); visible.Clear();
+            signature = next; Ui.Clear(rows); choices.Clear(); visible.Clear(); restyleChoices = true;
             foreach (var ability in Data.Abilities.Where(x => Includes(x, self))
                 .OrderByDescending(x => x.Class == self.Class).ThenBy(x => ExperienceRules.AbilityRequirement(self, x))
                 .ThenBy(x => x.Name, StringComparer.Ordinal))
@@ -131,9 +145,12 @@ public partial class AbilityGuidePanel : VBoxContainer
     }
     private void RefreshDetails(Character self)
     {
-        foreach (var entry in choices)
-            entry.Value.AddThemeStyleboxOverride("normal", Ui.Box(entry.Key == SelectedAbility ? Ui.Raised.Lightened(.12f) : Ui.Ink,
-                entry.Key == SelectedAbility ? Ui.Gold : new Color("665941"), 8));
+        if (restyleChoices || styledSelection != SelectedAbility)
+        {
+            foreach (var entry in choices)
+                entry.Value.AddThemeStyleboxOverride("normal", entry.Key == SelectedAbility ? selectedChoiceStyle : choiceStyle);
+            styledSelection = SelectedAbility; restyleChoices = false;
+        }
         var ability = Data.Abilities.FirstOrDefault(x => x.Id == SelectedAbility);
         assign.Disabled = ability is null;
         if (ability is null)

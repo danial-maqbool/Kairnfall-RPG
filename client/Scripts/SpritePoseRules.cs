@@ -31,6 +31,17 @@ public static class SpritePoseRules
         return x > y ? facing.X < 0 ? 1 : 2 : facing.Y < 0 ? 3 : 0;
     }
 
+    // Action duration and corpse retention are different presentation clocks.
+    // Play all eight action frames, even for a short hit reaction. A dead actor
+    // completes its collapse promptly and holds frame 7 until removal.
+    public static int ActionFrame(int state, double elapsed, double duration)
+    {
+        if (state is not (2 or 3 or 4 or 5) || !double.IsFinite(elapsed) || elapsed <= 0) return 0;
+        double length = state == 5 ? .65 : double.IsFinite(duration) && duration > 0
+            ? duration : state == 4 ? .3 : .6;
+        return Math.Min(7, (int)(Math.Clamp(elapsed / length, 0, 1) * PixelAssets.Frames));
+    }
+
     public static double AdvanceWalk(double phase, double distance)
     {
         if (!double.IsFinite(phase) || !double.IsFinite(distance) || distance < 0) return 0;
