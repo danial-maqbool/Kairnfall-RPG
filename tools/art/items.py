@@ -57,8 +57,19 @@ def weapon_icon(item):
             p.poly([(13,6),(18,6),(19,24),(16,30),(12,28),(14,20)],wood[3]); p.line([(15,8),(16,23)],wood[5])
             p.line([(3,8),(8,12),(16,14),(24,12),(29,8)],INK,4); p.line([(3,8),(8,12),(16,14),(24,12),(29,8)],colors[3],2)
             p.line([(3,8),(16,21),(29,8)],'d8d0b8'); p.line([(16,3),(16,23)],'e0d6bb'); p.poly([(16,1),(13,5),(19,5)],colors[5])
-    elif family in {'staff','wand'}:
-        top=5 if family=='staff' else 10
+    elif family=='wand':
+        # A short tapered baton with a ferrule and small pointed focus, rather
+        # than a shortened copy of the staff's large jewel cage.
+        p.poly([(9,28),(12,30),(24,9),(23,5),(20,7)],wood[2])
+        p.line([(11,27),(21,9)],wood[5])
+        p.poly([(8,27),(11,30),(16,22),(13,20)],leather[2])
+        for x,y in ((10,26),(12,23)):
+            p.line([(x,y),(x+2,y+1)],leather[4])
+        p.line([(14,19),(17,21)],colors[4],2)
+        p.poly([(21,8),(24,3),(25,7),(23,11)],ELEMENT_COLORS.get(item.get('element','Arcane'),'b3a2d4'))
+        p.dot(24,5,'fff0cf')
+    elif family=='staff':
+        top=5
         p.limb((12,29),(19,top+4),3,WOODS.get(item.get('material',''),'99734f'))
         p.line([(12,27),(15,20),(15,15)],wood[5]); p.line([(14,28),(16,21),(18,14)],wood[1])
         p.poly([(16,top+7),(14,top+2),(17,top-2),(23,top-1),(25,top+3),(22,top+7)],colors[2])

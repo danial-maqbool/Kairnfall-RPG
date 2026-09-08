@@ -324,7 +324,12 @@ public partial class GameRoot
         if (bag is not ("inventory" or "bank")) return;
         foreach (var oldMenu in interfaceRoot.FindChildren("*", "Control", true, false).OfType<EquipmentMenu>())
             oldMenu.Close();
-        selectedItem = item.Id; selectedBag = bag; lastPageStamp = "";
+        // Opening actions for the selected item must not tear down its control
+        // on the next UI tick. Rebuild only when the inspector selection changes.
+        if (selectedItem != item.Id || selectedBag != bag)
+        {
+            selectedItem = item.Id; selectedBag = bag; lastPageStamp = "";
+        }
         var definition = Data.Item(item.Template);
         var ownerWindow = gameWindow;
         string ownerId = opened.Self.Id;
@@ -382,4 +387,3 @@ public partial class GameRoot
         if (problem != "") parent.AddChild(Ui.Label(problem, 13, Ui.Danger, true));
     }
 }
-

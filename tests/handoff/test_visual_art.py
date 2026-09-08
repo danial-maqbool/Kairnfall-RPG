@@ -109,6 +109,33 @@ class VisualArtTests(unittest.TestCase):
             views=[fauna.frame(mob,'idle',0,d).tobytes() for d in range(4)]
             self.assertEqual(len(set(views)),4,ident)
 
+    def test_bears_keep_broad_ground_contact_without_clipping(self):
+        # Plantigrade paws must keep their soles on the common ground baseline.
+        # This detects floating/narrow hoof-like contact, not artistic quality.
+        for ident in ('black_bear','polar_bear'):
+            mob=next(x for x in self.data['mobs'] if x['id']==ident)
+            for state in STATES:
+                for direction in range(4):
+                    for n in range(8):
+                        with self.subTest(species=ident,state=state,direction=direction,frame=n):
+                            alpha=fauna.frame(mob,state,n,direction).getchannel('A')
+                            self.assertGreaterEqual(sum(alpha.getpixel((x,55))>0 for x in range(64)),16)
+                            self.assertLessEqual(alpha.getbbox()[3],57)
+
+    def test_bear_front_and_rear_legs_connect_paws_to_the_body(self):
+        for ident in ('black_bear','polar_bear'):
+            mob=next(x for x in self.data['mobs'] if x['id']==ident)
+            for direction in (0,3):
+                alpha=fauna.frame(mob,'idle',0,direction).getchannel('A')
+                for x in (32-(11 if ident=='polar_bear' else 13),32+(11 if ident=='polar_bear' else 13)):
+                    self.assertTrue(all(alpha.getpixel((x,y)) for y in range(43,56)),(ident,direction,x))
+
+    def test_floorboards_do_not_clip_grain_to_black_or_white(self):
+        from art.environment_pack import tile
+        for variant in range(4):
+            extrema=tile('wood',variant).convert('RGB').getextrema()
+            self.assertTrue(all(low>20 and high<200 for low,high in extrema))
+
     def test_spider_species_have_different_body_and_joint_construction(self):
         wood=next(x for x in self.data['mobs'] if x['id']=='wood_spider')
         quartz=next(x for x in self.data['mobs'] if x['id']=='quartz_spider')

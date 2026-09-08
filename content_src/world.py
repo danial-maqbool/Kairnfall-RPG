@@ -187,7 +187,7 @@ def build(data):
     for i,(name,x,y) in enumerate([('The Lantern Hearth',25,28),('Wayfarer Forge',46,28),('Travelers\' Store',25,48),('Mara\'s Workshop',46,48)]):
         starter['buildings'].append(dict(id='starter_building_'+str(i),name=name,x=x,y=y,width=7,height=5,style='cottage',station=''))
     # The four visible starter doors now enter actual, reciprocal service rooms.
-    # Do not move existing NPCs: active quests and existing saves retain their references.
+    # Preserve service IDs and quest references when arranging the village forecourts.
     for i,building in enumerate(starter['buildings']):
         interior=zone(building['id']+'_inside',building['name'],'plains',1,'interior','Surface',32,seed=6107+i,lore='A sheltered working room in the starter village.')
         zones.append(interior); by_id[interior['id']]=interior
@@ -196,7 +196,16 @@ def build(data):
         add_npc(data,interior,role_index,i,'wayfarers',(16.5,20.5))
     zones.insert(0,starter); by_id[starter['id']]=starter
     connect(starter,by_id['kingsmeadow'],(76.5,40.5),(130.5,160.5),'road')
-    for i,role_index in enumerate([11,0,4,15,16,14,13,17,5,24]): add_npc(data,starter,role_index,i,'wayfarers',(40.5,26.5+i*2))
+    # Keep door thresholds and the central travel lane clear. Each service belongs
+    # to an inhabited forecourt rather than a queue through the player spawn.
+    starter_services = [
+        (11,(30.5,34.5)), (0,(47.5,34.5)), (4,(30.5,54.5)),
+        (15,(46.5,54.5)), (16,(46.5,57.5)), (14,(33.5,47.5)),
+        (13,(34.5,54.5)), (17,(34.5,34.5)), (5,(46.5,37.5)),
+        (24,(49.5,55.5)),
+    ]
+    for i,(role_index,position) in enumerate(starter_services):
+        add_npc(data,starter,role_index,i,'wayfarers',position)
     for i,(ident,name,parent) in enumerate(SETTLEMENTS):
         root=by_id[parent]; z=zone(ident,name,root['biome'],root['level'],'settlement',size=80,seed=1900+i*31,world_x=root['worldX'],world_y=root['worldY'],lore=name+' maintains a sheltered stop along the regional supply road.')
         for j in range(4): z['buildings'].append(dict(id=ident+'_house_'+str(j),name=['Inn','Market','Workshop','Watch House'][j],x=25 if j%2==0 else 48,y=26 if j<2 else 49,width=6,height=5,style='cottage',station=''))

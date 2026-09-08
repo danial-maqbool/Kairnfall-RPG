@@ -11,7 +11,20 @@ PROPS = ['oak','ancient_oak','pine','snow_pine','willow','palm','dead_tree','bus
 def tile(kind: str, variant: int):
     im = canvas((32,32)); p = Pixel(im); c = palette(TERRAINS[kind]); r = random.Random(seed(kind)+variant)
     p.rect((0,0,31,31),c[3])
-    if kind in {'stone','wall','wood'}:
+    if kind == 'wood':
+        # Long floorboards with restrained grain; short, heavily outlined blocks
+        # read as brickwork and overwhelm people and furniture at gameplay scale.
+        for y in range(0,32,8):
+            tone = rgba('68523e') if (y//8+variant)%3 == 0 else rgba('6d5742')
+            p.rect((0,y,31,y+7),tone)
+            p.line([(0,y),(31,y)],shade(tone,offset=-14))
+            p.line([(0,y+1),(31,y+1)],shade(tone,offset=9))
+            seam=(variant*11+y*2)%32
+            p.line([(seam,y+1),(seam,y+7)],shade(tone,offset=-12))
+            p.line([(4,y+5),(12,y+5)],shade(tone,offset=-8))
+            p.line([(20,y+4),(28,y+4)],shade(tone,offset=7))
+        return im
+    if kind in {'stone','wall'}:
         height = 8 if kind != 'wood' else 6
         for y in range(-height,32,height):
             shift = (y//height%2)*8

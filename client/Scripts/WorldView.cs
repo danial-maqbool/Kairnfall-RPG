@@ -175,6 +175,9 @@ public partial class WorldView : Control
         for (int y = minY; y <= maxY; y++) for (int x = minX; x <= maxX; x++)
         {
             var terrain = WorldMap.TileAt(zone, x, y);
+            // Indoor routes keep their authoritative walkability, but are timber
+            // flooring, not outdoor dirt roads. Existing saved positions stay valid.
+            if (zone.Kind == "interior" && terrain == Terrain.Dirt) terrain = Terrain.Wood;
             uint hash = WorldMap.Hash(x, y, zone.Seed);
             int variant = terrain is Terrain.Water or Terrain.Lava ? (int)(Clock * 3) % 4 : (int)(hash % 4);
             var texture = Assets.Texture("terrain/" + terrain.ToString().ToLowerInvariant() + "_" + variant);
@@ -190,7 +193,7 @@ public partial class WorldView : Control
             string prop = exit.Kind is "road" ? "signpost" : exit.Kind.Contains("portal", StringComparison.Ordinal) ? "waystone" : "stairs";
             DrawProp("props/" + prop, exit.Position);
             interactions.Add(new WorldTarget("exit", exit.Id, Data.Zone(exit.Target).Name, exit.Position));
-            if (exit.Position.Distance(Camera) < 6) Nameplate(exit.Position, "→ " + Data.Zone(exit.Target).Name, Ui.Gold, -19);
+            if (exit.Position.Distance(Camera) < 6) Nameplate(exit.Position, "→ " + Data.Zone(exit.Target).Name, Ui.Gold, -72);
         }
         if (Waypoint is { } waypoint)
         {
@@ -302,8 +305,8 @@ public partial class WorldView : Control
                 Assets.DrawFrame(this, "npcs/" + npc.Role, feet, 0, npc.Position.X > Camera.X + 2 ? 1 : npc.Position.X < Camera.X - 2 ? 2 : 0, (int)(Clock * 5) % 8);
                 if (ShowNames && npc.Position.Distance(Camera) < 7)
                 {
-                    Nameplate(npc.Position, npc.Name, new Color("e0ceab"), -56);
-                    Nameplate(npc.Position, Ui.Words(npc.Role), new Color("a5c3b6"), -45, 8);
+                    Nameplate(npc.Position, npc.Name, new Color("f1e2c7"), -59, 12);
+                    Nameplate(npc.Position, Ui.Words(npc.Role), new Color("c2d7c9"), -45, 10);
                 }
                 if (Snapshot is { } s)
                 {
@@ -376,7 +379,15 @@ public partial class WorldView : Control
         DrawRect(new Rect2(position, new Vector2(32, 4)), Ui.Ink);
         DrawRect(new Rect2(position + Vector2.One, new Vector2((float)Math.Clamp(fraction, 0, 1) * 30, 2)), color);
     }
-    private void Nameplate(Point at, string text, Color color, float offset, int size = 10) => Text(Pixels(at) + new Vector2(0, offset), text, color, size);
+    private void Nameplate(Point at, string text, Color color, float offset, int size = 10)
+    {
+        var position = Pixels(at) + new Vector2(0, offset);
+        var font = ThemeDB.FallbackFont;
+        float width = Math.Min(240, font.GetStringSize(text, HorizontalAlignment.Left, -1, size).X);
+        DrawRect(new Rect2(position - new Vector2(width / 2 + 3, font.GetAscent(size)),
+            new Vector2(width + 6, font.GetHeight(size))), new Color(.06f, .055f, .045f, .78f));
+        Text(position, text, color, size);
+    }
     private void Text(Vector2 position, string text, Color color, int size)
     {
         var at = position - new Vector2(120, 0);

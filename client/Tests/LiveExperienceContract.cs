@@ -176,6 +176,7 @@ public partial class LiveExperienceContract : Node
             await Until(() => Self.Equipment.GetValueOrDefault("weapon") == weapon, "Native context-menu Equip did not change server equipment.");
             Require(true, "A native mouse click on context Equip reaches the authoritative server");
             await Delay(.3); sequence = Self.LastAction;
+            var stableSelectedSlot = ItemControl(weapon);
             for (int cycle = 0; cycle < 8; cycle++)
             {
                 await Click(ItemControl(weapon), MouseButton.Right); await Delay(.1);
@@ -183,6 +184,8 @@ public partial class LiveExperienceContract : Node
                 await Tap(Key.Escape); await Frame();
                 Require(!game.FindChildren("*", "Control", true, false).OfType<EquipmentMenu>().Any(x => !x.IsQueuedForDeletion()), "Escape removes the context menu");
                 Require(Field<string>(game, "currentPage") == "Inventory", "Closing a context menu retains the inventory window");
+                Require(GodotObject.IsInstanceValid(stableSelectedSlot) && ReferenceEquals(stableSelectedSlot,ItemControl(weapon)),
+                    "Opening and cancelling selected-item actions preserves the inventory control");
             }
             await Delay(.3);
             Require(Self.LastAction == sequence, "Cancelled context actions send no equipment requests");
@@ -239,6 +242,8 @@ public partial class LiveExperienceContract : Node
             {
                 int expectedItems = pile.Items.Count;
                 Require(Self.Position.Distance(pile.Position) <= 2.15, "Owned combat loot is within interaction range");
+                var pickupTarget = (WorldTarget?)Call("ContextTarget");
+                GD.Print($"LOOT_TRACE visiblePiles={game.World.Loot.Count} contextKind={pickupTarget?.Kind} selectedOwnedPile={pickupTarget?.Id == pile.Id}");
                 await Tap(Key.E);
                 await Until(() => !game.World.Loot.Any(x => x.Id == pile.Id), "E did not collect owned combat loot.");
                 if (expectedItems > 0)

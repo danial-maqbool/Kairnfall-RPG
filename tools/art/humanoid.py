@@ -202,9 +202,20 @@ def weapon(p,j,item):
     elif family in ('mace','greatmace','hammer'):
         poly([(-5,-length+5),(4,-length+4),(7,-length+8),(5,-length+14),(-5,-length+14),(-7,-length+8)],c[2])
         line([(-4,-length+6),(3,-length+5)],c[5]); line([(-3,-length+7),(-3,-length+12)],c[4],2)
+        if family=='mace':
+            for rib in (-4,0,4):
+                poly([(rib,-length+4),(rib+2,-length+7),(rib+1,-length+14),
+                      (rib-1,-length+13),(rib-1,-length+7)],c[3])
+                line([(rib,-length+6),(rib,-length+12)],c[5])
     elif family=='spear':
         poly([(-3,-length+6),(0,-length),(3,-length+6),(0,-length+11)],c[2]); line([(0,-length+2),(0,-length+8)],c[5])
-    elif family in ('staff','wand'):
+    elif family=='wand':
+        poly([(-2,-4),(-1,-length+3),(0,-length),(2,-length+3),(1,-4)],wood[3])
+        line([(0,-length+4),(0,-5)],wood[5])
+        line([(-2,-5),(2,-5)],c[4],2)
+        poly([(0,-length-2),(2,-length),(0,-length+3),(-1,-length)],
+             ELEMENT_COLORS.get(item.get('element','Arcane'),'ae9ccf'))
+    elif family=='staff':
         gem=ELEMENT_COLORS.get(item.get('element','Arcane'),'ae9ccf')
         poly([(-4,-length+7),(-5,-length+2),(0,-length-2),(5,-length+2),(4,-length+7)],'a08a64')
         poly([(0,-length),(3,-length+3),(0,-length+6),(-3,-length+3)],gem)

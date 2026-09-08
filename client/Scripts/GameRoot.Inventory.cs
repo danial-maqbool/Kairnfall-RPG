@@ -52,7 +52,9 @@ public partial class GameRoot
             }
             catch (RuleException error) { text.AppendLine().Append(error.Message); }
         }
-        return text.ToString();
+        // Godot text layout expects LF. Windows AppendLine emits CRLF, which
+        // produces extra paragraph spacing in the native item inspector.
+        return text.ToString().ReplaceLineEndings("\n");
     }
 
     private ItemSlot MakeSlot(Item item, string bag, Action? clicked = null)
@@ -151,7 +153,9 @@ public partial class GameRoot
         var names = Ui.Column(heading);
         names.AddChild(Ui.Label(def.Name, 21, Ui.RarityColor(item.Rarity), true));
         names.AddChild(Ui.Label(item.Rarity + (Items.Equipped(self, item.Id) ? " · Equipped" : ""), 14, Ui.Muted));
-        parent.AddChild(Ui.Label(ItemDescription(item), 15, Ui.Text, true));
+        // The heading already names the item and rarity. Keep the statistics
+        // compact enough to expose quantity/actions in the 720p inspector.
+        parent.AddChild(Ui.Label(string.Join('\n', ItemDescription(item).Split('\n').Skip(2)), 15, Ui.Text, true));
         var quantity = Amount(parent, item.Quantity);
         if (selectedBag == "bank")
         {

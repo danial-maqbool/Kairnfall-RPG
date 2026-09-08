@@ -55,12 +55,28 @@ class BuildingInteriorTests(unittest.TestCase):
                 self.assertIn(inside, self.zones)
                 self.assertTrue(any(npc['zone'] == inside for npc in self.data['npcs']), inside)
 
-    def test_original_starter_quest_givers_retain_identity_and_location(self):
-        expected = {'innkeeper': (40.5,26.5), 'blacksmith':(40.5,28.5), 'provisioner':(40.5,30.5), 'trainer':(40.5,44.5)}
+    def test_original_starter_quest_givers_retain_identity_in_service_forecourts(self):
+        expected = {'innkeeper': (30.5,34.5), 'blacksmith':(47.5,34.5), 'provisioner':(30.5,54.5), 'trainer':(49.5,55.5)}
         for role, point in expected.items():
             npc = next(npc for npc in self.data['npcs'] if npc['id'] == 'wayfarers_rest_' + role)
             self.assertEqual(npc['zone'], 'wayfarers_rest')
             self.assertEqual(npc['position'], {'x': point[0], 'y': point[1]})
+
+    def test_starter_services_leave_the_square_and_door_thresholds_clear(self):
+        staff = [npc for npc in self.data['npcs'] if npc['zone'] == 'wayfarers_rest']
+        self.assertEqual(len(staff), 10)
+        positions = [(npc['position']['x'],npc['position']['y']) for npc in staff]
+        self.assertEqual(len(set(positions)),len(positions))
+        self.assertGreater(len(set(x for x,y in positions)),5)
+        for x,y in positions:
+            self.assertGreater(abs(x-40.5),3, 'Keep the main north/south route clear')
+            for other_x,other_y in positions:
+                if (x,y) != (other_x,other_y):
+                    self.assertGreaterEqual((x-other_x)**2+(y-other_y)**2,4)
+            for building in self.zones['wayfarers_rest']['buildings']:
+                door_x=building['x']+building['width']//2+.5
+                door_y=building['y']+building['height']-.5
+                self.assertGreater((x-door_x)**2+(y-door_y)**2,2)
 
     def test_all_quest_givers_still_resolve(self):
         identities = {npc['id'] for npc in self.data['npcs']}

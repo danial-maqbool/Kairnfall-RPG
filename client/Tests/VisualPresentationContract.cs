@@ -71,6 +71,9 @@ public partial class VisualPresentationContract : Node
                 Call(game,"UpdateHud");
             }
             Refresh(); Call(game,"SetInitialHotbar");
+            string description = (string)Call(game,"ItemDescription",self.Inventory[0],true)!;
+            Check(!description.Contains('\r') && description.Contains('\n'),
+                "Item statistics use native LF line endings on Windows without doubled paragraph gaps");
             foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
             {
                 GetWindow().Size=size; GetWindow().ContentScaleSize=size;
@@ -120,6 +123,19 @@ public partial class VisualPresentationContract : Node
                 }
             }
             Check(gallery.Assets.Missing.Count==0,"All requested equipment layers exist in the actual renderer");
+            gallery.Creatures = true;
+            for(int state=0;state<6;state++)
+            {
+                gallery.State=state;
+                foreach(int frame in new[]{0,2,4,7})
+                {
+                    gallery.FrameNumber=frame; gallery.QueueRedraw();
+                    await Capture($"mobs-state-{state}-frame-{frame}");
+                }
+            }
+            Check(gallery.Assets.Missing.Count==0,"All eight common creature review sheets exist in the actual renderer");
+            gallery.Icons=true; gallery.QueueRedraw(); await Capture("17-item-icons");
+            Check(gallery.Assets.Missing.Count==0,"Representative item and chest icons exist in the native renderer");
             gallery.QueueFree(); await Frame(); await Frame(); gallery=null;
             GD.Print($"VISUAL_PRESENTATION_CONTRACT: {checks} checks passed. Rendered fixtures; visual approval and Windows DPI testing remain separate.");
             GetTree().Quit();
@@ -139,8 +155,12 @@ public partial class EquipmentGallery : Control
     public PixelAssets Assets { get; } = new();
     public int State { get; set; }
     public int FrameNumber { get; set; }
+    public bool Creatures { get; set; }
+    public bool Icons { get; set; }
     private readonly string[] families=["sword","axe","mace","bow","staff","spear","wand","tome"];
+    private readonly string[] species=["field_rat","wild_hare","pine_wolf","feral_boar","black_bear","wood_spider","sea_turtle","polar_bear"];
     private readonly List<Dictionary<string,string>> gear=[];
+    private readonly List<(string Key,string Name)> icons=[];
     public override void _Ready()
     {
         MouseFilter=MouseFilterEnum.Ignore; TextureFilter=TextureFilterEnum.Nearest;
@@ -148,17 +168,45 @@ public partial class EquipmentGallery : Control
         foreach(string family in families)
         {
             var item=data.Items.First(x=>x.Slot=="weapon" && x.Tags.Contains(family));
+            icons.Add(("items/"+item.Id,item.Name));
             var equipment=new Dictionary<string,string>{{"weapon",item.Id}};
-            foreach(string slot in new[]{"helmet","chest","legs","boots","cloak"})
+            foreach(string slot in new[]{"helmet","chest","legs","boots","cloak","gloves"})
                 equipment[slot]=data.Items.First(x=>x.Slot==slot).Id;
             if(family is "sword" or "axe" or "mace") equipment["offhand"]=data.Items.First(x=>x.Slot=="offhand" && x.Tags.Contains("shield")).Id;
             gear.Add(equipment);
         }
+        foreach(string slot in new[]{"offhand","chest","helmet","gloves"})
+        {
+            var item=data.Items.First(x=>x.Slot==slot); icons.Add(("items/"+item.Id,item.Name));
+        }
+        foreach(string type in new[]{"potion","ore","wood","animal_material","food","rune"})
+        {
+            var item=data.Items.First(x=>x.Type==type); icons.Add(("items/"+item.Id,item.Name));
+        }
+        icons.Add(("chests/ancient_closed","Ancient chest"));
     }
     public override void _Draw()
     {
         DrawRect(new Rect2(Vector2.Zero,Size),new Color("20232a"));
-        DrawString(ThemeDB.FallbackFont,new Vector2(24,28),"KAIRNFALL · EQUIPMENT RENDER FIXTURE · state "+State+" / frame "+FrameNumber,HorizontalAlignment.Left,-1,18,Ui.Text);
+        if(Icons)
+        {
+            DrawString(ThemeDB.FallbackFont,new Vector2(24,28),"KAIRNFALL · ITEM ICON RENDER FIXTURE",HorizontalAlignment.Left,-1,18,Ui.Text);
+            for(int i=0;i<icons.Count;i++)
+            {
+                var at=new Vector2(24+(i%7)*268,70+(i/7)*310);
+                var texture=Assets.Texture(icons[i].Key);
+                DrawRect(new Rect2(at,new Vector2(250,280)),new Color("303238"));
+                if(texture is not null)
+                {
+                    float scale=Math.Max(1,MathF.Floor(160/Math.Max(texture.GetWidth(),texture.GetHeight())));
+                    var size=texture.GetSize()*scale;
+                    DrawTextureRect(texture,new Rect2(at+new Vector2((250-size.X)/2,40),size),false);
+                }
+                DrawString(ThemeDB.FallbackFont,at+new Vector2(10,245),icons[i].Name,HorizontalAlignment.Left,230,14,Ui.Text);
+            }
+            return;
+        }
+        DrawString(ThemeDB.FallbackFont,new Vector2(24,28),"KAIRNFALL · "+(Creatures ? "COMMON CREATURE" : "EQUIPMENT")+" RENDER FIXTURE · state "+State+" / frame "+FrameNumber,HorizontalAlignment.Left,-1,18,Ui.Text);
         if(gear.Count!=8) return;
         float width=(Size.X-32)/8, height=(Size.Y-60)/4;
         for(int direction=0;direction<4;direction++) for(int column=0;column<8;column++)
@@ -167,9 +215,10 @@ public partial class EquipmentGallery : Control
             DrawRect(new Rect2(origin+Vector2.One,new Vector2(width-8,height-8)),new Color("303238"));
             var feet=(origin+new Vector2(width/2,height-43)).Round();
             DrawSetTransform(feet,0,new Vector2(2,2));
-            Assets.DrawPerson(this,new Appearance{Body=column%2,Skin=2,Hair=0,HairColor=1},gear[column],Vector2.Zero,State,direction,FrameNumber);
+            if(Creatures) Assets.DrawFrame(this,"mobs/"+species[column],Vector2.Zero,State,direction,FrameNumber);
+            else Assets.DrawPerson(this,new Appearance{Body=column%2,Skin=2,Hair=0,HairColor=1},gear[column],Vector2.Zero,State,direction,FrameNumber);
             DrawSetTransform(Vector2.Zero);
-            DrawString(ThemeDB.FallbackFont,origin+new Vector2(10,height-18),families[column]+" · "+new[]{"S","W","E","N"}[direction],HorizontalAlignment.Left,-1,14,Ui.Text);
+            DrawString(ThemeDB.FallbackFont,origin+new Vector2(10,height-18),(Creatures ? species[column] : families[column])+" · "+new[]{"S","W","E","N"}[direction],HorizontalAlignment.Left,-1,14,Ui.Text);
         }
     }
 }

@@ -88,7 +88,7 @@ public partial class GameRoot
         chatFrame = new HudPanel
         {
             Name = "ChatPanel", AnchorTop = 1, AnchorBottom = 1,
-            OffsetLeft = 16, OffsetRight = 316, OffsetTop = -292, OffsetBottom = -106
+            OffsetLeft = 16, OffsetRight = 316, OffsetTop = -258, OffsetBottom = -106
         };
         hud.AddChild(chatFrame);
         var chat = Ui.Column(chatFrame); chat.AddThemeConstantOverride("separation", 4);
@@ -99,7 +99,7 @@ public partial class GameRoot
         chatBody = Ui.Column(chat); chatBody.AddThemeConstantOverride("separation", 4);
         chatLog = new RichTextLabel
         {
-            BbcodeEnabled = false, ScrollFollowing = true, CustomMinimumSize = new Vector2(278, 82),
+            BbcodeEnabled = false, ScrollFollowing = true, CustomMinimumSize = new Vector2(278, 48),
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
         chatLog.AddThemeFontSizeOverride("normal_font_size", 13); chatBody.AddChild(chatLog);
@@ -144,7 +144,7 @@ public partial class GameRoot
     private void ShowChat(bool expanded)
     {
         chatExpanded = expanded; chatBody.Visible = expanded; chatToggle.Text = expanded ? "−" : "+";
-        chatFrame.OffsetTop = expanded ? -292 : -155;
+        chatFrame.OffsetTop = expanded ? -258 : -155;
         if (!expanded && chatInput.HasFocus()) chatInput.ReleaseFocus();
         settings.SetValue("hud", "chat", expanded); settings.Save("user://settings.cfg");
     }
@@ -194,7 +194,9 @@ public partial class GameRoot
         }
         var tracked = self.Quests.OrderByDescending(x => Data.Quest(x.Key).Category == "main").FirstOrDefault();
         if (tracked.Value is null)
-            objectiveText.Text = "Speak to the village innkeeper.\nNorth of the central square\nMove: WASD / arrows · Talk: E";
+            objectiveText.Text = zone.Kind == "interior"
+                ? "Speak to the village innkeeper.\nOutside the Lantern Hearth\nUse the marked exit to return."
+                : "Speak to the village innkeeper.\nBy the inn, northwest of the square\nMove: WASD / arrows · Talk: E";
         else
         {
             var quest = Data.Quest(tracked.Key);

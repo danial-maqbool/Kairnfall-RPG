@@ -76,7 +76,7 @@ def build(data):
             station={'fletching':'fletching_table','woodworking':'sawbench','scribing':'scriptorium','leatherworking':'tannery','smithing':'forge'}[crafting]
             tags=[family]+(['two_handed'] if two_handed else [])
             stats={'spell':round(2*mult,1)} if family in {'staff','wand','tome'} else {'accuracy':round(mult,1)}
-            b.item(ident,display,'weapon',slot='weapon',skill=skill,requirement=level,material=key,value=int(45*mult),power=round(power*mult,1),speed=speed,range=reach,element=element if family in {'staff','wand','tome'} else 'Physical',stats=stats,tags=tags,tier=MATERIALS.index((key,label,level,mult,wood,element))+1,description=f'{name}: {reach:g}-tile reach, {speed:g}-second base recovery. Built with a fitted grip, visible joints, and a balanced head or blade.')
+            b.item(ident,display,'weapon',slot='weapon',skill=skill,requirement=level,material=key,value=int(45*mult),power=round(power*mult,1),speed=speed,range=reach,element=element if family in {'staff','wand','tome'} else 'Physical',stats=stats,tags=tags,tier=MATERIALS.index((key,label,level,mult,wood,element))+1,description=f'{name}: {reach:g}-tile reach, {speed:g}-second base recovery.')
             ingredients={key+'_bar':2,wood+'_plank':1,'cured_leather':1}
             if family=='tome': ingredients={'parchment':4,'ink':2,key+'_bar':1}
             b.recipe('forge_'+ident,'Make '+display,crafting,station,ingredients,ident,level,xp=40+level)
