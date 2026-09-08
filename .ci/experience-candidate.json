@@ -1,6 +1,6 @@
 {
-  "sha": "803b483fdbe9b0fa49e617076567a6a732105089",
+  "sha": "55e4658638a80bd0d66e5547755a16e007cf1a42",
   "base": "ab022f15540df35393d1ccc474e0cda7afdc4ec8",
   "mode": "repair",
-  "purpose": "Verify recovered controls and HUD, real native mouse equipment actions, repeated menu cleanup, current-state validation, frame-synchronized captures, headless audio handling, retained backend/security suites and reconnect. Both earlier candidate histories are preserved. Source integration requires this exact candidate to pass."
+  "purpose": "Retain all existing checks and the 15-second live combat requirement. Record bounded non-sensitive attack state to diagnose the encounter timeout after equipment, menu lifecycle, native input, and graphical checks passed."
 }
