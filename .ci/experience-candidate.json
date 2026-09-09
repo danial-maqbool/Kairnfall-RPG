@@ -1,6 +1,6 @@
 {
-  "sha": "a8085c2c0b6444f0949575954d19ce242092fac8",
+  "sha": "633b1f23673126c5c4ffad956704808ba2f2b9f7",
   "base": "2c0ccda45d13b719b35a6f8bf2ea83dab1242857",
   "mode": "repair",
-  "purpose": "Verify all integrated compact cards, signed colored statistics, red blockers, integer quantities, exact selected-stack sales and real-server reconnect checks. Retain the new explicit-reselection guard after a sold stack disappears. Also test separate pinned action rows with large gold totals and refreshed comparisons when equipped affixes or durability change without an ID change. The high-value 999-stack fixture changes only a copied catalog. Keep all existing native, backend, security, database, migration, progression, Foundry and Atelier checks. Do not integrate the candidate until all required checks pass."
+  "purpose": "Verify compact cards, individually colored signed statistics, equipment blockers, centered content and protected exact-quantity sales. Retain explicit reselection after a sold stack disappears, separate pinned sale rows and current equipped-instance comparisons. The high-value fixture now types its quantity with native keyboard events rather than setting LineEdit.Text, which does not emit text_changed. Exact expected gold, remaining quantity, native layout and color assertions are unchanged. Run all prior backend, security, database, progression, importer, native, graphical and real-connection/reconnect checks before integration."
 }
