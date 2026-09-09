@@ -161,5 +161,6 @@ internal static class ItemCommerceUiChecks
             Field("selectedItem").SetValue(game,oldItem);Field("selectedBag").SetValue(game,oldBag);Field("selectedNpc").SetValue(game,oldNpc);
             if(original is not null)game.World.Accept(new TransportPacket{Snapshot=original});
         }
+        await MerchantBoundaryUiChecks.Run(host, game, check);
     }
 }
