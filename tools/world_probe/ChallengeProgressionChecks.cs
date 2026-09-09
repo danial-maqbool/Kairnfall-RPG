@@ -70,6 +70,15 @@ internal static class ChallengeProgressionChecks
             foreach(var skill in data.Skills)p.SkillXp[skill.Id]=Progression.Threshold(100);
             Need(Progression.PlayerLevel(p)==Progression.PlayerCap,"Complete skill mastery lost its final overall cap.");
         });
+        Test("Late mastery approaches the overall cap without a final-point level jump",()=>
+        {
+            var p=new Character { Class="vanguard" };
+            foreach(var skill in data.Skills)p.SkillXp[skill.Id]=Progression.Threshold(100);
+            p.SkillXp["slayer"]-=100; p.PracticeOnlyXp=Progression.Total(p)*9/10;
+            int before=Progression.PlayerLevel(p);
+            p.SkillXp["slayer"]+=100; int after=Progression.PlayerLevel(p);
+            Need(before>=199&&after==Progression.PlayerCap&&after-before<=1,"The last skill points caused an artificial level jump.");
+        });
         Test("Invalid awards fail before state changes and zero awards do not manufacture XP",()=>
         {
             var p=AtLevel(30);

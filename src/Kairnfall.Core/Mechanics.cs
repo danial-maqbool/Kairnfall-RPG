@@ -20,10 +20,12 @@ public static class Progression
     public static long Total(Character p) => p.SkillXp.Values.Sum(x=>Math.Clamp(x,0,Threshold(SkillCap)));
     public static int PlayerLevel(Character p)
     {
-        // Complete mastery retains the existing terminal milestone.
-        if(Total(p)>=60L*Threshold(SkillCap)) return PlayerCap;
+        double mastery=Math.Clamp(Total(p)/(60.0*Threshold(SkillCap)),0,1);
         double ratio=Math.Clamp(BeginnerProgression.OverallEquivalentXp(ChallengeProgression.OverallTraining(p))/(60.0*Threshold(SkillCap)),0,1);
-        return Math.Clamp(1+(int)Math.Floor(199*Math.Pow(ratio,0.30)),1,PlayerCap);
+        int credited=1+(int)Math.Floor(199*Math.Pow(ratio,0.30));
+        // Late mastery approaches the cap continuously. It does not create a final-point jump.
+        int mastered=1+(int)Math.Floor(199*Math.Pow(mastery,1.5));
+        return Math.Clamp(Math.Max(credited,mastered),1,PlayerCap);
     }
     public static long Train(Character p,string skill,int xp,int difficulty,Catalog catalog)
     {
