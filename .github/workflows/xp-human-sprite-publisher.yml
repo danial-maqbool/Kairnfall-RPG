@@ -6,7 +6,7 @@ permissions:
   contents: write
 jobs:
   publish:
-    if: github.actor != 'github-actions[bot]'
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -20,375 +20,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply reviewed progression, HUD and humanoid source changes
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          def replace(path, old, new):
-              p = Path(path)
-              text = p.read_text(encoding='utf-8')
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{path}: expected one replacement, found {count}')
-              p.write_text(text.replace(old, new, 1), encoding='utf-8')
-
-          replace('src/Kairnfall.Core/Mechanics.cs', '''    public static int PlayerLevel(Character p)
-    {
-        double mastery=Math.Clamp(Total(p)/(60.0*Threshold(SkillCap)),0,1);
-        double ratio=Math.Clamp(BeginnerProgression.OverallEquivalentXp(ChallengeProgression.OverallTraining(p))/(60.0*Threshold(SkillCap)),0,1);
-        int credited=1+(int)Math.Floor(199*Math.Pow(ratio,0.30));
-        // Late mastery approaches the cap continuously. It does not create a final-point jump.
-        int mastered=1+(int)Math.Floor(199*Math.Pow(mastery,1.5));
-        return Math.Clamp(Math.Max(credited,mastered),1,PlayerCap);
-    }
-    public static long Train(Character p,string skill,int xp,int difficulty,Catalog catalog)
-    {
-        catalog.Skill(skill);
-        if(xp<0||xp>100000||difficulty<1||difficulty>100) throw new RuleException("Invalid skill award.");
-        int over=Level(p,skill)-difficulty;
-        double challenge=Math.Clamp((30.0-over)/30.0,0,1);
-        double affinity=catalog.Class(p.Class).Affinity.Contains(skill)?1.10:1;
-        int overallBefore=PlayerLevel(p);
-        long old=p.SkillXp.GetValueOrDefault(skill);
-        long award=(long)Math.Floor(xp*challenge*affinity);
-        p.SkillXp[skill]=Math.Min(Threshold(SkillCap),old+award);
-        long actual=p.SkillXp[skill]-old;
-        ChallengeProgression.Credit(p,actual,overallBefore);
-        return actual;
-    }
-''', '''    public static double PlayerLevelValue(Character p,bool includeCreditRemainder=false)
-    {
-        double mastery=Math.Clamp(Total(p)/(60.0*Threshold(SkillCap)),0,1);
-        double training=ChallengeProgression.OverallTraining(p);
-        if(includeCreditRemainder&&double.IsFinite(p.OverallCreditRemainder)) training+=Math.Clamp(p.OverallCreditRemainder,0,.999999999);
-        double ratio=Math.Clamp(BeginnerProgression.OverallEquivalentXp((long)Math.Floor(training))/(60.0*Threshold(SkillCap)),0,1);
-        // Preserve fractional credit in the HUD without allowing a fraction to skip a server level boundary.
-        if(includeCreditRemainder&&training>0)
-        {
-            double whole=Math.Floor(training);
-            double baseEquivalent=BeginnerProgression.OverallEquivalentXp((long)whole);
-            double nextEquivalent=BeginnerProgression.OverallEquivalentXp((long)whole+1);
-            ratio=Math.Clamp((baseEquivalent+(nextEquivalent-baseEquivalent)*(training-whole))/(60.0*Threshold(SkillCap)),0,1);
-        }
-        double credited=1+199*Math.Pow(ratio,0.30);
-        // Late mastery approaches the cap continuously. It does not create a final-point jump.
-        double mastered=1+199*Math.Pow(mastery,1.5);
-        return Math.Clamp(Math.Max(credited,mastered),1,PlayerCap);
-    }
-    public static int PlayerLevel(Character p)=>Math.Clamp((int)Math.Floor(PlayerLevelValue(p)),1,PlayerCap);
-    public static double PlayerLevelProgress(Character p)
-    {
-        int level=PlayerLevel(p);
-        return level>=PlayerCap?1:Math.Clamp(PlayerLevelValue(p,true)-level,0,1);
-    }
-    public static double SkillLevelProgress(long xp)
-    {
-        int level=SkillLevel(xp);
-        if(level>=SkillCap)return 1;
-        long floor=Threshold(level),ceiling=Threshold(level+1);
-        return Math.Clamp((Math.Clamp(xp,floor,ceiling)-floor)/(double)(ceiling-floor),0,1);
-    }
-    public static long Train(Character p,string skill,int xp,int difficulty,Catalog catalog)
-    {
-        catalog.Skill(skill);
-        if(xp<0||xp>100000||difficulty<1||difficulty>100) throw new RuleException("Invalid skill award.");
-        if(xp==0)return 0;
-        int over=Level(p,skill)-difficulty;
-        // Successful trivial practice remains useful, but at only five percent of the base award.
-        // Fractional carry prevents both zero-XP dead zones and a free whole XP point per tiny action.
-        double challenge=Math.Clamp((30.0-over)/30.0,.05,1);
-        double affinity=catalog.Class(p.Class).Affinity.Contains(skill)?1.10:1;
-        int overallBefore=PlayerLevel(p);
-        long old=p.SkillXp.GetValueOrDefault(skill),cap=Threshold(SkillCap);
-        double carry=p.GeneralPracticeRemainders.GetValueOrDefault(skill);
-        if(!double.IsFinite(carry)||carry<0||carry>=1)carry=0;
-        double pending=xp*challenge*affinity+carry;
-        long whole=(long)Math.Floor(pending);
-        long actual=Math.Max(0,Math.Min(cap-old,whole));
-        p.SkillXp[skill]=old+actual;
-        p.GeneralPracticeRemainders[skill]=p.SkillXp[skill]>=cap?0:pending-whole;
-        ChallengeProgression.Credit(p,actual,overallBefore);
-        return actual;
-    }
-''')
-
-          replace('src/Kairnfall.Core/Models.cs', '''    public Dictionary<string,double> CombatPracticeRemainders { get; set; } = [];
-''', '''    public Dictionary<string,double> CombatPracticeRemainders { get; set; } = [];
-    // Non-combat/general training uses the same bounded fractional-carry rule as combat.
-    public Dictionary<string,double> GeneralPracticeRemainders { get; set; } = [];
-''')
-
-          replace('src/Kairnfall.Core/Mechanics.cs', '''            if(p.SkillXp.Any(x=>!data.Skills.Any(s=>s.Id==x.Key)||x.Value<0||x.Value>Progression.Threshold(100))) errors.Add("Invalid skill XP: "+p.Id);
-''', '''            if(p.SkillXp.Any(x=>!data.Skills.Any(s=>s.Id==x.Key)||x.Value<0||x.Value>Progression.Threshold(100))) errors.Add("Invalid skill XP: "+p.Id);
-            if(p.GeneralPracticeRemainders.Any(x=>!data.Skills.Any(s=>s.Id==x.Key)||!double.IsFinite(x.Value)||x.Value<0||x.Value>=1)) errors.Add("Invalid general practice remainder: "+p.Id);
-            if(p.CombatPracticeRemainders.Any(x=>!data.Skills.Any(s=>s.Id==x.Key)||!double.IsFinite(x.Value)||x.Value<0||x.Value>=1)) errors.Add("Invalid combat practice remainder: "+p.Id);
-''')
-
-          replace('tests/Kairnfall.Tests/Program.cs', '''Test("Trivial actions cannot award endgame XP",()=>
-{
-    var r=NewRealm(); var p=NewPlayer(r); p.SkillXp["mining"]=Progression.Threshold(60);
-    Check(Progression.Train(p,"mining",100,1,data)==0,"Trivial mining awarded XP.");
-});
-''', '''Test("Trivial successful actions retain bounded fractional practice",()=>
-{
-    var r=NewRealm(); var p=NewPlayer(r); p.SkillXp["mining"]=Progression.Threshold(60);
-    long raw=Progression.Total(p),overall=ChallengeProgression.OverallTraining(p);
-    for(int i=0;i<200;i++) Progression.Train(p,"mining",1,1,data);
-    long gained=Progression.Total(p)-raw;
-    Check(gained>0&&gained<=12,"Trivial practice was either lost or disproportionate: "+gained);
-    Check(p.GeneralPracticeRemainders.TryGetValue("mining",out double carry)&&double.IsFinite(carry)&&carry>=0&&carry<1,"General practice carry is invalid.");
-    Check(ChallengeProgression.OverallTraining(p)>overall||p.OverallCreditRemainder>0,"Successful skill practice stopped contributing to overall progress.");
-});
-Test("Player and skill experience progress fractions are bounded and move forward",()=>
-{
-    var r=NewRealm(); var p=NewPlayer(r);
-    double playerBefore=Progression.PlayerLevelProgress(p);
-    long skillBefore=p.SkillXp.GetValueOrDefault("mining");
-    Progression.Train(p,"mining",1000,1,data);
-    Check(Progression.SkillLevelProgress(p.SkillXp["mining"])>=0&&Progression.SkillLevelProgress(p.SkillXp["mining"])<=1,"Skill progress fraction is invalid.");
-    Check(p.SkillXp["mining"]>skillBefore,"Mining XP did not increase.");
-    Check(Progression.PlayerLevel(p)>1||Progression.PlayerLevelProgress(p)>playerBefore,"Overall experience did not move.");
-});
-''')
-
-          replace('client/Scripts/GameRoot.Experience.cs', '''    private Label interactionHint = null!;
-    private Label progressionHint = null!;
-    private VBoxContainer pickupFeed = null!;
-''', '''    private Label interactionHint = null!;
-    private VBoxContainer pickupFeed = null!, skillExperienceFeed = null!;
-    private ProgressBar characterExperienceBar = null!;
-''')
-          replace('client/Scripts/GameRoot.Experience.cs', '''    private double contextClock, progressionUntil, nextProgressionNote;
-    private string lastNoticeText = "";
-    private double lastNoticeAt = -10;
-    private readonly List<PickupNote> pickupNotes = [];
-    private readonly Dictionary<string, long> pendingSkillGains = [];
-    private readonly Dictionary<string, int> pendingSkillLevels = [];
-    private sealed record PickupNote(string Template, Rarity Rarity, int Quantity, double Until);
-''', '''    private double contextClock;
-    private string lastNoticeText = "";
-    private double lastNoticeAt = -10;
-    private readonly List<PickupNote> pickupNotes = [];
-    private readonly List<SkillExperienceNote> skillExperienceNotes = [];
-    private sealed record PickupNote(string Template, Rarity Rarity, int Quantity, double Until);
-    private sealed record SkillExperienceNote(string Skill,long Gain,long Xp,int BeforeLevel,int Level,double Until);
-''')
-
-          replace('client/Scripts/GameRoot.Experience.cs', '''        progressionHint = Ui.Label("", 14, Ui.Success, true);
-        progressionHint.Name = "ProgressionFeedback";
-        progressionHint.AnchorLeft = progressionHint.AnchorRight = .5f;
-        progressionHint.AnchorTop = progressionHint.AnchorBottom = 1;
-        progressionHint.OffsetLeft = -285; progressionHint.OffsetRight = 285;
-        progressionHint.OffsetTop = -213; progressionHint.OffsetBottom = -185;
-        progressionHint.HorizontalAlignment = HorizontalAlignment.Center;
-        progressionHint.AddThemeConstantOverride("outline_size", 4);
-        progressionHint.AddThemeColorOverride("font_outline_color", Ui.Ink);
-        hud.AddChild(progressionHint);
-        notice.OffsetTop = -252; notice.OffsetBottom = -216;
-''', '''        skillExperienceFeed = new VBoxContainer
-        {
-            Name = "SkillExperienceFeed", AnchorLeft = .5f, AnchorRight = .5f, AnchorTop = 1, AnchorBottom = 1,
-            OffsetLeft = -165, OffsetRight = 165, OffsetTop = -346, OffsetBottom = -264,
-            MouseFilter = MouseFilterEnum.Ignore
-        };
-        skillExperienceFeed.AddThemeConstantOverride("separation", 3); hud.AddChild(skillExperienceFeed);
-        characterExperienceBar = Ui.Bar(new Color("c2a55f"), 0);
-        characterExperienceBar.Name = "CharacterExperienceBar";
-        characterExperienceBar.AnchorLeft = 0; characterExperienceBar.AnchorRight = 1;
-        characterExperienceBar.AnchorTop = characterExperienceBar.AnchorBottom = 1;
-        characterExperienceBar.OffsetLeft = 8; characterExperienceBar.OffsetRight = -8;
-        characterExperienceBar.OffsetTop = -7; characterExperienceBar.OffsetBottom = -1;
-        characterExperienceBar.CustomMinimumSize = new Vector2(0, 6);
-        characterExperienceBar.MouseFilter = MouseFilterEnum.Ignore; hud.AddChild(characterExperienceBar);
-        notice.OffsetTop = -252; notice.OffsetBottom = -216;
-''')
-
-          replace('client/Scripts/GameRoot.Experience.cs', '''        if (now >= nextProgressionNote && pendingSkillGains.Count > 0)
-        {
-            var keys = pendingSkillGains.Keys.OrderByDescending(x => pendingSkillLevels.ContainsKey(x)).Take(3).ToArray();
-            progressionHint.Text = string.Join(" · ", keys.Select(x => pendingSkillLevels.TryGetValue(x, out int level)
-                ? Data.Skill(x).Name + " reached Level " + level : "+" + pendingSkillGains[x] + " " + Data.Skill(x).Name + " XP"));
-            foreach (var key in keys) { pendingSkillGains.Remove(key); pendingSkillLevels.Remove(key); }
-            nextProgressionNote = now + 1.5; progressionUntil = now + 4;
-        }
-        if (now > progressionUntil) progressionHint.Text = "";
-        if (pickupNotes.RemoveAll(x => now > x.Until) > 0) RenderPickupFeed();
-''', '''        if (skillExperienceNotes.RemoveAll(x => now >= x.Until) > 0) RenderSkillExperience();
-        if (pickupNotes.RemoveAll(x => now > x.Until) > 0) RenderPickupFeed();
-''')
-
-          replace('client/Scripts/GameRoot.Experience.cs', '''        foreach (var skill in Data.Skills)
-        {
-            long gained = current.Self.SkillXp.GetValueOrDefault(skill.Id) - previous.Self.SkillXp.GetValueOrDefault(skill.Id);
-            if (gained <= 0) continue;
-            pendingSkillGains[skill.Id] = pendingSkillGains.GetValueOrDefault(skill.Id) + gained;
-            int level = Progression.Level(current.Self, skill.Id);
-            if (level > Progression.Level(previous.Self, skill.Id)) pendingSkillLevels[skill.Id] = level;
-        }
-''', '''        foreach (var skill in Data.Skills)
-        {
-            long beforeXp=previous.Self.SkillXp.GetValueOrDefault(skill.Id);
-            long currentXp=current.Self.SkillXp.GetValueOrDefault(skill.Id);
-            long gained=currentXp-beforeXp;
-            if(gained>0) ShowSkillExperience(skill.Id,gained,beforeXp,currentXp,now);
-        }
-''')
-
-          insert = '''    private void ShowSkillExperience(string skill,long gained,long beforeXp,long currentXp,double now)
-    {
-        int existing=skillExperienceNotes.FindIndex(x=>x.Skill==skill&&x.Until>now);
-        long totalGain=gained; int beforeLevel=Progression.SkillLevel(beforeXp);
-        if(existing>=0)
-        {
-            totalGain+=skillExperienceNotes[existing].Gain;
-            beforeLevel=skillExperienceNotes[existing].BeforeLevel;
-            skillExperienceNotes.RemoveAt(existing);
-        }
-        skillExperienceNotes.Add(new(skill,totalGain,currentXp,beforeLevel,Progression.SkillLevel(currentXp),now+2.6));
-        if(skillExperienceNotes.Count>3)skillExperienceNotes.RemoveRange(0,skillExperienceNotes.Count-3);
-        RenderSkillExperience();
-    }
-
-    private void RenderSkillExperience()
-    {
-        if(skillExperienceFeed is null)return;
-        Ui.Clear(skillExperienceFeed);
-        foreach(var note in skillExperienceNotes)
-        {
-            var card=new PanelContainer { MouseFilter=MouseFilterEnum.Ignore };
-            card.AddThemeStyleboxOverride("panel",Ui.Box(new Color("1c1a17"),new Color("647a5f"),4));
-            skillExperienceFeed.AddChild(card);
-            var column=Ui.Column(card); column.MouseFilter=MouseFilterEnum.Ignore; column.AddThemeConstantOverride("separation",1);
-            string levels=note.Level>note.BeforeLevel?$" · Level {note.BeforeLevel} → {note.Level}":$" · Level {note.Level}";
-            column.AddChild(Ui.Label(Data.Skill(note.Skill).Name+$"  +{note.Gain:N0} XP"+levels,11,Ui.Success));
-            var bar=Ui.Bar(new Color("789b62"),312); bar.Name="SkillExperienceBar_"+note.Skill;
-            bar.CustomMinimumSize=new Vector2(312,7); bar.MaxValue=100; bar.Value=Progression.SkillLevelProgress(note.Xp)*100;
-            int level=Progression.SkillLevel(note.Xp);
-            if(level>=Progression.SkillCap) bar.TooltipText=Data.Skill(note.Skill).Name+" mastered";
-            else
-            {
-                long floor=Progression.Threshold(level),ceiling=Progression.Threshold(level+1);
-                bar.TooltipText=$"{note.Xp-floor:N0} / {ceiling-floor:N0} XP toward level {level+1}";
-            }
-            column.AddChild(bar);
-        }
-    }
-
-'''
-          marker = '    private void RenderPickupFeed()\n'
-          p=Path('client/Scripts/GameRoot.Experience.cs'); text=p.read_text(encoding='utf-8')
-          if text.count(marker)!=1: raise SystemExit('GameRoot.Experience.cs: RenderPickupFeed marker mismatch')
-          p.write_text(text.replace(marker,insert+marker,1),encoding='utf-8')
-
-          replace('client/Scripts/GameRoot.Hud.cs', '''        experiencePacing.Text = $"Overall XP {ChallengeProgression.OverallRate(overallLevel):P0} · Next band {Math.Min(200, ((overallLevel - 1) / 10 + 1) * 10 + 1)}";
-        experiencePacing.TooltipText = "Future skill awards contribute this fraction to overall growth. Weaker enemies reduce it further. Skill practice is tracked separately. Previously earned levels stay intact.";
-''', '''        double overallProgress=Progression.PlayerLevelProgress(self);
-        experiencePacing.Text = overallLevel>=Progression.PlayerCap ? "Overall level cap reached" : $"Level progress {overallProgress:P0} · training credit {ChallengeProgression.OverallRate(overallLevel):P0}";
-        experiencePacing.TooltipText = "Successful skill practice advances overall level. Trivial practice is strongly reduced but no longer enters a permanent zero-XP dead zone.";
-        if(characterExperienceBar is not null)
-        {
-            characterExperienceBar.MaxValue=100; characterExperienceBar.Value=overallProgress*100;
-            characterExperienceBar.TooltipText=overallLevel>=Progression.PlayerCap?"Overall level 200 · maximum":$"Overall level {overallLevel} → {overallLevel+1} · {overallProgress:P1}";
-        }
-''')
-
-          replace('atelier/forge/rig.py', '''    shoulder: float = 7.6      # half width across the shoulders
-    hip: float = 4.6           # half width across the pelvis
-    head: float = 5.4          # head radius
-    chest_depth: float = 5.1   # half width seen from the side
-    limb: float = 4.0          # arm thickness
-    thigh: float = 5.0
-    reach: float = 8.0         # upper arm length
-    forearm: float = 7.4
-    femur: float = 8.6
-    shin: float = 9.4
-    neck_y: float = 22.6
-    shoulder_y: float = 24.4
-    chest_y: float = 29.0
-    pelvis_y: float = 36.6
-    head_y: float = 16.4
-
-
-BROAD = Build()
-SLIGHT = Build(shoulder=6.6, hip=4.2, head=5.2, chest_depth=3.8, limb=3.4, thigh=4.4,
-               reach=7.8, forearm=7.2, femur=8.4, shin=9.6, chest_y=29.2, pelvis_y=36.4)
-''', '''    shoulder: float = 7.2      # half width across the shoulders
-    hip: float = 4.4           # half width across the pelvis
-    head: float = 4.8          # smaller head gives a more human 64px proportion
-    chest_depth: float = 4.5   # half width seen from the side
-    limb: float = 3.5          # articulated arm thickness
-    thigh: float = 4.4
-    reach: float = 8.3         # upper arm length
-    forearm: float = 7.7
-    femur: float = 9.4
-    shin: float = 10.0
-    neck_y: float = 21.3
-    shoulder_y: float = 23.5
-    chest_y: float = 28.3
-    pelvis_y: float = 35.5
-    head_y: float = 15.3
-
-
-BROAD = Build()
-SLIGHT = Build(shoulder=6.3, hip=4.0, head=4.7, chest_depth=3.5, limb=3.1, thigh=4.0,
-               reach=8.1, forearm=7.5, femur=9.2, shin=10.2, neck_y=21.4, shoulder_y=23.6,
-               chest_y=28.4, pelvis_y=35.4, head_y=15.4)
-''')
-
-          replace('atelier/forge/folk.py', '''    piece = sketch.piece(skin)
-    _limb(piece, knee, (foot[0], foot[1] - 1.6), build.thigh * 0.74 * depth, build.thigh * 0.56 * depth, 3)
-    sketch.stamp(piece, rim=0.6, occlude=0.5)
-''', '''    # Base clothing is a full trouser leg rather than a bare shin. Worn leg and boot
-    # layers still use this same rig, so equipped equipment remains perfectly aligned.
-    piece = sketch.piece(cloth)
-    _limb(piece, knee, (foot[0], foot[1] - 1.6), build.thigh * 0.76 * depth, build.thigh * 0.54 * depth, 3)
-    sketch.stamp(piece, rim=0.6, occlude=0.5)
-    shin_detail=sketch.piece(cloth)
-    sx,sy=_axis(knee,foot); px,py=-sy,sx
-    shin_detail.line([(knee[0]-px*build.thigh*0.34,knee[1]-py*build.thigh*0.34),
-                      (knee[0]+px*build.thigh*0.34,knee[1]+py*build.thigh*0.34)],4,1)
-    sketch.stamp(shin_detail,outline=False,rim=0,occlude=0)
-''')
-
-          replace('atelier/forge/folk.py', '''        piece.line([at(-1.4, 3.2), at(1.4, 3.2)], 1, 1)
-    sketch.stamp(piece, outline=False, rim=0, occlude=0)
-''', '''        piece.line([at(-1.4, 3.2), at(1.4, 3.2)], 1, 1)
-        # Deliberate jaw and ear clusters improve human facial structure at native scale.
-        piece.line([at(-2.5, 4.3), at(0.0, 5.0), at(2.5, 4.3)], 1, 1)
-        piece.dot(*at(-r * 0.88, 0.9), 2)
-        piece.dot(*at(r * 0.88, 0.9), 2)
-    sketch.stamp(piece, outline=False, rim=0, occlude=0)
-''')
-
-          replace('atelier/tests/test_sprite_refinement.py', '''from forge import beasts, folk, smith  # noqa: E402
-''', '''from forge import beasts, folk, rig, smith  # noqa: E402
-''')
-          art_insert='''    def test_humanoid_proportions_are_less_chibi_and_equipment_keeps_shared_rig(self):
-        for build in rig.BUILDS:
-            standing_height = rig.GROUND - (build.head_y - build.head)
-            self.assertLess((build.head * 2) / standing_height, 0.24)
-            self.assertGreater(build.femur + build.shin, 19)
-        body = folk.body_frame(0, 2, 'idle', 0, 0)
-        chest = next(i for i in self.data['items'] if i.get('slot') == 'chest')
-        worn = folk.armour_frame(chest, 'idle', 0, 0)
-        body_alpha = body.getchannel('A')
-        worn_alpha = worn.getchannel('A')
-        overlap = sum(1 for a, b in zip(body_alpha.getdata(), worn_alpha.getdata()) if a and b)
-        self.assertGreater(overlap, 30)
-        self.assertEqual(worn.size, body.size)
-
-'''
-          marker='    def test_representative_creature_keeps_fixed_frame_and_detail(self):\n'
-          p=Path('atelier/tests/test_sprite_refinement.py'); text=p.read_text(encoding='utf-8')
-          if text.count(marker)!=1: raise SystemExit('sprite test marker mismatch')
-          p.write_text(text.replace(marker,art_insert+marker,1),encoding='utf-8')
-
-          Path('docs/handoff/XP_HUMANOID_REFINEMENT_2026-09-10.md').write_text('''# XP and humanoid refinement — 2026-09-10\n\n- Successful general skill actions no longer hit a permanent zero-XP cliff. Over-leveled actions retain a 5% practice floor with fractional carry, so tiny actions must accumulate before one whole XP is awarded.\n- Overall level progression still derives from server-owned skill training credit. The HUD now exposes real level progress as a thin bottom-edge bar.\n- Skill XP gains create up to three compact progress bars for the affected skills. Each bar aggregates repeated gains and disappears after 2.6 seconds. Initial snapshots and reconnects do not manufacture gain popups.\n- The humanoid rig uses a smaller head, longer legs, narrower limbs and full trouser legs. Face clusters add jaw/ear structure. Body, hair and worn equipment continue to share the same 64x64 rig and foot anchor.\n- No third-party sprite set was imported. Keeping the deterministic Atelier source avoids licensing ambiguity and preserves complete equipment-layer coverage.\n''',encoding='utf-8')
-          PY
-      - name: Install art dependency and build deterministic content
+      - name: Apply reviewed source patch
+        run: python tools/phase_xp_humanoid_patch.py
+      - name: Prepare deterministic content and art tooling
         run: |
           python -m pip install Pillow==12.0.0
           python tools/build_content.py
@@ -398,37 +32,37 @@ SLIGHT = Build(shoulder=6.3, hip=4.0, head=4.7, chest_depth=3.5, limb=3.1, thigh
           dotnet build Kairnfall.slnx -c Release
           dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
           dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release
-      - name: Snapshot stable generated paths
-        shell: bash
+      - name: Snapshot source-controlled generated paths
         run: |
           python - <<'PY'
           from pathlib import Path
           import json
           roots=[Path('atelier/Assets'),Path('foundry/Assets/atlas_atelier')]
-          paths=sorted(str(p).replace('\\','/') for root in roots for p in root.rglob('*') if p.is_file())
-          Path('/tmp/before-paths.json').write_text(json.dumps(paths,indent=2))
+          paths=sorted(p.as_posix() for root in roots for p in root.rglob('*') if p.is_file())
+          Path('/tmp/before-paths.json').write_text(json.dumps(paths),encoding='utf-8')
+          print('PATH SNAPSHOT',len(paths))
           PY
-      - name: Rebuild humanoid source-controlled libraries
+      - name: Rebuild humanoids and equipment overlays
         run: |
+          mkdir -p artifacts
           python atelier/build.py --only people equipment npcs gear_worn --jobs 8
           python atelier/build.py --manifest
           python foundry/build.py --pack-atelier --atlas
           python atelier/preview.py body --out artifacts/humanoid-body.png
           python atelier/preview.py gear --out artifacts/humanoid-gear.png
       - name: Verify stable paths and exact repeat determinism
-        shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           import hashlib,json
           roots=[Path('atelier/Assets'),Path('foundry/Assets/atlas_atelier')]
-          paths=sorted(str(p).replace('\\','/') for root in roots for p in root.rglob('*') if p.is_file())
-          before=json.loads(Path('/tmp/before-paths.json').read_text())
-          if paths!=before:
-              raise SystemExit('Generated humanoid rebuild changed stable asset paths')
-          tracked=[Path(p) for p in paths]+[Path('atelier/gear.json'),Path('atelier/coverage.json')]
-          hashes={str(p).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in tracked}
-          Path('/tmp/first-hashes.json').write_text(json.dumps(hashes,sort_keys=True))
+          paths=sorted(p.as_posix() for root in roots for p in root.rglob('*') if p.is_file())
+          before=json.loads(Path('/tmp/before-paths.json').read_text(encoding='utf-8'))
+          if paths!=before: raise SystemExit('Generated asset path set changed')
+          tracked=[Path(p) for p in paths]+[Path('atelier/gear.json'),Path('atelier/coverage.json'),Path('foundry/coverage.json')]
+          hashes={p.as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in tracked}
+          Path('/tmp/first-hashes.json').write_text(json.dumps(hashes,sort_keys=True),encoding='utf-8')
+          print('FIRST HASH SNAPSHOT',len(hashes))
           PY
           python atelier/build.py --only people equipment npcs gear_worn --jobs 8
           python atelier/build.py --manifest
@@ -436,11 +70,10 @@ SLIGHT = Build(shoulder=6.3, hip=4.0, head=4.7, chest_depth=3.5, limb=3.1, thigh
           python - <<'PY'
           from pathlib import Path
           import hashlib,json
-          first=json.loads(Path('/tmp/first-hashes.json').read_text())
-          second={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in first}
-          changed=[p for p in first if first[p]!=second[p]]
-          if changed: raise SystemExit('Non-deterministic generated files: '+', '.join(changed[:20]))
-          print('DETERMINISM PASS:',len(first),'files')
+          first=json.loads(Path('/tmp/first-hashes.json').read_text(encoding='utf-8'))
+          changed=[p for p,h in first.items() if hashlib.sha256(Path(p).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('Non-deterministic files: '+', '.join(changed[:20]))
+          print('DETERMINISM PASS',len(first),'files')
           PY
       - name: Build and validate final game asset pack
         run: |
@@ -449,24 +82,11 @@ SLIGHT = Build(shoulder=6.3, hip=4.0, head=4.7, chest_depth=3.5, limb=3.1, thigh
           python tools/validate_game_assets.py
           dotnet build client/Kairnfall.Client.csproj -c Debug
       - name: Run verified native Godot import and contract
-        shell: bash
         run: |
           python tools/get_godot.py --os linux
-          GODOT_BIN=$(python - <<'PY'
-          import json
-          print(json.load(open('.tools/godot.json'))['binary'])
-          PY
-          )
+          GODOT_BIN=$(python -c "import json; print(json.load(open('.tools/godot.json'))['binary'])")
           timeout 180 "$GODOT_BIN" --headless --editor --path client --import
           timeout 180 "$GODOT_BIN" --headless --path client res://Tests/CompactItemCardContract.tscn
-      - name: Assert intended HUD and generated scopes
-        shell: bash
-        run: |
-          grep -q 'CharacterExperienceBar' client/Scripts/GameRoot.Experience.cs
-          grep -q 'SkillExperienceBar_' client/Scripts/GameRoot.Experience.cs
-          grep -q 'now+2.6' client/Scripts/GameRoot.Experience.cs
-          git diff --quiet HEAD -- client/Assets content || true
-          test ! -e client/Assets/.git
       - uses: actions/upload-artifact@v4
         with:
           name: xp-humanoid-refinement-${{ github.sha }}
@@ -476,12 +96,10 @@ SLIGHT = Build(shoulder=6.3, hip=4.0, head=4.7, chest_depth=3.5, limb=3.1, thigh
             docs/handoff/XP_HUMANOID_REFINEMENT_2026-09-10.md
           retention-days: 14
       - name: Commit and push verified implementation
-        shell: bash
         run: |
-          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/Kairnfall.Core/Mechanics.cs src/Kairnfall.Core/Models.cs tests/Kairnfall.Tests/Program.cs client/Scripts/GameRoot.Experience.cs client/Scripts/GameRoot.Hud.cs atelier/forge/rig.py atelier/forge/folk.py atelier/tests/test_sprite_refinement.py docs/handoff/XP_HUMANOID_REFINEMENT_2026-09-10.md atelier/Assets atelier/manifest.json atelier/gear.json atelier/coverage.json foundry/Assets/atlas_atelier foundry/manifest.json
+          git add src/Kairnfall.Core/Mechanics.cs src/Kairnfall.Core/Models.cs tests/Kairnfall.Tests/Program.cs client/Scripts/GameRoot.Experience.cs client/Scripts/GameRoot.Hud.cs atelier/forge/rig.py atelier/forge/folk.py atelier/tests/test_sprite_refinement.py docs/handoff/XP_HUMANOID_REFINEMENT_2026-09-10.md atelier/Assets atelier/gear.json atelier/coverage.json foundry/Assets/atlas_atelier foundry/coverage.json
           git diff --cached --quiet && { echo 'No implementation changes staged'; exit 1; }
-          git commit -m 'fix(progression): restore XP gains and refine humanoids' -m 'Keep trivial successful practice at a bounded fractional floor, expose overall and transient skill progress bars, and refine the shared humanoid/equipment rig without changing sprite anchors or asset paths.'
+          git commit -m 'fix(progression): restore XP gains and refine humanoids' -m 'Keep successful trivial practice at a bounded fractional floor, expose overall and transient skill XP bars, and refine the shared humanoid/equipment rig without changing sprite anchors or stable asset paths.'
           git push origin HEAD:team/xp-human-sprites
