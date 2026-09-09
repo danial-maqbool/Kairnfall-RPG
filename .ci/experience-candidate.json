@@ -1,6 +1,6 @@
 {
- "sha":"802cea5e6dda8d1c74e2d0382902e36688d9db6b",
+ "sha":"97f6a7051e24924f359580237bbc2c027276bac3",
  "base":"77c934a884a79d837154eea89fac7526258ac7a4",
  "mode":"repair",
- "purpose":"Run the complete retained tests for compact item cards, signed color comparisons, genuine equip blockers and authoritative merchant quantity/full-stack sales. Repair the native failure by preserving SpinBox pending text and caret through snapshot-bound updates. Keep all original assertions and add changed-limit coverage. Explicitly free test-created tooltip nodes without suppressing engine leaks. Require both full native/live/backend verification and graphical presentation before source integration."
+ "purpose":"Verify all recovered item and merchant changes, pending-text and tooltip cleanup fixes, plus receipt-to-snapshot protection against a second sale from stale inventory. Retain all native typing, signed stat color, requirement blocker, exact gold, partial/full-stack, invalid-input, replay, ownership, delayed-delivery and layout assertions. Run all retained backend, PostgreSQL, migration, native, graphical and live-client tests. Do not integrate until the required complete checks pass. Preserve current main and Foundry source."
 }
