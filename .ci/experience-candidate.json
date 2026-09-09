@@ -1,6 +1,6 @@
 {
- "sha":"2559da7e9e22823c49e8a71de87c76f72cffaab7",
+ "sha":"153839e8277806a690c7c63b3ba8e07e8ffc633f",
  "base":"77c934a884a79d837154eea89fac7526258ac7a4",
  "mode":"repair",
- "purpose":"Run all retained contracts plus native merchant entry and real-network sale/reconnect coverage. The prior SpinBox candidate failed native typing and remains unintegrated. Replace its merchant input with an integer LineEdit and explicit step buttons, keeping every quantity, caret, signed stat, requirement color, gold, replay, receipt-to-snapshot and layout assertion. Add below-limit and focus-loss rejection checks and production GameConnection partial/full-stack sales. Do not relax timeouts or assertions. Require full backend, database, native, live and graphical passes before integration."
+ "purpose":"Final exact-source verification after the compact item cards and merchant sales were integrated into main. Retain all earlier targeting, density, progression, combat, support XP, ownership and save tests. Verify signed per-stat colors, red blockers, centered cards, stable integer quantities, selected-stack Sell all, exact gold, receipt-to-snapshot guards, native real-server sale controls, reconnect and every retained backend/database/native/graphical contract. Preserve main, Foundry and Atelier. No release or independent visual-approval claim."
 }
