@@ -1,0 +1,39 @@
+name: Art library source and visual verification
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/art-library-review.yml', 'foundry/art-review-request.json']
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Export exact source and read-only catalog for local art review
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/art-library-review
+          git archive --format=zip HEAD > artifacts/art-library-review/source.zip
+          git ls-tree -r HEAD > artifacts/art-library-review/tracked-tree.txt
+          git rev-parse HEAD > artifacts/art-library-review/revision.txt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.build_content import build
+          Path('artifacts/art-library-review/catalog.json').write_text(json.dumps(build(), sort_keys=True), encoding='utf-8')
+          PY
+          (cd artifacts/art-library-review && sha256sum source.zip tracked-tree.txt revision.txt catalog.json > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: art-library-review-${{ github.sha }}
+          path: artifacts/art-library-review/
+          if-no-files-found: error
+          retention-days: 14
