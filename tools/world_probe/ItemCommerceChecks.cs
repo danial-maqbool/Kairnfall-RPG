@@ -53,6 +53,20 @@ internal static class ItemCommerceChecks
             self.Health = 0; two.Durability = 0;
             Need(EquipmentComparison.Inspect(self,two,data).Blockers.Count >= 3, "One blocker conceals other failures.");
         });
+        Test("Only explicitly cancelled socket disposal is classified as normal receive shutdown", () =>
+        {
+            var method = typeof(GameConnection).GetMethod("ExpectedReceiveShutdown", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                ?? throw new InvalidOperationException("The receive shutdown filter is missing.");
+            bool Expected(Exception error, CancellationToken token) => (bool)method.Invoke(null, new object[] { error, token })!;
+            using var stopping = new CancellationTokenSource();
+            var disposed = new ObjectDisposedException("ClientWebSocket");
+            var cancelled = new OperationCanceledException();
+            Need(!Expected(disposed, stopping.Token) && !Expected(cancelled, stopping.Token), "Active-session errors must not be hidden.");
+            stopping.Cancel();
+            Need(Expected(disposed, stopping.Token) && Expected(cancelled, stopping.Token), "Cancelled receive shutdown must tolerate the abort/dispose race.");
+            foreach (var error in new Exception[] { new JsonException(), new RuleException("Invalid packet"), new IOException(), new InvalidOperationException(), new System.Net.WebSockets.WebSocketException() })
+                Need(!Expected(error, stopping.Token), "A non-shutdown error was silently classified as expected.");
+        });
         // Bulk coverage changes only a copied fixture catalog; production stack and bag limits stay unchanged.
         data = Wire.Copy(data); data.Item("copper_ore").StackMax = 999;
         var realm = new RealmEngine(data);

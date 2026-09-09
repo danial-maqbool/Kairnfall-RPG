@@ -46,9 +46,13 @@ public partial class MerchantSellPanel : VBoxContainer
         var increase = Ui.Button("+", () => AdjustQuantity(1)); increase.Name = "SaleQuantityIncrease";
         increase.CustomMinimumSize = new Vector2(32, 32); increase.FocusMode = FocusModeEnum.None; amountRow.AddChild(increase);
         total = CompactItemCard.Centered("", 14, Ui.Gold); total.Name = "SaleGoldTotal"; inspector.AddChild(total);
-        var buttons = Ui.Row(inspector); buttons.Alignment = BoxContainer.AlignmentMode.Center;
+        // Separate rows keep both complete gold totals visible at the minimum viewport.
+        var buttons = Ui.Column(inspector); buttons.Name = "MerchantSaleActions";
+        buttons.AddThemeConstantOverride("separation", 4);
         sell = Ui.Button("Sell quantity", () => Request(false)); sell.Name = "SellSelectedQuantity";
         sellAll = Ui.Button("Sell entire stack", () => Request(true)); sellAll.Name = "SellAllQuantity";
+        sell.Alignment = sellAll.Alignment = HorizontalAlignment.Center;
+        sell.SizeFlagsHorizontal = sellAll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         buttons.AddChild(sell); buttons.AddChild(sellAll);
         status = CompactItemCard.Centered("", 12, Ui.Danger); status.Name = "SaleBlocker"; inspector.AddChild(status);
         list.ItemSelected += index =>
@@ -78,7 +82,12 @@ public partial class MerchantSellPanel : VBoxContainer
             {
                 list.Clear(); ids.Clear();
                 foreach (var item in items) { ids.Add(item.Id); list.AddItem("", Assets.Icon(item.Template)); }
-                if (!ids.Contains(selected)) { selected = ids.FirstOrDefault() ?? ""; amount.Text = "1"; }
+                if (!ids.Contains(selected))
+                {
+                    // Do not arm another item under the same Sell button after removal.
+                    selected = layout == "" ? ids.FirstOrDefault() ?? "" : "";
+                    amount.Text = "1"; cardStamp = "";
+                }
                 layout = next;
             }
             for (int i = 0; i < items.Length; i++)
@@ -95,14 +104,21 @@ public partial class MerchantSellPanel : VBoxContainer
             {
                 // Snapshot updates change validation, never the pending text or caret.
                 amount.PlaceholderText = "1–" + current.Quantity;
-                string stamp = JsonSerializer.Serialize(new { current, self.Equipment, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);
+                // Durability, affixes and runes can change while the equipment IDs stay fixed.
+                var equippedItems = self.Inventory.Where(x => Items.Equipped(self, x.Id)).ToArray();
+                string stamp = JsonSerializer.Serialize(new { current, self.Equipment, equippedItems, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);
                 if (stamp != cardStamp)
                 {
                     Ui.Clear(details); details.AddChild(CompactItemCard.Create(Data, self, current, Assets.Icon(current.Template)));
                     cardStamp = stamp;
                 }
             }
-            else { Ui.Clear(details); details.AddChild(CompactItemCard.Centered("No items in your backpack.")); cardStamp = ""; }
+            else
+            {
+                Ui.Clear(details);
+                details.AddChild(CompactItemCard.Centered(self.Inventory.Count == 0 ? "No items in your backpack." : "Select an item to inspect and sell."));
+                cardStamp = "";
+            }
         }
         finally { refreshing = false; }
         RefreshQuote();

@@ -143,6 +143,9 @@ public sealed class GameConnection : IAsyncDisposable
         do { current = Interlocked.Read(ref sequence); if (value <= current) return; }
         while (Interlocked.CompareExchange(ref sequence, value, current) != current);
     }
+    private static bool ExpectedReceiveShutdown(Exception error, CancellationToken cancel)
+        => cancel.IsCancellationRequested && (error is OperationCanceledException or ObjectDisposedException);
+
     private async Task ReceiveLoopAsync(ClientWebSocket current, CancellationToken cancel)
     {
         byte[] buffer = new byte[16384];
@@ -182,7 +185,9 @@ public sealed class GameConnection : IAsyncDisposable
                 }
             }
         }
-        catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
+        // Abort may dispose the socket between the state check and ReceiveAsync.
+        // Only an explicitly cancelled receiver can treat that disposal as shutdown.
+        catch (Exception error) when (ExpectedReceiveShutdown(error, cancel)) { }
         catch (Exception error) when (error is WebSocketException or JsonException or RuleException or IOException)
         {
             LastError = error.Message; control.Enqueue(new() { Kind = "error", Error = LastError });

@@ -109,15 +109,30 @@ public partial class ControlRulesContract : Node
         }
     }
 
+    private static void TraceStage(string stage)
+    {
+        string line = DateTime.UtcNow.ToString("O") + " CONTROL_STAGE: " + stage;
+        Console.WriteLine(line); Console.Out.Flush();
+        string directory = System.IO.Path.GetFullPath(System.IO.Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "artifacts", "experience", "logs"));
+        System.IO.Directory.CreateDirectory(directory);
+        System.IO.File.AppendAllText(System.IO.Path.Combine(directory, "controls-progress.log"), line + System.Environment.NewLine);
+    }
+
     public override async void _Ready()
     {
         GameRoot? game = null;
         try
         {
+            TraceStage("enter; display=" + DisplayServer.GetName());
             GetWindow().Size = new Vector2I(1280, 720);
             await Frame(); await Frame();
+            TraceStage("initial frames received");
             Require(GetViewport().GetVisibleRect().Size.IsEqualApprox(new Vector2(1280, 720)), "The native control fixture uses supported physical window dimensions");
-            var data = PixelAssets.LoadCatalog(); var realm = new RealmEngine(data);
+            TraceStage("load catalog");
+            var data = PixelAssets.LoadCatalog();
+            TraceStage("construct realm");
+            var realm = new RealmEngine(data);
+            TraceStage("realm constructed");
             var self = realm.CreateCharacter("control-fixture", "Control Fixture", "vanguard", new());
             var weapon = self.Inventory.Single(x => self.Equipment.GetValueOrDefault("weapon") == x.Id);
             Require(ExperienceRules.AttackProblem(self, data, 10) == "", "The valid starter attack is available");
@@ -232,25 +247,40 @@ public partial class ControlRulesContract : Node
                 Call(game, "ClosePage"); await Frame(); await Frame();
                 Require(Field<Button[]>(game, "hotbarButtons").All(Contained), "All ten hotbar buttons fit the " + size + " viewport");
             }
+            TraceStage("skill guide");
             await VerifySkillGuide(game, data, self);
+            TraceStage("ability guide");
             await AbilityGuideChecks.Run(this, game, data, self, Require);
+            TraceStage("presentation");
             await PresentationChecks.Run(this, game, Require);
+            TraceStage("equipment guide");
             await EquipmentGuideChecks.Run(this,game,data,self,Require);
+            TraceStage("crafting guide");
             await CraftingGuideChecks.Run(this,game,data,Require);
+            TraceStage("equipment maintenance");
             await EquipmentMaintenanceUiChecks.Run(this,game,Require);
+            TraceStage("journey");
             await JourneyUiChecks.Run(this,game,Require);
+            TraceStage("hunting guide");
             await HuntingGuideChecks.Run(this,game,Require);
+            TraceStage("native pixels");
             await NativePixelChecks.Run(this,game,Require);
+            TraceStage("inventory refresh");
             await InventoryRefreshChecks.Run(this,game,Require);
+            TraceStage("item commerce and merchant boundaries");
             await ItemCommerceUiChecks.Run(this,game,Require);
+            TraceStage("challenge HUD");
             await ChallengeHudChecks.Run(this,game,Require);
+            TraceStage("release scene");
             await NativeTestLifetime.ReleaseSceneAsync(this, game);
             Require(!GodotObject.IsInstanceValid(game), "The real scene releases after repeated layouts");
             GD.Print($"CONTROL_RULES_CONTRACT: {checks} checks passed. Rule fixtures and native input/layout checks only.");
+            TraceStage("all assertions passed");
             GetTree().Quit(0);
         }
         catch (Exception error)
         {
+            TraceStage("failure: " + error.GetType().Name + "; " + error.Message);
             GD.PushError("CONTROL_RULES_CONTRACT: " + error);
             if (game is not null && GodotObject.IsInstanceValid(game)) await NativeTestLifetime.ReleaseSceneAsync(this, game);
             GetTree().Quit(1);

@@ -272,6 +272,16 @@ public partial class LiveExperienceContract : Node
             Require(Self.Equipment.GetValueOrDefault("weapon") == weapon, "GUI-equipped item identity survives reconnect");
             Require(Progression.Total(Self) == checkpointXp, "Acknowledged skill progress survives reconnect");
             Require(!Field<bool>(game, "attackKeyHeld"), "Reconnect does not resume an old held attack");
+            for (int cycle = 0; cycle < 3; cycle++)
+            {
+                await reconnected.DisconnectAsync(); game.World.ClearSession();
+                Require(!reconnected.Connected, "Repeated live shutdown completes without a disposed-socket failure");
+                await reconnected.ConnectAsync(characterId);
+                await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, "Repeated reconnect did not restore the authoritative snapshot.");
+                Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId)
+                    && Self.Equipment.GetValueOrDefault("weapon") == weapon && Progression.Total(Self) == checkpointXp,
+                    "Repeated reconnect retains sold quantities, exact gold, equipment and earned XP");
+            }
             GD.Print($"LIVE_EXPERIENCE_CONTRACT: {checks} checks passed. Native generated input, real server and PostgreSQL; not human playtesting or Windows hardware input.");
             await (Task)Call("ShutdownClientAsync", 0)!;
         }
