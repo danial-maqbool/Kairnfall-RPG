@@ -36,6 +36,7 @@ public partial class GameRoot
             case "Character": BuildCharacterPage(); break;
             case "Equipment Guide": BuildEquipmentGuidePage(); break;
             case "Shop": BuildShopPage(); break;
+            case "Sell": BuildSellPage(); break;
             case "Skills": BuildSkillsPage(); break;
             case "Abilities": BuildAbilitiesPage(); break;
             case "Quests": BuildQuestsPage(); break;

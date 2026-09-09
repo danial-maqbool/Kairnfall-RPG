@@ -261,12 +261,14 @@ public partial class LiveExperienceContract : Node
                     Call("SaveScreenshot", "10-loot-popup.png");
                 }
             }
+            var merchantSale = await LiveMerchantChecks.Run(this, game, Require);
             long checkpointXp = Progression.Total(Self);
             string characterId = Self.Id; sequence = Self.LastAction;
             await connection.DisposeAsync(); Attach(null); game.World.ClearSession();
             var reconnected = new GameConnection(address);
             await reconnected.SignInAsync(username, password, false); await reconnected.ConnectAsync(characterId); Attach(reconnected);
             await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, "Reconnect did not restore acknowledged state.");
+            Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId), "Native merchant sale quantities and exact gold survive reconnect");
             Require(Self.Equipment.GetValueOrDefault("weapon") == weapon, "GUI-equipped item identity survives reconnect");
             Require(Progression.Total(Self) == checkpointXp, "Acknowledged skill progress survives reconnect");
             Require(!Field<bool>(game, "attackKeyHeld"), "Reconnect does not resume an old held attack");

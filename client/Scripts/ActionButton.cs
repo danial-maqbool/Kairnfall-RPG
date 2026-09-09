@@ -10,6 +10,7 @@ namespace Kairnfall.Client;
 public partial class ActionButton : Button
 {
     public Action? PressedAction { get; set; }
+    public override Control _MakeCustomTooltip(string forText) => string.IsNullOrWhiteSpace(forText) ? null! : CompactItemCard.TextTooltip(forText);
 
     public override void _EnterTree()
     {

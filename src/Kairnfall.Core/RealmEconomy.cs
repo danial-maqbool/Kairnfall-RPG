@@ -36,10 +36,7 @@ public sealed partial class RealmEngine
     private string Sell(Character p,string merchant,string itemId,int quantity)
     {
         var npc=Merchant(p,merchant); var item=Items.Owned(p,itemId); var def=Data.Item(item.Template);
-        Need(quantity is >0 and <=99&&quantity<=item.Quantity,"Invalid sale quantity.");
-        Need(def.Type!="quest"&&def.Value>0,"This item cannot be sold.");
-        Need(npc.Stock.Any(x=>Data.Item(x).Type==def.Type)||npc.Role=="provisioner","This merchant does not buy this item type.");
-        long value=Math.Max(1,(long)Math.Floor(def.Value*0.30))*quantity;
+        long value=MerchantSales.Quote(p,npc,item,quantity,Data);
         Items.Take(p.Inventory,itemId,quantity,p); Items.Grant(p,value);
         Progress(p,"sell",def.Id,quantity); return $"Sold for {value} gold.";
     }

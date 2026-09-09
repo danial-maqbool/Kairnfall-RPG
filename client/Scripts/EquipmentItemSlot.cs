@@ -5,6 +5,8 @@ namespace Kairnfall.Client;
 /// <summary>Completes selection on release so a pressed item survives until drag detection.</summary>
 public partial class EquipmentItemSlot : ItemSlot
 {
+    public Func<Control>? TooltipFactory { get; set; }
+    public override Control _MakeCustomTooltip(string forText) => TooltipFactory?.Invoke() ?? CompactItemCard.TextTooltip(forText);
     public Action? Activated { get; set; }
     public Action<Vector2>? ContextRequested { get; set; }
     private bool pressed;
@@ -59,7 +61,7 @@ public partial class EquipmentItemSlot : ItemSlot
 
     public override void _ExitTree()
     {
-        Clicked = null; Activated = null; ContextRequested = null; Dropped = null;
+        TooltipFactory = null; Clicked = null; Activated = null; ContextRequested = null; Dropped = null;
         pressed = false; dragging = false;
     }
 }

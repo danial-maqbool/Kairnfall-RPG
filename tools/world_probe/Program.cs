@@ -165,4 +165,5 @@ HuntingGroundChecks.Run(catalog,failures);
 HuntingDistributionChecks.Run(catalog,failures);
 ChallengeProgressionChecks.Run(catalog,failures);
 SupportTrainingChecks.Run(catalog,failures);
+ItemCommerceChecks.Run(catalog,failures);
 return failures.Count == 0 ? 0 : 1;
