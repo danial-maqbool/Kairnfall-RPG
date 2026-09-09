@@ -12,7 +12,7 @@ public partial class GameRoot
     private int Quantity(SpinBox control, int maximum = 999) => Math.Clamp((int)control.Value, 1, Math.Max(1, maximum));
     private SpinBox Amount(Node parent, int maximum)
     {
-        var row = Ui.Row(parent); row.AddChild(Ui.Label("Quantity", 14, Ui.Muted));
+        var row = Ui.Row(parent); row.Alignment = BoxContainer.AlignmentMode.Center; row.AddChild(CompactItemCard.Centered("Quantity", 13, Ui.Muted));
         var amount = new SpinBox { MinValue = 1, MaxValue = Math.Max(1, maximum), Step = 1, Value = 1, CustomMinimumSize = new Vector2(120, 32) };
         row.AddChild(amount); return amount;
     }
@@ -66,7 +66,7 @@ public partial class GameRoot
         {
             Item = item, Icon = Assets.Icon(item.Template), Bag = bag,
             Equipped = Snapshot is { } s && Items.Equipped(s.Self, item.Id), Selected = item.Id == selectedItem,
-            TooltipText = SlotTooltip(item),
+            TooltipText = SlotTooltip(item), TooltipFactory = () => ItemTooltip(item.Id, bag),
             Clicked = clicked ?? (() => { selectedItem = item.Id; selectedBag = bag; lastPageStamp = ""; }),
             Activated = () =>
             {
@@ -187,13 +187,7 @@ public partial class GameRoot
     {
         if (Snapshot is null) return;
         var self = Snapshot.Self; var def = Data.Item(item.Template);
-        var heading = Ui.Row(parent); heading.AddChild(Ui.Image(Assets.Icon(item.Template), 64));
-        var names = Ui.Column(heading);
-        names.AddChild(Ui.Label(def.Name, 21, Ui.RarityColor(item.Rarity), true));
-        names.AddChild(Ui.Label(item.Rarity + (Items.Equipped(self, item.Id) ? " · Equipped" : ""), 14, Ui.Muted));
-        // The heading already names the item and rarity. Keep the statistics
-        // compact enough to expose quantity/actions in the 720p inspector.
-        parent.AddChild(Ui.Label(string.Join('\n', ItemDescription(item).Split('\n').Skip(2)), 15, Ui.Text, true));
+        parent.AddChild(CompactItemCard.Create(Data, self, item, Assets.Icon(item.Template)));
         var quantity = Amount(parent, item.Quantity);
         if (selectedBag == "bank")
         {
@@ -226,16 +220,8 @@ public partial class GameRoot
             parent.AddChild(Ui.Button("Extract " + Data.Item(item.Runes[i].Template).Name,
                 () => Confirm("Extract rune", "The enchanter charges an extraction fee. The rune is returned intact.", () => Send("unsocket", item.Id, amount: index)), !NearRole("enchanter")));
         }
-        if (selectedNpc != "" && Data.Npcs.Any(x => x.Id == selectedNpc && x.Stock.Length > 0 && NearNpc(x)) && !Items.Equipped(self, item.Id) && def.Type != "quest")
-        {
-            long unit = Math.Max(1, (long)Math.Floor(def.Value * .30));
-            parent.AddChild(Ui.Button($"Sell · {unit} gold each", () =>
-            {
-                int count = Math.Min(99, Quantity(quantity, item.Quantity));
-                Action sale = () => Send("sell", selectedNpc, item.Id, count);
-                if (item.Rarity >= Rarity.Epic) Confirm("Sell valuable equipment", $"Sell {count} {def.Name} for {unit * count} gold?", sale); else sale();
-            }));
-        }
+        if (selectedNpc != "" && Data.Npcs.Any(x => x.Id == selectedNpc && x.Stock.Length > 0))
+            parent.AddChild(Ui.Button("Merchant selling", () => OpenPage("Sell")));
     }
 
     private async Task DepositAllAsync()
@@ -266,7 +252,7 @@ public partial class GameRoot
         if (npc is null) { page.AddChild(Ui.Label("Speak with a merchant to view their stock.", 18, Ui.Muted, true)); return; }
         page.AddChild(Ui.Label(npc.Name + " · " + Ui.Words(npc.Role), 22, Ui.Gold));
         var top = Ui.Row(page); var search = Ui.Edit("Search this merchant's stock"); top.AddChild(search);
-        top.AddChild(Ui.Button("Sell from backpack", () => OpenPage("Inventory")));
+        var sellButton = Ui.Button("Sell from backpack", () => OpenPage("Sell")); sellButton.Name = "OpenMerchantSell"; top.AddChild(sellButton);
         var money = Ui.Label("", 14, Ui.Muted); page.AddChild(money);
         var scroll = Ui.Scroll(page, new Vector2(720, 300)); var rows = Ui.Column(scroll);
         void Render()
@@ -277,7 +263,7 @@ public partial class GameRoot
             foreach (var template in npc.Stock.Select(Data.Item).Where(x => x.Name.Contains(search.Text, StringComparison.OrdinalIgnoreCase)))
             {
                 long price = DisplayBuyPrice(npc, template); int stock = Snapshot.ShopStock.GetValueOrDefault(npc.Id + "/" + template.Id);
-                var row = Ui.Row(rows); row.AddChild(Ui.Image(Assets.Icon(template.Id), 48));
+                var row = new ItemPreviewRow { SizeFlagsHorizontal = SizeFlags.ExpandFill, MakeTooltip = () => CompactItemCard.Create(Data, Snapshot?.Self, new Item { Template = template.Id }, Assets.Icon(template.Id), true, false) }; rows.AddChild(row); row.AddChild(Ui.Image(Assets.Icon(template.Id), 40));
                 var description = Ui.Column(row); description.AddChild(Ui.Label(template.Name, 17));
                 description.AddChild(Ui.Label($"{price} gold each · Stock {stock} · {Ui.Words(template.Type)}", 13, Ui.Muted));
                 row.TooltipText = ItemDescription(new Item { Template = template.Id }, false);

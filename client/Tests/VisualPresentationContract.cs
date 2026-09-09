@@ -138,6 +138,7 @@ public partial class VisualPresentationContract : Node
             await Capture("02-player-walk");
             game.World.Animate(self.Id,2,.65); await Capture("03-player-attack");
             game.World.Animate(self.Id,3,.65); await Capture("04-player-cast");
+            await ItemCommerceUiChecks.Run(this,game,Check);
             await NativeTestLifetime.ReleaseSceneAsync(this,game); game=null;
             gallery=new EquipmentGallery(); AddChild(gallery); gallery.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
             await Frame();
