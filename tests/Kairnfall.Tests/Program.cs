@@ -45,10 +45,26 @@ Test("Overall level derives from skill XP and respects cap",()=>
     foreach(var skill in data.Skills) p.SkillXp[skill.Id]=Progression.Threshold(100);
     Check(Progression.PlayerLevel(p)==200,"Overall cap mismatch.");
 });
-Test("Trivial actions cannot award endgame XP",()=>
+Test("Trivial successful actions retain bounded fractional practice",()=>
 {
     var r=NewRealm(); var p=NewPlayer(r); p.SkillXp["mining"]=Progression.Threshold(60);
-    Check(Progression.Train(p,"mining",100,1,data)==0,"Trivial mining awarded XP.");
+    long raw=Progression.Total(p),overall=ChallengeProgression.OverallTraining(p);
+    for(int i=0;i<200;i++) Progression.Train(p,"mining",1,1,data);
+    long gained=Progression.Total(p)-raw;
+    Check(gained>0&&gained<=12,"Trivial practice was either lost or disproportionate: "+gained);
+    Check(p.GeneralPracticeRemainders.TryGetValue("mining",out double carry)&&double.IsFinite(carry)&&carry>=0&&carry<1,"General practice carry is invalid.");
+    Check(ChallengeProgression.OverallTraining(p)>overall||p.OverallCreditRemainder>0,"Successful skill practice stopped contributing to overall progress.");
+});
+Test("Player and skill experience progress fractions are bounded and move forward",()=>
+{
+    var r=NewRealm(); var p=NewPlayer(r);
+    double playerBefore=Progression.PlayerLevelProgress(p);
+    long skillBefore=p.SkillXp.GetValueOrDefault("mining");
+    Progression.Train(p,"mining",1000,1,data);
+    double skillProgress=Progression.SkillLevelProgress(p.SkillXp["mining"]);
+    Check(skillProgress>=0&&skillProgress<=1,"Skill progress fraction is invalid.");
+    Check(p.SkillXp["mining"]>skillBefore,"Mining XP did not increase.");
+    Check(Progression.PlayerLevel(p)>1||Progression.PlayerLevelProgress(p)>playerBefore,"Overall experience did not move.");
 });
 Test("All classes create valid characters and starter equipment",()=>
 {

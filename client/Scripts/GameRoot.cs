@@ -321,9 +321,8 @@ public partial class GameRoot : Control
         catch (Exception error) { GD.PushWarning(error.Message); }
         if (closing || !IsInsideTree()) return;
         Connection = null; World.ClearSession(); hotbarCharacter = "";
-        history.Clear(); knownNames.Clear(); invitations.Clear(); pickupNotes.Clear();
-        pendingSkillGains.Clear(); pendingSkillLevels.Clear();
-        chatLog.Text = ""; progressionHint.Text = ""; RenderPickupFeed(); ShowLogin();
+        history.Clear(); knownNames.Clear(); invitations.Clear(); pickupNotes.Clear(); skillExperienceNotes.Clear();
+        chatLog.Text = ""; RenderPickupFeed(); RenderSkillExperience(); ShowLogin();
     }
     public override void _Notification(int what)
     {

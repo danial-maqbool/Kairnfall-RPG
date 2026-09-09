@@ -134,9 +134,16 @@ def _draw_leg(sketch, pose, key, skin, cloth, shoe='#4a3a2e'):
     seam.line([(hip[0]*0.55+knee[0]*0.45, hip[1]*0.55+knee[1]*0.45),
                (knee[0], knee[1]-0.4)], 4, 1)
     sketch.stamp(seam, outline=False, rim=0, occlude=0)
-    piece = sketch.piece(skin)
-    _limb(piece, knee, (foot[0], foot[1] - 1.6), build.thigh * 0.74 * depth, build.thigh * 0.56 * depth, 3)
+    # The base layer uses full trousers instead of exposed lower legs. Worn leg
+    # and boot layers use the same joints, preserving equipped-item alignment.
+    piece = sketch.piece(cloth)
+    _limb(piece, knee, (foot[0], foot[1] - 1.6), build.thigh * 0.76 * depth, build.thigh * 0.54 * depth, 3)
     sketch.stamp(piece, rim=0.6, occlude=0.5)
+    shin_detail=sketch.piece(cloth)
+    sx,sy=_axis(knee,foot); px,py=-sy,sx
+    shin_detail.line([(knee[0]-px*build.thigh*0.34,knee[1]-py*build.thigh*0.34),
+                      (knee[0]+px*build.thigh*0.34,knee[1]+py*build.thigh*0.34)],4,1)
+    sketch.stamp(shin_detail,outline=False,rim=0,occlude=0)
     piece = sketch.piece(shoe)
     foot = foot_shape(pose, key, 0.0)
     piece.poly(foot, 3)
@@ -204,6 +211,10 @@ def _draw_head(sketch, pose, skin, face=True):
             piece.dot(*at(sign * 3.0, 1.8), 4)
         piece.line([at(0.0, 0.8), at(0.0, 2.2)], 4, 1)
         piece.line([at(-1.4, 3.2), at(1.4, 3.2)], 1, 1)
+        # Jaw and ear clusters make the face read as human without soft antialiasing.
+        piece.line([at(-2.5, 4.3), at(0.0, 5.0), at(2.5, 4.3)], 1, 1)
+        piece.dot(*at(-r * 0.88, 0.9), 2)
+        piece.dot(*at(r * 0.88, 0.9), 2)
     sketch.stamp(piece, outline=False, rim=0, occlude=0)
 
 

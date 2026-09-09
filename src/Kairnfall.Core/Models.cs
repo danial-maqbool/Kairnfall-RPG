@@ -281,6 +281,8 @@ public sealed class Character
     public long PracticeOnlyXp { get; set; }
     public double OverallCreditRemainder { get; set; }
     public Dictionary<string,double> CombatPracticeRemainders { get; set; } = [];
+    // General/non-combat practice uses deterministic fractional carry so small awards are never lost.
+    public Dictionary<string,double> GeneralPracticeRemainders { get; set; } = [];
     public List<Item> Inventory { get; set; } = [];
     public List<Item> Bank { get; set; } = [];
     public Dictionary<string,string> Equipment { get; set; } = [];

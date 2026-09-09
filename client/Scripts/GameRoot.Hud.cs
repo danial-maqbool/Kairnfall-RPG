@@ -176,8 +176,14 @@ public partial class GameRoot
         characterTitle.Text = self.Name + " · Level " + Progression.PlayerLevel(self);
         characterTitle.TooltipText = Data.Class(self.Class).Name + " · " + self.Gold + " gold";
         int overallLevel = Progression.PlayerLevel(self);
-        experiencePacing.Text = $"Overall XP {ChallengeProgression.OverallRate(overallLevel):P0} · Next band {Math.Min(200, ((overallLevel - 1) / 10 + 1) * 10 + 1)}";
-        experiencePacing.TooltipText = "Future skill awards contribute this fraction to overall growth. Weaker enemies reduce it further. Skill practice is tracked separately. Previously earned levels stay intact.";
+        double overallProgress=Progression.PlayerLevelProgress(self);
+        experiencePacing.Text = overallLevel>=Progression.PlayerCap ? "Overall level cap reached" : $"Level progress {overallProgress:P0} · training credit {ChallengeProgression.OverallRate(overallLevel):P0}";
+        experiencePacing.TooltipText = "Successful skill practice advances overall level. Trivial practice is strongly reduced but no longer enters a permanent zero-XP dead zone.";
+        if(characterExperienceBar is not null)
+        {
+            characterExperienceBar.MaxValue=100; characterExperienceBar.Value=overallProgress*100;
+            characterExperienceBar.TooltipText=overallLevel>=Progression.PlayerCap?"Overall level 200 · maximum":$"Overall level {overallLevel} → {overallLevel+1} · {overallProgress:P1}";
+        }
         health.MaxValue = stats.Health; health.Value = self.Health; healthText.Text = $"Health  {Math.Ceiling(self.Health):0} / {stats.Health:0}";
         mana.MaxValue = stats.Mana; mana.Value = self.Mana; manaText.Text = $"Mana  {Math.Ceiling(self.Mana):0} / {stats.Mana:0}";
         stamina.MaxValue = stats.Stamina; stamina.Value = self.Stamina; staminaText.Text = $"Stamina  {Math.Ceiling(self.Stamina):0} / {stats.Stamina:0}";

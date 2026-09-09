@@ -12,7 +12,7 @@ ATELIER = HERE.parent
 ROOT = ATELIER.parent
 sys.path.insert(0, str(ATELIER))
 
-from forge import beasts, folk, smith  # noqa: E402
+from forge import beasts, folk, rig, smith  # noqa: E402
 from forge.brush import canvas, refine_sprite  # noqa: E402
 
 
@@ -43,6 +43,20 @@ class SpriteRefinementTests(unittest.TestCase):
         self.assertEqual(first.mode, 'RGBA')
         self.assertIsNotNone(first.getchannel('A').getbbox())
         self.assertEqual(first.tobytes(), second.tobytes())
+
+    def test_humanoid_proportions_are_less_chibi_and_equipment_keeps_shared_rig(self):
+        for build in rig.BUILDS:
+            standing_height = rig.GROUND - (build.head_y - build.head)
+            self.assertLess((build.head * 2) / standing_height, 0.24)
+            self.assertGreater(build.femur + build.shin, 19)
+        body = folk.body_frame(0, 2, 'idle', 0, 0)
+        chest = next(i for i in self.data['items'] if i.get('slot') == 'chest')
+        worn = folk.armour_frame(chest, 'idle', 0, 0)
+        body_alpha = body.getchannel('A')
+        worn_alpha = worn.getchannel('A')
+        overlap = sum(1 for a, b in zip(body_alpha.getdata(), worn_alpha.getdata()) if a and b)
+        self.assertGreater(overlap, 30)
+        self.assertEqual(worn.size, body.size)
 
     def test_representative_creature_keeps_fixed_frame_and_detail(self):
         mob = next(m for m in self.data['mobs'] if not m.get('boss') and m.get('family') in {'bear', 'polar_bear', 'wolf'})

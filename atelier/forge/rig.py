@@ -25,26 +25,27 @@ FRAMES = 8
 class Build:
     """Body proportions. Kept small so silhouettes stay readable at 64px."""
 
-    shoulder: float = 7.6      # half width across the shoulders
-    hip: float = 4.6           # half width across the pelvis
-    head: float = 5.4          # head radius
-    chest_depth: float = 5.1   # half width seen from the side
-    limb: float = 4.0          # arm thickness
-    thigh: float = 5.0
-    reach: float = 8.0         # upper arm length
-    forearm: float = 7.4
-    femur: float = 8.6
-    shin: float = 9.4
-    neck_y: float = 22.6
-    shoulder_y: float = 24.4
-    chest_y: float = 29.0
-    pelvis_y: float = 36.6
-    head_y: float = 16.4
+    shoulder: float = 7.2      # half width across the shoulders
+    hip: float = 4.4           # half width across the pelvis
+    head: float = 4.8          # smaller head gives a more human 64px proportion
+    chest_depth: float = 4.5   # half width seen from the side
+    limb: float = 3.5          # articulated arm thickness
+    thigh: float = 4.4
+    reach: float = 8.3         # upper arm length
+    forearm: float = 7.7
+    femur: float = 9.4
+    shin: float = 10.0
+    neck_y: float = 21.3
+    shoulder_y: float = 23.5
+    chest_y: float = 28.3
+    pelvis_y: float = 35.5
+    head_y: float = 15.3
 
 
 BROAD = Build()
-SLIGHT = Build(shoulder=6.6, hip=4.2, head=5.2, chest_depth=3.8, limb=3.4, thigh=4.4,
-               reach=7.8, forearm=7.2, femur=8.4, shin=9.6, chest_y=29.2, pelvis_y=36.4)
+SLIGHT = Build(shoulder=6.3, hip=4.0, head=4.7, chest_depth=3.5, limb=3.1, thigh=4.0,
+               reach=8.1, forearm=7.5, femur=9.2, shin=10.2, neck_y=21.4, shoulder_y=23.6,
+               chest_y=28.4, pelvis_y=35.4, head_y=15.4)
 BUILDS = (BROAD, SLIGHT)
 
 

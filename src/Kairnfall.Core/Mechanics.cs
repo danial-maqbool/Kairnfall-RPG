@@ -18,27 +18,55 @@ public static class Progression
     }
     public static int Level(Character p,string skill) => SkillLevel(p.SkillXp.GetValueOrDefault(skill));
     public static long Total(Character p) => p.SkillXp.Values.Sum(x=>Math.Clamp(x,0,Threshold(SkillCap)));
-    public static int PlayerLevel(Character p)
+    public static double PlayerLevelValue(Character p,bool includeCreditRemainder=false)
     {
         double mastery=Math.Clamp(Total(p)/(60.0*Threshold(SkillCap)),0,1);
-        double ratio=Math.Clamp(BeginnerProgression.OverallEquivalentXp(ChallengeProgression.OverallTraining(p))/(60.0*Threshold(SkillCap)),0,1);
-        int credited=1+(int)Math.Floor(199*Math.Pow(ratio,0.30));
+        long wholeTraining=ChallengeProgression.OverallTraining(p);
+        double equivalent=BeginnerProgression.OverallEquivalentXp(wholeTraining);
+        if(includeCreditRemainder&&double.IsFinite(p.OverallCreditRemainder)&&p.OverallCreditRemainder>0)
+        {
+            double fraction=Math.Clamp(p.OverallCreditRemainder,0,.999999999);
+            double next=BeginnerProgression.OverallEquivalentXp(wholeTraining+1);
+            equivalent+=(next-equivalent)*fraction;
+        }
+        double ratio=Math.Clamp(equivalent/(60.0*Threshold(SkillCap)),0,1);
+        double credited=1+199*Math.Pow(ratio,0.30);
         // Late mastery approaches the cap continuously. It does not create a final-point jump.
-        int mastered=1+(int)Math.Floor(199*Math.Pow(mastery,1.5));
+        double mastered=1+199*Math.Pow(mastery,1.5);
         return Math.Clamp(Math.Max(credited,mastered),1,PlayerCap);
+    }
+    public static int PlayerLevel(Character p)=>Math.Clamp((int)Math.Floor(PlayerLevelValue(p)),1,PlayerCap);
+    public static double PlayerLevelProgress(Character p)
+    {
+        int level=PlayerLevel(p);
+        return level>=PlayerCap?1:Math.Clamp(PlayerLevelValue(p,true)-level,0,1);
+    }
+    public static double SkillLevelProgress(long xp)
+    {
+        int level=SkillLevel(xp);
+        if(level>=SkillCap)return 1;
+        long floor=Threshold(level),ceiling=Threshold(level+1);
+        return Math.Clamp((Math.Clamp(xp,floor,ceiling)-floor)/(double)(ceiling-floor),0,1);
     }
     public static long Train(Character p,string skill,int xp,int difficulty,Catalog catalog)
     {
         catalog.Skill(skill);
         if(xp<0||xp>100000||difficulty<1||difficulty>100) throw new RuleException("Invalid skill award.");
+        if(xp==0)return 0;
         int over=Level(p,skill)-difficulty;
-        double challenge=Math.Clamp((30.0-over)/30.0,0,1);
+        // Successful trivial practice stays useful at five percent of base XP.
+        // Fractional carry avoids both zero-XP dead zones and one-free-XP rounding exploits.
+        double challenge=Math.Clamp((30.0-over)/30.0,.05,1);
         double affinity=catalog.Class(p.Class).Affinity.Contains(skill)?1.10:1;
         int overallBefore=PlayerLevel(p);
-        long old=p.SkillXp.GetValueOrDefault(skill);
-        long award=(long)Math.Floor(xp*challenge*affinity);
-        p.SkillXp[skill]=Math.Min(Threshold(SkillCap),old+award);
-        long actual=p.SkillXp[skill]-old;
+        long old=p.SkillXp.GetValueOrDefault(skill),cap=Threshold(SkillCap);
+        double carry=p.GeneralPracticeRemainders.GetValueOrDefault(skill);
+        if(!double.IsFinite(carry)||carry<0||carry>=1)carry=0;
+        double pending=xp*challenge*affinity+carry;
+        long whole=(long)Math.Floor(pending);
+        long actual=Math.Max(0,Math.Min(cap-old,whole));
+        p.SkillXp[skill]=old+actual;
+        p.GeneralPracticeRemainders[skill]=p.SkillXp[skill]>=cap?0:pending-whole;
         ChallengeProgression.Credit(p,actual,overallBefore);
         return actual;
     }
@@ -244,6 +272,8 @@ public static class Items
             foreach(var e in p.Equipment) if(!p.Inventory.Any(x=>x.Id==e.Value&&data.Item(x.Template).Slot==e.Key)) errors.Add("Invalid equipment: "+p.Id);
             if(!HandEquipment.Compatible(HandEquipment.Definition(p,"weapon",data),HandEquipment.Definition(p,"offhand",data))) errors.Add("Incompatible hand equipment: "+p.Id);
             if(p.SkillXp.Any(x=>!data.Skills.Any(s=>s.Id==x.Key)||x.Value<0||x.Value>Progression.Threshold(100))) errors.Add("Invalid skill XP: "+p.Id);
+            if(p.GeneralPracticeRemainders.Any(x=>!data.Skills.Any(s=>s.Id==x.Key)||!double.IsFinite(x.Value)||x.Value<0||x.Value>=1)) errors.Add("Invalid general practice remainder: "+p.Id);
+            if(p.CombatPracticeRemainders.Any(x=>!data.Skills.Any(s=>s.Id==x.Key)||!double.IsFinite(x.Value)||x.Value<0||x.Value>=1)) errors.Add("Invalid combat practice remainder: "+p.Id);
         }
         foreach(var a in state.Auctions.Values) Check(a.Item);
         return errors;

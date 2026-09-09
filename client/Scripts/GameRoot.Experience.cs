@@ -15,17 +15,17 @@ public partial class GameRoot
     private readonly AttackRequestGate basicAttackGate = new();
     private readonly AttackRequestGate interactionGate = new();
     private Label interactionHint = null!;
-    private Label progressionHint = null!;
-    private VBoxContainer pickupFeed = null!;
+    private VBoxContainer pickupFeed = null!, skillExperienceFeed = null!;
+    private ProgressBar characterExperienceBar = null!;
     private Button interactionButton = null!;
     private Button basicAttackButton = null!;
-    private double contextClock, progressionUntil, nextProgressionNote;
+    private double contextClock;
     private string lastNoticeText = "";
     private double lastNoticeAt = -10;
     private readonly List<PickupNote> pickupNotes = [];
-    private readonly Dictionary<string, long> pendingSkillGains = [];
-    private readonly Dictionary<string, int> pendingSkillLevels = [];
+    private readonly List<SkillExperienceNote> skillExperienceNotes = [];
     private sealed record PickupNote(string Template, Rarity Rarity, int Quantity, double Until);
+    private sealed record SkillExperienceNote(string Skill,long Gain,long Xp,int BeforeLevel,int Level,double Until);
 
     private bool GameplayInputAllowed => !closing && awaitingBinding == "" && ExperienceRules.AllowsWorldInput(
         Online, Typing, gameWindow is not null || frontend.Visible, applicationFocused, Snapshot?.Self.Health > 0);
@@ -238,16 +238,21 @@ public partial class GameRoot
         interactionHint.AddThemeConstantOverride("outline_size", 4);
         interactionHint.AddThemeColorOverride("font_outline_color", Ui.Ink);
         hud.AddChild(interactionHint);
-        progressionHint = Ui.Label("", 14, Ui.Success, true);
-        progressionHint.Name = "ProgressionFeedback";
-        progressionHint.AnchorLeft = progressionHint.AnchorRight = .5f;
-        progressionHint.AnchorTop = progressionHint.AnchorBottom = 1;
-        progressionHint.OffsetLeft = -285; progressionHint.OffsetRight = 285;
-        progressionHint.OffsetTop = -213; progressionHint.OffsetBottom = -185;
-        progressionHint.HorizontalAlignment = HorizontalAlignment.Center;
-        progressionHint.AddThemeConstantOverride("outline_size", 4);
-        progressionHint.AddThemeColorOverride("font_outline_color", Ui.Ink);
-        hud.AddChild(progressionHint);
+        skillExperienceFeed = new VBoxContainer
+        {
+            Name = "SkillExperienceFeed", AnchorLeft = .5f, AnchorRight = .5f, AnchorTop = 1, AnchorBottom = 1,
+            OffsetLeft = -165, OffsetRight = 165, OffsetTop = -346, OffsetBottom = -264,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        skillExperienceFeed.AddThemeConstantOverride("separation", 3); hud.AddChild(skillExperienceFeed);
+        characterExperienceBar = Ui.Bar(new Color("c2a55f"), 0);
+        characterExperienceBar.Name = "CharacterExperienceBar";
+        characterExperienceBar.AnchorLeft = 0; characterExperienceBar.AnchorRight = 1;
+        characterExperienceBar.AnchorTop = characterExperienceBar.AnchorBottom = 1;
+        characterExperienceBar.OffsetLeft = 8; characterExperienceBar.OffsetRight = -8;
+        characterExperienceBar.OffsetTop = -7; characterExperienceBar.OffsetBottom = -1;
+        characterExperienceBar.CustomMinimumSize = new Vector2(0, 6);
+        characterExperienceBar.MouseFilter = MouseFilterEnum.Ignore; hud.AddChild(characterExperienceBar);
         notice.OffsetTop = -252; notice.OffsetBottom = -216;
         pickupFeed = new VBoxContainer
         {
@@ -276,15 +281,7 @@ public partial class GameRoot
         interactionHint.Text = context is { } target
             ? "[" + bindings["interact"] + "] " + ContextVerb(target) + " " + target.Name
             : GameplayInputAllowed ? "Hold " + bindings["basic_attack"] + " to attack · " + bindings["target_next"] + " cycles targets · " + bindings["dash"] + " dashes (4 mana)" : "";
-        if (now >= nextProgressionNote && pendingSkillGains.Count > 0)
-        {
-            var keys = pendingSkillGains.Keys.OrderByDescending(x => pendingSkillLevels.ContainsKey(x)).Take(3).ToArray();
-            progressionHint.Text = string.Join(" · ", keys.Select(x => pendingSkillLevels.TryGetValue(x, out int level)
-                ? Data.Skill(x).Name + " reached Level " + level : "+" + pendingSkillGains[x] + " " + Data.Skill(x).Name + " XP"));
-            foreach (var key in keys) { pendingSkillGains.Remove(key); pendingSkillLevels.Remove(key); }
-            nextProgressionNote = now + 1.5; progressionUntil = now + 4;
-        }
-        if (now > progressionUntil) progressionHint.Text = "";
+        if (skillExperienceNotes.RemoveAll(x => now >= x.Until) > 0) RenderSkillExperience();
         if (pickupNotes.RemoveAll(x => now > x.Until) > 0) RenderPickupFeed();
     }
 
@@ -309,11 +306,10 @@ public partial class GameRoot
         if (changed) RenderPickupFeed();
         foreach (var skill in Data.Skills)
         {
-            long gained = current.Self.SkillXp.GetValueOrDefault(skill.Id) - previous.Self.SkillXp.GetValueOrDefault(skill.Id);
-            if (gained <= 0) continue;
-            pendingSkillGains[skill.Id] = pendingSkillGains.GetValueOrDefault(skill.Id) + gained;
-            int level = Progression.Level(current.Self, skill.Id);
-            if (level > Progression.Level(previous.Self, skill.Id)) pendingSkillLevels[skill.Id] = level;
+            long beforeXp=previous.Self.SkillXp.GetValueOrDefault(skill.Id);
+            long currentXp=current.Self.SkillXp.GetValueOrDefault(skill.Id);
+            long gained=currentXp-beforeXp;
+            if(gained>0) ShowSkillExperience(skill.Id,gained,beforeXp,currentXp,now);
         }
         int overall = Progression.PlayerLevel(current.Self);
         if (overall > Progression.PlayerLevel(previous.Self))
@@ -322,6 +318,46 @@ public partial class GameRoot
             bool explained = settings.GetValue("hints", key, false).AsBool();
             Notify("Overall Level " + overall + (explained ? "" : " — training any skill advances your overall level."));
             settings.SetValue("hints", key, true); settings.Save("user://settings.cfg");
+        }
+    }
+
+    private void ShowSkillExperience(string skill,long gained,long beforeXp,long currentXp,double now)
+    {
+        int existing=skillExperienceNotes.FindIndex(x=>x.Skill==skill&&x.Until>now);
+        long totalGain=gained; int beforeLevel=Progression.SkillLevel(beforeXp);
+        if(existing>=0)
+        {
+            totalGain+=skillExperienceNotes[existing].Gain;
+            beforeLevel=skillExperienceNotes[existing].BeforeLevel;
+            skillExperienceNotes.RemoveAt(existing);
+        }
+        skillExperienceNotes.Add(new(skill,totalGain,currentXp,beforeLevel,Progression.SkillLevel(currentXp),now+2.6));
+        if(skillExperienceNotes.Count>3)skillExperienceNotes.RemoveRange(0,skillExperienceNotes.Count-3);
+        RenderSkillExperience();
+    }
+
+    private void RenderSkillExperience()
+    {
+        if(skillExperienceFeed is null)return;
+        Ui.Clear(skillExperienceFeed);
+        foreach(var note in skillExperienceNotes)
+        {
+            var card=new PanelContainer { MouseFilter=MouseFilterEnum.Ignore };
+            card.AddThemeStyleboxOverride("panel",Ui.Box(new Color("1c1a17"),new Color("647a5f"),4));
+            skillExperienceFeed.AddChild(card);
+            var column=Ui.Column(card); column.MouseFilter=MouseFilterEnum.Ignore; column.AddThemeConstantOverride("separation",1);
+            string levels=note.Level>note.BeforeLevel?$" · Level {note.BeforeLevel} → {note.Level}":$" · Level {note.Level}";
+            column.AddChild(Ui.Label(Data.Skill(note.Skill).Name+$"  +{note.Gain:N0} XP"+levels,11,Ui.Success));
+            var bar=Ui.Bar(new Color("789b62"),312); bar.Name="SkillExperienceBar_"+note.Skill;
+            bar.CustomMinimumSize=new Vector2(312,7); bar.MaxValue=100; bar.Value=Progression.SkillLevelProgress(note.Xp)*100;
+            int level=Progression.SkillLevel(note.Xp);
+            if(level>=Progression.SkillCap) bar.TooltipText=Data.Skill(note.Skill).Name+" mastered";
+            else
+            {
+                long floor=Progression.Threshold(level),ceiling=Progression.Threshold(level+1);
+                bar.TooltipText=$"{note.Xp-floor:N0} / {ceiling-floor:N0} XP toward level {level+1}";
+            }
+            column.AddChild(bar);
         }
     }
 
