@@ -1,17 +1,11 @@
 {
-  "base": "f388eceb26c20e2e54409e4c57f8603587a3946e",
-  "message": "test(presentation): run interaction fixtures at explicit native client dimensions",
-  "purpose": "Keep the native-pixel rendering mode and every existing interaction assertion. Initialize supported physical window dimensions before placing fixture controls. The old implicit headless window only worked because canvas_items stretched the project viewport. Do not hide HUD controls or relax routing, equipment, ownership or layout assertions.",
+  "base": "a9ae776105cabd68f306035ee669efd362a4447e",
+  "message": "fix(progression): keep every early equipment requirement at or below its original gate",
+  "purpose": "Retain the recovered hunting, Atelier, native-pixel and input changes. Repair the band rule for requirements such as level 2 so an early-access adjustment never makes an existing item harder. Add all-boundary coverage without changing template grades, recipes, saved XP or the existing level cap.",
   "edits": [
-    {
-      "path": "client/Tests/PlayerExperienceContract.cs",
-      "expected_blob": "68d35de0fcbac682a9c5a81a229e59e92b32d41c",
-      "replacements": [{"old": "            var data = PixelAssets.LoadCatalog(); var realm = new RealmEngine(data);", "new": "            GetWindow().Size = new Vector2I(1280, 720);\n            await Frame(); await Frame();\n            Require(GetViewport().GetVisibleRect().Size.IsEqualApprox(new Vector2(1280, 720)), \"The native experience fixture uses supported physical window dimensions\");\n            var data = PixelAssets.LoadCatalog(); var realm = new RealmEngine(data);"}]
-    },
-    {
-      "path": "client/Tests/ControlRulesContract.cs",
-      "expected_blob": "e07547a41c0ac5019cfddc0df2b973d09970eb13",
-      "replacements": [{"old": "            var data = PixelAssets.LoadCatalog(); var realm = new RealmEngine(data);", "new": "            GetWindow().Size = new Vector2I(1280, 720);\n            await Frame(); await Frame();\n            Require(GetViewport().GetVisibleRect().Size.IsEqualApprox(new Vector2(1280, 720)), \"The native control fixture uses supported physical window dimensions\");\n            var data = PixelAssets.LoadCatalog(); var realm = new RealmEngine(data);"}]
-    }
+    {"path":"src/Kairnfall.Core/BeginnerProgression.cs","expected_blob":"97dee98efb4099e34567dd2a87b3439e5cb71597","source_blob":"a43042bf17332f474f22b87bb329cfb1350abae3"},
+    {"path":"tools/world_probe/JourneyControlChecks.cs","expected_blob":"6d268b6998bf448f1446ec1bbbbebbccf963260e","replacements":[
+      {"old":"        Console.WriteLine($\"JOURNEY CONTROLS: {passed} groups passed; total failures {failures.Count}.\");","new":"        Test(\"Early-access bands never increase any valid equipment or tool requirement\",()=>\n        {\n            foreach(int level in Enumerable.Range(1,100))\n            foreach(string kind in new[]{\"weapon\",\"armor\",\"tool\",\"material\"})\n            {\n                var item=new ItemDef { Requirement=level, Type=kind, Slot=kind==\"weapon\"?\"weapon\":kind==\"armor\"?\"chest\":\"\" };\n                int gate=BeginnerProgression.EquipmentRequirement(item);\n                Need(gate>=1 && gate<=level,\"Early access raised a requirement: \"+kind+\"/\"+level);\n                if(level>=20 || kind==\"material\") Need(gate==level,\"An unchanged requirement was altered: \"+kind+\"/\"+level);\n                Need(item.Requirement==level,\"Computing early access rewrote the item definition.\");\n            }\n        });\n        Console.WriteLine($\"JOURNEY CONTROLS: {passed} groups passed; total failures {failures.Count}.\");"}
+    ]}
   ]
 }
