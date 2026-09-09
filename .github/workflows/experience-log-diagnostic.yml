@@ -11,26 +11,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Download the recorded candidate test artifact
+      - name: Download the recorded integrated-source test artifact
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           repository: danial-maqbool/Kairnfall-RPG
-          run-id: 34184723299
-          artifact-ids: '10040210436'
+          run-id: 34324914335
+          artifact-ids: '10093744863'
           path: evidence
-      - name: Print bounded combat evidence
+      - name: Inspect native startup and last completed stages
         run: |
           python3 - <<'PY'
           from pathlib import Path
           root = Path('evidence')
-          for suffix in ('revision.txt', 'live-experience.log'):
+          revisions = list(root.rglob('revision.txt'))
+          expected = '51b575323969da9c9b0fab5f3c23a7a5f0c4147e'
+          if len(revisions) != 1 or revisions[0].read_text().strip() != expected:
+              raise SystemExit('The artifact does not match the reviewed source')
+          print('SOURCE=' + expected)
+          for path in sorted(root.rglob('*.log')):
+              if path.is_symlink():
+                  raise SystemExit('Refuse a symbolic log path')
+              print('LOG', path.relative_to(root).as_posix(), path.stat().st_size)
+          for suffix in ('control-rules.log', 'controls-progress.log'):
               paths = list(root.rglob(suffix))
               print('\n=== ' + suffix + ' ===')
               if not paths:
-                  raise SystemExit('Required diagnostic file was not produced')
+                  print('NOT PRODUCED')
               for path in paths:
                   lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
-                  selected = [line for line in lines if suffix == 'revision.txt' or any(key in line for key in ('COMBAT_TRACE', 'ERROR:', 'TimeoutException', 'PASS LIVE EXPERIENCE:', 'LIVE_EXPERIENCE_CONTRACT:'))]
-                  print('\n'.join(selected[-90:])[-20000:])
+                  print('LINES=' + str(len(lines)))
+                  print('FIRST LINES\n' + '\n'.join(lines[:35])[:16000])
+                  print('LAST LINES\n' + '\n'.join(lines[-120:])[-26000:])
+          print('Diagnostic inspection does not run, skip, approve, or modify any test.')
           PY
