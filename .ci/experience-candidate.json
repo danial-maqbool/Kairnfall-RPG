@@ -1,6 +1,6 @@
 {
-  "sha": "e5b0269048ef3ffd2fba6f511970e2f9d25dfeb2",
-  "base": "f988317b68bfff981bb1d59ae564bd9d7fac7e78",
-  "mode": "repair",
-  "purpose": "Full retained verification of the complete pending hunting, connected dungeons, Atelier integration and native-pixel source. Keep every input/HUD/equipment assertion; initialize native physical window dimensions in all affected headless fixtures. Verify the early-access rule never raises any original item requirement. Run all authority, persistence, network, database, graphical and live-client suites before integration."
+  "sha":"f2ef5643d9e4860adaa8769155b86b90af1b622e",
+  "base":"9d9b361fa49e5f85f802c494819227f1947b7f9c",
+  "mode":"repair",
+  "purpose":"Verify stable native inventory slots during selection and authoritative snapshot updates at 1280x720 and 1920x1080. Retain the complete hunting, early growth, dash, target, Atelier and native-pixel implementation and every backend, database, security, migration, native control, graphical and real-server test. Confirm group changes and removals rebuild cleanly without duplicating items or capacity."
 }
