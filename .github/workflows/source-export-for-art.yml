@@ -1,0 +1,30 @@
+name: Export source for art refinement
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/source-export-for-art.yml']
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Package exact tracked source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/source
+          git rev-parse HEAD > artifacts/source/revision.txt
+          git archive --format=zip HEAD -o artifacts/source/kairnfall-main.zip
+          sha256sum artifacts/source/kairnfall-main.zip > artifacts/source/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kairnfall-source-${{ github.sha }}
+          path: artifacts/source/
+          if-no-files-found: error
+          retention-days: 2
