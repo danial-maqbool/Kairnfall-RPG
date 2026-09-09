@@ -51,8 +51,13 @@ public partial class GameRoot
         if (combatApproach) route.Clear();
         combatApproach = false;
     }
+    private Kairnfall.Core.Point engagementOrigin;
+    private bool engagementStarted;
+    private double observedAttackCooldown;
+
     private void StopCombatInput()
     {
+        engagementStarted = false;
         attackKeyHeld = false;
         approachUsed = false;
         approachTravelled = 0; nextApproachPlan = 0;
@@ -65,6 +70,8 @@ public partial class GameRoot
         StopCombatInput();
         attackKeyHeld = held;
         var snapshot = Snapshot!;
+        engagementOrigin = snapshot.Self.Position; engagementStarted = true;
+        observedAttackCooldown = snapshot.Self.Cooldowns.GetValueOrDefault("attack");
         var target = ExperienceRules.ChooseTarget(snapshot.Self, snapshot.Creatures, Data,
             selectedTargetKind == "creature" ? selectedTarget : "", ExperienceRules.WeaponRange(snapshot.Self, Data));
         if (target is not null)
@@ -82,6 +89,17 @@ public partial class GameRoot
         if (!GameplayInputAllowed || actionBusy) return;
         var snapshot = Snapshot!;
         double now = Time.GetTicksMsec() / 1000.0;
+        if (attackKeyHeld && engagementStarted && engagementOrigin.Distance(snapshot.Self.Position) >= 6)
+        {
+            StopCombatInput(); Notify("Target moved beyond the short pursuit area. Move closer to continue."); return;
+        }
+        double acknowledged = snapshot.Self.Cooldowns.GetValueOrDefault("attack");
+        if (engagementStarted && acknowledged > observedAttackCooldown)
+        {
+            // Only accepted authoritative attacks start a fresh short approach.
+            observedAttackCooldown = acknowledged; approachUsed = false; approachTravelled = 0;
+            nextApproachPlan = 0; CancelCombatApproach();
+        }
         if (approachUsed)
         {
             approachTravelled += lastApproachPosition.Distance(snapshot.Self.Position);
@@ -116,7 +134,8 @@ public partial class GameRoot
                 approachUsed = true; approachDeadline = now + 1.5;
                 lastApproachPosition = snapshot.Self.Position; approachTravelled = 0;
             }
-            // Replanning never resets the time or total travel budget of this key press.
+            // Replanning never resets this window. Confirmed hits may refresh the
+            // short window, but never the fixed engagement-origin distance bound.
             if (now >= approachDeadline || approachTravelled >= 2.5)
             {
                 StopCombatInput(); return;
@@ -124,7 +143,8 @@ public partial class GameRoot
             if (now >= nextApproachPlan)
             {
                 nextApproachPlan = now + .12;
-                var path = ExperienceRules.ApproachPath(snapshot.Self, target, Data, 2.5 - approachTravelled);
+                double remaining = Math.Min(2.5 - approachTravelled, Math.Max(0, 6 - engagementOrigin.Distance(snapshot.Self.Position)));
+                var path = ExperienceRules.ApproachPath(snapshot.Self, target, Data, remaining);
                 if (path.Count == 0) { CancelCombatApproach(); return; }
                 pendingInteraction = null; route.Clear(); route.AddRange(path);
                 combatApproach = true;

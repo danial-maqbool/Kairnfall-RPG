@@ -42,6 +42,10 @@ mitigatedDamage = rawDamage * 100/(100 + max(armor,0))
 
 The new mastery factors have diminishing gains and finite bounds. Critical caps, element modifiers, weather, vulnerability, shields and actual-health damage caps remain. Armor 100 still halves unresisted raw damage. No opaque level-based damage inflation or additional random miss system is introduced.
 
+## Bounded pursuit
+
+Held basic attacks retain a 2.5-tile, 1.5-second approach window. A newer authoritative attack cooldown confirms an accepted attack and opens a fresh window. Replanning and rejected requests do not refresh it. A separate six-tile bound from the engagement origin prevents repeated windows from producing uncontrolled long-distance pursuit. Releasing the key, typing, menus, death and disconnect still stop combat. The original live starter encounter remains a required test; its timeout was not extended.
+
 ## Interface and tests
 
 Vitals show the current overall-credit rate and next boundary. The selected target shows challenge category, practice rate and overall credit. Tooltips explain factor order. The native HUD fixture checks both supported resolutions and separation from the objective panel.
