@@ -1,6 +1,6 @@
 {
-  "sha":"b941ac221e3084772330b98d5b0cbc7e6302669c",
-  "base":"2c0ccda45d13b719b35a6f8bf2ea83dab1242857",
-  "mode":"repair",
-  "purpose":"Verify the unchanged merchant edge and cancelled-socket repairs with every retained backend, database, security, native, graphical and live-reconnect test. The native control contract now flushes bounded progress before asynchronous waits and records controls-progress.log, preserving evidence if a runner kills it. No assertion, order, timeout, reward or production behavior changed in that diagnostic addition. The two prior runs timed out with empty control output; do not mark them passed. Preserve current main and integrate only the verified source."
+  "sha": "51b575323969da9c9b0fab5f3c23a7a5f0c4147e",
+  "base": "2c0ccda45d13b719b35a6f8bf2ea83dab1242857",
+  "mode": "repair",
+  "purpose": "Final exact-source verification of the implementation now installed in main. The source equals passing candidate b941ac221e3084772330b98d5b0cbc7e6302669c; only current request metadata differs. Verify compact centered item cards, signed per-stat colors, actual requirement blockers, explicit integer entry, exact partial/full selected-stack gold, delayed-snapshot safety, explicit reselection after stack removal, visible large totals, fresh equipped-stat comparisons and cancelled receive shutdown. Retain every native, backend, security, database, migration, graphical and real-connection/reconnect test. No assertion, timeout, reward, source catalog, save or branch rule is weakened. This request does not grant independent visual or Windows acceptance."
 }
