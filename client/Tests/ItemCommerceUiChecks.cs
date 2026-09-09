@@ -71,8 +71,9 @@ internal static class ItemCommerceUiChecks
                 check(Find<Control>("CompactItemCard").Size.X<=360,"The item card keeps a compact width at "+size);
                 await Capture("item-compare-"+size.X);
                 var slot=game.FindChildren("*","Control",true,false).OfType<EquipmentItemSlot>().First(x=>x.Item?.Id==item.Id&&!x.IsQueuedForDeletion());
-                using(var tip=slot._MakeCustomTooltip(slot.TooltipText))
-                    check(tip is Control c&&c.CustomMinimumSize.X==CompactItemCard.Width,"Equipment slots use the compact comparison tooltip");
+                var tip=slot._MakeCustomTooltip(slot.TooltipText);
+                try { check(tip is Control c&&c.CustomMinimumSize.X==CompactItemCard.Width,"Equipment slots use the compact comparison tooltip"); }
+                finally { if(GodotObject.IsInstanceValid(tip)) ((Node)tip).Free(); }
                 Call("ClosePage");await Frame();await Frame();
                 var stackDef=fixtureData.Item("copper_ore");
                 var stack=Items.Create(fixtureData,stackDef.Id,150);self.Inventory.Clear();self.Equipment.Clear();self.Inventory.Add(stack);
@@ -90,7 +91,12 @@ internal static class ItemCommerceUiChecks
                 };
                 panel.RefreshSnapshot();await Frame();await Frame();
                 var quantity=Find<SpinBox>("SaleQuantity");await TypeQuantity(quantity,"7");
+                check(quantity.GetLineEdit().Text=="7","Native typing leaves the intended unsubmitted sale quantity");
                 panel.RefreshSnapshot();check(quantity.GetLineEdit().Text=="7","Snapshot refresh preserves an unsubmitted typed quantity");
+                int savedCaret=quantity.GetLineEdit().CaretColumn;
+                stack.Quantity=149;panel.RefreshSnapshot();
+                check(quantity.GetLineEdit().Text=="7"&&quantity.GetLineEdit().CaretColumn==savedCaret,"A changed stack limit preserves the pending edit and caret");
+                stack.Quantity=150;panel.RefreshSnapshot();
                 long gold=self.Gold,unit=MerchantSales.UnitPrice(stackDef);
                 check(Find<Label>("SaleGoldTotal").Text.Contains((unit*7).ToString("N0")),"The selected quantity shows the exact total gold");
                 await Capture("merchant-sell-"+size.X);

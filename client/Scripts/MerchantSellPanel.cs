@@ -46,7 +46,7 @@ public partial class MerchantSellPanel : VBoxContainer
         list.ItemSelected += index =>
         {
             if (refreshing || index < 0 || index >= ids.Count) return;
-            selected = ids[(int)index]; cardStamp = ""; amount.Value = 1; RefreshSnapshot();
+            selected = ids[(int)index]; cardStamp = ""; amount.Value = 1; amount.GetLineEdit().Text = "1"; RefreshSnapshot();
         };
         amount.ValueChanged += _ => RefreshQuote();
         amount.GetLineEdit().TextChanged += _ => RefreshQuote();
@@ -67,7 +67,7 @@ public partial class MerchantSellPanel : VBoxContainer
             {
                 list.Clear(); ids.Clear();
                 foreach (var item in items) { ids.Add(item.Id); list.AddItem("", Assets.Icon(item.Template)); }
-                if (!ids.Contains(selected)) { selected = ids.FirstOrDefault() ?? ""; amount.Value = 1; }
+                if (!ids.Contains(selected)) { selected = ids.FirstOrDefault() ?? ""; amount.Value = 1; amount.GetLineEdit().Text = "1"; }
                 layout = next;
             }
             for (int i = 0; i < items.Length; i++)
@@ -82,7 +82,15 @@ public partial class MerchantSellPanel : VBoxContainer
             var current = Current(self);
             if (current is not null)
             {
-                amount.MaxValue = current.Quantity;
+                if (amount.MaxValue != current.Quantity)
+                {
+                    // A Range update reformats SpinBox text from its committed Value.
+                    // Keep the pending edit, even when a smaller stack makes it invalid.
+                    var edit = amount.GetLineEdit();
+                    string pendingText = edit.Text; int caret = edit.CaretColumn;
+                    amount.MaxValue = current.Quantity;
+                    edit.Text = pendingText; edit.CaretColumn = Math.Min(caret, pendingText.Length);
+                }
                 string stamp = JsonSerializer.Serialize(new { current, self.Equipment, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);
                 if (stamp != cardStamp)
                 {
