@@ -7,7 +7,7 @@ namespace Kairnfall.Client.Tests;
 /// <summary>Boundary fixtures for visible sale totals and fresh equipment comparisons.</summary>
 internal static class MerchantBoundaryUiChecks
 {
-    public static async Task Run(Node host, GameRoot game, Action<bool, string> check)
+    public static async Task Run(Node host, GameRoot game, Action<bool, string> check, Catalog fixtureData, int expectedPopulation)
     {
         var flags = BindingFlags.Instance | BindingFlags.NonPublic;
         FieldInfo Field(string name) => typeof(GameRoot).GetField(name, flags)!;
@@ -51,13 +51,21 @@ internal static class MerchantBoundaryUiChecks
         }
         var original = game.World.Snapshot;
         string oldNpc = (string)Field("selectedNpc").GetValue(game)!;
-        // A copied catalog exercises bulk and high prices without changing the live economy.
-        var data = Wire.Copy(game.Data); var ore = data.Item("copper_ore");
-        ore.StackMax = 999; ore.Value = 3_000_000;
+        // The caller already copied this catalog. Sharing that isolated instance
+        // reuses deterministic hunting plans, not character or transaction state.
+        var data = fixtureData;
+        check(!ReferenceEquals(data, game.Data), "Merchant boundary pricing uses an isolated catalog");
+        var ore = data.Item("copper_ore"); var originalValue = ore.Value; int originalStackMax = ore.StackMax;
+        var timing = System.Diagnostics.Stopwatch.StartNew();
         var realm = new RealmEngine(data); var self = realm.CreateCharacter("merchant-boundary", "Merchant Boundary", "vanguard", new());
+        timing.Stop();
+        check(expectedPopulation > 0 && realm.State.Creatures.Count == expectedPopulation, "A fresh boundary realm retains the complete hunting population");
+        Console.WriteLine($"MERCHANT_FIXTURE: fresh realm; {realm.State.Creatures.Count} creatures; cached-layout setup {timing.ElapsedMilliseconds} ms");
+        Console.Out.Flush();
         var merchant = data.Npcs.First(n => n.Role == "provisioner" && n.Stock.Length > 0);
         try
         {
+            ore.StackMax = 999; ore.Value = 3_000_000;
             foreach (var size in new[] { new Vector2I(1280, 720), new Vector2I(1920, 1080) })
             {
                 host.GetWindow().Size = size; host.GetWindow().ContentScaleSize = size;
@@ -122,6 +130,7 @@ internal static class MerchantBoundaryUiChecks
         }
         finally
         {
+            ore.StackMax = originalStackMax; ore.Value = originalValue;
             Call("ClosePage"); await Frame(); await Frame(); Field("selectedNpc").SetValue(game, oldNpc);
             if (original is not null) game.World.Accept(new TransportPacket { Snapshot = original });
         }
