@@ -2,15 +2,15 @@
 
 ## Level rule
 
-Equipment tiers use the item's named skill, not overall player level. For example, a Bronze Arming Sword requires Swordsmanship 5. Crafting that sword requires its separate crafting skill and a usable forge. The existing skill cap remains 100.
+Equipment tiers use the item's named skill, not overall player level. For example, the grade-5 Bronze Arming Sword now requires Swordsmanship 3 to use. Crafting that sword requires its separate crafting skill and a usable forge. The existing skill cap remains 100.
 
 Material grade does not replace rarity, affixes, durability, runes, or sockets. Compare the actual item statistics. An unusually strong lower-grade item can remain useful. Existing weapon ranges, base attack recovery, and two-handed compatibility rules remain unchanged.
 
 ## Complete grade table
 
-Each row covers 51 equipment families. The additional level 1, 25, and 40 rows preserve the existing progression landmarks.
+Each row covers 51 equipment families. The additional level 1, 25, and 40 rows preserve the existing progression landmarks. Early use requirements are lower than grade: grade 5 uses skill 3, grade 10 uses skill 6, and grade 15 uses skill 10. Grade 20 and higher retain their original matching-skill requirement. Crafting requirements do not change. See [Hunting and journey](HUNTING_AND_JOURNEY.md) for the exact early-access rule.
 
-| Required skill level | Metal grade | Light-armor textile | Medium-armor material |
+| Equipment grade / base crafting level | Metal grade | Light-armor textile | Medium-armor material |
 | --- | --- | --- | --- |
 | 1 | Copper | Linen | Tanned Leather |
 | 5 | Bronze | Hempweave | Waxhide |
@@ -34,7 +34,7 @@ Each row covers 51 equipment families. The additional level 1, 25, and 40 rows p
 | 95 | Celestium | Celestial Weave | Celestial Hide |
 | 100 | Aetherium | Aetherweave | Starguard Leather |
 
-The table describes the complete upgrade tracks. It does not rename existing saved equipment. Older alternative armor sets remain available at their original requirements and under their original IDs.
+The table describes the complete upgrade tracks. It does not rename existing saved equipment. Older alternative armor sets retain their original template grades and IDs. Their effective use requirements below 20 follow the same non-increasing early-access rule.
 
 ## Families in each grade
 

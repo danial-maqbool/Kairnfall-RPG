@@ -1,5 +1,7 @@
 # Kairnfall
 
+Latest integrated update: [hunting, movement, inventory and native pixels](docs/HUNTING_AND_JOURNEY.md), source `9d9b361fa49e5f85f802c494819227f1947b7f9c`. The world has 4,682 initial creatures across 109 regions, with level-scaled hunting patches, field domains and two beginner dungeons. Q dashes, Tab/Shift+Tab change targets, and H opens the Hunting guide. Atelier supplies 2,982 validated matching assets. The default world view now uses 1x native pixels. [Exact-source tests and acceptance limits](docs/handoff/HUNTING_AND_PRESENTATION_2026-09-09.md). Pull main and rebuild content and art before restarting the local client and server. Preserve saves and local credentials.
+
 Current equipment update: [named gear tiers and in-game upgrade guide](docs/EQUIPMENT_PROGRESSION.md). All 51 equipment families have tracks through skill level 100. Inventory opens the Upgrade guide; crafting uses a bounded recipe browser. Existing saved templates and recipes are preserved. [Exact-source verification and remaining acceptance gates](docs/handoff/EQUIPMENT_PROGRESSION_2026-09-09.md). The project is not a verified Windows release.
 
 Previous presentation repair: [action presentation and native UI checkpoint](docs/handoff/ACTION_PRESENTATION_2026-09-08.md), integrated in `4d840b5f802fcf79f0e048ba2223ccf6fbecdcae`.

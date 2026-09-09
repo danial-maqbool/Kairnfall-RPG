@@ -1,5 +1,9 @@
 # Pixel-art direction and review contract
 
+## Native pixels and Atelier integration — 2026-09-09
+
+Current main integrates 2,982 matching Atelier assets after hash, path, dimensions, animation-order and complete-rig checks. Body, hair, worn gear and NPC sheets switch as one coherent cohort. The independent Atelier gear ladder never replaces gameplay records. Default world zoom is 1x, full-canvas window stretching is disabled, and inventory icons do not enlarge their source pixels. World collision and tile coordinates remain unchanged. The actual pack renders in Godot at 1280x720 and 1920x1080. Use native `engine/` captures for Atelier review; historical `before/after` generator sheets do not prove approval of the imported pack. Independent image inspection remains uncompleted. [Rules and asset counts](HUNTING_AND_JOURNEY.md), [evidence and limits](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md).
+
 ## Equipment materials — 2026-09-09
 
 The [gear extension](EQUIPMENT_PROGRESSION.md) retains 32 by 32 icons and 64 by 64 equipment frames. Original source adds material highlights, cloth folds, hide contours, stitching and fittings. Equipped layers retain shared body anchors, four directions, six states and nearest-neighbor presentation. Grade metadata does not rewrite old saved templates. Every grade has a contact sheet; representative full sets render in Godot at two resolutions. File construction checks and rendered frames are not independent visual approval. See the [review evidence and limits](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md).

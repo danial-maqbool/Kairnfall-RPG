@@ -1,5 +1,9 @@
 # QA acceptance matrix
 
+## Current journey acceptance — 2026-09-09
+
+[The current checkpoint](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md) records passing exact-source full and graphical workflows, including 118 Python tests, 1,002 native controls, 85 live client/server checks and 197 native presentation checks. New coverage includes exact population multipliers, reachable separated patches, saved-pet/boss preservation, respawn exclusion, early use gates, Q dash, target cycling, shared-capacity inventory sections, coherent Atelier import and native pixel sizes. All original native routing assertions are retained and run at explicit supported physical window dimensions. Automatic regression and rendering passed. Independent art, human playtest, Windows DPI, agent-team review, load and release gates are not automatically approved.
+
 ## Equipment and crafting QA — 2026-09-09
 
 Current equipment results are in the [exact-source checkpoint](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md). Every grade has skill-boundary and authoritative crafting coverage. Native tests cover guide selection, pinned actions, ingredient errors, bounded recipe pages, snapshot stability and scene cleanup. Server tests reject blocked or foreign workstations without state changes. Graphical renders cover 1280 by 720 and 1920 by 1080. Independent image review and Windows 125%/150% scaling remain open. Historical results below remain scoped to their stated revisions.

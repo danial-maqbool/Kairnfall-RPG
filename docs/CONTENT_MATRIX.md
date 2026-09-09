@@ -1,5 +1,9 @@
 # Content acceptance matrix
 
+## Current hunting and underground coverage — 2026-09-09
+
+The integrated world seeds 4,682 creatures across 109 regions. Ordinary species use 30x/20x/15x/10x/5x level-banded spawn counts in separated reachable patches. Interiors and service cores remain protected; bosses and elites are not multiplied. Wayfarer's Burrows and Silkroot Den add reciprocal beginner dungeon routes and reuse real existing bosses. The latter also connects to the Dawnreach Deepway. Over-level ordinary beginner dungeon slots are corrected with owned-pet and boss-state preservation. Current equipment-template and recipe counts remain 1,354 and 1,286. [Details](HUNTING_AND_JOURNEY.md) and [verification](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md). Older count statements below are scoped to their original revisions.
+
 ## Equipment coverage — 2026-09-09
 
 [Complete gear tracks](EQUIPMENT_PROGRESSION.md): 21 skill tiers, 51 families and 1,071 tracked entries. Generated totals are 1,354 item templates and 1,286 recipes. All original 530 templates and 463 recipes are retained unchanged. Each new track has server-tested equip/craft behavior and reachable supplies. These counts do not prove artwork, economy pacing or full-world completion. [Acceptance evidence](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md).

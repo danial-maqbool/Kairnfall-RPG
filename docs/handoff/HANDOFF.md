@@ -1,5 +1,9 @@
 # Kairnfall local source handoff
 
+## Current hunting and presentation integration — 2026-09-09
+
+Read [HUNTING_AND_PRESENTATION_2026-09-09](HUNTING_AND_PRESENTATION_2026-09-09.md) first. Actual source is integrated at `9d9b361fa49e5f85f802c494819227f1947b7f9c`, not only stored in a candidate. The complete retained suite and graphical workflow passed for exact source `e5b0269048ef3ffd2fba6f511970e2f9d25dfeb2`. This includes dense hunting, beginner dungeons, Atelier import, native pixels, Q dash, target cycling, early progression and shared inventory views. The pending execution checkpoint is historical. Keep only main and preserve all intervening source, saves, credentials and local tools. Independent visual and hardware/release gates remain open.
+
 ## Latest equipment integration — 2026-09-09
 
 Start from live main and read [Equipment progression checkpoint](EQUIPMENT_PROGRESSION_2026-09-09.md). Actual source is integrated in `b9dadef30bfd5747ff8a44c85c534bf22852dae7` and `4c560ccadf6a43ab4d0601844a8e200190795bd9`. The latest work adds all named gear tiers, real recipes, a native Upgrade guide, bounded crafting controls and clear workstation access. Rebuild client and server catalogs together. Preserve saves, credentials and prior repairs. Whole-game and Windows package acceptance remain incomplete.
@@ -53,7 +57,7 @@ git rev-parse HEAD
 For an existing clone, preserve local changes before switching branches.
 Fetch `origin` and select the integrated `main` source only when switching can preserve
 that work. Do not reset, clean, overwrite, or auto-stash unrelated work.
-Create a new `team/local/<task>` branch for local repairs. Record the original handoff commit in the local audit.
+Work directly on `main` for local repairs. Do not recreate historical team branches. Record the source revision in the local audit and use tested, non-forced fast-forward updates.
 
 This branch starts from main commit `c5d80d60f5803958da0a76a61f9aae436f49c310`.
 It retains PR #21's actual transaction and stack-splitting fixes.
