@@ -55,7 +55,7 @@ internal static class MerchantBoundaryUiChecks
         // reuses deterministic hunting plans, not character or transaction state.
         var data = fixtureData;
         check(!ReferenceEquals(data, game.Data), "Merchant boundary pricing uses an isolated catalog");
-        var ore = data.Item("copper_ore"); long originalValue = ore.Value; int originalStackMax = ore.StackMax;
+        var ore = data.Item("copper_ore"); var originalValue = ore.Value; int originalStackMax = ore.StackMax;
         var timing = System.Diagnostics.Stopwatch.StartNew();
         var realm = new RealmEngine(data); var self = realm.CreateCharacter("merchant-boundary", "Merchant Boundary", "vanguard", new());
         timing.Stop();
