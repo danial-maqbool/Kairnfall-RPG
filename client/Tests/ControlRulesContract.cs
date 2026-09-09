@@ -241,6 +241,7 @@ public partial class ControlRulesContract : Node
             await JourneyUiChecks.Run(this,game,Require);
             await HuntingGuideChecks.Run(this,game,Require);
             await NativePixelChecks.Run(this,game,Require);
+            await InventoryRefreshChecks.Run(this,game,Require);
             await NativeTestLifetime.ReleaseSceneAsync(this, game);
             Require(!GodotObject.IsInstanceValid(game), "The real scene releases after repeated layouts");
             GD.Print($"CONTROL_RULES_CONTRACT: {checks} checks passed. Rule fixtures and native input/layout checks only.");

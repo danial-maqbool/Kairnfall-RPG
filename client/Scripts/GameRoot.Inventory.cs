@@ -58,13 +58,15 @@ public partial class GameRoot
         return text.ToString().ReplaceLineEndings("\n");
     }
 
+    private string SlotTooltip(Item item) => ItemDescription(item) + (Data.Item(item.Template).Type == "tool" ? "\n\nKeep this tool in your backpack. The best learned tool is selected automatically." : "\n\nDouble-click: equip or unequip. Right-click: item actions.");
+
     private ItemSlot MakeSlot(Item item, string bag, Action? clicked = null)
     {
         return new EquipmentItemSlot
         {
             Item = item, Icon = Assets.Icon(item.Template), Bag = bag,
             Equipped = Snapshot is { } s && Items.Equipped(s.Self, item.Id), Selected = item.Id == selectedItem,
-            TooltipText = ItemDescription(item) + (Data.Item(item.Template).Type == "tool" ? "\n\nKeep this tool in your backpack. The best learned tool is selected automatically." : "\n\nDouble-click: equip or unequip. Right-click: item actions."),
+            TooltipText = SlotTooltip(item),
             Clicked = clicked ?? (() => { selectedItem = item.Id; selectedBag = bag; lastPageStamp = ""; }),
             Activated = () =>
             {
@@ -116,11 +118,13 @@ public partial class GameRoot
         var primary = Ui.Column(inspector); primary.Name = "EquipmentActionBar";
         var rightScroll = Ui.Scroll(inspector, new Vector2(300, 200));
         var details = Ui.Column(rightScroll);
+        string slotLayout = "";
+        var slotViews = new Dictionary<string, ItemSlot>(StringComparer.Ordinal);
         void Render()
         {
             if (Snapshot is not { } snap) return;
             var self = snap.Self;
-            Ui.Clear(sections); Ui.Clear(details); Ui.Clear(primary);
+            Ui.Clear(details); Ui.Clear(primary);
             var source = bank && selectedBag == "bank" ? self.Bank : self.Inventory;
             summary.Text = $"Backpack {self.Inventory.Count}/{Items.InventoryCapacity} · Bank {self.Bank.Count}/{Items.BankCapacity} · {self.Gold:N0} gold"
                 + (bank && !NearRole("banker") ? " · Visit a banker to transfer items." : "");
@@ -128,29 +132,43 @@ public partial class GameRoot
             var sorted = (inventoryByName ? filtered.OrderBy(x => Data.Item(x.Template).Name) : filtered.OrderByDescending(x => x.Rarity).ThenBy(x => Data.Item(x.Template).Type)).ToArray();
             if (!source.Any(x => x.Id == selectedItem))
                 selectedItem = sorted.FirstOrDefault(x => Data.Item(x.Template).Slot != "")?.Id ?? sorted.FirstOrDefault()?.Id ?? "";
-            var grouped = sorted.GroupBy(item => selectedBag == "bank" ? 3 : InventorySections.Group(self, item, Data)).OrderBy(group => group.Key);
-            foreach (var group in grouped)
+            var grouped = sorted.GroupBy(item => selectedBag == "bank" ? 3 : InventorySections.Group(self, item, Data)).OrderBy(group => group.Key).ToArray();
+            string nextLayout = self.Id + "|" + selectedBag + "|" + view.Selected + "|" + source.Count + "|"
+                + string.Join(";", grouped.SelectMany(group => group.Select(item => group.Key + ":" + item.Id + ":" + item.Template)));
+            if (slotLayout != nextLayout)
             {
-                if (view.Selected != 0 && group.Key != view.Selected) continue;
-                sections.AddChild(Ui.Label((selectedBag == "bank" ? "Bank storage" : InventorySections.Names[group.Key]) + " · " + group.Count(), 14, group.Key == 1 ? Ui.Success : Ui.Gold));
-                var slots = new GridContainer { Columns = 5, Name = "InventoryGroup" + group.Key };
-                sections.AddChild(slots);
-                foreach (var item in group)
+                Ui.Clear(sections); slotViews.Clear();
+                foreach (var group in grouped)
                 {
-                    var slot = MakeSlot(item, selectedBag);
-                    if (group.Key == 2) slot.TooltipText += "\n" + ExperienceRules.EquipmentProblem(self, item, Data);
-                    slots.AddChild(slot);
+                    if (view.Selected != 0 && group.Key != view.Selected) continue;
+                    sections.AddChild(Ui.Label((selectedBag == "bank" ? "Bank storage" : InventorySections.Names[group.Key]) + " · " + group.Count(), 14, group.Key == 1 ? Ui.Success : Ui.Gold));
+                    var slots = new GridContainer { Columns = 5, Name = "InventoryGroup" + group.Key };
+                    sections.AddChild(slots);
+                    foreach (var item in group)
+                    {
+                        var slot = MakeSlot(item, selectedBag); slots.AddChild(slot); slotViews.Add(item.Id, slot);
+                    }
                 }
-            }
-            var grid = new GridContainer { Columns = 5 }; sections.AddChild(grid);
-            for (int i = 0; i < Math.Min(5, Math.Max(0, (selectedBag == "bank" ? Items.BankCapacity : Items.InventoryCapacity) - source.Count)); i++)
-            {
-                string targetBag = selectedBag;
-                grid.AddChild(new EquipmentItemSlot
+                var grid = new GridContainer { Columns = 5 }; sections.AddChild(grid);
+                for (int i = 0; i < Math.Min(5, Math.Max(0, (selectedBag == "bank" ? Items.BankCapacity : Items.InventoryCapacity) - source.Count)); i++)
                 {
-                    Bag = targetBag,
-                    Dropped = (id, from) => { if (bank && from != targetBag) Send(targetBag == "bank" ? "deposit" : "withdraw", item: id); }
-                });
+                    string targetBag = selectedBag;
+                    grid.AddChild(new EquipmentItemSlot
+                    {
+                        Bag = targetBag,
+                        Dropped = (id, from) => { if (bank && from != targetBag) Send(targetBag == "bank" ? "deposit" : "withdraw", item: id); }
+                    });
+                }
+                slotLayout = nextLayout;
+            }
+            // Keep native focus and double-click identity. Replace only the snapshot data.
+            foreach (var group in grouped)
+            foreach (var item in group)
+            {
+                if (!slotViews.TryGetValue(item.Id, out var slot)) continue;
+                slot.Item = item; slot.Selected = item.Id == selectedItem; slot.Equipped = Items.Equipped(self, item.Id);
+                slot.TooltipText = SlotTooltip(item) + (group.Key == 2 ? "\n" + ExperienceRules.EquipmentProblem(self, item, Data) : "");
+                slot.QueueRedraw();
             }
             var selected = source.FirstOrDefault(x => x.Id == selectedItem);
             if (selected is null)
