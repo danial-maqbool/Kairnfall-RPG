@@ -50,8 +50,8 @@ def _ground_clusters(piece, kind, variant):
     def deposits(seed):
         rng = _rng('ground-clusters', kind, seed)
         return [(rng.random() * 31, rng.random() * 31,
-                 rng.uniform(4, 10), rng.uniform(3, 7), rng.choice((-1, 1)))
-                for _ in range(11)]
+                 rng.uniform(2, 5), rng.uniform(2, 4), rng.choice((-1, 1)))
+                for _ in range(24)]
 
     def field(spots, x, y):
         value = 0.0
@@ -65,8 +65,8 @@ def _ground_clusters(piece, kind, variant):
 
     shared, local = deposits('edge'), deposits(variant)
     base = piece.ramp[3]
-    shade = blend(base, piece.ramp[2], .30)
-    light = blend(base, piece.ramp[4], .23)
+    shade = blend(base, piece.ramp[2], .16)
+    light = blend(base, piece.ramp[4], .12)
     pixels = piece.image.load()
     for y in range(TILE):
         for x in range(TILE):
@@ -95,11 +95,11 @@ def tile(kind, variant=0):
         for _ in range(5 if kind == 'grass' else 4):
             x, y = r.randrange(3, TILE - 4), r.randrange(4, TILE - 2)
             lean = r.choice((-1, 0, 1))
-            detail.line([(x, y), (x + lean, y - 3)], 4, 1)
+            detail.line([(x, y), (x + lean, y - 3)], blend(tone[3], tone[4], .65), 1)
             detail.line([(x + 2, y), (x + 2 + lean, y - 2)], 2, 1)
         for _ in range(3):
             x, y = r.randrange(1, TILE - 3), r.randrange(1, TILE - 3)
-            detail.dot(x, y, 5)
+            detail.dot(x, y, blend(tone[3], tone[4], .45))
     elif kind == 'dirt':
         for _ in range(7):
             x, y = r.randrange(2, TILE - 3), r.randrange(2, TILE - 3)
@@ -129,9 +129,12 @@ def tile(kind, variant=0):
             detail.line([(0, y + 1), (TILE - 1, y + 1)], 4, 1)
     elif kind == 'sand':
         for index in range(3):
-            y = 6 + index * 11 + (variant % 2) * 2
-            detail.line(catmull([(0, y), (10, y - 2), (20, y + 2), (TILE - 1, y)], 6), 4, 1)
-            detail.line(catmull([(0, y + 1), (10, y - 1), (20, y + 3), (TILE - 1, y + 1)], 6), 3, 1)
+            y = 6 + index * 10
+            lift = r.choice((-2, -1, 1, 2))
+            # Variant endpoints agree; only the dune's interior bends.
+            detail.line(catmull([(0, y), (3, y), (10, y + lift),
+                                 (20, y - lift), (28, y), (TILE - 1, y)], 6),
+                        blend(tone[3], tone[4], .42), 1)
     elif kind == 'snow':
         for _ in range(6):
             x, y = r.randrange(2, TILE - 2), r.randrange(2, TILE - 2)

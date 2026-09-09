@@ -90,8 +90,8 @@ class TerrainChecks(unittest.TestCase):
                     self.assertEqual(image.size, (32, 32))
                     self.assertEqual(image.getchannel('A').getextrema(), (255, 255))
 
-    def test_primary_vegetation_edges_join_for_every_variant_pair(self):
-        for kind in ('grass', 'moss', 'marsh'):
+    def test_all_natural_edges_join_for_every_variant_pair(self):
+        for kind in self.kinds:
             for a in range(4):
                 for b in range(4):
                     first, second = lands.tile(kind, a), lands.tile(kind, b)
