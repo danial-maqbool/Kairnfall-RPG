@@ -1,5 +1,7 @@
 # Kairnfall
 
+Final merchant repair: [compact panels, signed comparisons, exact stack sales and reconnect verification](docs/handoff/MERCHANT_BOUNDARIES_2026-09-09.md). Actual source is integrated at `51b575323969da9c9b0fab5f3c23a7a5f0c4147e`. Large sale totals stay visible, comparisons refresh when equipped data changes, and completed sales require deliberate selection of another stack. The full retained and graphical workflows passed. Independent visual and Windows acceptance remain separate.
+
 Item and merchant update: [compact comparison cards and explicit stack sales](docs/ITEM_COMPARISON_AND_SELLING.md). Item statistics show independent green/red/neutral differences and red equipment blockers. Merchant selling has persistent integer quantity entry, exact gold totals and a separate Sell all action. Native, real-server/reconnect and graphical tests passed at the [integrated checkpoint](docs/handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md). This is not a Windows release or independent visual approval.
 
 Targeting and balance update: Tab/Shift+Tab select living creatures within 12 tiles before GUI focus traversal, except while typing or using menus. Ordinary populations are doubled again and patches cover the reachable map. Future overall XP uses ten-level pacing bands and low-level enemy penalties; raw skill practice and previously earned levels are preserved. The target frame explains encounter value. Read [challenge equations](docs/CHALLENGE_BALANCE.md) and the latest dated session record in `docs/handoff` for verification and remaining gates.
