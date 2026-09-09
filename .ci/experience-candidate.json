@@ -1,6 +1,6 @@
 {
- "sha":"07fb256e45a7618ee28bb3aa0c90a9172f2ab5a5",
+ "sha":"e64810f6adf2d85eacea51bedb87f875e1ce8fda",
  "base":"4d45f8b7aff4c06152645d71c394f81baee78c38",
  "mode":"repair",
- "purpose":"Verify the full requested update: pre-GUI Tab selection, doubled map-wide hunting patches, ten-level overall pacing, low-level enemy penalties with fractional skill practice, bounded combat mastery and native challenge HUD. Retain all previous tests and the original live encounter timeout. The dense-world encounter exposed an exhausted approach budget; only confirmed server hits can now reopen a short pursuit window inside an absolute six-tile engagement bound. Test the correction rather than weakening acceptance."
+ "purpose":"Full retained verification of targeting, broader hunting, nonlinear XP, bounded attack mastery, pursuit correction and challenge HUD. The previous run passed eight new XP groups but rejected the ninth fixture's nonconforming request ID. The fixture now uses a standard GUID; production validation and every assertion remain unchanged. Retain the original live encounter timeout and all security, migration, database, native-input and graphical checks."
 }
