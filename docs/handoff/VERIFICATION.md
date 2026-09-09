@@ -1,5 +1,9 @@
 # Verification record
 
+## Hunting, controls and Atelier — 2026-09-09
+
+Exact source `e5b0269048ef3ffd2fba6f511970e2f9d25dfeb2` passed full run `34298703468` and graphical run `34298703451`. Integration `9d9b361fa49e5f85f802c494819227f1947b7f9c` differs only in current test-request metadata. Results: 33 core, 34 gameplay review, 13 transaction security, 5 security probes, 18 real-network/PostgreSQL, 5 save-conflict, 7 journey groups, 7 hunting groups, 118 Python tests, 52 native player checks, 1,002 native control checks, 85 live client/server checks and 197 native visual checks passed. Signals, pointer routing, migration, equipment, maintenance and authenticated smoke remained in the passing matrix. Windows core also passed on the actual integration in run `34299503013`. Windows graphical/DPI acceptance is not implied. See [the full checkpoint](HUNTING_AND_PRESENTATION_2026-09-09.md) for artifacts, retained failures and measurement limits.
+
 ## Equipment verification — 2026-09-09
 
 The [equipment checkpoint](EQUIPMENT_PROGRESSION_2026-09-09.md) records exact source `68956e42229c609e65071940a1b68f83dfb16a9c`, full passing run `34270827868`, and graphical run `34270827850`. Retained suites passed with 11 gear groups, 924 equip boundaries, 1,071 authoritative crafting paths, two workstation-access groups, 107 Python tests, 871 native control checks and 83 live-client checks. These results do not constitute independent image inspection, human playtesting, Windows DPI review, measured performance or a release package.

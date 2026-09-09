@@ -1,5 +1,9 @@
 # Skill audit contract
 
+## Early access and overall growth
+
+Equipment grades 5, 10 and 15 now require matching skill levels 3, 6 and 10 to use. Grade 20 and higher keep their original use requirements. Intermediate early requirements never increase. Crafting grades and raw-material requirements do not change. A smooth bonus accelerates early overall progression without rewriting saved skill XP or individual skill levels. Existing overall levels do not decrease. [The journey guide](HUNTING_AND_JOURNEY.md) gives the exact formula and distinguishes measured boundary tests from unmeasured human progression time.
+
 ## Equipment requirements — 2026-09-09
 
 [Named equipment tiers](EQUIPMENT_PROGRESSION.md) use the item's matching skill. They do not require the same overall player level. Equipment and crafting skills are separate requirements. The skill cap remains 100. The Upgrade guide displays the exact skill, the requirement and the player's current skill level. Server-boundary and crafting tests cover every tracked gear item; this does not approve the pacing or benefits of every other skill.
