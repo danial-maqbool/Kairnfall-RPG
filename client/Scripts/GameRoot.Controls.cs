@@ -49,7 +49,7 @@ public partial class GameRoot
                 StopCombatInput(); route.Clear(); pendingInteraction = null;
                 ShowChat(true); chatInput.GrabFocus(); GetViewport().SetInputAsHandled(); return;
             }
-            foreach (string action in new[] { "inventory", "character", "skills", "quests", "map", "abilities", "crafting", "social" })
+            foreach (string action in new[] { "inventory", "character", "skills", "quests", "map", "abilities", "crafting", "social", "hunting" })
             {
                 if (!key.IsActionPressed(action)) continue;
                 StopCombatInput(); route.Clear(); pendingInteraction = null;
