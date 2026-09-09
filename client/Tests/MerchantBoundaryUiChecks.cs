@@ -25,6 +25,21 @@ internal static class MerchantBoundaryUiChecks
             using (var e = new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = false }) host.GetViewport().PushInput(e, true);
             await Frame(); await Frame();
         }
+        async Task TypeQuantity(LineEdit edit, string text)
+        {
+            edit.GrabFocus(); await Frame(); edit.SelectAll();
+            using (var e = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = true }) host.GetViewport().PushInput(e, true);
+            using (var e = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = false }) host.GetViewport().PushInput(e, true);
+            foreach (char character in text)
+            {
+                var code = (Key)char.ToUpperInvariant(character);
+                using (var e = new InputEventKey { Keycode = code, PhysicalKeycode = code, Unicode = character, Pressed = true }) host.GetViewport().PushInput(e, true);
+                using (var e = new InputEventKey { Keycode = code, PhysicalKeycode = code, Pressed = false }) host.GetViewport().PushInput(e, true);
+                await Frame();
+            }
+            await Frame();
+            check(edit.Text == text, "Native keyboard events enter the exact high-value sale quantity");
+        }
         async Task Capture(string name)
         {
             if (DisplayServer.GetName() == "headless") return;
@@ -62,7 +77,7 @@ internal static class MerchantBoundaryUiChecks
                     self = realm.Player(self.Id); return Task.FromResult<CommandResult?>(result);
                 };
                 panel.RefreshSnapshot();
-                var amount = Find<LineEdit>("SaleQuantity"); amount.Text = "777";
+                var amount = Find<LineEdit>("SaleQuantity"); await TypeQuantity(amount, "777");
                 await Frame(); await Frame(); await Frame();
                 var partial = Find<Button>("SellSelectedQuantity"); var all = Find<Button>("SellAllQuantity");
                 long unit = MerchantSales.UnitPrice(ore), gold = self.Gold;
