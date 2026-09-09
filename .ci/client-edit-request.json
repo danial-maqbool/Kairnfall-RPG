@@ -1,38 +1,19 @@
 {
-  "base": "dbde35977eca2c68b8194912761a6a12c29380bd",
-  "message": "fix(merchant): keep large sale totals visible and equipped comparisons current",
-  "purpose": "Preserve explicit reselection after sale, existing compact cards and real-server merchant behavior. Keep gold totals in separate centered rows and refresh comparisons when equipped-instance statistics change. Add native high-value partial and full-stack transactions plus comparison-refresh checks. This corrects the prior request document syntax; no production source or test assertion was changed by that failed preparation.",
+  "base": "a8085c2c0b6444f0949575954d19ce242092fac8",
+  "message": "test(merchant): exercise large quantity entry through native key events",
+  "purpose": "Correct only the new high-value fixture setup. Setting LineEdit.Text programmatically does not emit text_changed, so it does not simulate user typing. Enter 777 through native press/release events instead. Retain the exact expected prices, quantities, layout, colors, inventory and gold assertions and every production repair. Add a check that the field contains the native input. No game values, limits, assertions or timeouts are weakened.",
   "edits": [
     {
       "path": "client/Tests/MerchantBoundaryUiChecks.cs",
-      "expected_blob": null,
-      "source_blob": "957ce9a5ef42394f29be294297226c5abec89cfb"
-    },
-    {
-      "path": "client/Scripts/MerchantSellPanel.cs",
-      "expected_blob": "b069f54b40dcb737bc8a6dab997198013d0de1cd",
+      "expected_blob": "957ce9a5ef42394f29be294297226c5abec89cfb",
       "replacements": [
         {
-          "old": "        var buttons = Ui.Row(inspector); buttons.Alignment = BoxContainer.AlignmentMode.Center;",
-          "new": "        // Separate rows keep both complete gold totals visible at the minimum viewport.\n        var buttons = Ui.Column(inspector); buttons.Name = \"MerchantSaleActions\";\n        buttons.AddThemeConstantOverride(\"separation\", 4);"
+          "old": "        async Task Capture(string name)",
+          "new": "        async Task TypeQuantity(LineEdit edit, string text)\n        {\n            edit.GrabFocus(); await Frame(); edit.SelectAll();\n            using (var e = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = true }) host.GetViewport().PushInput(e, true);\n            using (var e = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = false }) host.GetViewport().PushInput(e, true);\n            foreach (char character in text)\n            {\n                var code = (Key)char.ToUpperInvariant(character);\n                using (var e = new InputEventKey { Keycode = code, PhysicalKeycode = code, Unicode = character, Pressed = true }) host.GetViewport().PushInput(e, true);\n                using (var e = new InputEventKey { Keycode = code, PhysicalKeycode = code, Pressed = false }) host.GetViewport().PushInput(e, true);\n                await Frame();\n            }\n            await Frame();\n            check(edit.Text == text, \"Native keyboard events enter the exact high-value sale quantity\");\n        }\n        async Task Capture(string name)"
         },
         {
-          "old": "        buttons.AddChild(sell); buttons.AddChild(sellAll);",
-          "new": "        sell.Alignment = sellAll.Alignment = HorizontalAlignment.Center;\n        sell.SizeFlagsHorizontal = sellAll.SizeFlagsHorizontal = SizeFlags.ExpandFill;\n        buttons.AddChild(sell); buttons.AddChild(sellAll);"
-        },
-        {
-          "old": "                string stamp = JsonSerializer.Serialize(new { current, self.Equipment, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);",
-          "new": "                // Durability, affixes and runes can change while the equipment IDs stay fixed.\n                var equippedItems = self.Inventory.Where(x => Items.Equipped(self, x.Id)).ToArray();\n                string stamp = JsonSerializer.Serialize(new { current, self.Equipment, equippedItems, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);"
-        }
-      ]
-    },
-    {
-      "path": "client/Tests/ItemCommerceUiChecks.cs",
-      "expected_blob": "1b59f65651083785bc7ac0f975532f5e7ee4c614",
-      "replacements": [
-        {
-          "old": "            if(original is not null)game.World.Accept(new TransportPacket{Snapshot=original});\n        }\n    }\n}",
-          "new": "            if(original is not null)game.World.Accept(new TransportPacket{Snapshot=original});\n        }\n        await MerchantBoundaryUiChecks.Run(host, game, check);\n    }\n}"
+          "old": "                var amount = Find<LineEdit>(\"SaleQuantity\"); amount.Text = \"777\";",
+          "new": "                var amount = Find<LineEdit>(\"SaleQuantity\"); await TypeQuantity(amount, \"777\");"
         }
       ]
     }
