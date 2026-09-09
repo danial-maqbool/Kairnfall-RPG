@@ -161,6 +161,8 @@ internal static class ItemCommerceUiChecks
             Field("selectedItem").SetValue(game,oldItem);Field("selectedBag").SetValue(game,oldBag);Field("selectedNpc").SetValue(game,oldNpc);
             if(original is not null)game.World.Accept(new TransportPacket{Snapshot=original});
         }
-        await MerchantBoundaryUiChecks.Run(host, game, check);
+        // Reuse only the isolated catalog's cached immutable hunting layouts.
+        // The boundary contract still creates a fresh full-population RealmState.
+        await MerchantBoundaryUiChecks.Run(host, game, check, fixtureData, realm.State.Creatures.Count);
     }
 }
