@@ -46,6 +46,7 @@ public partial class GameRoot
             case "Auction": BuildAuctionPage(); break;
             case "Map": BuildMapPage(); break;
             case "Bestiary": BuildBestiaryPage(); break;
+            case "Hunting": BuildHuntingPage(); break;
             case "Achievements": BuildAchievementsPage(); break;
             case "Settings": BuildSettingsPage(); break;
             default: throw new InvalidOperationException("Unknown client page: " + name);

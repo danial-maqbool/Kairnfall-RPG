@@ -258,12 +258,15 @@ public sealed partial class RealmEngine
         PruneCreatureMotion();
         var live=Active.Where(State.Characters.ContainsKey).Select(Player).Where(x=>x.Health>0).ToList();
         var zones=live.Select(x=>x.Zone).ToHashSet();
-        foreach(var mob in State.Creatures.Values.Where(x=>zones.Contains(x.Zone)).ToList())
+        var activeCreatures=State.Creatures.Values.Where(x=>zones.Contains(x.Zone)).ToArray();
+        var byZone=activeCreatures.GroupBy(x=>x.Zone).ToDictionary(g=>g.Key,g=>g.ToArray());
+        IndexCreatures(activeCreatures);
+        foreach(var mob in activeCreatures)
         {
             var def=Data.Mob(mob.Template); var zone=Data.Zone(mob.Zone);
             if(mob.Health<=0)
             {
-                if(mob.Owner==""&&mob.RespawnAt<=State.Time) { mob.Health=def.Health; mob.Position=mob.Home; mob.Phase=0; mob.Threat.Clear(); mob.Statuses.Clear(); }
+                if(mob.Owner==""&&mob.RespawnAt<=State.Time&&CanHuntRespawn(mob,live)) { mob.Health=def.Health; mob.Position=mob.Home; mob.Phase=0; mob.Threat.Clear(); mob.Statuses.Clear(); }
                 continue;
             }
             mob.Statuses.RemoveAll(x=>x.Until<=State.Time);
@@ -284,7 +287,8 @@ public sealed partial class RealmEngine
                 continue;
             }
             mob.Target=target.Id;
-            if(def.Ai=="pack_hunter") foreach(var ally in State.Creatures.Values.Where(x=>x.Owner==""&&x.Zone==mob.Zone&&x.Health>0&&x.Position.Distance(mob.Position)<5&&Data.Mob(x.Template).Family==def.Family)) ally.Threat.TryAdd(target.Id,1);
+            if(def.Ai=="pack_hunter") foreach(var ally in byZone[mob.Zone].Where(x=>x.Owner==""&&x.Health>0&&x.Position.Distance(mob.Position)<5&&Data.Mob(x.Template).Family==def.Family))
+                if(!huntMembership.TryGetValue(mob.Id,out var homePatch)||!huntMembership.TryGetValue(ally.Id,out var allyPatch)||homePatch.Id==allyPatch.Id) ally.Threat.TryAdd(target.Id,1);
             if(CombatMath.StatusPower(mob.Statuses,"stun",State.Time)>0) continue;
             double distance=mob.Position.Distance(target.Position);
             bool fleeing=def.Ai=="fleeing"||def.Ai=="passive"||(def.Ai=="ranged_kiter"&&distance<3);
@@ -299,7 +303,7 @@ public sealed partial class RealmEngine
             mob.Facing=mob.Position.Direction(target.Position); mob.NextAttack=State.Time+(def.Boss?2.8-mob.Phase*0.3:1.8);
             if(def.Ai=="healer")
             {
-                var ally=State.Creatures.Values.Where(x=>x.Zone==mob.Zone&&x.Owner==""&&x.Health>0&&x.Position.Distance(mob.Position)<6).OrderBy(x=>x.Health/Data.Mob(x.Template).Health).FirstOrDefault();
+                var ally=byZone[mob.Zone].Where(x=>x.Owner==""&&x.Health>0&&x.Position.Distance(mob.Position)<6).OrderBy(x=>x.Health/Data.Mob(x.Template).Health).FirstOrDefault();
                 if(ally is not null&&ally.Health<Data.Mob(ally.Template).Health*0.8) { ally.Health=Math.Min(Data.Mob(ally.Template).Health,ally.Health+def.Power*2); continue; }
             }
             if(def.Ai=="summoner"&&State.Creatures.Values.Count(x=>x.Id.StartsWith(mob.Id+"/add/",StringComparison.Ordinal)&&x.Health>0)<2)
@@ -327,7 +331,7 @@ public sealed partial class RealmEngine
             var path=WorldMap.FindPath(zone,mob.Position,goal,512); if(path.Count==0) return; direction=mob.Position.Direction(path[0]);
         }
         speed*=Math.Clamp(1-CombatMath.StatusPower(mob.Statuses,"chill",State.Time),0.3,1);
-        mob.Position=WorldMap.Move(zone,mob.Position,direction.Scale(Math.Min(remaining,speed*dt))); mob.Facing=direction;
+        mob.Position=SeparatedMove(mob,direction,Math.Min(remaining,speed*dt)); mob.Facing=direction;
     }
     private void TickCompanion(Creature pet,double dt)
     {

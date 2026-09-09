@@ -28,6 +28,7 @@ public sealed partial class RealmEngine
     private void WanderCreature(Creature mob, MobDef definition, double dt)
     {
         if (definition.Boss || CombatMath.StatusPower(mob.Statuses, "stun", State.Time) > 0) return;
+        if (PatrolHuntingCreature(mob,definition,dt)) return;
         var zone = Data.Zone(mob.Zone);
         uint seed = MotionSeed(mob.Id);
         if (!creatureMotion.TryGetValue(mob.Id, out var plan) || plan.Threat != "")

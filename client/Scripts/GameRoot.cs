@@ -29,7 +29,7 @@ public partial class GameRoot : Control
         ["move_left"] = Key.A, ["move_right"] = Key.D, ["move_up"] = Key.W, ["move_down"] = Key.S,
         ["basic_attack"] = Key.Space, ["interact"] = Key.E, ["inventory"] = Key.I, ["character"] = Key.C,
         ["skills"] = Key.K, ["quests"] = Key.J, ["map"] = Key.M, ["abilities"] = Key.B,
-        ["crafting"] = Key.F, ["social"] = Key.P, ["target_next"] = Key.Tab, ["dash"] = Key.Q
+        ["crafting"] = Key.F, ["social"] = Key.P, ["target_next"] = Key.Tab, ["dash"] = Key.Q, ["hunting"] = Key.H
     };
     private readonly ConfigFile settings = new();
     private string awaitingBinding = "", currentPage = "", selectedItem = "", selectedBag = "inventory";

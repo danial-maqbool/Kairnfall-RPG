@@ -104,7 +104,7 @@ public partial class HuntingRegionMap : Control
         for(int y=0;y<zone.Height;y+=step)for(int x=0;x<zone.Width;x+=step)
         {
             var tile=WorldMap.TileAt(zone,x,y);
-            DrawRect(new Rect2(origin+new Vector2(x,y)*scale,new Vector2(step,step)*scale),MiniMap.TerrainColor(tile));
+            DrawRect(new Rect2(origin+new Vector2(x,y)*scale,new Vector2(step,step)*scale),MinimapView.TerrainColor(tile));
         }
         foreach(var patch in plan.Patches)DrawArc(At(patch.Position),Math.Max(3,(float)patch.Radius*scale),0,Mathf.Tau,16,new Color("b5bc87"),1);
         void Boss(Point p){var at=At(p);DrawPolyline([at+new Vector2(0,-5),at+new Vector2(5,0),at+new Vector2(0,5),at+new Vector2(-5,0),at+new Vector2(0,-5)],Ui.Danger,2);}

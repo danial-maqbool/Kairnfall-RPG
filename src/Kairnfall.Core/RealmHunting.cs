@@ -95,7 +95,9 @@ public sealed partial class RealmEngine
             chosen=from;
             foreach(var next in candidates)
             {
-                var point=WorldMap.Move(zone,from,next.Scale(distance));
+                double length=next.Distance(new Point(0,0));
+                var bounded=length>1?next.Scale(1/length):next;
+                var point=WorldMap.Move(zone,from,bounded.Scale(distance));
                 if(point.Distance(from)<.03||!Clear(point)) continue;
                 chosen=point; break;
             }

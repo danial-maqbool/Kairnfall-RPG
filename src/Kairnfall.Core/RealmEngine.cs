@@ -345,6 +345,7 @@ public sealed partial class RealmEngine
                 State.Chests[id]=new(){Id=id,Zone=zone.Id,Position=p,Kind=i==0?"weathered":i==1?"locked":zone.Layer=="Surface"?"runic":"ancient",Requirement=Math.Clamp(zone.Level,1,100),Hidden=i==2};
             }
         }
+        SeedHuntingWorld();
         if(State.NextRestock==0) Restock();
     }
     private void Restock()

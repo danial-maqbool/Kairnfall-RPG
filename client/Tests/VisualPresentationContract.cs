@@ -94,7 +94,7 @@ public partial class VisualPresentationContract : Node
                 await Frame(); await Frame(); Refresh();
                 string suffix=size.X.ToString();
                 await Capture("01-village-"+suffix);
-                foreach(string page in new[]{"Inventory","Character","Skills","Abilities","Equipment Guide","Crafting","Map"})
+                foreach(string page in new[]{"Inventory","Character","Skills","Abilities","Equipment Guide","Crafting","Map","Hunting"})
                 {
                     Call(game,"OpenPage",page); await Frame(); await Frame();
                     Check(Contained(Field<PanelContainer>(game,"gameWindow")), page+" window fits "+size);
@@ -118,6 +118,13 @@ public partial class VisualPresentationContract : Node
             {
                 self.Zone=door.Target; self.Position=door.Arrival; Refresh();
                 await Capture("interior-"+door.Target);
+            }
+            foreach(string region in new[]{"wayfarers_rest","kingsmeadow","thistle_woods","broken_mill","umbral_crossroads"})
+            {
+                var zone=game.Data.Zone(region);var plan=HuntingGrounds.For(game.Data,zone);
+                self.Zone=region; self.Position=plan.Patches.First().Position; Refresh(); await Frame(); await Frame();
+                await Capture("hunting-"+region);
+                Call(game,"OpenPage","Hunting"); await Frame(); await Capture("hunt-guide-"+region); Call(game,"ClosePage"); await Frame();
             }
             self.Zone="wayfarers_rest"; self.Position=game.Data.Zone(self.Zone).Spawn; Refresh();
             var previous=self.Position;

@@ -397,6 +397,7 @@ public sealed class Telegraph
 public sealed class RealmState
 {
     public int Schema { get; set; } = 1;
+    public int HuntingRevision { get; set; }
     public long Revision { get; set; }
     public double Time { get; set; }
     public Dictionary<string,Character> Characters { get; set; } = [];
