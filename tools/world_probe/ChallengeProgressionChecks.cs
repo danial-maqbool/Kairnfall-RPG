@@ -117,7 +117,7 @@ internal static class ChallengeProgressionChecks
             var mob=realm.State.Creatures.Values.First(m=>m.Template=="field_rat"&&m.Health>0);
             p.Zone=mob.Zone;p.Position=mob.Position;mob.Health=1;
             string id=p.Id;long old=Progression.Total(p);
-            var command=new GameCommand{Kind="attack",Target=mob.Id,Sequence=p.LastAction+1,RequestId="xp-once"};
+            var command=new GameCommand{Kind="attack",Target=mob.Id,Sequence=p.LastAction+1,RequestId=Guid.NewGuid().ToString("N")};
             var result=realm.Execute(id,command);Need(result.Ok,result.Message);
             p=realm.Player(id);Need(p.CombatPracticeRemainders.ContainsKey("slayer"),"Kill reward bypassed the challenge formula");
             Need(Progression.Total(p)-old<10,"A trivial kill gave a large raw award");
