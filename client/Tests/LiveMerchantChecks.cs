@@ -68,7 +68,7 @@ internal static class LiveMerchantChecks
         list.GrabFocus(); await Key(Godot.Key.Home);
         for (int i = 0; i < index; i++) await Key(Godot.Key.Down);
         await Delay(.25);
-        var quantity = Find<SpinBox>("SaleQuantity").GetLineEdit(); quantity.GrabFocus(); await Frame(); quantity.SelectAll();
+        var quantity = Find<LineEdit>("SaleQuantity"); quantity.GrabFocus(); await Frame(); quantity.SelectAll();
         using (var e = new InputEventKey { Keycode = (Godot.Key)50, PhysicalKeycode = (Godot.Key)50, Unicode = 50, Pressed = true }) { Input.ParseInputEvent(e); Input.FlushBufferedEvents(); }
         using (var e = new InputEventKey { Keycode = (Godot.Key)50, PhysicalKeycode = (Godot.Key)50, Pressed = false }) { Input.ParseInputEvent(e); Input.FlushBufferedEvents(); }
         await Frame();

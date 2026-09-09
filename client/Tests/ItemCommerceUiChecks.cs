@@ -22,9 +22,11 @@ internal static class ItemCommerceUiChecks
             using(var release=new InputEventMouseButton{Position=at,GlobalPosition=at,ButtonIndex=MouseButton.Left,Pressed=false}) host.GetViewport().PushInput(release,true);
             await Frame();await Frame();
         }
-        async Task TypeQuantity(SpinBox spin,string text)
+        async Task TypeQuantity(LineEdit edit,string text)
         {
-            var edit=spin.GetLineEdit();edit.GrabFocus();edit.Text="";
+            edit.GrabFocus();await Frame();edit.SelectAll();
+            using(var erase=new InputEventKey{Keycode=Key.Backspace,PhysicalKeycode=Key.Backspace,Pressed=true}) host.GetViewport().PushInput(erase,true);
+            using(var erase=new InputEventKey{Keycode=Key.Backspace,PhysicalKeycode=Key.Backspace,Pressed=false}) host.GetViewport().PushInput(erase,true);
             foreach(char character in text)
             {
                 var code=(Key)char.ToUpperInvariant(character);
@@ -92,13 +94,17 @@ internal static class ItemCommerceUiChecks
                     return Task.FromResult<CommandResult?>(result);
                 };
                 panel.RefreshSnapshot();await Frame();await Frame();
-                var quantity=Find<SpinBox>("SaleQuantity");await TypeQuantity(quantity,"7");
-                check(quantity.GetLineEdit().Text=="7","Native typing leaves the intended unsubmitted sale quantity");
-                panel.RefreshSnapshot();check(quantity.GetLineEdit().Text=="7","Snapshot refresh preserves an unsubmitted typed quantity");
-                int savedCaret=quantity.GetLineEdit().CaretColumn;
+                var quantity=Find<LineEdit>("SaleQuantity");await TypeQuantity(quantity,"7");
+                check(quantity.Text=="7","Native typing leaves the intended unsubmitted sale quantity");
+                panel.RefreshSnapshot();check(quantity.Text=="7","Snapshot refresh preserves an unsubmitted typed quantity");
+                int savedCaret=quantity.CaretColumn;
                 stack.Quantity=149;panel.RefreshSnapshot();
-                check(quantity.GetLineEdit().Text=="7"&&quantity.GetLineEdit().CaretColumn==savedCaret,"A changed stack limit preserves the pending edit and caret");
+                check(quantity.Text=="7"&&quantity.CaretColumn==savedCaret,"A changed stack limit preserves the pending edit and caret");
+                stack.Quantity=5;panel.RefreshSnapshot();
+                check(quantity.Text=="7"&&Find<Button>("SellSelectedQuantity").Disabled,"A smaller remaining stack rejects rather than silently clamps the typed quantity");
                 stack.Quantity=150;panel.RefreshSnapshot();
+                await Click(Find<Button>("SaleQuantityIncrease"));check(quantity.Text=="8","The explicit plus button adjusts the selected quantity");
+                await Click(Find<Button>("SaleQuantityDecrease"));check(quantity.Text=="7","The explicit minus button restores the selected quantity");
                 long gold=self.Gold,unit=MerchantSales.UnitPrice(stackDef);
                 check(Find<Label>("SaleGoldTotal").Text.Contains((unit*7).ToString("N0")),"The selected quantity shows the exact total gold");
                 await Capture("merchant-sell-"+size.X);
@@ -115,6 +121,8 @@ internal static class ItemCommerceUiChecks
                 check(!Find<Button>("SellSelectedQuantity").Disabled,"The matching authoritative snapshot releases the sale guard");
                 check(requests==1&&lastCount==7&&Items.Owned(self,stack.Id).Quantity==143&&self.Gold==gold+unit*7,"Native Sell quantity reaches the real realm transaction and transfers exact gold");
                 await TypeQuantity(quantity,"invalid");
+                quantity.ReleaseFocus();await Frame();panel.RefreshSnapshot();
+                check(quantity.Text=="invalid","Invalid quantity text survives focus loss and snapshot refresh without coercion");
                 check(Find<Button>("SellSelectedQuantity").Disabled&&requests==1,"Invalid text cannot become a silent sale quantity");
                 check(!Find<Button>("SellAllQuantity").Disabled,"Sell all is independent of an invalid partial quantity");
                 await Click(Find<Button>("SellAllQuantity"));

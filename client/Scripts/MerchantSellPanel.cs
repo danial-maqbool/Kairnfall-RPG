@@ -14,7 +14,7 @@ public partial class MerchantSellPanel : VBoxContainer
     public Func<Character?>? ReadCharacter { get; set; }
     public Func<string,int,Task<CommandResult?>>? SellItem { get; set; }
     private ItemList list = null!;
-    private SpinBox amount = null!;
+    private LineEdit amount = null!;
     private Button sell = null!, sellAll = null!;
     private Label total = null!, status = null!, money = null!;
     private VBoxContainer details = null!;
@@ -38,8 +38,13 @@ public partial class MerchantSellPanel : VBoxContainer
         var scroll = Ui.Scroll(inspector, new Vector2(340, 160)); details = Ui.Column(scroll);
         var amountRow = Ui.Row(inspector); amountRow.Alignment = BoxContainer.AlignmentMode.Center;
         amountRow.AddChild(CompactItemCard.Centered("Quantity", 13));
-        amount = new SpinBox { Name = "SaleQuantity", MinValue = 1, MaxValue = 999, Step = 1, Value = 1, CustomMinimumSize = new Vector2(132, 32) };
-        amount.GetLineEdit().Alignment = HorizontalAlignment.Center; amountRow.AddChild(amount);
+        var decrease = Ui.Button("−", () => AdjustQuantity(-1)); decrease.Name = "SaleQuantityDecrease";
+        decrease.CustomMinimumSize = new Vector2(32, 32); decrease.FocusMode = FocusModeEnum.None; amountRow.AddChild(decrease);
+        amount = new LineEdit { Name = "SaleQuantity", Text = "1", MaxLength = 12, Alignment = HorizontalAlignment.Center,
+            CustomMinimumSize = new Vector2(104, 32), SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
+        amount.TooltipText = "Enter a whole quantity. Invalid text is never converted into a sale."; amountRow.AddChild(amount);
+        var increase = Ui.Button("+", () => AdjustQuantity(1)); increase.Name = "SaleQuantityIncrease";
+        increase.CustomMinimumSize = new Vector2(32, 32); increase.FocusMode = FocusModeEnum.None; amountRow.AddChild(increase);
         total = CompactItemCard.Centered("", 14, Ui.Gold); total.Name = "SaleGoldTotal"; inspector.AddChild(total);
         var buttons = Ui.Row(inspector); buttons.Alignment = BoxContainer.AlignmentMode.Center;
         sell = Ui.Button("Sell quantity", () => Request(false)); sell.Name = "SellSelectedQuantity";
@@ -49,10 +54,9 @@ public partial class MerchantSellPanel : VBoxContainer
         list.ItemSelected += index =>
         {
             if (refreshing || index < 0 || index >= ids.Count) return;
-            selected = ids[(int)index]; cardStamp = ""; amount.Value = 1; amount.GetLineEdit().Text = "1"; RefreshSnapshot();
+            selected = ids[(int)index]; cardStamp = ""; amount.Text = "1"; RefreshSnapshot();
         };
-        amount.ValueChanged += _ => RefreshQuote();
-        amount.GetLineEdit().TextChanged += _ => RefreshQuote();
+        amount.TextChanged += _ => RefreshQuote();
         ready = true; RefreshSnapshot();
     }
     private Item? Current(Character self) => self.Inventory.FirstOrDefault(x => x.Id == selected);
@@ -74,7 +78,7 @@ public partial class MerchantSellPanel : VBoxContainer
             {
                 list.Clear(); ids.Clear();
                 foreach (var item in items) { ids.Add(item.Id); list.AddItem("", Assets.Icon(item.Template)); }
-                if (!ids.Contains(selected)) { selected = ids.FirstOrDefault() ?? ""; amount.Value = 1; amount.GetLineEdit().Text = "1"; }
+                if (!ids.Contains(selected)) { selected = ids.FirstOrDefault() ?? ""; amount.Text = "1"; }
                 layout = next;
             }
             for (int i = 0; i < items.Length; i++)
@@ -89,15 +93,8 @@ public partial class MerchantSellPanel : VBoxContainer
             var current = Current(self);
             if (current is not null)
             {
-                if (amount.MaxValue != current.Quantity)
-                {
-                    // A Range update reformats SpinBox text from its committed Value.
-                    // Keep the pending edit, even when a smaller stack makes it invalid.
-                    var edit = amount.GetLineEdit();
-                    string pendingText = edit.Text; int caret = edit.CaretColumn;
-                    amount.MaxValue = current.Quantity;
-                    edit.Text = pendingText; edit.CaretColumn = Math.Min(caret, pendingText.Length);
-                }
+                // Snapshot updates change validation, never the pending text or caret.
+                amount.PlaceholderText = "1–" + current.Quantity;
                 string stamp = JsonSerializer.Serialize(new { current, self.Equipment, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);
                 if (stamp != cardStamp)
                 {
@@ -110,12 +107,19 @@ public partial class MerchantSellPanel : VBoxContainer
         finally { refreshing = false; }
         RefreshQuote();
     }
+    private void AdjustQuantity(int difference)
+    {
+        if (busy || confirming || AwaitingSnapshot || ReadCharacter?.Invoke() is not { } self || Current(self) is not { } item) return;
+        if (!TryQuantity(amount.Text, item.Quantity, out int current)) { RefreshQuote(); return; }
+        amount.Text = Math.Clamp(current + difference, 1, item.Quantity).ToString(CultureInfo.InvariantCulture);
+        RefreshQuote();
+    }
     private void RefreshQuote()
     {
         if (!ready || refreshing) return;
         var self = ReadCharacter?.Invoke(); var item = self is null ? null : Current(self);
         if (item is null) { sell.Disabled = sellAll.Disabled = true; total.Text = ""; status.Text = "Select an item."; return; }
-        bool valid = TryQuantity(amount.GetLineEdit().Text, item.Quantity, out int count);
+        bool valid = TryQuantity(amount.Text, item.Quantity, out int count);
         string problem = MerchantSales.Problem(self!, Merchant, item, valid ? count : 1, Data);
         string allProblem = MerchantSales.Problem(self!, Merchant, item, item.Quantity, Data);
         long unit = MerchantSales.UnitPrice(Data.Item(item.Template));
@@ -130,7 +134,7 @@ public partial class MerchantSellPanel : VBoxContainer
     {
         if (busy || AwaitingSnapshot || confirming || ReadCharacter?.Invoke() is not { } self || Current(self) is not { } item) return;
         int count = item.Quantity;
-        if (!all && !TryQuantity(amount.GetLineEdit().Text, item.Quantity, out count)) { RefreshQuote(); return; }
+        if (!all && !TryQuantity(amount.Text, item.Quantity, out count)) { RefreshQuote(); return; }
         string problem = MerchantSales.Problem(self, Merchant, item, count, Data);
         if (problem != "") { status.Text = problem; return; }
         string id = item.Id;
