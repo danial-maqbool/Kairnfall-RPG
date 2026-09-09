@@ -1,6 +1,6 @@
 {
- "sha":"c80c1c04c34ba8385892420bc4394c34acdb721e",
+ "sha":"3765c5c4a4d231e2096357b84ea7d8dbd5ce9506",
  "base":"77c934a884a79d837154eea89fac7526258ac7a4",
  "mode":"repair",
- "purpose":"Verify compact centered item cards, per-stat signed comparisons including locked equipment, actual equipment blockers, and dedicated merchant quantity/full-stack selling with shared authoritative price rules. Retain the integrated targeting, density, challenge XP, support attribution and all core, security, migration, database, native input, layout, graphical and live-client tests. New core transaction and native mouse tests exercise comparison colors, requirement reasons, quantity validation, exact totals, stack sales, replay and ownership. Do not integrate candidate source before all required verification passes."
+ "purpose":"Rerun every retained source, core, security, world, migration, PostgreSQL, native, graphical and live-client check for compact centered item comparisons and merchant quantity/full-stack selling. Preserve the previous failed fixture evidence. Bulk transaction coverage now uses a cloned catalog with a 999-cap item instead of assuming a nonexistent production 150-stack item. All assertions and production stack capacities remain intact. Native typing exercises quantity validation. No source integration until all required checks pass."
 }
