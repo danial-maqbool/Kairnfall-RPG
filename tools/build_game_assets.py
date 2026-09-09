@@ -23,6 +23,7 @@ from art.environment_pack import TERRAINS,PROPS,tile,prop,building,chest,resourc
 from art.fauna import frame as creature_frame
 from art.room_art import render as furnishing_image, building, edge as grass_edge
 from content_src.presentation import FURNITURE
+from integrate_atelier import integrate
 
 
 def ability_icon(a):
@@ -163,6 +164,7 @@ def main():
         if index%20==0: print('ASSETS: creatures',index,'/',len(data['mobs']),flush=True)
     print('ASSETS: original audio',flush=True); audio_pack(root/'audio')
     shutil.copyfile(catalog,root/'catalog.json')
+    atelier=integrate(ROOT/'atelier/Assets',root,generated)
     entries=[]; animated_keys=set(sheets)
     for key in sorted(generated):
         path=root/(key+'.png')
@@ -170,13 +172,15 @@ def main():
             if im.mode!='RGBA' or im.getchannel('A').getbbox() is None: raise ValueError('Empty or non-RGBA asset: '+key)
             if key in animated_keys and (im.width%8 or im.height!=im.width//8*24): raise ValueError('Invalid animation grid: '+key)
             entries.append({'key':key,'width':im.width,'height':im.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'animated':key in animated_keys})
-    manifest={'schema':1,'source':'Original procedural artwork; source scripts are included.','artistic_review':'not_approved','frame_order':list(STATES),'directions':list(DIRECTIONS),'frames_per_row':8,'assets':entries}
+    manifest={'schema':1,'source':'Original project and checksum-verified Atelier catalog artwork; source scripts are included.','atelier_assets':atelier['integrated'],'artistic_review':'not_approved','frame_order':list(STATES),'directions':list(DIRECTIONS),'frames_per_row':8,'assets':entries}
     (root/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
-    (root/'CREDITS.txt').write_text('Kairnfall original pixel-art generators and synthesized audio. Source code is included under tools/art and tools/build_game_assets.py. Original project source uses the repository MIT license. No third-party artwork is included in this generated pack. Structural validation is not visual approval.\n',encoding='utf-8')
+    (root/'CREDITS.txt').write_text('Kairnfall original pixel-art generators and synthesized audio. Source code is included under tools/art and tools/build_game_assets.py. Original project source uses the repository MIT license. Matching Atelier assets from atelier/Assets replace compatible catalog artwork as a complete humanoid rig cohort. Read ATELIER_CREDITS.txt and atelier-integration.json for provenance and exact hashes. No independent gear records or third-party artwork are imported. Structural validation is not visual approval.\n',encoding='utf-8')
     evidence=ROOT/'artifacts/screenshots'; evidence.mkdir(parents=True,exist_ok=True)
     creatures=canvas((10*160,math.ceil(len(data['mobs'])/10)*175)); draw=ImageDraw.Draw(creatures)
     for i,m in enumerate(data['mobs']):
-        f=creature_frame(m,'idle',0,0); scale=1 if m['boss'] else 2; f=f.resize((f.width*scale,f.height*scale),Image.Resampling.NEAREST)
+        size=128 if m['boss'] else 64
+        with Image.open(root/'mobs'/(m['id']+'.png')) as source: f=source.crop((0,0,size,size)).convert('RGBA')
+        scale=1 if m['boss'] else 2; f=f.resize((f.width*scale,f.height*scale),Image.Resampling.NEAREST)
         x=(i%10)*160; y=(i//10)*175; creatures.alpha_composite(f,(x+16,y)); draw.text((x+3,y+136),m['id'][:25],fill=(224,219,197,255))
     save(creatures,evidence/'creature-contact-sheet.png')
     (ROOT/'artifacts/asset-coverage.json').write_text(json.dumps({'png_files':len(entries),'animation_sheets':len(sheets),'audio_files':len(list((root/'audio').glob('*.wav'))),'all_catalog_images_generated':True,'artistic_review':'not_approved'},indent=2)+'\n',encoding='utf-8')

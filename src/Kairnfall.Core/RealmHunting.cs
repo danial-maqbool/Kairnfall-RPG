@@ -11,6 +11,19 @@ public sealed partial class RealmEngine
     {
         bool migrate=State.HuntingRevision<HuntingGrounds.Revision;
         bool changed=false;
+        if(migrate)
+        {
+            // Retire only obsolete scripted dungeon spawn slots. Owned animals,
+            // boss instances, events, characters and loot retain their identities.
+            foreach(var mob in State.Creatures.Values.ToArray())
+            {
+                if(mob.Owner!="") continue;
+                var oldZone=Data.Zones.FirstOrDefault(z=>z.Id==mob.Zone&&z.Kind=="dungeon");
+                if(oldZone is null||oldZone.Species.Contains(mob.Template)) continue;
+                if(mob.Id==oldZone.Id+"/"+mob.Template||mob.Id.StartsWith(oldZone.Id+"/hunt/"+mob.Template+"/",StringComparison.Ordinal))
+                { State.Creatures.Remove(mob.Id);changed=true; }
+            }
+        }
         foreach(var zone in Data.Zones)
         {
             var plan=HuntingGrounds.For(Data,zone); huntPlans[zone.Id]=plan;

@@ -14,7 +14,7 @@ internal static class HuntingGuideChecks
         try
         {
             foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
-            foreach(string zone in new[]{"wayfarers_rest","kingsmeadow","broken_mill","umbral_crossroads"})
+            foreach(string zone in new[]{"wayfarers_rest","kingsmeadow","broken_mill","umbral_crossroads","wayfarer_burrows","silkroot_den"})
             {
                 host.GetWindow().Size=size;host.GetWindow().ContentScaleSize=size;
                 self.Zone=zone;self.Position=game.Data.Zone(zone).Spawn;

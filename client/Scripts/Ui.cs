@@ -122,7 +122,7 @@ public partial class ItemSlot : Control
     {
         Color border = Selected ? Ui.Gold : Item is null ? new Color("425359") : Ui.RarityColor(Item.Rarity);
         DrawStyleBox(Ui.Box(Ui.Ink, border, 0), new Rect2(Vector2.Zero, Size));
-        if (Icon is not null) DrawTextureRect(Icon, new Rect2(7, 5, Size.X - 14, Size.Y - 14), false);
+        if (Icon is not null) DrawTextureRect(Icon, PixelPresentation.InventoryIconRect(Size,Icon.GetSize()), false);
         if (Equipped) DrawString(ThemeDB.FallbackFont, new Vector2(4, 14), "E", HorizontalAlignment.Left, -1, 11, Ui.Gold);
         if (Item is { Quantity: > 1 })
         {

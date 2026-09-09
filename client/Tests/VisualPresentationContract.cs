@@ -93,6 +93,7 @@ public partial class VisualPresentationContract : Node
                 GetWindow().Size=size; GetWindow().ContentScaleSize=size;
                 await Frame(); await Frame(); Refresh();
                 string suffix=size.X.ToString();
+                game.World.Zoom=1; await Frame(); await Frame();
                 await Capture("01-village-"+suffix);
                 foreach(string page in new[]{"Inventory","Character","Skills","Abilities","Equipment Guide","Crafting","Map","Hunting"})
                 {
@@ -119,7 +120,7 @@ public partial class VisualPresentationContract : Node
                 self.Zone=door.Target; self.Position=door.Arrival; Refresh();
                 await Capture("interior-"+door.Target);
             }
-            foreach(string region in new[]{"wayfarers_rest","kingsmeadow","thistle_woods","broken_mill","umbral_crossroads"})
+            foreach(string region in new[]{"wayfarers_rest","kingsmeadow","thistle_woods","broken_mill","umbral_crossroads","wayfarer_burrows","silkroot_den"})
             {
                 var zone=game.Data.Zone(region);var plan=HuntingGrounds.For(game.Data,zone);
                 self.Zone=region; self.Position=plan.Patches.First().Position; Refresh(); await Frame(); await Frame();

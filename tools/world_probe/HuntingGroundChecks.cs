@@ -14,7 +14,7 @@ internal static class HuntingGroundChecks
             try { action();passed++;Console.WriteLine("PASS HUNTING: "+name); }
             catch(Exception error) { failures.Add("HUNTING: "+name);Console.WriteLine("FAIL HUNTING: "+name+": "+error); }
         }
-        var watch=Stopwatch.StartNew(); var realm=new RealmEngine(data); watch.Stop(); double coldStart=watch.Elapsed.TotalMilliseconds;
+        var watch=Stopwatch.StartNew(); var realm=new RealmEngine(data); watch.Stop(); double cachedInitialization=watch.Elapsed.TotalMilliseconds;
         Test("Every hunting region has exact ordinary multipliers, unique positions, and bounded separated patches",()=>
         {
             var ids=new HashSet<string>(StringComparer.Ordinal);
@@ -99,6 +99,20 @@ internal static class HuntingGroundChecks
             string before=Json(engine.State); var again=new RealmEngine(data,Wire.Copy(engine.State));
             Need(Json(again.State)==before,"Migration is not idempotent.");
         });
+        Test("Dungeon population correction retires obsolete wild slots but preserves owned animals and boss state",()=>
+        {
+            var state=Wire.Copy(realm.State);state.HuntingRevision=1;
+            var zone=data.Zone("broken_mill");
+            Need(!zone.Species.Contains("stone_guardian"),"Beginner dungeon still contains the level-65 guardian.");
+            var old=new Creature { Id=zone.Id+"/stone_guardian",Template="stone_guardian",Zone=zone.Id,Home=zone.Spawn,Position=zone.Spawn,Health=33,Generation=8 };
+            state.Creatures[old.Id]=old;
+            var pet=Wire.Copy(old);pet.Id=zone.Id+"/hunt/stone_guardian/01";pet.Owner="retained-pet";state.Creatures[pet.Id]=pet;
+            string savedPet=Json(pet),savedBoss=Json(state.Creatures[zone.Id+"/boss"]);
+            var loaded=new RealmEngine(data,state);
+            Need(!loaded.State.Creatures.ContainsKey(old.Id),"Obsolete over-level spawn remained in the dungeon.");
+            Need(Json(loaded.State.Creatures[pet.Id])==savedPet,"Owned dungeon animal changed during population correction.");
+            Need(Json(loaded.State.Creatures[zone.Id+"/boss"])==savedBoss,"Population correction reset the dungeon boss.");
+        });
         Test("Camped hunting slots wait before respawn then recover after the player leaves",()=>
         {
             var engine=new RealmEngine(data); var p=engine.CreateCharacter("hunt-respawn","Hunt Respawn","vanguard",new());
@@ -135,7 +149,7 @@ internal static class HuntingGroundChecks
             int bytes=JsonSerializer.SerializeToUtf8Bytes(engine.Snapshot(p.Id),Wire.Json).Length;
             Need(bytes<2_000_000,"Dense snapshot exceeds the client's existing packet limit.");
             timings.Sort(); double p95=timings[(int)(timings.Count*.95)];
-            var report=new { coldStartMs=coldStart,creatures=engine.State.Creatures.Count,observed=subjects.Length,
+            var report=new { cachedPlanInitializationMs=cachedInitialization,creatures=engine.State.Creatures.Count,observed=subjects.Length,
                 simulatedSeconds=120,meanTickMs=timings.Average(),p95TickMs=p95,maxTickMs=timings[^1],snapshotBytes=bytes,
                 averageTravelTiles=distances.Values.Average(),movingSamples=moving.Values.Sum(),samples=subjects.Length*1200 };
             Directory.CreateDirectory("artifacts/experience/hunting");
