@@ -65,6 +65,36 @@ def _grow(mask, diagonal=False):
     return grown
 
 
+def refine_sprite(image, strength=0.11):
+    """Second-pass pixel modelling for actor and icon composites.
+
+    Piece.bake lights each component before assembly. Once layers overlap, some
+    final silhouettes become visually flat again. This pass adds a restrained
+    one-pixel inner highlight on exposed upper/left edges and a cool inner
+    shadow on lower/right edges. It preserves the exact canvas, alpha mask and
+    anchor, so higher detail never becomes animation jitter or collision drift.
+    """
+    if strength <= 0 or image.mode != 'RGBA':
+        return image
+    source = image.copy()
+    alpha = source.getchannel('A')
+    solid = _hard(alpha, 160)
+    # Boundary pixels that remain inside the final silhouette.
+    upper = ImageChops.subtract(solid, ImageChops.darker(_shift(solid, 0, 1), _shift(solid, 1, 0)))
+    lower = ImageChops.subtract(solid, ImageChops.darker(_shift(solid, 0, -1), _shift(solid, -1, 0)))
+    # Keep the accents one pixel in from the external contour.
+    interior = solid.filter(ImageFilter.MinFilter(3))
+    upper = ImageChops.darker(_shift(upper, 1, 1), interior)
+    lower = ImageChops.darker(_shift(lower, -1, -1), interior)
+    out = source.copy()
+    warm = canvas(source.size, (255, 236, 205, 255))
+    cool = canvas(source.size, (33, 29, 43, 255))
+    out = Image.composite(Image.blend(out, warm, strength), out, _fade(upper, 0.82))
+    out = Image.composite(Image.blend(out, cool, strength * 0.86), out, _fade(lower, 0.78))
+    out.putalpha(alpha)
+    return out
+
+
 def catmull(points, samples=6, closed=False):
     """Smooth a control polyline; keeps organic shapes off the 45 degree grid."""
     pts = [tuple(p) for p in points]

@@ -13,8 +13,10 @@ from __future__ import annotations
 
 import math
 
+from PIL import Image
+
 from . import gear, pigment
-from .brush import Sketch, catmull, taper_shape
+from .brush import Sketch, catmull, refine_sprite, taper_shape
 from .pigment import blend, ramp
 
 ICON = 32
@@ -1825,6 +1827,45 @@ def _quest_icon(item):
     return sketch.result()
 
 
+def _polish_icon(image, item):
+    """Add sparse material cues without changing the icon silhouette or size."""
+    image = refine_sprite(image, 0.12)
+    if image.mode != 'RGBA':
+        return image
+    out = image.copy(); pixels = image.load(); target = out.load()
+    ident = str(item.get('id', '')); kind = item.get('type', 'material')
+    seed = pigment.keyed(ident + '|detail', 2**16)
+    width, height = image.size
+    candidates = []
+    for y in range(2, height - 2):
+        for x in range(2, width - 2):
+            r,g,b,a = pixels[x,y]
+            if a < 220: continue
+            nearby = [pixels[x-1,y], pixels[x+1,y], pixels[x,y-1], pixels[x,y+1]]
+            if any(p[3] < 220 for p in nearby): continue
+            if max(abs(r-p[0])+abs(g-p[1])+abs(b-p[2]) for p in nearby) > 75: continue
+            h = ((x+11)*73856093 ^ (y+17)*19349663 ^ seed*83492791) & 0xffffffff
+            if h % 37 == 0: candidates.append((h,x,y))
+    candidates.sort()
+    limit = 6 if kind in ('weapon','armor','tool','offhand','accessory') else 4
+    for index,(_,x,y) in enumerate(candidates[:limit]):
+        r,g,b,a = pixels[x,y]
+        light = index % 2 == 0
+        tone = (255,239,211,255) if light else (39,31,42,255)
+        amount = 0.16 if light else 0.12
+        nr,ng,nb,_ = blend((r,g,b,a), tone, amount)
+        target[x,y] = (nr,ng,nb,a)
+        # Metal gets a crisp paired glint; organic materials get a one-pixel grain stroke.
+        nx = x + (1 if (seed + index) % 2 else -1)
+        if 0 <= nx < width and pixels[nx,y][3] >= 220:
+            pr,pg,pb,pa = pixels[nx,y]
+            amt = 0.10 if kind in ('weapon','armor','tool','offhand','accessory') else 0.07
+            tr,tg,tb,_ = blend((pr,pg,pb,pa), tone, amt)
+            target[nx,y] = (tr,tg,tb,pa)
+    out.putalpha(image.getchannel('A'))
+    return out
+
+
 TYPE_ICONS = {
     'weapon': weapon_icon,
     'offhand': weapon_icon,
@@ -1848,22 +1889,23 @@ TYPE_ICONS = {
 
 
 def icon(item):
-    """32x32 inventory icon for any catalogue item."""
+    """32x32 inventory icon with the second-stage material refinement pass."""
     kind = item.get('type', 'material')
     ident = item.get('id', '')
     if kind == 'wood':
-        return _log_icon(item, plank='plank' in ident)
-    if kind == 'material':
+        image = _log_icon(item, plank='plank' in ident)
+    elif kind == 'material':
         if ident.endswith('_bar'):
-            return _bar_icon(item)
-        if 'cloth' in ident or 'weave' in ident or 'linen' in ident or 'wool' in ident:
-            return _cloth_icon(item)
-        if 'leather' in ident:
-            return _leather_icon(item)
-        return _material_icon(item)
-    if kind == 'ore' and ident.endswith('_bar'):
-        return _bar_icon(item)
-    handler = TYPE_ICONS.get(kind)
-    if handler is None:
-        return _material_icon(item)
-    return handler(item)
+            image = _bar_icon(item)
+        elif 'cloth' in ident or 'weave' in ident or 'linen' in ident or 'wool' in ident:
+            image = _cloth_icon(item)
+        elif 'leather' in ident:
+            image = _leather_icon(item)
+        else:
+            image = _material_icon(item)
+    elif kind == 'ore' and ident.endswith('_bar'):
+        image = _bar_icon(item)
+    else:
+        handler = TYPE_ICONS.get(kind)
+        image = _material_icon(item) if handler is None else handler(item)
+    return _polish_icon(image, item)

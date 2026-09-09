@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 
 from . import gear, pigment, rig, smith
-from .brush import Sketch, catmull, taper_shape
+from .brush import Sketch, catmull, refine_sprite, taper_shape
 from .pigment import blend, ramp
 
 SIZE = 64
@@ -112,6 +112,11 @@ def _draw_arm(sketch, pose, key, skin, cloth, sleeve=True):
     _limb(piece, shoulder, elbow, build.limb * 1.12 * depth, build.limb * 0.95 * depth, 3 if sleeve else 3)
     if sleeve:
         sketch.stamp(piece, rim=0.7, occlude=0.55)
+        cuff = sketch.piece(cloth)
+        dx, dy = _axis(shoulder, elbow); px, py = -dy, dx
+        cuff.line([(elbow[0]-px*build.limb*0.46, elbow[1]-py*build.limb*0.46),
+                   (elbow[0]+px*build.limb*0.46, elbow[1]+py*build.limb*0.46)], 4, 1)
+        sketch.stamp(cuff, outline=False, rim=0, occlude=0)
         piece = sketch.piece(skin)
     _limb(piece, elbow, hand, build.limb * 0.92 * depth, build.limb * 0.74 * depth, 3)
     piece.disc(hand[0], hand[1], build.limb * 0.48 * depth + 0.4, 2 if key == 'far' else 3)
@@ -125,12 +130,23 @@ def _draw_leg(sketch, pose, key, skin, cloth, shoe='#4a3a2e'):
     piece = sketch.piece(cloth)
     _limb(piece, hip, knee, build.thigh * 1.05 * depth, build.thigh * 0.82 * depth, 3)
     sketch.stamp(piece, rim=0.65, occlude=0.55)
+    seam = sketch.piece(cloth)
+    seam.line([(hip[0]*0.55+knee[0]*0.45, hip[1]*0.55+knee[1]*0.45),
+               (knee[0], knee[1]-0.4)], 4, 1)
+    sketch.stamp(seam, outline=False, rim=0, occlude=0)
     piece = sketch.piece(skin)
     _limb(piece, knee, (foot[0], foot[1] - 1.6), build.thigh * 0.74 * depth, build.thigh * 0.56 * depth, 3)
     sketch.stamp(piece, rim=0.6, occlude=0.5)
     piece = sketch.piece(shoe)
-    piece.poly(foot_shape(pose, key, 0.0), 3)
+    foot = foot_shape(pose, key, 0.0)
+    piece.poly(foot, 3)
     sketch.stamp(piece, rim=0.7, occlude=0.6)
+    sole = sketch.piece(shoe)
+    ys = sorted(point[1] for point in foot)
+    y = ys[-2] if len(ys)>1 else foot[-1][1]
+    xs = [point[0] for point in foot]
+    sole.line([(min(xs)+0.8, y), (max(xs)-0.8, y)], 1, 1)
+    sketch.stamp(sole, outline=False, rim=0, occlude=0)
 
 
 def head_basis(pose):
@@ -178,12 +194,16 @@ def _draw_head(sketch, pose, skin, face=True):
         piece.dot(*at(nose * 2.2, -0.3), eye)
         piece.dot(*at(nose * 2.2, 0.5), gleam)
         piece.line([at(nose * 1.2, -1.7), at(nose * 3.1, -1.5)], 1)
+        piece.dot(*at(nose * 3.0, 1.7), 2)
+        piece.line([at(nose * 1.3, 3.0), at(nose * 2.8, 2.8)], 2, 1)
     else:
         for sign in (-1, 1):
             piece.dot(*at(sign * 2.1, -0.1), eye)
             piece.dot(*at(sign * 2.1, 0.7), gleam)
             piece.line([at(sign * 1.1, -1.6), at(sign * 3.0, -1.5)], 1)
-        piece.line([at(-1.2, 3.0), at(1.2, 3.0)], 1)
+            piece.dot(*at(sign * 3.0, 1.8), 4)
+        piece.line([at(0.0, 0.8), at(0.0, 2.2)], 4, 1)
+        piece.line([at(-1.4, 3.2), at(1.4, 3.2)], 1, 1)
     sketch.stamp(piece, outline=False, rim=0, occlude=0)
 
 
@@ -204,6 +224,15 @@ def _draw_torso(sketch, pose, skin, cloth):
     collar_a, collar_b = _neck_span(pose, 2.4, 0.4)
     piece.poly(taper_shape(collar_a, collar_b, 6.0, 4.8), 2)
     sketch.stamp(piece, rim=0.8, occlude=0.6)
+    # Two pose-locked construction lines add garment scale without noisy texture.
+    ux, uy = _axis(pose.pelvis, pose.chest); px, py = -uy, ux
+    detail = sketch.piece(cloth)
+    collar = (pose.chest[0]+ux*1.9, pose.chest[1]+uy*1.9)
+    waist = (pose.pelvis[0]+ux*1.1, pose.pelvis[1]+uy*1.1)
+    detail.line([(collar[0]-px*3.0, collar[1]-py*3.0), (collar[0]+px*3.0, collar[1]+py*3.0)], 4, 1)
+    detail.line([(waist[0]-px*(pose.build.hip+0.7), waist[1]-py*(pose.build.hip+0.7)),
+                 (waist[0]+px*(pose.build.hip+0.7), waist[1]+py*(pose.build.hip+0.7))], 2, 1)
+    detail.clip(piece); sketch.overlay(detail)
     neck_a, neck_b = _neck_span(pose, 1.4, 2.4)
     piece = sketch.piece(skin)
     piece.poly(taper_shape(neck_a, neck_b, 4.6, 4.2), 2)
@@ -229,6 +258,7 @@ def body_layers(sketch, pose, skin_index, cloth=CLOTH_UNDER, trunk=TRUNK, shoe='
 
 
 def finish(sketch, pose):
+    sketch.image = refine_sprite(sketch.result(), 0.10)
     if pose.flash:
         sketch.tone((255, 236, 206, 255), 0.42 * pose.flash)
     if pose.fade < 1.0:

@@ -295,13 +295,12 @@ def main():
         'png_files': len(entries),
         'animation_sheets': sum(1 for e in entries if e['animated']),
         'audio_files': len(audio),
-        'built_seconds': round(time.time() - start, 1),
         'artistic_review': 'pending',
     }
     (HERE / 'coverage.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print('ATELIER RESULT: %d images (%d animation sheets), %d audio files in %.0fs. '
           'Structural checks passed; visual review is still required.'
-          % (len(entries), report['animation_sheets'], len(audio), report['built_seconds']), flush=True)
+          % (len(entries), report['animation_sheets'], len(audio), time.time() - start), flush=True)
 
 
 if __name__ == '__main__':

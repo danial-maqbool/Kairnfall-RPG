@@ -20,7 +20,7 @@ from dataclasses import dataclass, replace
 from PIL import Image, ImageFilter
 
 from . import folk, pigment, rig, smith
-from .brush import Sketch, catmull, taper_shape
+from .brush import Sketch, catmull, refine_sprite, taper_shape
 from .pigment import blend, ramp
 
 FRAMES = 8
@@ -413,15 +413,38 @@ def describe(mob):
 # --------------------------------------------------------------- drawing ----
 
 def _markings(stage, spec, body):
-    """Coat markings clipped to a body that has already been drawn."""
-    if not spec.pattern or not spec.pattern_colour:
-        return
+    """Species markings plus a restrained anatomy-following surface detail pass."""
     box = body.image.getbbox()
     if box is None:
         return
     x0, y0, x1, y1 = box
     width, height = x1 - x0, y1 - y0
     if width < 4 or height < 4:
+        return
+    inner = body.image.getchannel('A').point(lambda v: 255 if v >= 110 else 0).filter(ImageFilter.MinFilter(3))
+    # Fine fur, scale, feather or plate cues make a species readable at native size.
+    surface = stage.piece(spec.ramps()['coat'])
+    rng = random.Random(spec.seed + 73)
+    count = max(3, min(10, int(width * height / 90)))
+    for index in range(count):
+        x = x0 + width * (0.16 + rng.random() * 0.68)
+        y = y0 + height * (0.18 + rng.random() * 0.64)
+        if spec.archetype in ('quadruped', 'primate', 'humanoid'):
+            run = max(1.0, min(3.0, width * 0.08))
+            surface.line([(x-run, y-0.4), (x+run*0.45, y+0.5)], 4 if index % 2 == 0 else 2, 1)
+        elif spec.archetype in ('bird', 'drake'):
+            run = max(1.2, min(3.4, width * 0.09))
+            surface.line([(x-run, y), (x, y+1.0), (x+run, y)], 4, 1)
+        elif spec.archetype in ('serpent', 'aquatic', 'amphibian', 'crustacean'):
+            surface.disc(x, y, max(0.7, stage.scale), 4 if index % 2 == 0 else 2)
+            surface.erase_ellipse((x-0.35*stage.scale, y-0.35*stage.scale, x+0.35*stage.scale, y+0.35*stage.scale))
+        elif spec.archetype in ('insect', 'arachnid'):
+            surface.line([(x-1.2*stage.scale, y), (x+1.2*stage.scale, y)], 2, 1)
+        else:
+            surface.dot(x, y, 4 if index % 2 == 0 else 2)
+    surface.clip(inner); stage.sketch.overlay(surface)
+
+    if not spec.pattern or not spec.pattern_colour:
         return
     marks = stage.piece(ramp(spec.pattern_colour))
     rng = random.Random(spec.seed + 17)
@@ -467,8 +490,7 @@ def _markings(stage, spec, body):
         marks.poly([(x0, y0), (x1, y0), (x1, y0 + height * 0.42), (x0, y0 + height * 0.46)], 2)
     else:
         return
-    inner = body.image.getchannel('A').point(lambda v: 255 if v >= 110 else 0)
-    marks.clip(inner.filter(ImageFilter.MinFilter(3)))
+    marks.clip(inner)
     stage.sketch.overlay(marks)
 
 
@@ -686,6 +708,7 @@ def _eye(stage, spec, tones, head, facing, side, m):
         x, y = stage.at(ex, ey)
         piece.disc(x, y, max(0.9, 1.3 * stage.scale), 4)
         piece.dot(x, y, (30, 26, 32, 255))
+        piece.dot(x-stage.scale*0.55, y-stage.scale*0.55, 5)
     stage.stamp(piece, outline=False, rim=0, occlude=0)
 
 
@@ -1809,6 +1832,7 @@ def frame(mob, state, index, direction):
         ARCHETYPES.get(kind, quadruped)(spec, m, direction, stage)
     if m.flash:
         stage.sketch.tone((255, 236, 206, 255), 0.4 * m.flash)
+    stage.sketch.image = refine_sprite(stage.sketch.result(), 0.09 if size == 64 else 0.075)
     if m.fade < 1.0:
         stage.sketch.fade(m.fade)
     return stage.sketch.result()
