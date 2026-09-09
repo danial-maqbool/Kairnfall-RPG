@@ -78,7 +78,12 @@ public partial class MerchantSellPanel : VBoxContainer
             {
                 list.Clear(); ids.Clear();
                 foreach (var item in items) { ids.Add(item.Id); list.AddItem("", Assets.Icon(item.Template)); }
-                if (!ids.Contains(selected)) { selected = ids.FirstOrDefault() ?? ""; amount.Text = "1"; }
+                if (!ids.Contains(selected))
+                {
+                    // Do not arm another item under the same Sell button after removal.
+                    selected = layout == "" ? ids.FirstOrDefault() ?? "" : "";
+                    amount.Text = "1"; cardStamp = "";
+                }
                 layout = next;
             }
             for (int i = 0; i < items.Length; i++)
@@ -102,7 +107,12 @@ public partial class MerchantSellPanel : VBoxContainer
                     cardStamp = stamp;
                 }
             }
-            else { Ui.Clear(details); details.AddChild(CompactItemCard.Centered("No items in your backpack.")); cardStamp = ""; }
+            else
+            {
+                Ui.Clear(details);
+                details.AddChild(CompactItemCard.Centered(self.Inventory.Count == 0 ? "No items in your backpack." : "Select an item to inspect and sell."));
+                cardStamp = "";
+            }
         }
         finally { refreshing = false; }
         RefreshQuote();

@@ -128,6 +128,28 @@ internal static class ItemCommerceUiChecks
                 await Click(Find<Button>("SellAllQuantity"));
                 check(requests==2&&lastCount==143&&self.Inventory.Count==0&&self.Gold==gold+unit*150,"Sell all transfers the full remaining stack in one transaction");
                 check(Find<Button>("SellSelectedQuantity").Disabled&&Find<Button>("SellAllQuantity").Disabled,"No stale action remains after selling the complete stack");
+                var retained=Items.Create(fixtureData,"copper_sword");
+                var extra=Items.Create(fixtureData,"copper_ore",3);
+                self.Inventory.AddRange([retained,extra]);panel.RefreshSnapshot();await Frame();await Frame();
+                var saleItems=Find<ItemList>("SaleItems");
+                check(!saleItems.IsAnythingSelected()&&Find<Button>("SellAllQuantity").Disabled,"New items arriving after a completed sale do not arm a destructive action");
+                int extraIndex=Enumerable.Range(0,saleItems.ItemCount).Single(i=>saleItems.GetItemText(i)==fixtureData.Item(extra.Template).Name+" ×3");
+                var itemAt=saleItems.GlobalPosition+saleItems.GetItemRect(extraIndex).GetCenter();
+                check(saleItems.GetGlobalRect().HasPoint(itemAt),"The next sale item is visible for deliberate native selection");
+                using(var press=new InputEventMouseButton{Position=itemAt,GlobalPosition=itemAt,ButtonIndex=MouseButton.Left,ButtonMask=MouseButtonMask.Left,Pressed=true}) host.GetViewport().PushInput(press,true);
+                await Frame();
+                using(var release=new InputEventMouseButton{Position=itemAt,GlobalPosition=itemAt,ButtonIndex=MouseButton.Left,Pressed=false}) host.GetViewport().PushInput(release,true);
+                await Frame();await Frame();
+                long beforeExtra=self.Gold;
+                await Click(Find<Button>("SellAllQuantity"));
+                check(requests==3&&lastCount==3&&self.Gold==beforeExtra+unit*3&&self.Inventory.Count==1&&self.Inventory[0].Id==retained.Id,"The deliberately selected stack sells without touching another item");
+                check(!saleItems.IsAnythingSelected()&&Find<Button>("SellSelectedQuantity").Disabled&&Find<Button>("SellAllQuantity").Disabled,"Removing a sold stack requires explicit selection even while another sellable item remains");
+                var again=Find<Button>("SellAllQuantity").GetGlobalRect().GetCenter();
+                using(var press=new InputEventMouseButton{Position=again,GlobalPosition=again,ButtonIndex=MouseButton.Left,ButtonMask=MouseButtonMask.Left,Pressed=true}) host.GetViewport().PushInput(press,true);
+                await Frame();
+                using(var release=new InputEventMouseButton{Position=again,GlobalPosition=again,ButtonIndex=MouseButton.Left,Pressed=false}) host.GetViewport().PushInput(release,true);
+                await Frame();
+                check(requests==3&&self.Inventory.Single().Id==retained.Id&&self.Gold==beforeExtra+unit*3,"A repeated native Sell-all click cannot sell the next item");
                 Call("ClosePage");await Frame();await Frame();
             }
             foreach(string text in new[]{"0","-1","1.5","1e2","999999999999",""})
