@@ -24,7 +24,7 @@ public sealed partial class RealmEngine
         Ready(p,"attack",Math.Max(0.25,(weapon?.Speed??0.8)/stats.AttackSpeed));
         p.Stamina-=3; p.Facing=p.Position.Direction(mob.Position); p.Statuses.RemoveAll(x=>x.Kind=="stealth");
         playerTargets[p.Id]=mob.Id;
-        double raw=stats.Physical*(1+Progression.Level(p,skill)*0.008);
+        double raw=stats.Physical*CombatTrainingCurve.Physical(Progression.Level(p,skill));
         if(p.Class=="berserker") raw*=1+0.25*(1-p.Health/stats.Health);
         if(CombatMath.Roll(stats.Crit)) raw*=stats.CritDamage;
         if(HandEquipment.IsProjectileWeapon(weapon))
@@ -45,7 +45,7 @@ public sealed partial class RealmEngine
         Ready(p,"global_ability",0.25);
         p.Mana-=ability.Mana; p.Stamina-=ability.Stamina;
         double basePower=(ability.Element==Element.Physical?stats.Physical:stats.Spell)*ability.Power;
-        basePower*=1+Progression.Level(p,ability.Skill)*0.006;
+        basePower*=CombatTrainingCurve.Spell(Progression.Level(p,ability.Skill));
         var zone=Data.Zone(p.Zone);
         Creature? selected=target!=""&&State.Creatures.TryGetValue(target,out var creature)?creature:null;
         Point aim=selected?.Position??location;
@@ -74,7 +74,8 @@ public sealed partial class RealmEngine
                 double healing=Math.Min(maximum-recipient.Health,basePower*stats.Healing);
                 recipient.Health+=healing;
                 if(ability.Duration>0) ApplyStatus(recipient.Statuses,"regeneration",ability.Element,ability.Duration,healing/10,p.Id);
-                if(recipient.LastCombat>State.Time-15) { Progression.Train(p,ability.Skill,Math.Max(1,(int)healing/2),Math.Clamp(Data.Zone(p.Zone).Level,1,100),Data); trained=true; }
+                int encounterLevel=SupportTraining.EncounterLevel(recipient,State.Time);
+                if(encounterLevel>0) { ChallengeProgression.TrainCombat(p,ability.Skill,Math.Max(1,(int)healing/2),encounterLevel,Data); trained=true; }
                 break;
             }
             case "shield": ApplyStatus(p.Statuses,"shield",ability.Element,ability.Duration,basePower,p.Id); break;
@@ -129,7 +130,8 @@ public sealed partial class RealmEngine
             default: throw new RuleException("Unsupported ability kind.");
         }
         if(!selfKind) { p.LastCombat=State.Time; p.Statuses.RemoveAll(x=>x.Kind=="stealth"); }
-        if(!trained&&selfKind&&p.LastCombat>State.Time-10&&ability.Kind!="heal") Progression.Train(p,ability.Skill,5,Math.Clamp(zone.Level,1,100),Data);
+        int supportLevel=SupportTraining.EncounterLevel(p,State.Time,10);
+        if(!trained&&selfKind&&supportLevel>0&&ability.Kind!="heal") ChallengeProgression.TrainCombat(p,ability.Skill,5,supportLevel,Data);
         Progress(p,"cast",ability.Id); return "";
     }
     private double HitCreature(Character p,Creature mob,double raw,Element element,string skill)
@@ -146,7 +148,8 @@ public sealed partial class RealmEngine
         p.LastCombat=State.Time; mob.Target=p.Id; playerTargets[p.Id]=mob.Id;
         if(damage>0)
         {
-            Progression.Train(p,skill,Math.Clamp((int)damage,1,120),def.Level,Data);
+            SupportTraining.Record(p,def.Level,State.Time);
+            ChallengeProgression.TrainCombat(p,skill,Math.Clamp((int)damage,1,120),def.Level,Data);
             double leech=Math.Clamp(stats.Bonus("leech")/100,0,0.08);
             p.Health=Math.Min(stats.Health,p.Health+damage*leech);
             switch(element)
@@ -170,8 +173,8 @@ public sealed partial class RealmEngine
         if(contributors.Count==0) contributors.Add(killer);
         foreach(var p in contributors)
         {
-            Progression.Train(p,"slayer",Math.Max(1,def.Xp/contributors.Count),def.Level,Data);
-            if(def.Anatomy.StartsWith("animal:",StringComparison.Ordinal)) Progression.Train(p,"hunting",Math.Max(1,def.Xp/3/contributors.Count),def.Level,Data);
+            ChallengeProgression.TrainCombat(p,"slayer",Math.Max(1,def.Xp/contributors.Count),def.Level,Data);
+            if(def.Anatomy.StartsWith("animal:",StringComparison.Ordinal)) ChallengeProgression.TrainCombat(p,"hunting",Math.Max(1,def.Xp/3/contributors.Count),def.Level,Data);
             p.Bestiary[def.Id]=p.Bestiary.GetValueOrDefault(def.Id)+1;
             Progress(p,"kill",def.Id); if(def.Boss) { p.Achievements.Add("boss:"+def.Id); Progress(p,"boss",def.Id); }
         }
@@ -194,9 +197,10 @@ public sealed partial class RealmEngine
     {
         if(p.Health<=0) return;
         var stats=CombatMath.Stats(p,Data); var def=Data.Mob(mob.Template);
-        if(CombatMath.Roll(stats.Evasion)) { Progression.Train(p,"evasion",12,def.Level,Data); return; }
+        if(mob.Owner=="") SupportTraining.Record(p,def.Level,State.Time);
+        if(CombatMath.Roll(stats.Evasion)) { ChallengeProgression.TrainCombat(p,"evasion",12,def.Level,Data); return; }
         double damage=CombatMath.Damage(raw,element==Element.Physical?stats.Armor:stats.Armor*0.2,CombatMath.Resist(stats,element));
-        if(CombatMath.Roll(stats.Block)) { damage*=0.4; Progression.Train(p,"shield_mastery",12,def.Level,Data); }
+        if(CombatMath.Roll(stats.Block)) { damage*=0.4; ChallengeProgression.TrainCombat(p,"shield_mastery",12,def.Level,Data); }
         damage*=1-Math.Clamp(CombatMath.StatusPower(p.Statuses,"guard",State.Time),0,0.6);
         foreach(var shield in p.Statuses.Where(x=>x.Kind=="shield"&&x.Until>State.Time).ToList())
         {
@@ -209,8 +213,8 @@ public sealed partial class RealmEngine
         {
             var skill=Data.Item(Items.Owned(p,armorId).Template).Skill; if(Data.Skills.Any(x=>x.Id==skill)) armorSkill=skill;
         }
-        Progression.Train(p,armorSkill,Math.Clamp((int)damage,1,50),def.Level,Data);
-        Progression.Train(p,"endurance",3,def.Level,Data);
+        ChallengeProgression.TrainCombat(p,armorSkill,Math.Clamp((int)damage,1,50),def.Level,Data);
+        ChallengeProgression.TrainCombat(p,"endurance",3,def.Level,Data);
         if(damage>0&&element==Element.Poison) ApplyStatus(p.Statuses,"poison",element,4,Math.Max(1,damage*0.06),mob.Id);
         if(p.Health<=0) KillPlayer(p);
         EconomicDirty=true;
@@ -219,6 +223,7 @@ public sealed partial class RealmEngine
     {
         if(p.DeadUntil>State.Time) return;
         p.Health=0; p.DeadUntil=State.Time+5; p.Deaths++; p.Statuses.Clear(); inputs.Remove(p.Id); CancelTradesFor(p.Id);
+        p.RecentLearningEncounter=null;
         foreach(var item in p.Inventory.Where(x=>Items.Equipped(p,x.Id))) item.Durability=Math.Max(0,item.Durability-10);
         if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Health=0; pet.RespawnAt=double.MaxValue; p.Pet=""; }
         EconomicDirty=true;

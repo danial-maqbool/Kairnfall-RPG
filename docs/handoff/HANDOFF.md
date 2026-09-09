@@ -1,5 +1,9 @@
 # Kairnfall local source handoff
 
+## Targeting and difficulty continuation — 2026-09-09
+
+Task 1 is integrated at `1628b73770393980bb2d1e8017345f2f830786d7`. It repairs Tab being consumed by GUI focus traversal. The subsequent density, progression, pursuit and HUD source is described in [Challenge balance](../CHALLENGE_BALANCE.md) and [the player guide](../HUNTING_AND_JOURNEY.md). Consult the latest dated session checkpoint for exact source and final verification status. Preserve historical failed attempts rather than interpreting a prepared candidate as an accepted integration. Keep only main, preserve saves, and do not promise a completed game from passing native fixtures.
+
 ## Current hunting and presentation integration — 2026-09-09
 
 Read [HUNTING_AND_PRESENTATION_2026-09-09](HUNTING_AND_PRESENTATION_2026-09-09.md) first. Actual source is integrated at `9d9b361fa49e5f85f802c494819227f1947b7f9c`, not only stored in a candidate. The complete retained suite and graphical workflow passed for exact source `e5b0269048ef3ffd2fba6f511970e2f9d25dfeb2`. This includes dense hunting, beginner dungeons, Atelier import, native pixels, Q dash, target cycling, early progression and shared inventory views. The pending execution checkpoint is historical. Keep only main and preserve all intervening source, saves, credentials and local tools. Independent visual and hardware/release gates remain open.

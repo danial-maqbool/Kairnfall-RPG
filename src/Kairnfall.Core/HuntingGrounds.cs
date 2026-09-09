@@ -22,11 +22,11 @@ public sealed class HuntingPlan
 
 public static class HuntingGrounds
 {
-    public const int Revision = 2;
+    public const int Revision = 3;
     public const int PackSize = 5;
     private sealed class Cache { public readonly Dictionary<string,(int Stamp,HuntingPlan Plan)> Plans = []; }
     private static readonly ConditionalWeakTable<Catalog,Cache> Caches = new();
-    public static int Multiplier(int level) => level <= 20 ? 30 : level <= 40 ? 20 : level <= 60 ? 15 : level <= 80 ? 10 : 5;
+    public static int Multiplier(int level) => level <= 20 ? 60 : level <= 40 ? 40 : level <= 60 ? 30 : level <= 80 ? 20 : 10;
     public static bool IsTown(ZoneDef zone) => zone.Kind is "city" or "settlement";
     public static string Specialty(ZoneDef zone) => zone.Biome switch
     {
@@ -103,6 +103,7 @@ public static class HuntingGrounds
             if(Reach(point)&&!Protected(zone,point,data)) anchors.Add(point);
         }
         if(anchors.Count==0) throw new InvalidDataException("No reachable hunting ground in "+zone.Id);
+        double minX=anchors.Min(p=>p.X), maxX=anchors.Max(p=>p.X), minY=anchors.Min(p=>p.Y), maxY=anchors.Max(p=>p.Y);
         var occupied=new List<Point>(); var centers=new List<Point>(); var spawns=new List<HuntSpawn>(); var patches=new List<HuntPatch>();
         var membership=new Dictionary<string,HuntPatch>(StringComparer.Ordinal);
         int multiplier=Multiplier(zone.Level), ordinary=species.Count(m=>!m.Boss&&!m.Elite), sequence=0;
@@ -120,6 +121,17 @@ public static class HuntingGrounds
             double angle=(sequence++*2.399963+zone.Seed*.01)%Math.Tau;
             double radius=IsTown(zone)?29+batch%2*5:zone.Layer=="Surface"?19+batch*8:12+batch*4;
             var desired=new Point(zone.Spawn.X+Math.Cos(angle)*radius,zone.Spawn.Y+Math.Sin(angle)*radius);
+            if(batch>0)
+            {
+                // Strata span the reachable floor, not a fixed ring around arrival.
+                // A coprime stride visits every sector before repeating. First patches
+                // remain nearby so the starter journey still has visible activity.
+                int sector=(int)(((long)sequence*5+(uint)zone.Seed)%16);
+                double jitter=(WorldMap.Hash(batch,sequence,zone.Seed)%1000)/1000.0-.5;
+                double u=((sector%4)+.5+jitter*.45)/4;
+                double v=((sector/4)+.5-jitter*.45)/4;
+                desired=new Point(minX+(maxX-minX)*u,minY+(maxY-minY)*v);
+            }
             Point centre=default; List<Point>? positions=null;
             // Relax centre separation, never actor separation or reachability, in narrow tunnels.
             foreach(double separation in new[]{6.0,3.0,0.0})

@@ -7,7 +7,7 @@ public partial class GameRoot
 {
     private HudPanel targetFrame = null!, chatFrame = null!;
     private ProgressBar targetHealth = null!;
-    private Label targetDetail = null!, objectiveText = null!;
+    private Label targetDetail = null!, objectiveText = null!, experiencePacing = null!;
     private VBoxContainer chatBody = null!;
     private Button chatToggle = null!, objectiveToggle = null!;
     private bool chatExpanded = true;
@@ -16,10 +16,17 @@ public partial class GameRoot
     {
         hud = new Control { Name = "GameHud", MouseFilter = MouseFilterEnum.Ignore };
         interfaceRoot.AddChild(hud); hud.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect); interfaceRoot.MoveChild(hud, 0);
-        var vitals = new HudPanel { Name = "Vitals", Position = new Vector2(16, 16), CustomMinimumSize = new Vector2(286, 0) };
-        hud.AddChild(vitals);
+        var leftHud = new VBoxContainer
+        {
+            Name = "VitalsAndObjectives", Position = new Vector2(16, 16),
+            CustomMinimumSize = new Vector2(286, 0), MouseFilter = MouseFilterEnum.Ignore
+        };
+        leftHud.AddThemeConstantOverride("separation", 10); hud.AddChild(leftHud);
+        var vitals = new HudPanel { Name = "Vitals", CustomMinimumSize = new Vector2(286, 0) };
+        leftHud.AddChild(vitals);
         var column = Ui.Column(vitals); column.AddThemeConstantOverride("separation", 4);
         characterTitle = Ui.Label("", 17, Ui.Gold); column.AddChild(characterTitle);
+        experiencePacing = Ui.Label("", 11, Ui.Muted, true); experiencePacing.Name = "ExperiencePacing"; column.AddChild(experiencePacing);
         healthText = Ui.Label("", 13); column.AddChild(healthText); health = Ui.Bar(new Color("a94c46"), 262); column.AddChild(health);
         manaText = Ui.Label("", 13); column.AddChild(manaText); mana = Ui.Bar(new Color("587db7"), 262); column.AddChild(mana);
         staminaText = Ui.Label("", 13); column.AddChild(staminaText); stamina = Ui.Bar(new Color("899955"), 262); column.AddChild(stamina);
@@ -40,9 +47,9 @@ public partial class GameRoot
         var targetColumn = Ui.Column(targetFrame); targetColumn.MouseFilter = MouseFilterEnum.Ignore; targetColumn.AddThemeConstantOverride("separation", 3);
         targetText = Ui.Label("", 16, Ui.Text); targetText.HorizontalAlignment = HorizontalAlignment.Center; targetColumn.AddChild(targetText);
         targetHealth = Ui.Bar(new Color("a94c46"), 322); targetHealth.MouseFilter = MouseFilterEnum.Ignore; targetColumn.AddChild(targetHealth);
-        targetDetail = Ui.Label("", 12, Ui.Muted, true); targetDetail.HorizontalAlignment = HorizontalAlignment.Center; targetColumn.AddChild(targetDetail);
-        var objectives = new HudPanel { Name = "QuestTracker", Position = new Vector2(16, 195), CustomMinimumSize = new Vector2(286, 0) };
-        hud.AddChild(objectives);
+        targetDetail = Ui.Label("", 12, Ui.Muted, true); targetDetail.Name = "TargetChallenge"; targetDetail.HorizontalAlignment = HorizontalAlignment.Center; targetColumn.AddChild(targetDetail);
+        var objectives = new HudPanel { Name = "QuestTracker", CustomMinimumSize = new Vector2(286, 0) };
+        leftHud.AddChild(objectives);
         var objectiveColumn = Ui.Column(objectives); objectiveColumn.AddThemeConstantOverride("separation", 4);
         var objectiveHeader = Ui.Row(objectiveColumn);
         var heading = Ui.Label("CURRENT OBJECTIVE", 12, Ui.Gold); heading.SizeFlagsHorizontal = SizeFlags.ExpandFill; objectiveHeader.AddChild(heading);
@@ -168,6 +175,9 @@ public partial class GameRoot
         var self = snap.Self; var stats = CombatMath.Stats(self, Data);
         characterTitle.Text = self.Name + " · Level " + Progression.PlayerLevel(self);
         characterTitle.TooltipText = Data.Class(self.Class).Name + " · " + self.Gold + " gold";
+        int overallLevel = Progression.PlayerLevel(self);
+        experiencePacing.Text = $"Overall XP {ChallengeProgression.OverallRate(overallLevel):P0} · Next band {Math.Min(200, ((overallLevel - 1) / 10 + 1) * 10 + 1)}";
+        experiencePacing.TooltipText = "Future skill awards contribute this fraction to overall growth. Weaker enemies reduce it further. Skill practice is tracked separately. Previously earned levels stay intact.";
         health.MaxValue = stats.Health; health.Value = self.Health; healthText.Text = $"Health  {Math.Ceiling(self.Health):0} / {stats.Health:0}";
         mana.MaxValue = stats.Mana; mana.Value = self.Mana; manaText.Text = $"Mana  {Math.Ceiling(self.Mana):0} / {stats.Mana:0}";
         stamina.MaxValue = stats.Stamina; stamina.Value = self.Stamina; staminaText.Text = $"Stamina  {Math.Ceiling(self.Stamina):0} / {stats.Stamina:0}";
@@ -183,6 +193,10 @@ public partial class GameRoot
             targetHealth.MaxValue = definition.Health; targetHealth.Value = target.Health;
             bool reachable = ExperienceRules.CanTarget(self, target, Data, ExperienceRules.WeaponRange(self, Data), true);
             targetDetail.Text = $"{Math.Ceiling(target.Health):0} / {definition.Health:0} health · {distance:0.0} tiles · " + (reachable ? "In weapon range" : "Out of range or blocked");
+            double practice = ChallengeProgression.SkillPractice(overallLevel, definition.Level);
+            double credit = ChallengeProgression.EnemyCredit(overallLevel, definition.Level) * ChallengeProgression.OverallRate(overallLevel);
+            targetDetail.Text += $"\n{ChallengeProgression.ChallengeName(overallLevel, definition.Level)} · {practice:P0} practice · {credit:P1} overall credit";
+            targetDetail.TooltipText = "Practice scales the base combat skill award before skill mastery and affinity. Overall credit applies to the awarded practice, not the base reward. Twenty-level weaker enemies grant little progress.";
             var effects = target.Statuses.Where(x => x.Until > snap.Time).Select(x => Ui.Words(x.Kind)).Distinct().Take(3).ToArray();
             if (effects.Length > 0) targetDetail.Text += "\n" + string.Join(" · ", effects);
         }

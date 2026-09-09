@@ -76,10 +76,26 @@ internal static class TargetKeyChecks
                 y=11; break;
             }
             check(data.Self.LastAction==original.Self.LastAction,"Target selection does not issue server combat or movement commands");
+            Member("engagementStarted").SetValue(game,true); Member("engagementOrigin").SetValue(game,data.Self.Position);
+            Member("observedAttackCooldown").SetValue(game,0d); Member("approachUsed").SetValue(game,true);
+            Member("approachTravelled").SetValue(game,2.3d);
+            data.Self.Cooldowns["attack"]=data.Time+100;
+            game.World.Accept(new TransportPacket{Snapshot=data});
+            typeof(GameRoot).GetMethod("TryBasicAttack",flags)!.Invoke(game,null);
+            check(!Read<bool>("approachUsed")&&Read<double>("approachTravelled")==0,"A confirmed server attack refreshes the short approach window");
+            Member("approachUsed").SetValue(game,true);Member("approachTravelled").SetValue(game,2.3d);
+            Member("lastApproachPosition").SetValue(game,data.Self.Position);
+            typeof(GameRoot).GetMethod("TryBasicAttack",flags)!.Invoke(game,null);
+            check(Read<double>("approachTravelled")>=2.3,"An unchanged snapshot cannot reset the pursuit budget");
+            Member("attackKeyHeld").SetValue(game,true);
+            Member("engagementOrigin").SetValue(game,data.Self.Position.Add(new Point(7,0)));
+            typeof(GameRoot).GetMethod("TryBasicAttack",flags)!.Invoke(game,null);
+            check(!Read<bool>("attackKeyHeld"),"Held combat stops at its fixed engagement-origin distance bound");
         }
         finally
         {
             typeof(GameRoot).GetMethod("ClosePage",flags)!.Invoke(game,null);
+            typeof(GameRoot).GetMethod("StopCombatInput",flags)!.Invoke(game,null);
             bindings["target_next"]=savedBinding;
             Member("selectedTarget").SetValue(game,savedTarget); Member("selectedTargetKind").SetValue(game,savedKind);
             game.World.Accept(new TransportPacket {Snapshot=original}); game.World.TargetId=savedTarget;

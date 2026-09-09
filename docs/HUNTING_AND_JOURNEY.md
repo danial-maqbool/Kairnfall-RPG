@@ -6,8 +6,8 @@
 | --- | --- |
 | WASD or arrow keys | Walk |
 | Q | Dash in the movement direction, or in the facing direction when stationary |
-| Tab | Select the next eligible nearby creature |
-| Shift+Tab | Select the previous eligible nearby creature |
+| Tab | Select the next eligible creature within 12 tiles and clear sight |
+| Shift+Tab | Select the previous eligible creature within the same radius |
 | Space | Basic attack; hold to repeat at the allowed cadence |
 | H | Open the regional Hunting guide |
 | I | Open the shared backpack |
@@ -23,19 +23,19 @@ The multiplier applies to each ordinary species' original one-creature spawn bas
 
 | Suggested region level | Ordinary spawn multiplier |
 | --- | ---: |
-| 0-20 | 30x |
-| 21-40 | 20x |
-| 41-60 | 15x |
-| 61-80 | 10x |
-| 81 and above | 5x |
+| 0-20 | 60x |
+| 21-40 | 40x |
+| 41-60 | 30x |
+| 61-80 | 20x |
+| 81 and above | 10x |
 
-A region with five ordinary species at level 10 has 150 ordinary slots. Bosses and elites use separate single slots. Killing or taming creatures can reduce the living population until a slot becomes available again.
+A region with five ordinary species at level 10 has 300 ordinary slots. Bosses and elites use separate single slots. Killing or taming creatures can reduce the living population until a slot becomes available again.
 
 The layout separates each species into several patches of up to five creatures. Every initial position is reachable from the regional arrival point and is separated from other initial positions. Narrow underground areas may use closer patch centers, but they retain the same actor separation and reachability checks. The builder fails rather than silently dropping requested population when it cannot place a valid slot.
 
 Interiors remain safe. Village and city service cores, NPC work positions, doors and arrival points remain protected. Previously empty settlements gain suitable wildlife outside their protected core. The system does not fill inns or shops with hostile packs.
 
-The generated world currently contains 109 regions and 4,682 initial creatures, including separate boss and elite instances. This is a seeded-world census, not a promise that every creature remains visible or alive simultaneously.
+The generated world currently contains 109 regions and 9,302 initial creatures, including separate boss and elite instances. One introductory patch per species remains near the arrival area. Later patches use deterministic sectors across reachable terrain rather than only an arrival-centered ring. This is a seeded-world census, not a promise that every creature remains visible or alive simultaneously.
 
 ## Hunting patches and specialties
 
@@ -78,13 +78,13 @@ Material grade, crafting level, equipment use level and overall player level rem
 
 The rule also handles intermediate requirements. It never raises an item's original requirement. It does not lower a raw material's requirement or rewrite an item's grade, recipe, saved identifier or instance statistics.
 
-Overall progression uses a smooth early-growth bonus. For nonnegative total earned skill XP `x`, the equivalent value used for overall level is:
+The original overall conversion retains its smooth early-growth bonus. For nonnegative credited training `x`, its equivalent value is:
 
 ```text
 x + 50*x / (1 + x/250000)
 ```
 
-The extra slope decreases as earned XP increases. Raw saved skill XP and individual skill levels do not change. Existing characters do not lose an overall level. An automated boundary test verifies that 10,000 total earned skill XP reaches at least overall level 20. This is not a measured human completion time or a full class-balance approval.
+Future training now contributes to that conversion at a reduced, nonlinear rate that falls every ten player levels. Twenty-level weaker enemies grant little overall credit and a small amount of accumulated skill practice. Raw saved skill XP and individual skill levels remain intact. Previously earned levels do not decrease. A gradual late-game mastery floor prevents an artificial last-point jump. The historical 10,000-XP boundary describes the old fully credited conversion, not the new training time. Read [Challenge balance](CHALLENGE_BALANCE.md) for the complete equations, fraction handling and limits.
 
 ## One backpack, separate views
 
