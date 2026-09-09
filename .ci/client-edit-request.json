@@ -1,16 +1,40 @@
 {
-  "base":"dbde35977eca2c68b8194912761a6a12c29380bd",
-  "message":"fix(merchant): keep large sale totals visible and equipped comparisons current",
-  "purpose":"Preserve the newly prepared explicit-reselection guard and every existing item/merchant repair. Put the two pinned sale actions in separate centered rows so large totals do not compete for width. Refresh comparisons when equipped instance data changes without an ID change. Add native high-value partial/full-stack transactions and comparison-refresh fixtures at both resolutions. Preserve quantity, caret, colors, blockers, replay, receipt, network, progression, Foundry and Atelier behavior and tests.",
-  "edits":[
-    {"path":"client/Tests/MerchantBoundaryUiChecks.cs","expected_blob":null,"source_blob":"957ce9a5ef42394f29be294297226c5abec89cfb"},
-    {"path":"client/Scripts/MerchantSellPanel.cs","expected_blob":"b069f54b40dcb737bc8a6dab997198013d0de1cd","replacements":[
-      {"old":"        var buttons = Ui.Row(inspector); buttons.Alignment = BoxContainer.AlignmentMode.Center;","new":"        // Separate rows keep both complete gold totals visible at the minimum viewport.\n        var buttons = Ui.Column(inspector); buttons.Name = \"MerchantSaleActions\";\n        buttons.AddThemeConstantOverride(\"separation\", 4);"},
-      {"old":"        buttons.AddChild(sell); buttons.AddChild(sellAll);","new":"        sell.Alignment = sellAll.Alignment = HorizontalAlignment.Center;\n        sell.SizeFlagsHorizontal = sellAll.SizeFlagsHorizontal = SizeFlags.ExpandFill;\n        buttons.AddChild(sell); buttons.AddChild(sellAll);"},
-      {"old":"                string stamp = JsonSerializer.Serialize(new { current, self.Equipment, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);","new":"                // Durability, affixes and runes can change while the equipment IDs stay fixed.\n                var equippedItems = self.Inventory.Where(x => Items.Equipped(self, x.Id)).ToArray();\n                string stamp = JsonSerializer.Serialize(new { current, self.Equipment, equippedItems, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);"}
-    ]},
-    {"path":"client/Tests/ItemCommerceUiChecks.cs","expected_blob":"1b59f65651083785bc7ac0f975532f5e7ee4c614","replacements":[
-      {"old":"            if(original is not null)game.World.Accept(new TransportPacket{Snapshot=original});\n        }\n    }\n}","new":"            if(original is not null)game.World.Accept(new TransportPacket{Snapshot=original});\n        }\n        await MerchantBoundaryUiChecks.Run(host, game, check);\n    }\n}"}
-    ]
+  "base": "dbde35977eca2c68b8194912761a6a12c29380bd",
+  "message": "fix(merchant): keep large sale totals visible and equipped comparisons current",
+  "purpose": "Preserve explicit reselection after sale, existing compact cards and real-server merchant behavior. Keep gold totals in separate centered rows and refresh comparisons when equipped-instance statistics change. Add native high-value partial and full-stack transactions plus comparison-refresh checks. This corrects the prior request document syntax; no production source or test assertion was changed by that failed preparation.",
+  "edits": [
+    {
+      "path": "client/Tests/MerchantBoundaryUiChecks.cs",
+      "expected_blob": null,
+      "source_blob": "957ce9a5ef42394f29be294297226c5abec89cfb"
+    },
+    {
+      "path": "client/Scripts/MerchantSellPanel.cs",
+      "expected_blob": "b069f54b40dcb737bc8a6dab997198013d0de1cd",
+      "replacements": [
+        {
+          "old": "        var buttons = Ui.Row(inspector); buttons.Alignment = BoxContainer.AlignmentMode.Center;",
+          "new": "        // Separate rows keep both complete gold totals visible at the minimum viewport.\n        var buttons = Ui.Column(inspector); buttons.Name = \"MerchantSaleActions\";\n        buttons.AddThemeConstantOverride(\"separation\", 4);"
+        },
+        {
+          "old": "        buttons.AddChild(sell); buttons.AddChild(sellAll);",
+          "new": "        sell.Alignment = sellAll.Alignment = HorizontalAlignment.Center;\n        sell.SizeFlagsHorizontal = sellAll.SizeFlagsHorizontal = SizeFlags.ExpandFill;\n        buttons.AddChild(sell); buttons.AddChild(sellAll);"
+        },
+        {
+          "old": "                string stamp = JsonSerializer.Serialize(new { current, self.Equipment, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);",
+          "new": "                // Durability, affixes and runes can change while the equipment IDs stay fixed.\n                var equippedItems = self.Inventory.Where(x => Items.Equipped(self, x.Id)).ToArray();\n                string stamp = JsonSerializer.Serialize(new { current, self.Equipment, equippedItems, self.SkillXp, dead = self.Health <= 0 }, Wire.Json);"
+        }
+      ]
+    },
+    {
+      "path": "client/Tests/ItemCommerceUiChecks.cs",
+      "expected_blob": "1b59f65651083785bc7ac0f975532f5e7ee4c614",
+      "replacements": [
+        {
+          "old": "            if(original is not null)game.World.Accept(new TransportPacket{Snapshot=original});\n        }\n    }\n}",
+          "new": "            if(original is not null)game.World.Accept(new TransportPacket{Snapshot=original});\n        }\n        await MerchantBoundaryUiChecks.Run(host, game, check);\n    }\n}"
+        }
+      ]
+    }
   ]
 }
