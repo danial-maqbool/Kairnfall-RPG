@@ -137,6 +137,8 @@ public partial class LiveExperienceContract : Node
             await Until(() => Self.LastAction == dashSequence + 1, "Native Q did not produce one authoritative dash.");
             Require(Self.Position.Distance(dashStart) >= .25 && Self.Position.Distance(dashStart) <= DashRules.Distance + .05, "Native Q performs a bounded server-validated dash");
             Require(Self.Mana < dashMana && Self.Cooldowns.ContainsKey("dash"), "Dash consumes mana and supplies an authoritative cooldown");
+            await TargetKeyChecks.Run(this,game,Require);
+            await Delay(.3);
             sequence = Self.LastAction;
             KeyEvent(Key.Space, true); await Delay(.1);
             Require(Field<bool>(game, "attackKeyHeld"), "Native Space press arms held combat without sending empty-target requests");

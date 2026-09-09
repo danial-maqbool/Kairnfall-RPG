@@ -32,6 +32,16 @@ public partial class GameRoot
 
     public override void _Input(InputEvent @event)
     {
+        // Godot runs GUI focus traversal before _UnhandledInput. Reserve the target
+        // key only in active gameplay; never steal Tab from text or an open menu.
+        if (@event is InputEventKey { Pressed: true } targetKey && GameplayInputAllowed
+            && !targetKey.CtrlPressed && !targetKey.AltPressed && !targetKey.MetaPressed
+            && bindings.TryGetValue("target_next", out var targetBinding)
+            && targetKey.PhysicalKeycode == targetBinding)
+        {
+            if (!targetKey.Echo) CycleHostileTarget(targetKey.ShiftPressed);
+            GetViewport().SetInputAsHandled(); return;
+        }
         // GUI focus can consume a release after the press reached the world.
         if (InputMap.HasAction("basic_attack") && @event.IsActionReleased("basic_attack")) StopCombatInput();
     }
@@ -165,6 +175,11 @@ public partial class GameRoot
         var snapshot = Snapshot!;
         if (ExperienceRules.CycleTarget(snapshot.Self, snapshot.Creatures, Data, selectedTarget, reverse) is { } target)
             SelectTarget("creature", target.Id);
+        else
+        {
+            StopCombatInput(); SelectTarget("", "");
+            Notify("No living creature within " + ExperienceRules.TargetCycleRadius + " tiles and clear sight.");
+        }
     }
 
     private void BuildExperienceHud()
@@ -189,7 +204,7 @@ public partial class GameRoot
         controls.AddChild(interactionButton);
         targetNextButton = Ui.Button("Target [Tab]", () => CycleHostileTarget());
         targetNextButton.Name = "CycleHostileTarget"; targetNextButton.FocusMode = FocusModeEnum.None;
-        targetNextButton.TooltipText = "Tab: next living creature. Shift+Tab: previous. Walls and pets are excluded.";
+        targetNextButton.TooltipText = "Tab: next living creature within 12 tiles. Shift+Tab: previous. Walls, pets and corpses are excluded. Typing keeps normal UI navigation.";
         controls.AddChild(targetNextButton);
         dashButton = Ui.Button("Dash [Q]", RequestDash); dashButton.Name = "DashAction";
         dashButton.FocusMode = FocusModeEnum.None; controls.AddChild(dashButton);
