@@ -277,6 +277,10 @@ public sealed class Character
     public double Stamina { get; set; } = 100;
     public long Gold { get; set; } = 40;
     public Dictionary<string,long> SkillXp { get; set; } = [];
+    // Zero defaults preserve historical levels. New credit rates affect future training only.
+    public long PracticeOnlyXp { get; set; }
+    public double OverallCreditRemainder { get; set; }
+    public Dictionary<string,double> CombatPracticeRemainders { get; set; } = [];
     public List<Item> Inventory { get; set; } = [];
     public List<Item> Bank { get; set; } = [];
     public Dictionary<string,string> Equipment { get; set; } = [];

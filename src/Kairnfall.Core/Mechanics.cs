@@ -20,7 +20,9 @@ public static class Progression
     public static long Total(Character p) => p.SkillXp.Values.Sum(x=>Math.Clamp(x,0,Threshold(SkillCap)));
     public static int PlayerLevel(Character p)
     {
-        double ratio=Math.Clamp(BeginnerProgression.OverallEquivalentXp(Total(p))/(60.0*Threshold(SkillCap)),0,1);
+        // Complete mastery retains the existing terminal milestone.
+        if(Total(p)>=60L*Threshold(SkillCap)) return PlayerCap;
+        double ratio=Math.Clamp(BeginnerProgression.OverallEquivalentXp(ChallengeProgression.OverallTraining(p))/(60.0*Threshold(SkillCap)),0,1);
         return Math.Clamp(1+(int)Math.Floor(199*Math.Pow(ratio,0.30)),1,PlayerCap);
     }
     public static long Train(Character p,string skill,int xp,int difficulty,Catalog catalog)
@@ -30,10 +32,13 @@ public static class Progression
         int over=Level(p,skill)-difficulty;
         double challenge=Math.Clamp((30.0-over)/30.0,0,1);
         double affinity=catalog.Class(p.Class).Affinity.Contains(skill)?1.10:1;
+        int overallBefore=PlayerLevel(p);
         long old=p.SkillXp.GetValueOrDefault(skill);
         long award=(long)Math.Floor(xp*challenge*affinity);
         p.SkillXp[skill]=Math.Min(Threshold(SkillCap),old+award);
-        return p.SkillXp[skill]-old;
+        long actual=p.SkillXp[skill]-old;
+        ChallengeProgression.Credit(p,actual,overallBefore);
+        return actual;
     }
 }
 
