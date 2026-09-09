@@ -1,10 +1,11 @@
 {
- "base":"07fb256e45a7618ee28bb3aa0c90a9172f2ab5a5",
- "message":"test(progression): exercise actual kill replay with a protocol-valid request ID",
- "purpose":"The new XP fixture was rejected before combat because its literal request ID did not meet the existing wire contract. Use a normal 32-character GUID and retain the same request object for the replay check. Do not change production validation, award formulas, test assertions or timeouts.",
+ "base":"e64810f6adf2d85eacea51bedb87f875e1ce8fda",
+ "message":"fix(hud): use container layout to prevent XP and objective overlap",
+ "purpose":"The added native HUD regression correctly detected the XP row making the vitals panel overlap the fixed-position objective tracker. Put both existing panels in a shared vertical container with explicit separation. Preserve original global starting position, widget identities, mouse filtering and all assertions. The fix responds to the measured layout failure rather than weakening the test.",
  "edits":[
-  {"path":"tools/world_probe/ChallengeProgressionChecks.cs","expected_blob":"317557d35f7204059239518ab00a14e50e04c324","replacements":[
-   {"old":"RequestId=\"xp-once\"","new":"RequestId=Guid.NewGuid().ToString(\"N\")"}
+  {"path":"client/Scripts/GameRoot.Hud.cs","expected_blob":"177668e30ea950492523e5a456aa30e8d409cad5","replacements":[
+   {"old":"        var vitals = new HudPanel { Name = \"Vitals\", Position = new Vector2(16, 16), CustomMinimumSize = new Vector2(286, 0) };\n        hud.AddChild(vitals);","new":"        var leftHud = new VBoxContainer\n        {\n            Name = \"VitalsAndObjectives\", Position = new Vector2(16, 16),\n            CustomMinimumSize = new Vector2(286, 0), MouseFilter = MouseFilterEnum.Ignore\n        };\n        leftHud.AddThemeConstantOverride(\"separation\", 10); hud.AddChild(leftHud);\n        var vitals = new HudPanel { Name = \"Vitals\", CustomMinimumSize = new Vector2(286, 0) };\n        leftHud.AddChild(vitals);"},
+   {"old":"        var objectives = new HudPanel { Name = \"QuestTracker\", Position = new Vector2(16, 195), CustomMinimumSize = new Vector2(286, 0) };\n        hud.AddChild(objectives);","new":"        var objectives = new HudPanel { Name = \"QuestTracker\", CustomMinimumSize = new Vector2(286, 0) };\n        leftHud.AddChild(objectives);"}
   ]}
  ]
 }
