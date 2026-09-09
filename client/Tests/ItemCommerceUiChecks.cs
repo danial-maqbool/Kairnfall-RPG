@@ -82,12 +82,14 @@ internal static class ItemCommerceUiChecks
                 await Click(Find<Button>("OpenMerchantSell"));await Frame();await Frame();
                 var panel=Find<MerchantSellPanel>("MerchantSellPanel");int requests=0,lastCount=0;
                 panel.Data=fixtureData;
-                panel.ReadCharacter=()=>self;
+                Character displayed=self;bool delaySnapshot=false;
+                panel.ReadCharacter=()=>displayed;
                 panel.SellItem=(id,count)=>
                 {
                     requests++;lastCount=count;
                     var result=realm.Execute(self.Id,new GameCommand{Kind="sell",Target=merchant.Id,Item=id,Amount=count,Sequence=self.LastAction+1});
-                    self=realm.Player(self.Id);return Task.FromResult<CommandResult?>(result);
+                    self=realm.Player(self.Id);if(!delaySnapshot)displayed=self;
+                    return Task.FromResult<CommandResult?>(result);
                 };
                 panel.RefreshSnapshot();await Frame();await Frame();
                 var quantity=Find<SpinBox>("SaleQuantity");await TypeQuantity(quantity,"7");
@@ -100,7 +102,17 @@ internal static class ItemCommerceUiChecks
                 long gold=self.Gold,unit=MerchantSales.UnitPrice(stackDef);
                 check(Find<Label>("SaleGoldTotal").Text.Contains((unit*7).ToString("N0")),"The selected quantity shows the exact total gold");
                 await Capture("merchant-sell-"+size.X);
+                delaySnapshot=true;displayed=Wire.Copy(self);
                 await Click(Find<Button>("SellSelectedQuantity"));
+                check(Find<Button>("SellSelectedQuantity").Disabled&&Find<Button>("SellAllQuantity").Disabled,"A successful receipt keeps both sale actions disabled until inventory catches up");
+                var blockedAt=Find<Button>("SellSelectedQuantity").GetGlobalRect().GetCenter();
+                using(var press=new InputEventMouseButton{Position=blockedAt,GlobalPosition=blockedAt,ButtonIndex=MouseButton.Left,Pressed=true}) host.GetViewport().PushInput(press,true);
+                await Frame();
+                using(var release=new InputEventMouseButton{Position=blockedAt,GlobalPosition=blockedAt,ButtonIndex=MouseButton.Left,Pressed=false}) host.GetViewport().PushInput(release,true);
+                await Frame();panel.RefreshSnapshot();
+                check(requests==1&&Find<Button>("SellAllQuantity").Disabled,"Native repeat clicks and stale snapshots cannot submit a second sale");
+                delaySnapshot=false;displayed=self;panel.RefreshSnapshot();await Frame();
+                check(!Find<Button>("SellSelectedQuantity").Disabled,"The matching authoritative snapshot releases the sale guard");
                 check(requests==1&&lastCount==7&&Items.Owned(self,stack.Id).Quantity==143&&self.Gold==gold+unit*7,"Native Sell quantity reaches the real realm transaction and transfers exact gold");
                 await TypeQuantity(quantity,"invalid");
                 check(Find<Button>("SellSelectedQuantity").Disabled&&requests==1,"Invalid text cannot become a silent sale quantity");

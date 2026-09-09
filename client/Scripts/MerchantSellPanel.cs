@@ -21,6 +21,9 @@ public partial class MerchantSellPanel : VBoxContainer
     private readonly List<string> ids = [];
     private string selected = "", layout = "", cardStamp = "";
     private bool busy, ready, refreshing, confirming;
+    private long awaitingSequence;
+    private string awaitingCharacter = "";
+    private bool AwaitingSnapshot => awaitingSequence > 0;
     public override void _Ready()
     {
         Name = "MerchantSellPanel"; SizeFlagsHorizontal = SizeFlags.ExpandFill; SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -58,6 +61,10 @@ public partial class MerchantSellPanel : VBoxContainer
     public void RefreshSnapshot()
     {
         if (!ready || ReadCharacter?.Invoke() is not { } self) return;
+        if (AwaitingSnapshot && (self.Id != awaitingCharacter || self.LastAction >= awaitingSequence))
+        {
+            awaitingSequence = 0; awaitingCharacter = "";
+        }
         refreshing = true;
         try
         {
@@ -112,16 +119,16 @@ public partial class MerchantSellPanel : VBoxContainer
         string problem = MerchantSales.Problem(self!, Merchant, item, valid ? count : 1, Data);
         string allProblem = MerchantSales.Problem(self!, Merchant, item, item.Quantity, Data);
         long unit = MerchantSales.UnitPrice(Data.Item(item.Template));
-        sell.Disabled = busy || confirming || !valid || problem != "";
-        sellAll.Disabled = busy || confirming || allProblem != "";
+        sell.Disabled = busy || AwaitingSnapshot || confirming || !valid || problem != "";
+        sellAll.Disabled = busy || AwaitingSnapshot || confirming || allProblem != "";
         sell.Text = valid ? $"Sell {count} · {unit * count:N0} gold" : "Sell quantity";
         sellAll.Text = $"Sell all {item.Quantity} · {unit * item.Quantity:N0} gold";
         total.Text = valid ? $"Receive {unit * count:N0} gold · {unit:N0} each" : $"Enter 1–{item.Quantity} whole items.";
-        status.Text = busy ? "Waiting for the server…" : problem != "" ? problem : !valid ? "Enter a valid whole quantity." : "";
+        status.Text = busy ? "Waiting for the server…" : AwaitingSnapshot ? "Sale confirmed. Waiting for inventory update…" : problem != "" ? problem : !valid ? "Enter a valid whole quantity." : "";
     }
     private void Request(bool all)
     {
-        if (busy || confirming || ReadCharacter?.Invoke() is not { } self || Current(self) is not { } item) return;
+        if (busy || AwaitingSnapshot || confirming || ReadCharacter?.Invoke() is not { } self || Current(self) is not { } item) return;
         int count = item.Quantity;
         if (!all && !TryQuantity(amount.GetLineEdit().Text, item.Quantity, out count)) { RefreshQuote(); return; }
         string problem = MerchantSales.Problem(self, Merchant, item, count, Data);
@@ -141,13 +148,20 @@ public partial class MerchantSellPanel : VBoxContainer
     private async Task ExecuteSale(string id, int count)
     {
         var send = SellItem;
-        if (send is null || busy) return;
+        if (send is null || busy || AwaitingSnapshot) return;
+        string character = ReadCharacter?.Invoke()?.Id ?? "";
         busy = true; RefreshQuote();
         string error = "";
         try
         {
             var result = await send(id, count);
             if (result?.Ok != true) error = result?.Message ?? "Sale was not confirmed. Inventory is unchanged until the server confirms it.";
+            else
+            {
+                // The command receipt may arrive before the matching snapshot.
+                // Never enable another sale against the old displayed inventory.
+                awaitingSequence = result.Sequence; awaitingCharacter = character;
+            }
         }
         catch (Exception) { error = "Sale connection failed. Check the server response before trying again."; }
         if (!GodotObject.IsInstanceValid(this) || !IsInsideTree()) return;
