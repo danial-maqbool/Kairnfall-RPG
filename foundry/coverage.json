@@ -1,0 +1,20 @@
+{
+  "groups": {
+    "ground": 329,
+    "portraits": 131,
+    "ui": 65,
+    "vfx": 44
+  },
+  "png_files": 569,
+  "effect_strips": 44,
+  "built_seconds": 2.6,
+  "artistic_review": "pending",
+  "atlas": {
+    "pages": 1,
+    "packed": 569,
+    "occupancy": [
+      0.514
+    ],
+    "too_large": []
+  }
+}
