@@ -1,5 +1,9 @@
 # Kairnfall local source handoff
 
+## Final merchant boundaries — 2026-09-09
+
+Start with [the verified merchant boundary checkpoint](MERCHANT_BOUNDARIES_2026-09-09.md). Integration `51b575323969da9c9b0fab5f3c23a7a5f0c4147e` installs exact passing source `b941ac221e3084772330b98d5b0cbc7e6302669c`. It retains compact comparisons and adds visible large totals, current equipped-stat comparisons, explicit reselection and a narrow cancelled-socket shutdown fix. Full run `34322836260` and graphical run `34322836227` passed. Keep only main and preserve all newer source, local settings and saves. Do not restore a previous candidate or claim manual Windows acceptance.
+
 ## Latest item and merchant integration — 2026-09-09
 
 Read [Item commerce verified integration](ITEM_COMMERCE_VERIFIED_2026-09-09.md). Source `dbd31fc4b0391045754966eb30c73fb1e4404f71` contains the passing compact-card and merchant-sale candidate. It retains earlier targeting, challenge XP, hunting, Foundry and Atelier work. Both native sale buttons were exercised over the real connection and their exact gold and quantities survived reconnect. Keep only main and preserve all saves. Windows, independent visual and full-game release gates remain separate.

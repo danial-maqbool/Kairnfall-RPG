@@ -23,6 +23,8 @@ A lower attack interval is better. Its difference can therefore be negative and 
 
 A two-handed weapon comparison includes any incompatible offhand that the server would remove. The card names that offhand and includes its lost bonuses. This prevents a new weapon from hiding the loss of shield armor. Comparing an item never changes the real character or grants equipment.
 
+The merchant inspector also refreshes when an equipped item's durability, affixes or runes change without changing its instance ID. For example, damage that breaks the equipped item must not leave its old bonuses in the comparison. These updates preserve the pending sale quantity and caret position.
+
 ## Equipment blockers
 
 Unmet equipment requirements appear in red. The current rules include the named skill requirement, dead character state, broken gear, banked gear that must first enter the backpack, and incompatible offhand equipment. The card can display several blockers at once.
@@ -38,7 +40,9 @@ The current equipment rules do not impose a separate class or overall-player-lev
 5. Check the displayed unit price and total gold.
 6. Select **Sell quantity**, or select **Sell all** to sell the entire selected stack.
 
-Sell all affects only the selected stack. It does not sell every item in the backpack or other stacks of the same template. Both buttons stay outside the scrolling item-details area. The page also shows current gold and the shared backpack slot count.
+Sell all affects only the selected stack. It does not sell every item in the backpack or other stacks of the same template. Both sale buttons stay outside the scrolling item-details area. Each button has its own centered row, so a large total does not compete with the other button for horizontal space. The page also shows current gold and the shared backpack slot count.
+
+After the selected stack disappears, select another item before selling again. The panel does not automatically select the next stack beneath an already pressed Sell button. New items arriving after a completed sale also require deliberate selection. This prevents repeated clicks from selling an unintended item.
 
 The client and server use the same sale-price rule: unit price is the greater of 1 and the integer part of 30% of the template value. Total gold is unit price multiplied by the accepted quantity. This retains the existing sale-price model. Purchase prices, which also consider bartering and reputation, are a separate rule.
 
@@ -50,6 +54,8 @@ Epic-or-higher items and items containing runes require confirmation. A successf
 
 ## Verification limits
 
-The integrated source passed full retained backend/database tests, native quantity and comparison tests, graphical fixtures at 1280 by 720 and 1920 by 1080, and real-connection partial/full-stack sales followed by reconnect. See [the exact-source record](handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md).
+The base item-card and sale implementation passed retained backend/database tests, native quantity and comparison tests, graphical fixtures at 1280 by 720 and 1920 by 1080, and real-connection partial/full-stack sales followed by reconnect. See [the original exact-source record](handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md).
+
+The additional sale-selection, large-total layout and comparison-refresh checks are recorded in [the merchant boundary checkpoint](handoff/MERCHANT_BOUNDARIES_2026-09-09.md). Bulk and high-price fixtures use copied catalogs. They do not change production item values, stack limits or backpack capacity.
 
 Rendered fixtures and generated native input do not establish independent visual approval or physical Windows input/DPI acceptance. The whole game remains a development build, not an accepted Windows release.

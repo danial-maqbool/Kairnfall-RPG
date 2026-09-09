@@ -1,5 +1,9 @@
 # Verification record
 
+## Final item and merchant boundaries — 2026-09-09
+
+Exact source `b941ac221e3084772330b98d5b0cbc7e6302669c` passed full run `34322836260` and graphical run `34322836227`. Integration `51b575323969da9c9b0fab5f3c23a7a5f0c4147e` differs only in retained request metadata. Results include 7 item-commerce groups, 118 Python tests, 52 native player checks, 1,140 native control/layout checks, 116 live client/server checks and 305 native presentation checks. Reconnect tests preserve exact sale gold, removed quantities, equipment and XP. Earlier failed and timed-out attempts remain documented. [Evidence, files and acceptance limits](MERCHANT_BOUNDARIES_2026-09-09.md).
+
 ## Item comparison and selling — 2026-09-09
 
 Actual source integration `dbd31fc4b0391045754966eb30c73fb1e4404f71` matches tested candidate `2559da7e9e22823c49e8a71de87c76f72cffaab7` except for retained documentation and request metadata. Full run `34313980306` and graphical run `34313980303` passed. Counts: 6 commerce groups, 118 Python tests, 52 native player checks, 1,102 native control checks, 110 live client/server checks and 263 native presentation checks. Existing backend, database, security, migration, hunting and challenge tests remain in the passing matrix. [Exact evidence and limits](ITEM_COMMERCE_VERIFIED_2026-09-09.md).
