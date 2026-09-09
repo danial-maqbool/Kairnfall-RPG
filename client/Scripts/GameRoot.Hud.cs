@@ -16,8 +16,14 @@ public partial class GameRoot
     {
         hud = new Control { Name = "GameHud", MouseFilter = MouseFilterEnum.Ignore };
         interfaceRoot.AddChild(hud); hud.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect); interfaceRoot.MoveChild(hud, 0);
-        var vitals = new HudPanel { Name = "Vitals", Position = new Vector2(16, 16), CustomMinimumSize = new Vector2(286, 0) };
-        hud.AddChild(vitals);
+        var leftHud = new VBoxContainer
+        {
+            Name = "VitalsAndObjectives", Position = new Vector2(16, 16),
+            CustomMinimumSize = new Vector2(286, 0), MouseFilter = MouseFilterEnum.Ignore
+        };
+        leftHud.AddThemeConstantOverride("separation", 10); hud.AddChild(leftHud);
+        var vitals = new HudPanel { Name = "Vitals", CustomMinimumSize = new Vector2(286, 0) };
+        leftHud.AddChild(vitals);
         var column = Ui.Column(vitals); column.AddThemeConstantOverride("separation", 4);
         characterTitle = Ui.Label("", 17, Ui.Gold); column.AddChild(characterTitle);
         experiencePacing = Ui.Label("", 11, Ui.Muted, true); experiencePacing.Name = "ExperiencePacing"; column.AddChild(experiencePacing);
@@ -42,8 +48,8 @@ public partial class GameRoot
         targetText = Ui.Label("", 16, Ui.Text); targetText.HorizontalAlignment = HorizontalAlignment.Center; targetColumn.AddChild(targetText);
         targetHealth = Ui.Bar(new Color("a94c46"), 322); targetHealth.MouseFilter = MouseFilterEnum.Ignore; targetColumn.AddChild(targetHealth);
         targetDetail = Ui.Label("", 12, Ui.Muted, true); targetDetail.Name = "TargetChallenge"; targetDetail.HorizontalAlignment = HorizontalAlignment.Center; targetColumn.AddChild(targetDetail);
-        var objectives = new HudPanel { Name = "QuestTracker", Position = new Vector2(16, 195), CustomMinimumSize = new Vector2(286, 0) };
-        hud.AddChild(objectives);
+        var objectives = new HudPanel { Name = "QuestTracker", CustomMinimumSize = new Vector2(286, 0) };
+        leftHud.AddChild(objectives);
         var objectiveColumn = Ui.Column(objectives); objectiveColumn.AddThemeConstantOverride("separation", 4);
         var objectiveHeader = Ui.Row(objectiveColumn);
         var heading = Ui.Label("CURRENT OBJECTIVE", 12, Ui.Gold); heading.SizeFlagsHorizontal = SizeFlags.ExpandFill; objectiveHeader.AddChild(heading);
