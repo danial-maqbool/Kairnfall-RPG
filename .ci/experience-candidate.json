@@ -1,6 +1,6 @@
 {
-  "sha": "ea829440e162fc71b1a65f3b177f470452d3dd1a",
-  "base": "2c0ccda45d13b719b35a6f8bf2ea83dab1242857",
-  "mode": "repair",
-  "purpose": "Run all retained checks for compact centered item cards, individually signed colored statistics, red blockers, exact integer quantity sales, explicit reselection, large sale totals and refreshed equipped-instance comparisons. The previous candidate passed native and graphical checks and both real server sale transactions, but its live reconnect exposed an explicitly cancelled receive/abort disposal race. Handle only OperationCanceledException or ObjectDisposedException when the receiver token is already cancelled; active-session and protocol errors remain visible. Add deterministic shutdown-filter tests and three real reconnect cycles preserving exact sale gold, removed quantities, equipment and XP. Do not reduce any assertions or timeouts. Require full backend, security, database, native, graphical and live passes before source integration."
+  "sha":"b941ac221e3084772330b98d5b0cbc7e6302669c",
+  "base":"2c0ccda45d13b719b35a6f8bf2ea83dab1242857",
+  "mode":"repair",
+  "purpose":"Verify the unchanged merchant edge and cancelled-socket repairs with every retained backend, database, security, native, graphical and live-reconnect test. The native control contract now flushes bounded progress before asynchronous waits and records controls-progress.log, preserving evidence if a runner kills it. No assertion, order, timeout, reward or production behavior changed in that diagnostic addition. The two prior runs timed out with empty control output; do not mark them passed. Preserve current main and integrate only the verified source."
 }
