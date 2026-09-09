@@ -1,39 +1,13 @@
 {
-  "base": "d17f5450f640668d90535ee1e647e991d46514c7",
-  "message": "test(merchant): reuse isolated catalog layout for fresh boundary realms",
-  "purpose": "The unfiltered native log contains passing assertions and shows repeated full-world hunting-plan construction consuming the unchanged 120-second control budget. Reuse the already isolated merchant fixture catalog so its immutable hunting layout cache survives into the boundary fixture. Still construct fresh RealmEngine state with the complete population. Do not remove any region, creature, assertion or test. Add isolation and population-equality checks and restore the temporary ore price and stack limit. Production code, test ordering, timeouts and all expected sale results remain unchanged.",
-  "edits": [
-    {
-      "path": "client/Tests/ItemCommerceUiChecks.cs",
-      "expected_blob": "a1fe721ab7a788ee5b296bfa9c1b0497e4846306",
-      "replacements": [
-        {
-          "old": "        await MerchantBoundaryUiChecks.Run(host, game, check);",
-          "new": "        // Reuse only the isolated catalog's cached immutable hunting layouts.\n        // The boundary contract still creates a fresh full-population RealmState.\n        await MerchantBoundaryUiChecks.Run(host, game, check, fixtureData, realm.State.Creatures.Count);"
-        }
-      ]
-    },
-    {
-      "path": "client/Tests/MerchantBoundaryUiChecks.cs",
-      "expected_blob": "ee4a7f24d5ae171c2f7c72035fea038b460dd7b3",
-      "replacements": [
-        {
-          "old": "    public static async Task Run(Node host, GameRoot game, Action<bool, string> check)",
-          "new": "    public static async Task Run(Node host, GameRoot game, Action<bool, string> check, Catalog fixtureData, int expectedPopulation)"
-        },
-        {
-          "old": "        // A copied catalog exercises bulk and high prices without changing the live economy.\n        var data = Wire.Copy(game.Data); var ore = data.Item(\"copper_ore\");\n        ore.StackMax = 999; ore.Value = 3_000_000;\n        var realm = new RealmEngine(data); var self = realm.CreateCharacter(\"merchant-boundary\", \"Merchant Boundary\", \"vanguard\", new());",
-          "new": "        // The caller already copied this catalog. Sharing that isolated instance\n        // reuses deterministic hunting plans, not character or transaction state.\n        var data = fixtureData;\n        check(!ReferenceEquals(data, game.Data), \"Merchant boundary pricing uses an isolated catalog\");\n        var ore = data.Item(\"copper_ore\"); long originalValue = ore.Value; int originalStackMax = ore.StackMax;\n        var timing = System.Diagnostics.Stopwatch.StartNew();\n        var realm = new RealmEngine(data); var self = realm.CreateCharacter(\"merchant-boundary\", \"Merchant Boundary\", \"vanguard\", new());\n        timing.Stop();\n        check(expectedPopulation > 0 && realm.State.Creatures.Count == expectedPopulation, \"A fresh boundary realm retains the complete hunting population\");\n        Console.WriteLine($\"MERCHANT_FIXTURE: fresh realm; {realm.State.Creatures.Count} creatures; cached-layout setup {timing.ElapsedMilliseconds} ms\");\n        Console.Out.Flush();"
-        },
-        {
-          "old": "        try\n        {\n            foreach (var size",
-          "new": "        try\n        {\n            ore.StackMax = 999; ore.Value = 3_000_000;\n            foreach (var size"
-        },
-        {
-          "old": "        finally\n        {\n            Call(\"ClosePage\");",
-          "new": "        finally\n        {\n            ore.StackMax = originalStackMax; ore.Value = originalValue;\n            Call(\"ClosePage\");"
-        }
-      ]
-    }
-  ]
+  "base": "f358260120ceb98e5e09af7b35d9c2bdf489d9c2",
+  "message": "test(merchant): retain the declared price type when restoring fixture data",
+  "purpose": "Correct the test-only saved-value type caught by compilation before integration. Infer the existing ItemDef.Value type instead of widening to long and narrowing during cleanup. No production code, price, assertion, quantity, timeout, population or test coverage changes.",
+  "edits": [{
+    "path": "client/Tests/MerchantBoundaryUiChecks.cs",
+    "expected_blob": "7bc3e4e1266d41bb5835d97ac30db237eb3df806",
+    "replacements": [{
+      "old": "long originalValue = ore.Value; int originalStackMax = ore.StackMax;",
+      "new": "var originalValue = ore.Value; int originalStackMax = ore.StackMax;"
+    }]
+  }]
 }
