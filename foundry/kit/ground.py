@@ -220,58 +220,97 @@ def foam(mask, frame=0, variant=0):
 # ------------------------------------------------------------------ cliffs --
 
 CLIFF_PIECES = ('face', 'top', 'left', 'right', 'corner_left', 'corner_right',
-                'inner_left', 'inner_right')
+                'inner_left', 'inner_right', 'foot', 'foot_left', 'foot_right')
+
+
+def _cliff_rock(variant):
+    """Shared rock material. Variant fissures never change an exposed seam.
+
+    Every horizontal edge meets the same strata heights. The upper/lower edge
+    samples are also equal, so full faces stack without a grid-line shadow.
+    """
+    tone = ramp('#827f73')
+    image = Image.new('RGBA', (TILE, TILE), tone[3])
+    draw = ImageDraw.Draw(image)
+    rng = _rng('cliff-fissures', variant)
+    # Broad fracture planes, confined to the interior of each socket. The
+    # variations are real planes, not differently seeded surface speckles.
+    for y in (2, 18):
+        crown = rng.randrange(10, 22)
+        draw.polygon([(3, y + 2), (crown, y), (28, y + 3),
+                      (25, y + 7), (8, y + 8)],
+                     fill=blend(tone[3], tone[4], .16))
+    pixels = image.load()
+    for row, level in enumerate((10, 26)):
+        for x in range(TILE):
+            envelope = math.sin(math.pi * x / 31) ** 2
+            bend = round(math.sin(x / 31 * math.tau) * 1.4 +
+                         math.sin(x / 31 * math.tau * 2 + variant * 1.7 + row) * envelope * 1.6)
+            y = level + bend
+            pixels[x, y - 1] = blend(tone[3], tone[4], .35)
+            pixels[x, y] = tone[2]
+            pixels[x, y + 1] = blend(tone[3], tone[2], .60)
+        x = 6 + (row * 9 + variant * 5) % 20
+        y = row * 16 + 2
+        draw.line([(x, y), (x - 2, y + 3), (x + 1, y + 6)], fill=tone[2])
+        draw.line([(x + 1, y), (x - 1, y + 3)], fill=blend(tone[3], tone[4], .35))
+    for _ in range(5):
+        x, y = rng.randrange(3, 29), rng.randrange(2, 30)
+        draw.point((x, y), fill=blend(tone[3], tone[1], .26))
+    return image
 
 
 def cliff(piece_name, variant=0):
-    """A rock wall so height changes are not a flat colour step."""
-    stone = ramp('#7a7770')
-    sketch = Sketch((TILE, TILE))
-    rng = _rng('cliff', piece_name, variant)
-    body = sketch.piece(stone)
-    if piece_name == 'top':
-        body.rect((0, 0, TILE - 1, 11), 3)
-        body.poly(catmull([(0, 11), (8, 13), (16, 10), (24, 13), (TILE, 11),
-                           (TILE, 0), (0, 0)], 4, closed=True), 3)
-    elif piece_name in ('left', 'right'):
-        edge = 0 if piece_name == 'left' else TILE - 1
-        inner = 9 if piece_name == 'left' else TILE - 10
-        body.poly([(edge, 0), (inner, 0), (inner + (2 if piece_name == 'left' else -2), TILE),
-                   (edge, TILE)], 3)
-    elif piece_name.startswith('corner'):
-        left = piece_name.endswith('left')
-        body.rect((0, 0, TILE - 1, 11), 3)
-        if left:
-            body.poly([(0, 11), (10, 11), (12, TILE), (0, TILE)], 3)
-        else:
-            body.poly([(TILE, 11), (TILE - 10, 11), (TILE - 12, TILE), (TILE, TILE)], 3)
-    elif piece_name.startswith('inner'):
-        left = piece_name.endswith('left')
-        if left:
-            body.poly([(0, 0), (11, 0), (13, TILE), (0, TILE)], 3)
-        else:
-            body.poly([(TILE, 0), (TILE - 11, 0), (TILE - 13, TILE), (TILE, TILE)], 3)
-    else:  # face
-        body.rect((0, 0, TILE - 1, TILE - 1), 3)
-    sketch.stamp(body, outline=False, rim=0, occlude=0)
+    """Joinable cliff tiles. Top and convex caps contain rock below their lip.
 
-    strata = sketch.piece(stone)
-    for row in range(4):
-        y = 3 + row * 8 + rng.randrange(-1, 2)
-        strata.line(catmull([(0, y), (10, y + 1.6), (20, y - 1.2), (TILE, y + 0.8)], 4),
-                    1 if row % 2 else 2, 1)
-        strata.line(catmull([(0, y + 1), (10, y + 2.6), (20, y - 0.2), (TILE, y + 1.8)], 4), 4, 1)
-    for _ in range(6):
-        strata.dot(rng.randrange(1, TILE - 1), rng.randrange(1, TILE - 1), 1)
-    strata.clip(body)
-    sketch.overlay(strata)
-    if piece_name in ('top', 'corner_left', 'corner_right'):
-        cap = sketch.piece(ramp('#5f7a45'))
-        cap.poly(catmull([(0, 0), (8, 2), (16, 0), (24, 3), (TILE, 1),
-                          (TILE, 6), (0, 6)], 4, closed=True), 3)
-        cap.clip(body)
-        sketch.overlay(cap)
-    return sketch.result()
+    Inner turns continue a raised side into a lower top edge. Foot pieces end
+    the face in ground-contact shade. All shapes crop the same rock material.
+    Artwork only: this function does not define terrain collision or elevation.
+    """
+    if piece_name not in CLIFF_PIECES:
+        raise ValueError('Unknown cliff piece: ' + piece_name)
+    image = _cliff_rock(variant)
+    pixels = image.load()
+    rock = ramp('#827f73')
+    grass = lands.tile('grass', variant).load()
+    left = piece_name in ('left', 'corner_left', 'foot_left')
+    right = piece_name in ('right', 'corner_right', 'foot_right')
+    cap = piece_name in ('top', 'corner_left', 'corner_right')
+    foot = piece_name.startswith('foot')
+    for y in range(TILE):
+        side = 5 + round(math.sin(y / 31 * math.tau))
+        for x in range(TILE):
+            if (left and x < side) or (right and x > 31 - side):
+                pixels[x, y] = (0, 0, 0, 0)
+                continue
+            lip = 6 + round(math.sin(x / 31 * math.tau)) if cap else -10
+            if piece_name == 'inner_right' and x < 5:
+                lip = round(6 * (1 - x / 5) ** .5)
+            elif piece_name == 'inner_left' and x >= 27:
+                lip = round(6 * ((x - 26) / 5) ** .5)
+            if 0 <= lip and y <= lip:
+                pixels[x, y] = grass[x, y] if y < lip else pigment.rgb('#78865a')
+            elif 0 <= lip and y <= lip + 2:
+                pixels[x, y] = pigment.rgb('#534332')
+            elif 0 <= lip and y <= lip + 5:
+                pixels[x, y] = blend(pixels[x, y], rock[1], .70 - (y - lip - 3) * .15)
+            elif piece_name == 'inner_right' and y < 7 and 5 <= x < 8:
+                pixels[x, y] = blend(pixels[x, y], rock[4], (.50 - (x - 5) * .15) * (1 - y / 7))
+            elif piece_name == 'inner_left' and y < 7 and 24 <= x <= 26:
+                pixels[x, y] = blend(pixels[x, y], rock[1], (.60 - (26 - x) * .15) * (1 - y / 7))
+            elif left and x < side + 3:
+                pixels[x, y] = blend(pixels[x, y], rock[4], .50 - (x-side)*.15)
+            elif right and x > 28 - side:
+                pixels[x, y] = blend(pixels[x, y], rock[1], .60 - (31-side-x)*.15)
+            if foot:
+                bottom = 27 + round(math.sin(x / 31 * math.tau))
+                if y > bottom:
+                    pixels[x, y] = (24, 24, 20, max(0, 96 - (y-bottom)*24))
+                elif y == bottom:
+                    pixels[x, y] = rock[1]
+                elif y >= 14:
+                    pixels[x, y] = blend(pixels[x, y], rock[1], min(.55, (y-13)//4*.15))
+    return image
 
 
 # ------------------------------------------------------------------- roads --
@@ -335,6 +374,9 @@ def plan():
                         lambda m=mask, f=frame: foam(m, f)))
     for piece_name in CLIFF_PIECES:
         out.append(('ground/cliff_' + piece_name, lambda n=piece_name: cliff(n)))
+        for variant in range(1, 4):
+            out.append(('ground/cliff_%s_%d' % (piece_name, variant),
+                        lambda n=piece_name, v=variant: cliff(n, v)))
     for mask in range(16):
         out.append(('ground/road_%02d' % mask, lambda m=mask: road(m)))
     return out

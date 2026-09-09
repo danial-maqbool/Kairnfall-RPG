@@ -41,6 +41,42 @@ def _rng(*parts):
 
 # ------------------------------------------------------------------ tiles --
 
+def _ground_clusters(piece, kind, variant):
+    """Low-contrast soil and vegetation clusters without screen-space dither.
+
+    Toroidal deposits share an edge field across variants, with no empty border.
+    Cloth and other structured materials retain the existing Piece.dither method.
+    """
+    def deposits(seed):
+        rng = _rng('ground-clusters', kind, seed)
+        return [(rng.random() * 31, rng.random() * 31,
+                 rng.uniform(4, 10), rng.uniform(3, 7), rng.choice((-1, 1)))
+                for _ in range(11)]
+
+    def field(spots, x, y):
+        value = 0.0
+        for cx, cy, rx, ry, sign in spots:
+            dx, dy = abs(x - cx), abs(y - cy)
+            dx, dy = min(dx, 31 - dx), min(dy, 31 - dy)
+            distance = (dx / rx) ** 2 + (dy / ry) ** 2
+            if distance < 1:
+                value += sign * (1 - distance) ** 2
+        return value
+
+    shared, local = deposits('edge'), deposits(variant)
+    base = piece.ramp[3]
+    shade = blend(base, piece.ramp[2], .30)
+    light = blend(base, piece.ramp[4], .23)
+    pixels = piece.image.load()
+    for y in range(TILE):
+        for x in range(TILE):
+            inset = min(x, y, TILE - 1 - x, TILE - 1 - y)
+            mix = min(1.0, inset / 6)
+            mix = mix * mix * (3 - 2 * mix)
+            value = field(shared, x, y) * (1 - mix) + field(local, x, y) * mix
+            pixels[x, y] = shade if value < -.25 else light if value > .25 else base
+
+
 def tile(kind, variant=0):
     """A 32px ground tile. Detail is kept off the seams so fields do not grid."""
     base = TERRAIN.get(kind, '#6a6a6a')
@@ -50,24 +86,17 @@ def tile(kind, variant=0):
     ground.rect((0, 0, TILE - 1, TILE - 1), 3)
     r = _rng(kind, variant)
 
-    if kind in ('grass', 'moss', 'marsh'):
-        ground.dither((0, 0, TILE - 1, TILE - 1), 2, level=4, phase=variant)
-        ground.dither((0, 0, TILE - 1, TILE - 1), 4, level=2, phase=variant + 2)
-    elif kind in ('dirt', 'sand', 'ash'):
-        ground.dither((0, 0, TILE - 1, TILE - 1), 2, level=3, phase=variant)
-        ground.dither((0, 0, TILE - 1, TILE - 1), 4, level=2, phase=variant + 1)
-    elif kind == 'snow':
-        ground.dither((0, 0, TILE - 1, TILE - 1), 5, level=3, phase=variant)
-        ground.dither((0, 0, TILE - 1, TILE - 1), 2, level=1, phase=variant + 2)
+    if kind in ('grass', 'moss', 'marsh', 'dirt', 'sand', 'ash', 'snow'):
+        _ground_clusters(ground, kind, variant)
     sketch.stamp(ground, outline=False, rim=0, occlude=0)
     detail = sketch.piece(tone)
 
     if kind in ('grass', 'moss'):
-        for _ in range(9 if kind == 'grass' else 6):
-            x, y = r.randrange(2, TILE - 2), r.randrange(3, TILE - 2)
+        for _ in range(5 if kind == 'grass' else 4):
+            x, y = r.randrange(3, TILE - 4), r.randrange(4, TILE - 2)
             lean = r.choice((-1, 0, 1))
             detail.line([(x, y), (x + lean, y - 3)], 4, 1)
-            detail.line([(x + 2, y), (x + 2 + lean, y - 2)], 1, 1)
+            detail.line([(x + 2, y), (x + 2 + lean, y - 2)], 2, 1)
         for _ in range(3):
             x, y = r.randrange(1, TILE - 3), r.randrange(1, TILE - 3)
             detail.dot(x, y, 5)

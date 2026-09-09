@@ -89,6 +89,120 @@ def sheet_portraits(_):
     return grid(cells, 10, 3)
 
 
+def nine_slice(image, width, height, corner=face.CORNER):
+    """Preview the actual 48/16 source contract without scaling corner pixels."""
+    if min(width, height) < corner * 2:
+        raise ValueError('A panel must fit both fixed corners.')
+    source_x = (0, corner, image.width - corner, image.width)
+    source_y = (0, corner, image.height - corner, image.height)
+    target_x = (0, corner, width - corner, width)
+    target_y = (0, corner, height - corner, height)
+    out = Image.new('RGBA', (width, height))
+    for row in range(3):
+        for column in range(3):
+            w = target_x[column + 1] - target_x[column]
+            h = target_y[row + 1] - target_y[row]
+            if not w or not h:
+                continue
+            piece = image.crop((source_x[column], source_y[row],
+                                source_x[column + 1], source_y[row + 1]))
+            out.alpha_composite(piece.resize((w, h), Image.Resampling.NEAREST),
+                                (target_x[column], target_y[row]))
+    return out
+
+
+def sheet_panels(_):
+    """Populated panels at native scene scale and different nine-slice sizes."""
+    view = Image.new('RGBA', (700, 330), BACK)
+    draw = ImageDraw.Draw(view)
+    draw.text((12, 8), '48x48 sources / 16px fixed corners / no magnified center grain', fill=LABEL)
+    for row, name in enumerate(('tooltip', 'inset')):
+        y = 38 + row * 140
+        source = face.panel(name)
+        view.alpha_composite(source, (12, y + 25))
+        draw.text((12, y + 80), name, fill=LABEL)
+        x = 90
+        for w, h in ((132, 96), (202, 104), (248, 112)):
+            view.alpha_composite(nine_slice(source, w, h), (x, y))
+            draw.text((x + 15, y + 15), 'IRON SWORD', fill='#eee5d4')
+            draw.text((x + 15, y + 37), 'Power 12   +3', fill='#c8dca2')
+            draw.text((x + 15, y + 57), 'Weight 4', fill='#eee5d4')
+            draw.text((x + 15, y + 75), 'Common weapon', fill='#ded4c5')
+            x += w + 8
+    return view.resize((1400, 660), Image.Resampling.NEAREST)
+
+
+def sheet_terrain(_):
+    """Mixed variants and repeated single variants, so repeat artifacts stay visible."""
+    from forge import lands
+    kinds = ('grass', 'moss', 'marsh', 'dirt', 'sand', 'ash', 'snow')
+    view = Image.new('RGBA', (7 * 164, 366), BACK)
+    draw = ImageDraw.Draw(view)
+    for column, kind in enumerate(kinds):
+        x = column * 164 + 2
+        draw.text((x, 8), kind + ' / mixed', fill=LABEL)
+        for row in range(4):
+            for tile_x in range(5):
+                variant = ground.pigment.keyed('field:%d:%d' % (tile_x, row)) % 4
+                view.alpha_composite(lands.tile(kind, variant), (x + tile_x * 32, 28 + row * 32))
+        draw.text((x, 176), 'repeat variant 0', fill=LABEL)
+        for row in range(4):
+            for tile_x in range(5):
+                view.alpha_composite(lands.tile(kind, 0), (x + tile_x * 32, 196 + row * 32))
+    return view.resize((view.width * 2, view.height * 2), Image.Resampling.NEAREST)
+
+
+CLIFF_LAYOUTS = {
+    'ledge': (
+        ('corner_left', 'top', 'top', 'top', 'top', 'top', 'corner_right'),
+        ('left', 'face', 'face', 'face', 'face', 'face', 'right'),
+        ('foot_left', 'foot', 'foot', 'foot', 'foot', 'foot', 'foot_right'),
+    ),
+    'step': (
+        (None, None, 'corner_left', 'top', 'corner_right', None, None),
+        (None, None, 'left', 'face', 'right', None, None),
+        ('corner_left', 'top', 'inner_right', 'face', 'inner_left', 'top', 'corner_right'),
+        ('left', 'face', 'face', 'face', 'face', 'face', 'right'),
+        ('foot_left', 'foot', 'foot', 'foot', 'foot', 'foot', 'foot_right'),
+    ),
+}
+
+
+def paste_cliff_layout(view, layout, tx=0, ty=0, variant=0):
+    for y, row in enumerate(layout):
+        for x, name in enumerate(row):
+            if name:
+                view.alpha_composite(ground.cliff(name, (variant + x) % 4),
+                                     ((tx + x) * 32, (ty + y) * 32))
+
+
+def sheet_cliffs(_):
+    """All sockets, then mixed-variant joins with convex and concave turns."""
+    from forge import lands
+    sheet = Image.new('RGBA', (1024, 766), BACK)
+    draw = ImageDraw.Draw(sheet)
+    draw.text((16, 10), 'CLIFF SOCKETS / 32px tiles at 2x / shared strata across variants', fill=LABEL)
+    for i, name in enumerate(ground.CLIFF_PIECES):
+        x, y = 16 + i % 6 * 166, 32 + i // 6 * 92
+        image = lands.tile('grass', 0); image.alpha_composite(ground.cliff(name))
+        sheet.alpha_composite(image.resize((64, 64), Image.Resampling.NEAREST), (x, y))
+        draw.text((x, y + 67), name, fill=LABEL)
+    for i, (name, layout) in enumerate(CLIFF_LAYOUTS.items()):
+        w, h = len(layout[0]) + 2, len(layout) + 2
+        view = Image.new('RGBA', (w * 32, h * 32))
+        for y in range(h):
+            for x in range(w):
+                view.alpha_composite(lands.tile('grass', ground.pigment.keyed('cliff-field:%d:%d' % (x,y)) % 4), (x*32,y*32))
+        paste_cliff_layout(view, layout, 1, 1)
+        x, y = 16 + i * 496, 270
+        draw.text((x, y - 18), name + ' / mixed variants / NO GRID GAPS', fill=LABEL)
+        sheet.alpha_composite(view.resize((w*48,h*48), Image.Resampling.NEAREST), (x,y))
+    draw.text((16, 690), 'Assembly: corner/top/corner -> left/face/right -> foot_left/foot/foot_right', fill=LABEL)
+    draw.text((16, 710), 'Inner turns connect the side of a raised section to the lower top edge.', fill=LABEL)
+    draw.text((16, 730), 'Preview only: these pieces define artwork, not collision or elevation rules.', fill=LABEL)
+    return sheet
+
+
 def sheet_ground(_):
     """A worked map: patches, shoreline, road and cliff, all using the set."""
     from forge import lands
@@ -96,7 +210,7 @@ def sheet_ground(_):
     view = Image.new('RGBA', (width * 32, height * 32), (0, 0, 0, 255))
     for ty in range(height):
         for tx in range(width):
-            view.alpha_composite(lands.tile('grass', (tx * 3 + ty) % 4), (tx * 32, ty * 32))
+            view.alpha_composite(lands.tile('grass', ground.pigment.keyed('field:%d:%d' % (tx, ty)) % 4), (tx * 32, ty * 32))
 
     def mask_of(cells, tx, ty):
         mask = 0
@@ -138,10 +252,7 @@ def sheet_ground(_):
     found = set(road)
     for tx, ty in road:
         view.alpha_composite(ground.road(mask_of(found, tx, ty), (tx + ty) % 4), (tx * 32, ty * 32))
-    for x in range(14, 20):
-        view.alpha_composite(ground.cliff('top'), (x * 32, 12 * 32))
-        view.alpha_composite(ground.cliff('face'), (x * 32, 13 * 32))
-    view.alpha_composite(ground.cliff('corner_left'), (13 * 32, 12 * 32))
+    paste_cliff_layout(view, CLIFF_LAYOUTS['ledge'], 13, 11)
     return view.resize((view.width * 2, view.height * 2), Image.Resampling.NEAREST)
 
 
@@ -151,28 +262,8 @@ def sheet_scene(_):
     view = Image.new('RGBA', (704, 480), (0, 0, 0, 255))
     view.alpha_composite(base)
 
-    def nine(panel_image, x, y, w, h, corner=face.CORNER):
-        """Stretch a nine-slice source to fill a rectangle."""
-        size = panel_image.width
-        out = Image.new('RGBA', (w, h), (0, 0, 0, 0))
-        parts = [(0, 0, corner, corner), (corner, 0, size - corner, corner),
-                 (size - corner, 0, size, corner), (0, corner, corner, size - corner),
-                 (corner, corner, size - corner, size - corner),
-                 (size - corner, corner, size, size - corner),
-                 (0, size - corner, corner, size), (corner, size - corner, size - corner, size),
-                 (size - corner, size - corner, size, size)]
-        targets = [(0, 0, corner, corner), (corner, 0, w - corner, corner),
-                   (w - corner, 0, w, corner), (0, corner, corner, h - corner),
-                   (corner, corner, w - corner, h - corner),
-                   (w - corner, corner, w, h - corner),
-                   (0, h - corner, corner, h), (corner, h - corner, w - corner, h),
-                   (w - corner, h - corner, w, h)]
-        for source, target in zip(parts, targets):
-            tile = panel_image.crop(source)
-            tw, th = max(1, target[2] - target[0]), max(1, target[3] - target[1])
-            out.alpha_composite(tile.resize((tw, th), Image.Resampling.NEAREST),
-                                (target[0], target[1]))
-        view.alpha_composite(out, (x, y))
+    def nine(panel_image, x, y, w, h):
+        view.alpha_composite(nine_slice(panel_image, w, h), (x, y))
 
     window = face.panel('window')
     nine(window, 8, 8, 190, 60)
@@ -206,7 +297,8 @@ def sheet_scene(_):
 
 
 SHEETS = {'vfx': sheet_vfx, 'ground': sheet_ground, 'ui': sheet_ui,
-          'portraits': sheet_portraits, 'scene': sheet_scene}
+          'portraits': sheet_portraits, 'scene': sheet_scene, 'cliffs': sheet_cliffs,
+          'panels': sheet_panels, 'terrain': sheet_terrain}
 
 
 def main():

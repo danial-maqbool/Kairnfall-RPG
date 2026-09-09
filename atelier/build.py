@@ -52,7 +52,13 @@ def catalog():
 
 def plan(groups):
     """Every asset this library owns, as (group, key, payload) tuples."""
-    data = catalog()
+    # Terrain and indexing are independent of game content. Avoid requiring a
+    # generated catalogue for these self-contained library operations.
+    dependent = {'buildings', 'resources', 'items', 'structures', 'abilities',
+                 'skills', 'equipment', 'npcs', 'mobs'}
+    data = catalog() if set(groups) & dependent else {
+        key: [] for key in ('zones', 'resources', 'items', 'abilities', 'skills', 'npcs', 'mobs')}
+
     tasks = []
 
     def add(group, key, payload=None):
@@ -224,7 +230,7 @@ def main():
             raise SystemExit('Refusing to write outside atelier/ or artifacts/.')
 
     groups = set(args.only)
-    tasks = plan(groups)
+    tasks = [] if args.manifest else plan(groups)
     counts = {}
     for group, _, _ in tasks:
         counts[group] = counts.get(group, 0) + 1

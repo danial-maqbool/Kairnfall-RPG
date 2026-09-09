@@ -1,19 +1,19 @@
 {
   "groups": {
-    "ground": 329,
+    "ground": 365,
     "portraits": 131,
     "ui": 65,
     "vfx": 44
   },
-  "png_files": 569,
+  "png_files": 605,
   "effect_strips": 44,
-  "built_seconds": 2.6,
+  "built_seconds": 1.7,
   "artistic_review": "pending",
   "atlas": {
     "pages": 1,
-    "packed": 569,
+    "packed": 605,
     "occupancy": [
-      0.514
+      0.523
     ],
     "too_large": []
   }

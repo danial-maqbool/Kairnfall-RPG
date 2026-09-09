@@ -26,11 +26,12 @@ count and SHA-256), `CREDITS.txt`, and `foundry/coverage.json` for the last run.
 | Group | Count | Size | Notes |
 | --- | --- | --- | --- |
 | vfx | 44 | 8-frame strips | impacts, slashes, bolts, cast circles, auras, flourishes |
-| ground | 329 | 32×32 | terrain transition overlays, corners, foam, cliffs, roads |
+| ground | 365 | 32×32 | terrain transition overlays, corners, foam, cliffs, roads |
 | ui | 65 | various | panels, buttons, bars, slots, rarity frames, icons, cursors |
 | portraits | 131 | 64×64 | player layers, 26 townsfolk, boss busts |
 
-569 images, packed onto **1 atlas page** at 51% occupancy.
+605 images. Atlas page counts and occupancy are recorded by the current build in
+`coverage.json`.
 
 ### Effects
 
@@ -118,3 +119,45 @@ build.py           the pipeline;  preview.py   contact sheets
 
 Generated art is committed here, as it is in `atelier/`. Everything under
 `foundry/Assets` is reproducible with `python foundry/build.py`.
+
+## Joined cliffs and readable panels (2026-09-09)
+
+Cliffs now contain a complete rock face below the turf lip. Top, side, convex
+and concave pieces share their edge strata. Foot pieces finish the face with
+contact shadow. Existing eight unsuffixed keys remain the variant-zero keys.
+Added keys: `cliff_foot`, `cliff_foot_left`, `cliff_foot_right`. All 11 shapes
+also export `_1`, `_2` and `_3` variants. Mix variants only where their sockets
+are compatible; this is not an arbitrary autotile mask system.
+
+```
+corner_left   top    top    corner_right
+left          face   face   right
+foot_left     foot   foot   foot_right
+```
+
+For a raised middle section, place `inner_right` below its left side and
+`inner_left` below its right side. The complete stepped assembly is specified
+by `CLIFF_LAYOUTS['step']` in `preview.py` and shown in `preview/cliffs.png`.
+Tile size remains 32x32. These art pieces do not add collision or elevation.
+
+Tooltip and inset panels have brighter fields and separated bevels. Their
+16x16 stretchable center is quiet; grain remains within fixed-width border
+areas. All panel sources remain 48x48 with 16px corners. The window and banner
+also lose the center scanlines that became thick bars when stretched.
+
+Run these checks and then inspect the actual previews:
+
+```bash
+python -m unittest discover -s foundry/tests -v
+python foundry/verify_repairs.py --report artifacts/art-library-review/result.json
+python foundry/preview.py cliffs
+python foundry/preview.py panels
+python foundry/preview.py terrain
+```
+
+The verification script rebuilds the affected groups twice, reindexes both
+libraries, repacks both Foundry and read-only Atelier atlases, and compares
+all library bytes except `built_seconds` in `coverage.json`. It checks that
+Foundry leaves Atelier unchanged and that protected game directories remain
+unchanged. The current pack has 605 source images: 365 ground, 65 UI, 131
+portraits and 44 effect strips. See `ART_REPAIR_2026-09-09.md` for review scope.

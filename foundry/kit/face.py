@@ -23,7 +23,7 @@ SLOT = 40
 ICON = 16
 CURSOR = 16
 
-PARCHMENT = '#c9b territory'.replace(' territory', '8a')   # #c9b8a
+PARCHMENT = '#c9b88a'
 LEATHER = '#6a4f38'
 FRAME = '#8a7350'
 IRON = '#8d949c'
@@ -33,8 +33,8 @@ DARK = '#2e2a30'
 PANELS = {
     # name: (fill, frame, inset depth, whether the middle is sunken)
     'window': ('#4a4038', '#8a7350', 3, False),
-    'tooltip': ('#3a3640', '#7a7286', 2, False),
-    'inset': ('#332e2c', '#6a5c48', 2, True),
+    'tooltip': ('#5d5968', '#aba4b9', 2, False),
+    'inset': ('#574b40', '#a18b69', 2, True),
     'banner': ('#6a3f3a', '#c0a24a', 3, False),
 }
 
@@ -47,10 +47,18 @@ def panel(name):
     body.rect((0, 0, SLICE - 1, SLICE - 1), 3)
     sketch.stamp(body, outline=False, rim=0, occlude=0)
 
+    # Grain belongs to the fixed border, not the stretchable 16x16 center.
+    # Source scanlines there used to expand into thick bars at scene scale.
     grain = sketch.piece(ramp(fill))
-    for y in range(2, SLICE - 2, 5):
-        grain.line([(2, y), (SLICE - 3, y)], 2, 1)
-    grain.dither((0, 0, SLICE - 1, SLICE - 1), 4, level=2)
+    quiet = blend(pigment.rgb(fill), ramp(fill)[2], .18)
+    glint = blend(pigment.rgb(fill), ramp(fill)[4], .16)
+    for y in range(7, SLICE - 7):
+        for x in range(7, SLICE - 7):
+            if CORNER <= x < SLICE - CORNER and CORNER <= y < SLICE - CORNER:
+                continue
+            h = pigment.keyed('panel-grain:%s:%d:%d' % (name, x, y))
+            if h % 23 == 0:
+                grain.dot(x, y, quiet if h % 2 else glint)
     sketch.overlay(grain)
 
     frame = sketch.piece(ramp(edge))
