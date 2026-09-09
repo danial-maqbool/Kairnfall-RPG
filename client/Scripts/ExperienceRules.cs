@@ -5,6 +5,7 @@ namespace Kairnfall.Client;
 /// <summary>Client eligibility and feedback. The server validates and resolves each request.</summary>
 public static class ExperienceRules
 {
+    public const double TargetCycleRadius = 12;
     public static bool AllowsWorldInput(bool online, bool typing, bool menuOpen, bool focused, bool alive)
         => online && !typing && !menuOpen && focused && alive;
 
@@ -59,7 +60,7 @@ public static class ExperienceRules
     public static Creature? CycleTarget(Character self, IEnumerable<Creature> creatures, Catalog data, string selected, bool reverse = false)
     {
         // Deliberate target cycling includes neutral animals, never pets or corpses.
-        var list = creatures.Where(x => CanTarget(self, x, data, 18, true))
+        var list = creatures.Where(x => CanTarget(self, x, data, TargetCycleRadius, true))
             .OrderBy(x => self.Position.Distance(x.Position)).ThenBy(x => x.Id, StringComparer.Ordinal).ToArray();
         if (list.Length == 0) return null;
         int index = Array.FindIndex(list, x => x.Id == selected);
