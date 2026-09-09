@@ -71,7 +71,7 @@ internal static class SupportTrainingChecks
                 * CombatTrainingCurve.Spell(Progression.Level(expected, heal.Skill));
             double amount = Math.Min(stats.Health - expected.Health, power * stats.Healing);
             ChallengeProgression.TrainCombat(expected, heal.Skill, Math.Max(1, (int)amount / 2), data.Mob(rat.Template).Level, data);
-            var cast = new GameCommand { Kind = "ability", Item = heal.Id, Sequence = p.LastAction + 1, RequestId = Guid.NewGuid().ToString("N") };
+            var cast = new GameCommand { Kind = "cast", Item = heal.Id, Sequence = p.LastAction + 1, RequestId = Guid.NewGuid().ToString("N") };
             var healed = engine.Execute(id, cast); Need(healed.Ok, "Healing failed: " + healed.Message);
             p = engine.Player(id);
             Need(p.Health > 20, "Valid healing stopped restoring health.");
@@ -94,7 +94,7 @@ internal static class SupportTrainingChecks
                 if (invalid == "foreign") p.RecentLearningEncounter!.Zone = "another-region";
                 string skills = Json(p.SkillXp); string practice = Json(p.CombatPracticeRemainders);
                 long overall = p.PracticeOnlyXp;
-                var result = engine.Execute(p.Id, new GameCommand { Kind = "ability", Item = heal.Id,
+                var result = engine.Execute(p.Id, new GameCommand { Kind = "cast", Item = heal.Id,
                     Sequence = p.LastAction + 1, RequestId = Guid.NewGuid().ToString("N") });
                 Need(result.Ok && engine.Player(p.Id).Health > 10, invalid + " contact incorrectly blocked healing: " + result.Message);
                 var after = engine.Player(p.Id);

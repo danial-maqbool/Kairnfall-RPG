@@ -301,6 +301,7 @@ public sealed class Character
     public long LastAction { get; set; }
     public int Deaths { get; set; }
     public double LastCombat { get; set; } = -100;
+    public LearningEncounter? RecentLearningEncounter { get; set; }
     public double DeadUntil { get; set; }
 }
 public sealed class Creature

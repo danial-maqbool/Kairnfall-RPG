@@ -74,7 +74,8 @@ public sealed partial class RealmEngine
                 double healing=Math.Min(maximum-recipient.Health,basePower*stats.Healing);
                 recipient.Health+=healing;
                 if(ability.Duration>0) ApplyStatus(recipient.Statuses,"regeneration",ability.Element,ability.Duration,healing/10,p.Id);
-                if(recipient.LastCombat>State.Time-15) { ChallengeProgression.TrainCombat(p,ability.Skill,Math.Max(1,(int)healing/2),Math.Clamp(Data.Zone(p.Zone).Level,1,100),Data); trained=true; }
+                int encounterLevel=SupportTraining.EncounterLevel(recipient,State.Time);
+                if(encounterLevel>0) { ChallengeProgression.TrainCombat(p,ability.Skill,Math.Max(1,(int)healing/2),encounterLevel,Data); trained=true; }
                 break;
             }
             case "shield": ApplyStatus(p.Statuses,"shield",ability.Element,ability.Duration,basePower,p.Id); break;
@@ -129,7 +130,8 @@ public sealed partial class RealmEngine
             default: throw new RuleException("Unsupported ability kind.");
         }
         if(!selfKind) { p.LastCombat=State.Time; p.Statuses.RemoveAll(x=>x.Kind=="stealth"); }
-        if(!trained&&selfKind&&p.LastCombat>State.Time-10&&ability.Kind!="heal") ChallengeProgression.TrainCombat(p,ability.Skill,5,Math.Clamp(zone.Level,1,100),Data);
+        int supportLevel=SupportTraining.EncounterLevel(p,State.Time,10);
+        if(!trained&&selfKind&&supportLevel>0&&ability.Kind!="heal") ChallengeProgression.TrainCombat(p,ability.Skill,5,supportLevel,Data);
         Progress(p,"cast",ability.Id); return "";
     }
     private double HitCreature(Character p,Creature mob,double raw,Element element,string skill)
@@ -146,6 +148,7 @@ public sealed partial class RealmEngine
         p.LastCombat=State.Time; mob.Target=p.Id; playerTargets[p.Id]=mob.Id;
         if(damage>0)
         {
+            SupportTraining.Record(p,def.Level,State.Time);
             ChallengeProgression.TrainCombat(p,skill,Math.Clamp((int)damage,1,120),def.Level,Data);
             double leech=Math.Clamp(stats.Bonus("leech")/100,0,0.08);
             p.Health=Math.Min(stats.Health,p.Health+damage*leech);
@@ -194,6 +197,7 @@ public sealed partial class RealmEngine
     {
         if(p.Health<=0) return;
         var stats=CombatMath.Stats(p,Data); var def=Data.Mob(mob.Template);
+        if(mob.Owner=="") SupportTraining.Record(p,def.Level,State.Time);
         if(CombatMath.Roll(stats.Evasion)) { ChallengeProgression.TrainCombat(p,"evasion",12,def.Level,Data); return; }
         double damage=CombatMath.Damage(raw,element==Element.Physical?stats.Armor:stats.Armor*0.2,CombatMath.Resist(stats,element));
         if(CombatMath.Roll(stats.Block)) { damage*=0.4; ChallengeProgression.TrainCombat(p,"shield_mastery",12,def.Level,Data); }
@@ -219,6 +223,7 @@ public sealed partial class RealmEngine
     {
         if(p.DeadUntil>State.Time) return;
         p.Health=0; p.DeadUntil=State.Time+5; p.Deaths++; p.Statuses.Clear(); inputs.Remove(p.Id); CancelTradesFor(p.Id);
+        p.RecentLearningEncounter=null;
         foreach(var item in p.Inventory.Where(x=>Items.Equipped(p,x.Id))) item.Durability=Math.Max(0,item.Durability-10);
         if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Health=0; pet.RespawnAt=double.MaxValue; p.Pet=""; }
         EconomicDirty=true;

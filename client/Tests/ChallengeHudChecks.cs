@@ -38,6 +38,11 @@ internal static class ChallengeHudChecks
                 check(target.Text.Contains("Trivial hunt")&&target.Text.Contains("practice"),"The target frame identifies under-level farming and its low practice rate");
                 var quest=Find<Control>("QuestTracker");
                 check(Find<Control>("Vitals").GetGlobalRect().End.Y<=quest.GetGlobalRect().Position.Y+1,"XP feedback does not overlap the objective tracker");
+                check(Fits(quest)&&Fits(Find<Control>("Vitals")),"Complete objective and status panels fit the supported viewport");
+                string normal=pacing.Text; pacing.Text += "\nExtended experience explanation\nSkill practice is separate.";
+                await Frame();await Frame();
+                check(Find<Control>("Vitals").GetGlobalRect().End.Y+5<=quest.GetGlobalRect().Position.Y,"Wrapped status information moves the objective panel rather than covering it");
+                pacing.Text=normal;await Frame();await Frame();
             }
         }
         finally
