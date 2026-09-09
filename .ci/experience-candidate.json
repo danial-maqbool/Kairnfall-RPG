@@ -1,6 +1,6 @@
 {
-  "sha": "633b1f23673126c5c4ffad956704808ba2f2b9f7",
+  "sha": "ea829440e162fc71b1a65f3b177f470452d3dd1a",
   "base": "2c0ccda45d13b719b35a6f8bf2ea83dab1242857",
   "mode": "repair",
-  "purpose": "Verify compact cards, individually colored signed statistics, equipment blockers, centered content and protected exact-quantity sales. Retain explicit reselection after a sold stack disappears, separate pinned sale rows and current equipped-instance comparisons. The high-value fixture now types its quantity with native keyboard events rather than setting LineEdit.Text, which does not emit text_changed. Exact expected gold, remaining quantity, native layout and color assertions are unchanged. Run all prior backend, security, database, progression, importer, native, graphical and real-connection/reconnect checks before integration."
+  "purpose": "Run all retained checks for compact centered item cards, individually signed colored statistics, red blockers, exact integer quantity sales, explicit reselection, large sale totals and refreshed equipped-instance comparisons. The previous candidate passed native and graphical checks and both real server sale transactions, but its live reconnect exposed an explicitly cancelled receive/abort disposal race. Handle only OperationCanceledException or ObjectDisposedException when the receiver token is already cancelled; active-session and protocol errors remain visible. Add deterministic shutdown-filter tests and three real reconnect cycles preserving exact sale gold, removed quantities, equipment and XP. Do not reduce any assertions or timeouts. Require full backend, security, database, native, graphical and live passes before source integration."
 }
