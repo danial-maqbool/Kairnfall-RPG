@@ -1,19 +1,39 @@
 {
-  "base": "a8085c2c0b6444f0949575954d19ce242092fac8",
-  "message": "test(merchant): exercise large quantity entry through native key events",
-  "purpose": "Correct only the new high-value fixture setup. Setting LineEdit.Text programmatically does not emit text_changed, so it does not simulate user typing. Enter 777 through native press/release events instead. Retain the exact expected prices, quantities, layout, colors, inventory and gold assertions and every production repair. Add a check that the field contains the native input. No game values, limits, assertions or timeouts are weakened.",
+  "base": "633b1f23673126c5c4ffad956704808ba2f2b9f7",
+  "message": "fix(connection): handle the cancelled receive race during shutdown",
+  "purpose": "All compact-card, merchant-boundary, native layout and server sale checks passed, but live verification exposed ClientWebSocket.ReceiveAsync throwing ObjectDisposedException after DisconnectAsync cancelled and aborted the socket. Treat that exception as expected only when the receiver cancellation token is already cancelled. Do not swallow errors during an active session or suppress protocol errors. Add deterministic filter checks and repeated real reconnects after sale. Preserve every old assertion, timeout, sale result and persistence requirement.",
   "edits": [
     {
-      "path": "client/Tests/MerchantBoundaryUiChecks.cs",
-      "expected_blob": "957ce9a5ef42394f29be294297226c5abec89cfb",
+      "path": "src/Kairnfall.Core/GameConnection.cs",
+      "expected_blob": "4804ab7aa100040c2efe1cb9b26e2d7a7ea21268",
       "replacements": [
         {
-          "old": "        async Task Capture(string name)",
-          "new": "        async Task TypeQuantity(LineEdit edit, string text)\n        {\n            edit.GrabFocus(); await Frame(); edit.SelectAll();\n            using (var e = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = true }) host.GetViewport().PushInput(e, true);\n            using (var e = new InputEventKey { Keycode = Key.Backspace, PhysicalKeycode = Key.Backspace, Pressed = false }) host.GetViewport().PushInput(e, true);\n            foreach (char character in text)\n            {\n                var code = (Key)char.ToUpperInvariant(character);\n                using (var e = new InputEventKey { Keycode = code, PhysicalKeycode = code, Unicode = character, Pressed = true }) host.GetViewport().PushInput(e, true);\n                using (var e = new InputEventKey { Keycode = code, PhysicalKeycode = code, Pressed = false }) host.GetViewport().PushInput(e, true);\n                await Frame();\n            }\n            await Frame();\n            check(edit.Text == text, \"Native keyboard events enter the exact high-value sale quantity\");\n        }\n        async Task Capture(string name)"
+          "old": "    private async Task ReceiveLoopAsync(ClientWebSocket current, CancellationToken cancel)",
+          "new": "    private static bool ExpectedReceiveShutdown(Exception error, CancellationToken cancel)\n        => cancel.IsCancellationRequested && (error is OperationCanceledException or ObjectDisposedException);\n\n    private async Task ReceiveLoopAsync(ClientWebSocket current, CancellationToken cancel)"
         },
         {
-          "old": "                var amount = Find<LineEdit>(\"SaleQuantity\"); amount.Text = \"777\";",
-          "new": "                var amount = Find<LineEdit>(\"SaleQuantity\"); await TypeQuantity(amount, \"777\");"
+          "old": "        catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }",
+          "new": "        // Abort may dispose the socket between the state check and ReceiveAsync.\n        // Only an explicitly cancelled receiver can treat that disposal as shutdown.\n        catch (Exception error) when (ExpectedReceiveShutdown(error, cancel)) { }"
+        }
+      ]
+    },
+    {
+      "path": "tools/world_probe/ItemCommerceChecks.cs",
+      "expected_blob": "ef2c099710551df27e463893ad5292fe9593f59a",
+      "replacements": [
+        {
+          "old": "        // Bulk coverage changes only a copied fixture catalog; production stack and bag limits stay unchanged.",
+          "new": "        Test(\"Only explicitly cancelled socket disposal is classified as normal receive shutdown\", () =>\n        {\n            var method = typeof(GameConnection).GetMethod(\"ExpectedReceiveShutdown\", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)\n                ?? throw new InvalidOperationException(\"The receive shutdown filter is missing.\");\n            bool Expected(Exception error, CancellationToken token) => (bool)method.Invoke(null, new object[] { error, token })!;\n            using var stopping = new CancellationTokenSource();\n            var disposed = new ObjectDisposedException(\"ClientWebSocket\");\n            var cancelled = new OperationCanceledException();\n            Need(!Expected(disposed, stopping.Token) && !Expected(cancelled, stopping.Token), \"Active-session errors must not be hidden.\");\n            stopping.Cancel();\n            Need(Expected(disposed, stopping.Token) && Expected(cancelled, stopping.Token), \"Cancelled receive shutdown must tolerate the abort/dispose race.\");\n            foreach (var error in new Exception[] { new JsonException(), new RuleException(\"Invalid packet\"), new IOException(), new InvalidOperationException(), new System.Net.WebSockets.WebSocketException() })\n                Need(!Expected(error, stopping.Token), \"A non-shutdown error was silently classified as expected.\");\n        });\n        // Bulk coverage changes only a copied fixture catalog; production stack and bag limits stay unchanged."
+        }
+      ]
+    },
+    {
+      "path": "client/Tests/LiveExperienceContract.cs",
+      "expected_blob": "060d082804e318823b1df25918459c5e0091da5d",
+      "replacements": [
+        {
+          "old": "            Require(!Field<bool>(game, \"attackKeyHeld\"), \"Reconnect does not resume an old held attack\");",
+          "new": "            Require(!Field<bool>(game, \"attackKeyHeld\"), \"Reconnect does not resume an old held attack\");\n            for (int cycle = 0; cycle < 3; cycle++)\n            {\n                await reconnected.DisconnectAsync(); game.World.ClearSession();\n                Require(!reconnected.Connected, \"Repeated live shutdown completes without a disposed-socket failure\");\n                await reconnected.ConnectAsync(characterId);\n                await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, \"Repeated reconnect did not restore the authoritative snapshot.\");\n                Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId)\n                    && Self.Equipment.GetValueOrDefault(\"weapon\") == weapon && Progression.Total(Self) == checkpointXp,\n                    \"Repeated reconnect retains sold quantities, exact gold, equipment and earned XP\");\n            }"
         }
       ]
     }
