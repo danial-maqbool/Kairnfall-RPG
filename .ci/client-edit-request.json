@@ -1,44 +1,22 @@
 {
- "base":"77c934a884a79d837154eea89fac7526258ac7a4",
- "message":"feat(items): compact centered comparisons and explicit quantity merchant sales",
- "purpose":"Retain the integrated targeting, density, nonlinear advancement and support-XP repairs plus newer foundry assets. Add read-only per-stat equipment comparisons even for locked/banked gear, signed color-coded deltas, all actual blockers in red, centered compact cards and bounded generic tooltips. Add a dedicated merchant selling page, validated typed quantities, full-stack selling and exact shared client/server quotes. Keep server ownership, proximity, merchant category, replay, gold-cap and atomic transaction validation. Add numerical, authoritative transaction, native input/layout and rendered regression fixtures. No class or player-level requirement is invented where the game has none.",
+ "base":"c80c1c04c34ba8385892420bc4394c34acdb721e",
+ "message":"test(items): isolate bulk-stack fixtures and exercise native quantity editing",
+ "purpose":"The new commerce fixture incorrectly searched the production catalog for a 150-stack item although current stack limits are 99. Keep all large-stack, exact-price, replay and conservation assertions. Use a copied test-only catalog with a 999-cap copper-ore definition for bulk cases; do not change production catalog capacities. Enter quantities through native key events instead of expecting programmatic LineEdit.Text to emit a user-edit signal. Distinguish base armor from bonus armor in the compact stat labels. Retain every existing backend and graphical check.",
  "edits":[
-  {"path":"src/Kairnfall.Core/EquipmentComparison.cs","expected_blob":null,"source_blob":"bdeffd6f8928cb3edf4fe8b7d35357fdfacfca51"},
-  {"path":"src/Kairnfall.Core/MerchantSales.cs","expected_blob":null,"source_blob":"ca215a24806fefc674204512e8302fd952874050"},
-  {"path":"client/Scripts/CompactItemCard.cs","expected_blob":null,"source_blob":"04441ccda9ba43e5d0fab4bb9b10a99110a6f6d1"},
-  {"path":"client/Scripts/MerchantSellPanel.cs","expected_blob":null,"source_blob":"028334184c02fbea97d5ca02a270551e82324b9d"},
-  {"path":"client/Scripts/GameRoot.ItemPresentation.cs","expected_blob":null,"source_blob":"ef6d48fe3139b5d0e20da16e354669cf6d26bf0b"},
-  {"path":"tools/world_probe/ItemCommerceChecks.cs","expected_blob":null,"source_blob":"cd586382f6dfb15bc1fb5a7d60ef48783b789b34"},
-  {"path":"client/Tests/ItemCommerceUiChecks.cs","expected_blob":null,"source_blob":"fe0a18109d577cb572ed104a5bb0610eb7ca28e2"},
-  {"path":"src/Kairnfall.Core/RealmEconomy.cs","expected_blob":"2951e9b0419e6dee543386f8ea88af915caa7d32","replacements":[
-   {"old":"        Need(quantity is >0 and <=99&&quantity<=item.Quantity,\"Invalid sale quantity.\");\n        Need(def.Type!=\"quest\"&&def.Value>0,\"This item cannot be sold.\");\n        Need(npc.Stock.Any(x=>Data.Item(x).Type==def.Type)||npc.Role==\"provisioner\",\"This merchant does not buy this item type.\");\n        long value=Math.Max(1,(long)Math.Floor(def.Value*0.30))*quantity;","new":"        long value=MerchantSales.Quote(p,npc,item,quantity,Data);"}
+  {"path":"tools/world_probe/ItemCommerceChecks.cs","expected_blob":"cd586382f6dfb15bc1fb5a7d60ef48783b789b34","replacements":[
+   {"old":"        var merchant = data.Npcs.First(n => n.Role == \"provisioner\" && n.Stock.Length > 0);","new":"        // Bulk-quantity coverage uses an isolated catalog, not larger production bags or stacks.\n        data = Wire.Copy(data);\n        data.Item(\"copper_ore\").StackMax = 999;\n        var merchant = data.Npcs.First(n => n.Role == \"provisioner\" && n.Stock.Length > 0);"}
   ]},
-  {"path":"client/Scripts/EquipmentItemSlot.cs","expected_blob":"0b5fcb1e621b5e802f3dae414dc081c300c3d239","replacements":[
-   {"old":"    public Action? Activated { get; set; }","new":"    public Func<Control>? TooltipFactory { get; set; }\n    public override Control _MakeCustomTooltip(string forText) => TooltipFactory?.Invoke() ?? CompactItemCard.TextTooltip(forText);\n    public Action? Activated { get; set; }"},
-   {"old":"        Clicked = null; Activated = null; ContextRequested = null; Dropped = null;","new":"        TooltipFactory = null; Clicked = null; Activated = null; ContextRequested = null; Dropped = null;"}
+  {"path":"client/Tests/ItemCommerceUiChecks.cs","expected_blob":"fe0a18109d577cb572ed104a5bb0610eb7ca28e2","replacements":[
+   {"old":"        var realm=new RealmEngine(game.Data);var self=realm.CreateCharacter(\"commerce-ui\",\"Item Review\",\"vanguard\",new());","new":"        // The production catalog keeps 99-item stacks. This isolated fixture also covers future bulk stacks.\n        var fixtureData=Wire.Copy(game.Data);fixtureData.Item(\"copper_ore\").StackMax=999;\n        var realm=new RealmEngine(fixtureData);var self=realm.CreateCharacter(\"commerce-ui\",\"Item Review\",\"vanguard\",new());"},
+   {"old":"var supply=Items.Create(game.Data,game.Data.Items.First(x=>x.StackMax>=150&&x.Value>0&&x.Type!=\"quest\").Id,150);","new":"var supply=Items.Create(fixtureData,\"copper_ore\",150);"},
+   {"old":"                panel.ReadCharacter=()=>realm.Player(self.Id);","new":"                panel.Data=fixtureData;\n                panel.ReadCharacter=()=>realm.Player(self.Id);"},
+   {"old":"        async Task Capture(string name)","new":"        async Task TypeQuantity(SpinBox spin,string text)\n        {\n            var edit=spin.GetLineEdit();edit.GrabFocus();edit.Text=\"\";\n            foreach(char character in text)\n            {\n                var code=(Key)char.ToUpperInvariant(character);\n                using(var press=new InputEventKey{Keycode=code,PhysicalKeycode=code,Unicode=character,Pressed=true})\n                    host.GetViewport().PushInput(press,true);\n                using(var release=new InputEventKey{Keycode=code,PhysicalKeycode=code,Pressed=false})\n                    host.GetViewport().PushInput(release,true);\n            }\n            await Frame();\n        }\n        async Task Capture(string name)"},
+   {"old":"                amount.GetLineEdit().Text=\"7\";panel.RefreshSnapshot();await Frame();","new":"                await TypeQuantity(amount,\"7\");panel.RefreshSnapshot();await Frame();"},
+   {"old":"                amount.GetLineEdit().Text=\"invalid\";await Frame();","new":"                await TypeQuantity(amount,\"invalid\");"},
+   {"old":"                amount.GetLineEdit().Text=\"1.5\";await Frame();","new":"                await TypeQuantity(amount,\"1.5\");"}
   ]},
-  {"path":"client/Scripts/ActionButton.cs","expected_blob":"39d6d853c5635d7830e34c36ee24dfb6fd07b2f5","replacements":[
-   {"old":"    public Action? PressedAction { get; set; }","new":"    public Action? PressedAction { get; set; }\n    public override Control _MakeCustomTooltip(string forText) => string.IsNullOrWhiteSpace(forText) ? null! : CompactItemCard.TextTooltip(forText);"}
-  ]},
-  {"path":"client/Scripts/GameRoot.Panels.cs","expected_blob":"016b47bd1f3978a1587d514aa8ad124bf14a4059","replacements":[
-   {"old":"            case \"Shop\": BuildShopPage(); break;","new":"            case \"Shop\": BuildShopPage(); break;\n            case \"Sell\": BuildSellPage(); break;"}
-  ]},
-  {"path":"client/Scripts/GameRoot.Inventory.cs","expected_blob":"6357fd74948c604ac1d37826c8c9fdc24b2c82f9","replacements":[
-   {"old":"        var row = Ui.Row(parent); row.AddChild(Ui.Label(\"Quantity\", 14, Ui.Muted));","new":"        var row = Ui.Row(parent); row.Alignment = BoxContainer.AlignmentMode.Center; row.AddChild(CompactItemCard.Centered(\"Quantity\", 13, Ui.Muted));"},
-   {"old":"            TooltipText = SlotTooltip(item),","new":"            TooltipText = SlotTooltip(item), TooltipFactory = () => ItemTooltip(item.Id, bag),"},
-   {"old":"        var heading = Ui.Row(parent); heading.AddChild(Ui.Image(Assets.Icon(item.Template), 64));\n        var names = Ui.Column(heading);\n        names.AddChild(Ui.Label(def.Name, 21, Ui.RarityColor(item.Rarity), true));\n        names.AddChild(Ui.Label(item.Rarity + (Items.Equipped(self, item.Id) ? \" · Equipped\" : \"\"), 14, Ui.Muted));\n        // The heading already names the item and rarity. Keep the statistics\n        // compact enough to expose quantity/actions in the 720p inspector.\n        parent.AddChild(Ui.Label(string.Join('\\n', ItemDescription(item).Split('\\n').Skip(2)), 15, Ui.Text, true));","new":"        parent.AddChild(CompactItemCard.Create(Data, self, item, Assets.Icon(item.Template)));"},
-   {"old":"        if (selectedNpc != \"\" && Data.Npcs.Any(x => x.Id == selectedNpc && x.Stock.Length > 0 && NearNpc(x)) && !Items.Equipped(self, item.Id) && def.Type != \"quest\")\n        {\n            long unit = Math.Max(1, (long)Math.Floor(def.Value * .30));\n            parent.AddChild(Ui.Button($\"Sell · {unit} gold each\", () =>\n            {\n                int count = Math.Min(99, Quantity(quantity, item.Quantity));\n                Action sale = () => Send(\"sell\", selectedNpc, item.Id, count);\n                if (item.Rarity >= Rarity.Epic) Confirm(\"Sell valuable equipment\", $\"Sell {count} {def.Name} for {unit * count} gold?\", sale); else sale();\n            }));\n        }","new":"        if (selectedNpc != \"\" && Data.Npcs.Any(x => x.Id == selectedNpc && x.Stock.Length > 0))\n            parent.AddChild(Ui.Button(\"Merchant selling\", () => OpenPage(\"Sell\")));"},
-   {"old":"        top.AddChild(Ui.Button(\"Sell from backpack\", () => OpenPage(\"Inventory\")));","new":"        var sellButton = Ui.Button(\"Sell from backpack\", () => OpenPage(\"Sell\")); sellButton.Name = \"OpenMerchantSell\"; top.AddChild(sellButton);"},
-   {"old":"                var row = Ui.Row(rows); row.AddChild(Ui.Image(Assets.Icon(template.Id), 48));","new":"                var row = new ItemPreviewRow { SizeFlagsHorizontal = SizeFlags.ExpandFill, MakeTooltip = () => CompactItemCard.Create(Data, Snapshot?.Self, new Item { Template = template.Id }, Assets.Icon(template.Id), true, false) }; rows.AddChild(row); row.AddChild(Ui.Image(Assets.Icon(template.Id), 40));"}
-  ]},
-  {"path":"tools/world_probe/Program.cs","expected_blob":"cda5697ebfbc2a772bfbb122eb3e475346b6c572","replacements":[
-   {"old":"SupportTrainingChecks.Run(catalog,failures);","new":"SupportTrainingChecks.Run(catalog,failures);\nItemCommerceChecks.Run(catalog,failures);"}
-  ]},
-  {"path":"client/Tests/ControlRulesContract.cs","expected_blob":"9fb98eaf2a4bdcdde36f760c80a6bfd4294060ee","replacements":[
-   {"old":"            await InventoryRefreshChecks.Run(this,game,Require);","new":"            await InventoryRefreshChecks.Run(this,game,Require);\n            await ItemCommerceUiChecks.Run(this,game,Require);"}
-  ]},
-  {"path":"client/Tests/VisualPresentationContract.cs","expected_blob":"6a0c34f0569b309a88923baf10451a438d35a261","replacements":[
-   {"old":"            await NativeTestLifetime.ReleaseSceneAsync(this,game); game=null;","new":"            await ItemCommerceUiChecks.Run(this,game,Check);\n            await NativeTestLifetime.ReleaseSceneAsync(this,game); game=null;"}
+  {"path":"client/Scripts/CompactItemCard.cs","expected_blob":"04441ccda9ba43e5d0fab4bb9b10a99110a6f6d1","replacements":[
+   {"old":"\"item_power\" => \"Power\", \"item_armor\" => \"Armor\",","new":"\"item_power\" => \"Power\", \"item_armor\" => \"Item armor\", \"armor\" => \"Armor bonus\","count":1}
   ]}
  ]
 }
