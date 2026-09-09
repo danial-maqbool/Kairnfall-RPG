@@ -1,5 +1,9 @@
 # Kairnfall local source handoff
 
+## Latest item and merchant integration — 2026-09-09
+
+Read [Item commerce verified integration](ITEM_COMMERCE_VERIFIED_2026-09-09.md). Source `dbd31fc4b0391045754966eb30c73fb1e4404f71` contains the passing compact-card and merchant-sale candidate. It retains earlier targeting, challenge XP, hunting, Foundry and Atelier work. Both native sale buttons were exercised over the real connection and their exact gold and quantities survived reconnect. Keep only main and preserve all saves. Windows, independent visual and full-game release gates remain separate.
+
 ## Targeting and difficulty continuation — 2026-09-09
 
 Task 1 is integrated at `1628b73770393980bb2d1e8017345f2f830786d7`. It repairs Tab being consumed by GUI focus traversal. The subsequent density, progression, pursuit and HUD source is described in [Challenge balance](../CHALLENGE_BALANCE.md) and [the player guide](../HUNTING_AND_JOURNEY.md). Consult the latest dated session checkpoint for exact source and final verification status. Preserve historical failed attempts rather than interpreting a prepared candidate as an accepted integration. Keep only main, preserve saves, and do not promise a completed game from passing native fixtures.

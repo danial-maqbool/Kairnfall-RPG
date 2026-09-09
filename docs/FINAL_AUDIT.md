@@ -1,5 +1,9 @@
 # Final game audit — pending local acceptance
 
+## Compact item cards and merchant sales — 2026-09-09
+
+The requested item comparisons, red requirements, centered compact cards, explicit quantity sales and selected-stack Sell all are integrated and tested at `dbd31fc4b0391045754966eb30c73fb1e4404f71`. Both sale actions ran through the real server and retained exact item/gold results after reconnect. Full and graphical workflows passed. [Evidence](handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md) retains intermediate failures and distinguishes rendering from independent visual approval. Physical Windows/DPI, human playtesting, audio, load, performance and release-package gates remain open.
+
 ## Hunting and presentation integration — 2026-09-09
 
 The requested hunting, connected beginner dungeons, target/dash controls, early progression, shared inventory groups, Atelier integration and native-pixel source are integrated at `9d9b361fa49e5f85f802c494819227f1947b7f9c`. Full retained automatic verification and native graphical generation passed. [The exact record](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md) supersedes the old pending-candidate handoff. Independent image inspection and coding-agent reviews were not executed successfully; Windows DPI, physical input, sustained load, hardware frame rate, audio and packaged-release acceptance remain open. No whole-game completion or release approval is granted.

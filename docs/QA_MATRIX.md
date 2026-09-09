@@ -1,5 +1,9 @@
 # QA acceptance matrix
 
+## Item and merchant QA — 2026-09-09
+
+[The integrated commerce checkpoint](handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md) records independent signed stat rows, locked/banked comparisons, offhand losses, red blockers, compact centered layouts, integer quantities, exact partial/full-stack gold, stale-snapshot guards and reconnect persistence. Native tests cover both 1280 by 720 and 1920 by 1080. Full and graphical workflows passed. Tests preserve production stack limits, server authority and all older assertions. Independent image review, human playtesting and Windows DPI are not implied.
+
 ## Current journey acceptance — 2026-09-09
 
 [The current checkpoint](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md) records passing exact-source full and graphical workflows, including 118 Python tests, 1,002 native controls, 85 live client/server checks and 197 native presentation checks. New coverage includes exact population multipliers, reachable separated patches, saved-pet/boss preservation, respawn exclusion, early use gates, Q dash, target cycling, shared-capacity inventory sections, coherent Atelier import and native pixel sizes. All original native routing assertions are retained and run at explicit supported physical window dimensions. Automatic regression and rendering passed. Independent art, human playtest, Windows DPI, agent-team review, load and release gates are not automatically approved.

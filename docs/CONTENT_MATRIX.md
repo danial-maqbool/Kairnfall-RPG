@@ -1,5 +1,9 @@
 # Content acceptance matrix
 
+## Item presentation and merchant access — 2026-09-09
+
+[The current commerce pass](handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md) adds no item templates or world regions. It makes existing item comparisons and merchant stack sales visible and tested. The prior targeting/balance extension remains integrated; older population counts below describe their named historical checkpoints. Current formulas and distribution are documented in [Challenge balance](CHALLENGE_BALANCE.md).
+
 ## Current hunting and underground coverage — 2026-09-09
 
 The integrated world seeds 4,682 creatures across 109 regions. Ordinary species use 30x/20x/15x/10x/5x level-banded spawn counts in separated reachable patches. Interiors and service cores remain protected; bosses and elites are not multiplied. Wayfarer's Burrows and Silkroot Den add reciprocal beginner dungeon routes and reuse real existing bosses. The latter also connects to the Dawnreach Deepway. Over-level ordinary beginner dungeon slots are corrected with owned-pet and boss-state preservation. Current equipment-template and recipe counts remain 1,354 and 1,286. [Details](HUNTING_AND_JOURNEY.md) and [verification](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md). Older count statements below are scoped to their original revisions.
