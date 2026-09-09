@@ -36,6 +36,9 @@ public partial class PlayerExperienceContract : Node
         GameRoot? game = null;
         try
         {
+            GetWindow().Size = new Vector2I(1280, 720);
+            await Frame(); await Frame();
+            Require(GetViewport().GetVisibleRect().Size.IsEqualApprox(new Vector2(1280, 720)), "The native experience fixture uses supported physical window dimensions");
             var data = PixelAssets.LoadCatalog(); var realm = new RealmEngine(data);
             var self = realm.CreateCharacter("experience-fixture", "Experience Tester", "vanguard", new());
             Require(ExperienceRules.AllowsWorldInput(true, false, false, true, true), "World input is available during normal play");

@@ -114,6 +114,9 @@ public partial class ControlRulesContract : Node
         GameRoot? game = null;
         try
         {
+            GetWindow().Size = new Vector2I(1280, 720);
+            await Frame(); await Frame();
+            Require(GetViewport().GetVisibleRect().Size.IsEqualApprox(new Vector2(1280, 720)), "The native control fixture uses supported physical window dimensions");
             var data = PixelAssets.LoadCatalog(); var realm = new RealmEngine(data);
             var self = realm.CreateCharacter("control-fixture", "Control Fixture", "vanguard", new());
             var weapon = self.Inventory.Single(x => self.Equipment.GetValueOrDefault("weapon") == x.Id);
