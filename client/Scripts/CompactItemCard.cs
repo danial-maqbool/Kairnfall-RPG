@@ -8,6 +8,9 @@ namespace Kairnfall.Client;
 public static class CompactItemCard
 {
     public const int Width = 328;
+    public const int CompactIconSize = 28;
+    public const int CompactStatRows = 4;
+
     public static Label Centered(string text, int size = 13, Color? color = null, bool wrap = true)
     {
         var label = Ui.Label(text, size, color, wrap);
@@ -16,68 +19,170 @@ public static class CompactItemCard
         label.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         return label;
     }
+
     public static string Number(double value) => (Math.Abs(value) < .005 ? 0 : value).ToString("0.##", CultureInfo.InvariantCulture);
     public static string Delta(double value) => Math.Abs(value) < .005 ? "0" : value.ToString("+0.##;-0.##;0", CultureInfo.InvariantCulture);
     public static Color StatColor(ItemStatComparison stat) => stat.Improvement > 0 ? Ui.Success : stat.Improvement < 0 ? Ui.Danger : Ui.Text;
     public static string StatName(string key) => key switch
     {
-        "item_power" => "Power", "item_armor" => "Item armor", "armor" => "Armor bonus" , "weapon_range" => "Range (tiles)",
+        "item_power" => "Power", "item_armor" => "Item armor", "armor" => "Armor bonus", "weapon_range" => "Range (tiles)",
         "attack_interval" => "Attack interval (s)", _ => Ui.Words(key)
     };
+
+    private static IEnumerable<string> CompactBlockers(IReadOnlyList<string> blockers)
+    {
+        if (blockers.Count == 0) yield break;
+        string primary = blockers.FirstOrDefault(x => x.StartsWith("Requires ", StringComparison.Ordinal)) ?? blockers[0];
+        int other = blockers.Count - 1;
+        yield return other == 0 ? primary : $"{primary} · +{other} restriction{(other == 1 ? "" : "s")}";
+    }
+
     public static Control Create(Catalog data, Character? self, Item item, Texture2D? icon, bool compact = false, bool ownedRequired = true)
     {
         var def = data.Item(item.Template);
         var info = EquipmentComparison.Inspect(self, item, data, ownedRequired);
-        var box = new VBoxContainer { Name = "CompactItemCard", CustomMinimumSize = new Vector2(Width, 0), SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore };
-        box.AddThemeConstantOverride("separation", 3);
-        var image = Ui.Image(icon, compact ? 32 : 40); image.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter; box.AddChild(image);
-        box.AddChild(Centered(def.Name, 16, Ui.RarityColor(item.Rarity)));
-        box.AddChild(Centered(item.Rarity + " · " + Ui.Words(def.Type) + (self is not null && Items.Equipped(self,item.Id) ? " · Equipped" : ""), 12, Ui.Muted));
-        foreach (string reason in info.Blockers)
+        int nameSize = compact ? 14 : 16;
+        int metaSize = compact ? 11 : 12;
+        int statSize = compact ? 11 : 12;
+        var box = new VBoxContainer
         {
-            var blocker = Centered(reason, 12, Ui.Danger); blocker.Name = "ItemBlocker"; box.AddChild(blocker);
+            Name = "CompactItemCard",
+            CustomMinimumSize = new Vector2(Width, 0),
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        box.AddThemeConstantOverride("separation", compact ? 2 : 3);
+
+        var image = Ui.Image(icon, compact ? CompactIconSize : 40);
+        image.Name = "ItemIcon";
+        image.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+        image.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        box.AddChild(image);
+
+        var name = Centered(def.Name, nameSize, Ui.RarityColor(item.Rarity));
+        name.Name = "ItemName";
+        box.AddChild(name);
+
+        var metadata = Centered(item.Rarity + " · " + Ui.Words(def.Type) + (self is not null && Items.Equipped(self, item.Id) ? " · Equipped" : ""), metaSize, Ui.Muted);
+        metadata.Name = "ItemMeta";
+        box.AddChild(metadata);
+
+        IEnumerable<string> blockers = compact ? CompactBlockers(info.Blockers) : info.Blockers;
+        foreach (string reason in blockers)
+        {
+            var blocker = Centered(reason, metaSize, Ui.Danger);
+            blocker.Name = "ItemBlocker";
+            box.AddChild(blocker);
         }
+
         if (def.Skill != "" && !info.Blockers.Any(x => x.StartsWith("Requires ", StringComparison.Ordinal)))
-            box.AddChild(Centered($"Requires {data.Skill(def.Skill).Name} {BeginnerProgression.EquipmentRequirement(def)}", 12, Ui.Muted));
-        if (info.ComparedWith != "") box.AddChild(Centered("Compared with: " + info.ComparedWith, 12, Ui.Muted));
+        {
+            var requirement = Centered($"Requires {data.Skill(def.Skill).Name} {BeginnerProgression.EquipmentRequirement(def)}", metaSize, Ui.Muted);
+            requirement.Name = "ItemRequirement";
+            box.AddChild(requirement);
+        }
+
+        if (info.ComparedWith != "")
+        {
+            var compared = Centered((compact ? "Compare: " : "Compared with: ") + info.ComparedWith, metaSize, Ui.Muted);
+            compared.Name = "ItemComparison";
+            box.AddChild(compared);
+        }
+
         if (info.Stats.Count > 0)
         {
             var grid = new GridContainer { Name = "ItemStatTable", Columns = 3, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            grid.AddThemeConstantOverride("h_separation", 5); grid.AddThemeConstantOverride("v_separation", 2); box.AddChild(grid);
-            void Cell(string text, int width, Color color, string name = "")
+            grid.AddThemeConstantOverride("h_separation", compact ? 4 : 5);
+            grid.AddThemeConstantOverride("v_separation", compact ? 1 : 2);
+            box.AddChild(grid);
+
+            int statNameWidth = compact ? 160 : 166;
+            int statValueWidth = compact ? 62 : 65;
+            int statHeight = compact ? 16 : 18;
+            void Cell(string text, int width, Color color, string cellName = "", bool wrap = true)
             {
-                var label = Centered(text, 12, color); label.CustomMinimumSize = new Vector2(width, 18);
-                if (name != "") label.Name = name;
+                var label = Centered(text, statSize, color, wrap);
+                label.CustomMinimumSize = new Vector2(width, statHeight);
+                if (cellName != "") label.Name = cellName;
                 grid.AddChild(label);
             }
-            Cell("Stat", 166, Ui.Muted); Cell("Item", 65, Ui.Muted); Cell("Change", 65, Ui.Muted);
-            foreach (var stat in info.Stats.Take(compact ? 10 : int.MaxValue))
+
+            if (!compact)
+            {
+                Cell("Stat", statNameWidth, Ui.Muted);
+                Cell("Item", statValueWidth, Ui.Muted, wrap: false);
+                Cell("Change", statValueWidth, Ui.Muted, wrap: false);
+            }
+
+            foreach (var stat in info.Stats.Take(compact ? CompactStatRows : int.MaxValue))
             {
                 Color color = StatColor(stat);
-                Cell(StatName(stat.Key), 166, color, "StatName_" + stat.Key);
-                Cell(Number(stat.Value), 65, color, "StatValue_" + stat.Key);
-                Cell(stat.Difference is { } difference ? Delta(difference) : "—", 65, color, "StatDelta_" + stat.Key);
+                Cell(StatName(stat.Key), statNameWidth, color, "StatName_" + stat.Key);
+                Cell(Number(stat.Value), statValueWidth, color, "StatValue_" + stat.Key, false);
+                Cell(stat.Difference is { } difference ? Delta(difference) : "—", statValueWidth, color, "StatDelta_" + stat.Key, false);
             }
-            if (compact && info.Stats.Count > 10) box.AddChild(Centered($"{info.Stats.Count - 10} more stats · Select to inspect", 12, Ui.Muted));
+
+            if (compact && info.Stats.Count > CompactStatRows)
+            {
+                var more = Centered($"+{info.Stats.Count - CompactStatRows} more stats · Select for details", metaSize, Ui.Muted);
+                more.Name = "ItemCompactMore";
+                box.AddChild(more);
+            }
         }
-        foreach (string notice in info.Notices) box.AddChild(Centered(notice, 12, Ui.Gold));
+
+        IEnumerable<string> notices = compact ? info.Notices.Take(1) : info.Notices;
+        foreach (string notice in notices)
+        {
+            var label = Centered(notice, metaSize, Ui.Gold);
+            label.Name = "ItemNotice";
+            box.AddChild(label);
+        }
+
         if (def.Slot != "" || def.Type == "tool")
-            box.AddChild(Centered($"Durability {item.Durability}%" + (def.Slot != "" ? $" · Runes {item.Runes.Count}/{item.Sockets}" : ""), 12, item.Durability == 0 ? Ui.Danger : Ui.Muted));
-        if (def.Slot == "weapon") box.AddChild(Centered(def.Element + " · Lower attack interval is faster", 11, Ui.Muted));
-        if (item.Quantity > 1) box.AddChild(Centered("Stack: " + item.Quantity, 12, Ui.Muted));
+        {
+            var condition = Centered(
+                $"Durability {item.Durability}%" + (def.Slot != "" ? $" · Runes {item.Runes.Count}/{item.Sockets}" : ""),
+                metaSize,
+                item.Durability == 0 ? Ui.Danger : Ui.Muted);
+            condition.Name = "ItemCondition";
+            box.AddChild(condition);
+        }
+
+        if (def.Slot == "weapon")
+        {
+            var element = Centered(compact ? "Element: " + def.Element : def.Element + " · Lower attack interval is faster", compact ? metaSize : 11, Ui.Muted);
+            element.Name = "ItemElement";
+            box.AddChild(element);
+        }
+
+        if (item.Quantity > 1)
+        {
+            var stack = Centered("Stack: " + item.Quantity, metaSize, Ui.Muted);
+            stack.Name = "ItemStack";
+            box.AddChild(stack);
+        }
+
         if (!compact)
         {
             foreach (var rune in item.Runes) box.AddChild(Centered("Rune: " + data.Item(rune.Template).Name, 12, Ui.Gold));
             if (def.Description != "")
             {
-                var description = Centered(def.Description, 12, Ui.Muted); description.Visible = false;
+                var description = Centered(def.Description, 12, Ui.Muted);
+                description.Name = "ItemDescription";
+                description.Visible = false;
                 var more = Ui.Button("Description", () => description.Visible = !description.Visible);
-                more.CustomMinimumSize = new Vector2(0, 28); more.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
-                box.AddChild(more); box.AddChild(description);
+                more.Name = "ItemDescriptionToggle";
+                more.CustomMinimumSize = new Vector2(0, 28);
+                more.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+                box.AddChild(more);
+                box.AddChild(description);
             }
         }
+
         return box;
     }
+
     public static Control TextTooltip(string text)
     {
         string normalized = text.ReplaceLineEndings("\n").Trim();
