@@ -1,22 +1,21 @@
 {
  "base":"c80c1c04c34ba8385892420bc4394c34acdb721e",
- "message":"test(items): isolate bulk-stack fixtures and exercise native quantity editing",
- "purpose":"The new commerce fixture incorrectly searched the production catalog for a 150-stack item although current stack limits are 99. Keep all large-stack, exact-price, replay and conservation assertions. Use a copied test-only catalog with a 999-cap copper-ore definition for bulk cases; do not change production catalog capacities. Enter quantities through native key events instead of expecting programmatic LineEdit.Text to emit a user-edit signal. Distinguish base armor from bonus armor in the compact stat labels. Retain every existing backend and graphical check.",
+ "message":"test(items): isolate bulk fixtures and exercise native quantity editing",
+ "purpose":"Keep every large-stack, conservation, replay and native-layout assertion. The catalog currently caps stacks at 99. A cloned fixture catalog with a 999-cap copper ore tests bulk support without changing production capacities. Native key events test quantity edits instead of relying on a programmatic Text assignment to emit a user-edit signal. Use distinct labels for base armor and bonus armor.",
  "edits":[
   {"path":"tools/world_probe/ItemCommerceChecks.cs","expected_blob":"cd586382f6dfb15bc1fb5a7d60ef48783b789b34","replacements":[
-   {"old":"        var merchant = data.Npcs.First(n => n.Role == \"provisioner\" && n.Stock.Length > 0);","new":"        // Bulk-quantity coverage uses an isolated catalog, not larger production bags or stacks.\n        data = Wire.Copy(data);\n        data.Item(\"copper_ore\").StackMax = 999;\n        var merchant = data.Npcs.First(n => n.Role == \"provisioner\" && n.Stock.Length > 0);"}
+   {"old":"        var realm = new RealmEngine(data);","new":"        // Bulk coverage changes only a copied fixture catalog; production stack and bag limits stay unchanged.\n        data = Wire.Copy(data); data.Item(\"copper_ore\").StackMax = 999;\n        var realm = new RealmEngine(data);"}
   ]},
   {"path":"client/Tests/ItemCommerceUiChecks.cs","expected_blob":"fe0a18109d577cb572ed104a5bb0610eb7ca28e2","replacements":[
-   {"old":"        var realm=new RealmEngine(game.Data);var self=realm.CreateCharacter(\"commerce-ui\",\"Item Review\",\"vanguard\",new());","new":"        // The production catalog keeps 99-item stacks. This isolated fixture also covers future bulk stacks.\n        var fixtureData=Wire.Copy(game.Data);fixtureData.Item(\"copper_ore\").StackMax=999;\n        var realm=new RealmEngine(fixtureData);var self=realm.CreateCharacter(\"commerce-ui\",\"Item Review\",\"vanguard\",new());"},
-   {"old":"var supply=Items.Create(game.Data,game.Data.Items.First(x=>x.StackMax>=150&&x.Value>0&&x.Type!=\"quest\").Id,150);","new":"var supply=Items.Create(fixtureData,\"copper_ore\",150);"},
-   {"old":"                panel.ReadCharacter=()=>realm.Player(self.Id);","new":"                panel.Data=fixtureData;\n                panel.ReadCharacter=()=>realm.Player(self.Id);"},
+   {"old":"        var realm=new RealmEngine(game.Data);var self=realm.CreateCharacter(\"commerce-ui\",\"Commerce UI\",\"vanguard\",new());","new":"        // Production keeps 99-item stacks. The copied realm also tests future bulk-stack quantities.\n        var fixtureData=Wire.Copy(game.Data);fixtureData.Item(\"copper_ore\").StackMax=999;\n        var realm=new RealmEngine(fixtureData);var self=realm.CreateCharacter(\"commerce-ui\",\"Commerce UI\",\"vanguard\",new());"},
+   {"old":"                var stackDef=game.Data.Items.First(x=>x.StackMax>=150&&x.Value>0&&x.Type!=\"quest\");\n                var stack=Items.Create(game.Data,stackDef.Id,150);","new":"                var stackDef=fixtureData.Item(\"copper_ore\");\n                var stack=Items.Create(fixtureData,stackDef.Id,150);"},
+   {"old":"                panel.ReadCharacter=()=>self;","new":"                panel.Data=fixtureData;\n                panel.ReadCharacter=()=>self;"},
    {"old":"        async Task Capture(string name)","new":"        async Task TypeQuantity(SpinBox spin,string text)\n        {\n            var edit=spin.GetLineEdit();edit.GrabFocus();edit.Text=\"\";\n            foreach(char character in text)\n            {\n                var code=(Key)char.ToUpperInvariant(character);\n                using(var press=new InputEventKey{Keycode=code,PhysicalKeycode=code,Unicode=character,Pressed=true})\n                    host.GetViewport().PushInput(press,true);\n                using(var release=new InputEventKey{Keycode=code,PhysicalKeycode=code,Pressed=false})\n                    host.GetViewport().PushInput(release,true);\n            }\n            await Frame();\n        }\n        async Task Capture(string name)"},
-   {"old":"                amount.GetLineEdit().Text=\"7\";panel.RefreshSnapshot();await Frame();","new":"                await TypeQuantity(amount,\"7\");panel.RefreshSnapshot();await Frame();"},
-   {"old":"                amount.GetLineEdit().Text=\"invalid\";await Frame();","new":"                await TypeQuantity(amount,\"invalid\");"},
-   {"old":"                amount.GetLineEdit().Text=\"1.5\";await Frame();","new":"                await TypeQuantity(amount,\"1.5\");"}
+   {"old":"                var quantity=Find<SpinBox>(\"SaleQuantity\");quantity.GetLineEdit().Text=\"7\";await Frame();","new":"                var quantity=Find<SpinBox>(\"SaleQuantity\");await TypeQuantity(quantity,\"7\");"},
+   {"old":"                quantity.GetLineEdit().Text=\"invalid\";await Frame();","new":"                await TypeQuantity(quantity,\"invalid\");"}
   ]},
   {"path":"client/Scripts/CompactItemCard.cs","expected_blob":"04441ccda9ba43e5d0fab4bb9b10a99110a6f6d1","replacements":[
-   {"old":"\"item_power\" => \"Power\", \"item_armor\" => \"Armor\",","new":"\"item_power\" => \"Power\", \"item_armor\" => \"Item armor\", \"armor\" => \"Armor bonus\","count":1}
+   {"old":"\"item_power\" => \"Power\", \"item_armor\" => \"Armor\",","new":"\"item_power\" => \"Power\", \"item_armor\" => \"Item armor\", \"armor\" => \"Armor bonus\" ,"}
   ]}
  ]
 }
