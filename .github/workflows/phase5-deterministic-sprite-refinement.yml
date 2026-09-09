@@ -179,7 +179,7 @@ jobs:
               raise SystemExit('Non-deterministic generated output: '+', '.join(bad[:40]))
           print('DETERMINISM PASS:',len(actual),'files; no metadata exclusions')
           PY
-      - name: Validate final game pack and native renderer
+      - name: Validate final game pack
         shell: bash
         run: |
           set -euo pipefail
@@ -187,7 +187,15 @@ jobs:
           python tools/build_game_assets.py 2>&1 | tee artifacts/phase5/logs/game-assets.log
           python tools/complete_skill_icons.py 2>&1 | tee artifacts/phase5/logs/skill-icons.log
           python tools/validate_game_assets.py 2>&1 | tee artifacts/phase5/logs/game-assets-validation.log
+      - name: Install verified Godot editor
+        shell: bash
+        run: |
+          set -euo pipefail
           python tools/get_godot.py --os linux 2>&1 | tee artifacts/phase5/logs/godot.log
+      - name: Run native renderer contract
+        shell: bash
+        run: |
+          set -euo pipefail
           timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/phase5/logs/import.log
           timeout 180 "$GODOT_BIN" --headless --path client res://Tests/CompactItemCardContract.tscn 2>&1 | tee artifacts/phase5/logs/native-item-card.log
           for log in import native-item-card; do
@@ -213,6 +221,7 @@ jobs:
           print('PUBLISH SCOPE:',len(paths),'existing/stable-path files')
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: phase5-deterministic-sprite-refinement-${{ github.sha }}
           path: artifacts/phase5/
