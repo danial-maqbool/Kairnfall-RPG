@@ -2,13 +2,20 @@ name: Art library source and visual verification
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/art-library-review.yml', 'foundry/art-review-request.json']
+    paths: ['.github/workflows/art-library-review.yml', 'atelier/**', 'foundry/**']
 permissions:
   contents: read
+concurrency:
+  group: art-library-review
+  cancel-in-progress: false
 jobs:
   review:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,22 +23,114 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Export exact source and read-only catalog for local art review
+      - run: python -m pip install Pillow==12.0.0
+      - name: Apply exact reviewed source, without updating any branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: python
+        run: |
+          import base64, hashlib, json, os, re, subprocess, urllib.request
+          from pathlib import Path, PurePosixPath
+          out=Path('artifacts/art-library-review'); out.mkdir(parents=True,exist_ok=True)
+          request_path=Path('foundry/art-review-request.json')
+          if request_path.is_file():
+              request=json.loads(request_path.read_text())
+              def sha(s):
+                  if not isinstance(s,str) or not re.fullmatch('[0-9a-f]{40}',s): raise ValueError('Full immutable SHA required')
+                  return s
+              def read_blob(s):
+                  s=sha(s)
+                  url='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/git/blobs/'+s
+                  req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+                  with urllib.request.urlopen(req,timeout=45) as response: obj=json.load(response)
+                  data=base64.b64decode(obj['content'])
+                  actual=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+                  if actual!=s: raise ValueError('Blob integrity mismatch')
+                  return data
+              def path_ok(path):
+                  p=PurePosixPath(path)
+                  if p.is_absolute() or '..' in p.parts or '\\' in path or p.parts[0] not in ('atelier','foundry'):
+                      raise ValueError('Outside art library scope: '+path)
+              base=sha(request['base'])
+              (out/'request.json').write_text(json.dumps(request))
+              subprocess.run(['git','fetch','--depth=1','origin',base],check=True)
+              subprocess.run(['git','checkout','--detach',base],check=True)
+              for index, blob in enumerate(request['patch_blobs']):
+                  data=read_blob(blob).replace(b'\n diff --git a/',b'\ndiff --git a/')
+                  patch=out/('source-'+str(index)+'.patch'); patch.write_bytes(data)
+                  listed=subprocess.check_output(['git','apply','--numstat',str(patch)],text=True)
+                  for line in listed.splitlines(): path_ok(line.split('\t',2)[2])
+                  subprocess.run(['git','apply','--check','--whitespace=error-all',str(patch)],check=True)
+                  subprocess.run(['git','apply','--whitespace=error-all',str(patch)],check=True)
+              for path, blob in request['new_files'].items():
+                  path_ok(path); target=Path(path)
+                  if target.exists(): raise ValueError('New source path already exists: '+path)
+                  target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(read_blob(blob))
+              for path, expected in request['expected_source'].items():
+                  path_ok(path)
+                  if hashlib.sha256(Path(path).read_bytes()).hexdigest()!=expected: raise ValueError('Reviewed source differs: '+path)
+              print('Reviewed source checksums match. No branch update performed.')
+      - name: Rebuild twice, check joins, contrast, atlases and deterministic bytes
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p artifacts/art-library-review
-          git archive --format=zip HEAD > artifacts/art-library-review/source.zip
-          git ls-tree -r HEAD > artifacts/art-library-review/tracked-tree.txt
-          git rev-parse HEAD > artifacts/art-library-review/revision.txt
-          python - <<'PY'
-          import json
+          python atelier/verify_libraries.py --rebuild | tee artifacts/art-library-review/test.log
+      - name: Retain verified candidate and review evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: python
+        run: |
+          import base64, hashlib, json, os, re, subprocess, time, urllib.request, zipfile
           from pathlib import Path
-          from tools.build_content import build
-          Path('artifacts/art-library-review/catalog.json').write_text(json.dumps(build(), sort_keys=True), encoding='utf-8')
-          PY
-          (cd artifacts/art-library-review && sha256sum source.zip tracked-tree.txt revision.txt catalog.json > SHA256SUMS)
+          out=Path('artifacts/art-library-review')
+          report=json.loads((out/'verification.json').read_text())
+          if report['tests']!='passed' or report['rebuilds']!=2: raise ValueError('Incomplete verification')
+          changed=set(subprocess.check_output(['git','diff','--name-only','--diff-filter=AM','-z']).decode().split('\0'))
+          changed.update(subprocess.check_output(['git','ls-files','--others','--exclude-standard','-z']).decode().split('\0'))
+          changed.discard('')
+          if subprocess.check_output(['git','ls-files','--deleted','-z']): raise ValueError('Unexpected deletion')
+          for path in changed:
+              if path.split('/')[0] not in ('atelier','foundry') or Path(path).is_symlink(): raise ValueError('Out-of-scope change: '+path)
+          base=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          result={'base':base,'changed_files':sorted(changed),'tests':'passed'}
+          if (out/'request.json').is_file():
+              endpoint='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']
+              def api(path,payload=None):
+                  if not re.fullmatch(r'/git/(blobs|trees|commits(?:/[0-9a-f]{40})?)',path): raise ValueError('Git-object operations only')
+                  data=None if payload is None else json.dumps(payload).encode()
+                  req=urllib.request.Request(endpoint+path,data=data,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
+                  with urllib.request.urlopen(req,timeout=45) as response: return json.load(response)
+              tree=[]
+              for index,path in enumerate(sorted(changed)):
+                  raw=Path(path).read_bytes()
+                  expected=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+                  blob=api('/git/blobs',{'encoding':'base64','content':base64.b64encode(raw).decode()})['sha']
+                  if blob!=expected: raise ValueError('Uploaded blob differs: '+path)
+                  tree.append({'path':path,'mode':'100644','type':'blob','sha':blob})
+                  time.sleep(1.0)
+                  if index%25==0: print('Verified blobs',index+1,'/',len(changed),flush=True)
+              original=api('/git/commits/'+base)
+              tree_sha=api('/git/trees',{'base_tree':original['tree']['sha'],'tree':tree})['sha']
+              message='fix(art): join cliffs, quiet terrain texture and restore panel contrast\n\nRegenerate and verify the affected art libraries twice with Python 3.12 and Pillow 12.0. Retain 48px panels with 16px corners. No game source or content paths changed.\n\nCo-Authored-By: GPT 6 Pro <noreply@openai.com>'
+              commit=api('/git/commits',{'message':message,'tree':tree_sha,'parents':[base]})['sha']
+              result.update(candidate=commit,tree=tree_sha)
+              print('ART_CANDIDATE='+commit,flush=True)
+              print('ART_TREE='+tree_sha,flush=True)
+              print('No branch, tag or release was created or updated.',flush=True)
+          else:
+              unexpected=[p for p in changed if p not in ('atelier/coverage.json','foundry/coverage.json')]
+              if unexpected: raise ValueError('Committed art differs from rebuild: '+', '.join(unexpected))
+              result['verified_main']=base
+          (out/'candidate.json').write_text(json.dumps(result,indent=2)+'\n')
+          with zipfile.ZipFile(out/'changed-files.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for path in sorted(changed): z.write(path,path)
+              for folder in ('atelier/preview','foundry/preview'):
+                  for path in sorted(Path(folder).glob('*.png')):
+                      if path.as_posix() not in changed: z.write(path,path.as_posix())
+          files=['changed-files.zip','candidate.json','verification.json','test.log']
+          (out/'SHA256SUMS').write_text('\n'.join(hashlib.sha256((out/p).read_bytes()).hexdigest()+'  '+p for p in files)+'\n')
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: art-library-review-${{ github.sha }}
           path: artifacts/art-library-review/
