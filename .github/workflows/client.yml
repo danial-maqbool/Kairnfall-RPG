@@ -4,6 +4,11 @@ on:
     paths:
       - 'client/**'
       - 'src/**'
+      - 'content/**'
+      - 'content_src/**'
+      - 'tools/build_content.py'
+      - 'tools/build_game_assets.py'
+      - 'tools/get_godot.py'
       - '.github/workflows/client.yml'
   pull_request:
   workflow_dispatch:
@@ -18,10 +23,20 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Compile the Godot C# client and shared protocol
         run: dotnet build client/Kairnfall.Client.csproj -c Debug
+      - name: Build deterministic native test content pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py
+          python tools/build_game_assets.py
       - name: Install verified Godot editor
-        run: python3 tools/get_godot.py --os linux
+        run: python tools/get_godot.py --os linux
       - name: Run native compact item card layout contract
         shell: bash
         run: |
