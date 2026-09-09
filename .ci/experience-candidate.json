@@ -1,6 +1,6 @@
 {
-  "sha": "fd1ea7c82636dc775dbdeef48f66be7f3d4967bb",
-  "base": "d17f5450f640668d90535ee1e647e991d46514c7",
+  "sha": "677892b941543e956ffbf0fb86632eb0bfc2393e",
+  "base": "35fff888b8b8149c281c8725250cd0dfa0dcb05e",
   "mode": "repair",
-  "purpose": "Run every retained test for the integrated compact item panels and protected merchant transactions. Merchant boundary fixtures now reuse only the isolated catalog's hunting-plan cache while constructing new full-population RealmState. Isolation and creature-count assertions are added. Temporary item prices and stack limits are restored with their existing declared types. The earlier test-only type error was caught before integration. No production behavior, region, creature, assertion, expected gold or timeout changes. Require full backend, PostgreSQL, native, graphical, real-server sales and reconnect verification before integrating these test improvements."
+  "purpose": "Verify the compact item hover-card repair before integration. The candidate bounds compact stat rows and metadata, reduces compact typography and spacing, preserves full-detail content, and adds native layout regression coverage for all item types, long names, rare metadata, icon bounds, clipping, overlap, supported resolutions, and viewport-edge placement."
 }
