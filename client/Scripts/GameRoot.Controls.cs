@@ -85,7 +85,7 @@ public partial class GameRoot
         if (mouse.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
         {
             World.Zoom = Math.Clamp(World.Zoom + (mouse.ButtonIndex == MouseButton.WheelUp ? 1 : -1), 1, 3);
-            settings.SetValue("display", "zoom", World.Zoom);
+            settings.SetValue("display", "native_world_zoom", World.Zoom);
             settings.Save("user://settings.cfg");
             GetViewport().SetInputAsHandled(); return;
         }

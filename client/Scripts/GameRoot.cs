@@ -68,7 +68,7 @@ public partial class GameRoot : Control
             audio.SetVolumes((float)settings.GetValue("audio", "music", .35).AsDouble(), (float)settings.GetValue("audio", "effects", .65).AsDouble());
             World.WeatherEnabled = settings.GetValue("display", "weather", true).AsBool();
             World.ShowNames = settings.GetValue("display", "names", true).AsBool();
-            World.Zoom = (float)settings.GetValue("display", "zoom", 2).AsDouble();
+            World.Zoom = PixelPresentation.WorldZoom(settings);
             ShowLogin();
             smoke = OS.GetCmdlineUserArgs().Contains("--smoke");
             if (smoke) _ = StartSmokeAsync();

@@ -246,3 +246,5 @@ def build(data):
         if not candidates: candidates=[by_id['engine_of_dawn']]
         target=min(candidates,key=lambda z:abs(z['level']-resource['requirement']))
         target['resources'].append(resource['id'])
+    from . import hunting_routes
+    hunting_routes.build(data)

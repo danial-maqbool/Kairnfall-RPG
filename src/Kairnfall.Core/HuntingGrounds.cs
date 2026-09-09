@@ -22,7 +22,7 @@ public sealed class HuntingPlan
 
 public static class HuntingGrounds
 {
-    public const int Revision = 1;
+    public const int Revision = 2;
     public const int PackSize = 5;
     private sealed class Cache { public readonly Dictionary<string,(int Stamp,HuntingPlan Plan)> Plans = []; }
     private static readonly ConditionalWeakTable<Catalog,Cache> Caches = new();

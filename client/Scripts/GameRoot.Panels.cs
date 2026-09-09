@@ -214,6 +214,7 @@ public partial class GameRoot
         if (page is null) return;
         var rows = Ui.Column(Ui.Scroll(page, new Vector2(800, 450)));
         rows.AddChild(Ui.Label("Display and sound", 22, Ui.Gold));
+        AddPixelPresentationControls(rows);
         AddToggle(rows, "Weather effects", World.WeatherEnabled, value => { World.WeatherEnabled = value; settings.SetValue("display", "weather", value); });
         AddToggle(rows, "NPC and player names", World.ShowNames, value => { World.ShowNames = value; settings.SetValue("display", "names", value); });
         AddToggle(rows, "Fullscreen", DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen, value => DisplayServer.WindowSetMode(value ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed));

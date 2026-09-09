@@ -120,6 +120,18 @@ internal static class JourneyControlChecks
             }
             Need(previous==200,"Maximum skill progress no longer reaches the player cap.");
         });
+        Test("Early-access bands never increase any valid equipment or tool requirement",()=>
+        {
+            foreach(int level in Enumerable.Range(1,100))
+            foreach(string kind in new[]{"weapon","armor","tool","material"})
+            {
+                var item=new ItemDef { Requirement=level, Type=kind, Slot=kind=="weapon"?"weapon":kind=="armor"?"chest":"" };
+                int gate=BeginnerProgression.EquipmentRequirement(item);
+                Need(gate>=1 && gate<=level,"Early access raised a requirement: "+kind+"/"+level);
+                if(level>=20 || kind=="material") Need(gate==level,"An unchanged requirement was altered: "+kind+"/"+level);
+                Need(item.Requirement==level,"Computing early access rewrote the item definition.");
+            }
+        });
         Console.WriteLine($"JOURNEY CONTROLS: {passed} groups passed; total failures {failures.Count}.");
     }
 }
