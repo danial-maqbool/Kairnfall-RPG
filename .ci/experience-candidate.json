@@ -1,6 +1,6 @@
 {
-  "sha": "f358260120ceb98e5e09af7b35d9c2bdf489d9c2",
+  "sha": "fd1ea7c82636dc775dbdeef48f66be7f3d4967bb",
   "base": "d17f5450f640668d90535ee1e647e991d46514c7",
   "mode": "repair",
-  "purpose": "Verify the already integrated compact item cards, colored signed comparisons, red blockers, exact protected stack sales and reconnect repairs with all retained checks. The only new code change shares an isolated fixture Catalog between two merchant native suites, reusing immutable hunting plans but constructing fresh complete RealmState. New assertions require catalog isolation and unchanged creature count. All world regions, populations, production source, prices, save rules, native assertions and original timeouts remain unchanged. Run the full backend, database, native, graphical and real-connection tests; do not count earlier timed-out attempts as passes."
+  "purpose": "Run every retained test for the integrated compact item panels and protected merchant transactions. Merchant boundary fixtures now reuse only the isolated catalog's hunting-plan cache while constructing new full-population RealmState. Isolation and creature-count assertions are added. Temporary item prices and stack limits are restored with their existing declared types. The earlier test-only type error was caught before integration. No production behavior, region, creature, assertion, expected gold or timeout changes. Require full backend, PostgreSQL, native, graphical, real-server sales and reconnect verification before integrating these test improvements."
 }
