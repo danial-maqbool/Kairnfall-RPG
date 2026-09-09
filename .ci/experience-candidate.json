@@ -1,6 +1,6 @@
 {
- "sha":"a1ee3a9cfcfb9bd9de623ba568f90a6cc0e9f056",
- "base":"f988317b68bfff981bb1d59ae564bd9d7fac7e78",
- "mode":"repair",
- "purpose":"Verify the complete gameplay update with checksum-validated Atelier asset integration, native-size world and inventory pixels, safe preference migration, two connected beginner dungeons, level-appropriate dungeon populations and saved-pet preservation. Run all retained authority, network, database, migration, path, hunting-density, native input, layout, graphical and live-client tests. Keep independent visual review separate from file integrity and successful rendering."
+  "sha": "f388eceb26c20e2e54409e4c57f8603587a3946e",
+  "base": "f988317b68bfff981bb1d59ae564bd9d7fac7e78",
+  "mode": "repair",
+  "purpose": "Recover all pending hunting, beginner dungeons, Atelier integration and native-pixel source. Retain every backend, database, security, save, native input and live-client test. Input routing now initializes explicit supported physical window sizes rather than using a headless default and repeats every routing assertion after resizing. This is verification, not source integration or visual approval."
 }
