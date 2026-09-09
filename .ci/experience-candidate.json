@@ -1,6 +1,6 @@
 {
- "sha":"f83381386a83644e5a6c9c5e3e3f045dc6212e0e",
+ "sha":"bae2e5f614d398a3cf6cc3b342f5d3e6defce2ef",
  "base":"4d45f8b7aff4c06152645d71c394f81baee78c38",
  "mode":"repair",
- "purpose":"Task 1: fix Tab moving focus to chat instead of selecting a nearby mob. Verify narrow pre-GUI target handling, 12-tile line-of-sight filtering, reverse cycling, repeat suppression and intact chat/menu behavior. Run all retained backend, migration, hunting, native input and live-client checks before source integration."
+ "purpose":"Task 2: verify doubled ordinary populations, full-map reachable patch spread and revision-3 save migration. Keep the tested pre-GUI Tab repair and every old collision, population, persistence, security, native control and real-server check. Added checks require exact population bands and broad two-axis wilderness coverage."
 }
