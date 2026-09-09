@@ -53,6 +53,8 @@ internal static class ItemCommerceChecks
             self.Health = 0; two.Durability = 0;
             Need(EquipmentComparison.Inspect(self,two,data).Blockers.Count >= 3, "One blocker conceals other failures.");
         });
+        // Bulk coverage changes only a copied fixture catalog; production stack and bag limits stay unchanged.
+        data = Wire.Copy(data); data.Item("copper_ore").StackMax = 999;
         var realm = new RealmEngine(data);
         string id = realm.CreateCharacter("sale-fixture", "Sale Tester", "vanguard", new()).Id;
         var merchant = data.Npcs.First(x => x.Role == "provisioner" && x.Stock.Length > 0);

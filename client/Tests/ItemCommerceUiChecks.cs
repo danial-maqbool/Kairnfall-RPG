@@ -22,6 +22,19 @@ internal static class ItemCommerceUiChecks
             using(var release=new InputEventMouseButton{Position=at,GlobalPosition=at,ButtonIndex=MouseButton.Left,Pressed=false}) host.GetViewport().PushInput(release,true);
             await Frame();await Frame();
         }
+        async Task TypeQuantity(SpinBox spin,string text)
+        {
+            var edit=spin.GetLineEdit();edit.GrabFocus();edit.Text="";
+            foreach(char character in text)
+            {
+                var code=(Key)char.ToUpperInvariant(character);
+                using(var press=new InputEventKey{Keycode=code,PhysicalKeycode=code,Unicode=character,Pressed=true})
+                    host.GetViewport().PushInput(press,true);
+                using(var release=new InputEventKey{Keycode=code,PhysicalKeycode=code,Pressed=false})
+                    host.GetViewport().PushInput(release,true);
+            }
+            await Frame();
+        }
         async Task Capture(string name)
         {
             if(DisplayServer.GetName()=="headless")return;
@@ -33,7 +46,9 @@ internal static class ItemCommerceUiChecks
         }
         var original=game.World.Snapshot;
         string oldItem=(string)Field("selectedItem").GetValue(game)!,oldBag=(string)Field("selectedBag").GetValue(game)!,oldNpc=(string)Field("selectedNpc").GetValue(game)!;
-        var realm=new RealmEngine(game.Data);var self=realm.CreateCharacter("commerce-ui","Commerce UI","vanguard",new());
+        // Production keeps 99-item stacks. The copied realm also tests future bulk-stack quantities.
+        var fixtureData=Wire.Copy(game.Data);fixtureData.Item("copper_ore").StackMax=999;
+        var realm=new RealmEngine(fixtureData);var self=realm.CreateCharacter("commerce-ui","Commerce UI","vanguard",new());
         var merchant=game.Data.Npcs.First(x=>x.Role=="provisioner"&&x.Stock.Length>0);
         try
         {
@@ -59,12 +74,13 @@ internal static class ItemCommerceUiChecks
                 using(var tip=slot._MakeCustomTooltip(slot.TooltipText))
                     check(tip is Control c&&c.CustomMinimumSize.X==CompactItemCard.Width,"Equipment slots use the compact comparison tooltip");
                 Call("ClosePage");await Frame();await Frame();
-                var stackDef=game.Data.Items.First(x=>x.StackMax>=150&&x.Value>0&&x.Type!="quest");
-                var stack=Items.Create(game.Data,stackDef.Id,150);self.Inventory.Clear();self.Equipment.Clear();self.Inventory.Add(stack);
+                var stackDef=fixtureData.Item("copper_ore");
+                var stack=Items.Create(fixtureData,stackDef.Id,150);self.Inventory.Clear();self.Equipment.Clear();self.Inventory.Add(stack);
                 game.World.Accept(new TransportPacket{Snapshot=realm.Snapshot(self.Id)});
                 Field("selectedNpc").SetValue(game,merchant.Id);Call("OpenPage","Shop");await Frame();await Frame();
                 await Click(Find<Button>("OpenMerchantSell"));await Frame();await Frame();
                 var panel=Find<MerchantSellPanel>("MerchantSellPanel");int requests=0,lastCount=0;
+                panel.Data=fixtureData;
                 panel.ReadCharacter=()=>self;
                 panel.SellItem=(id,count)=>
                 {
@@ -73,14 +89,14 @@ internal static class ItemCommerceUiChecks
                     self=realm.Player(self.Id);return Task.FromResult<CommandResult?>(result);
                 };
                 panel.RefreshSnapshot();await Frame();await Frame();
-                var quantity=Find<SpinBox>("SaleQuantity");quantity.GetLineEdit().Text="7";await Frame();
+                var quantity=Find<SpinBox>("SaleQuantity");await TypeQuantity(quantity,"7");
                 panel.RefreshSnapshot();check(quantity.GetLineEdit().Text=="7","Snapshot refresh preserves an unsubmitted typed quantity");
                 long gold=self.Gold,unit=MerchantSales.UnitPrice(stackDef);
                 check(Find<Label>("SaleGoldTotal").Text.Contains((unit*7).ToString("N0")),"The selected quantity shows the exact total gold");
                 await Capture("merchant-sell-"+size.X);
                 await Click(Find<Button>("SellSelectedQuantity"));
                 check(requests==1&&lastCount==7&&Items.Owned(self,stack.Id).Quantity==143&&self.Gold==gold+unit*7,"Native Sell quantity reaches the real realm transaction and transfers exact gold");
-                quantity.GetLineEdit().Text="invalid";await Frame();
+                await TypeQuantity(quantity,"invalid");
                 check(Find<Button>("SellSelectedQuantity").Disabled&&requests==1,"Invalid text cannot become a silent sale quantity");
                 check(!Find<Button>("SellAllQuantity").Disabled,"Sell all is independent of an invalid partial quantity");
                 await Click(Find<Button>("SellAllQuantity"));

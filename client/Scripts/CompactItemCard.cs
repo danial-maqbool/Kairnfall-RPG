@@ -21,7 +21,7 @@ public static class CompactItemCard
     public static Color StatColor(ItemStatComparison stat) => stat.Improvement > 0 ? Ui.Success : stat.Improvement < 0 ? Ui.Danger : Ui.Text;
     public static string StatName(string key) => key switch
     {
-        "item_power" => "Power", "item_armor" => "Armor", "weapon_range" => "Range (tiles)",
+        "item_power" => "Power", "item_armor" => "Item armor", "armor" => "Armor bonus" , "weapon_range" => "Range (tiles)",
         "attack_interval" => "Attack interval (s)", _ => Ui.Words(key)
     };
     public static Control Create(Catalog data, Character? self, Item item, Texture2D? icon, bool compact = false, bool ownedRequired = true)
