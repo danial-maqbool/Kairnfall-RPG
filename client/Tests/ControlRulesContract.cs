@@ -115,7 +115,7 @@ public partial class ControlRulesContract : Node
         Console.WriteLine(line); Console.Out.Flush();
         string directory = System.IO.Path.GetFullPath(System.IO.Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "artifacts", "experience", "logs"));
         System.IO.Directory.CreateDirectory(directory);
-        System.IO.File.AppendAllText(System.IO.Path.Combine(directory, "controls-progress.log"), line + Environment.NewLine);
+        System.IO.File.AppendAllText(System.IO.Path.Combine(directory, "controls-progress.log"), line + System.Environment.NewLine);
     }
 
     public override async void _Ready()
