@@ -1,39 +1,83 @@
 {
-  "base": "633b1f23673126c5c4ffad956704808ba2f2b9f7",
-  "message": "fix(connection): handle the cancelled receive race during shutdown",
-  "purpose": "All compact-card, merchant-boundary, native layout and server sale checks passed, but live verification exposed ClientWebSocket.ReceiveAsync throwing ObjectDisposedException after DisconnectAsync cancelled and aborted the socket. Treat that exception as expected only when the receiver cancellation token is already cancelled. Do not swallow errors during an active session or suppress protocol errors. Add deterministic filter checks and repeated real reconnects after sale. Preserve every old assertion, timeout, sale result and persistence requirement.",
+  "base": "ea829440e162fc71b1a65f3b177f470452d3dd1a",
+  "message": "test(native): flush control-contract milestones before asynchronous waits",
+  "purpose": "Keep the exact merchant and socket-shutdown repairs. Two verification attempts passed the preceding suites but returned an empty native control log after timeout. Add bounded, flushed stage evidence before the initial frame wait, content construction and each retained native subsuite. Do not change production code, assertions, test ordering, timeouts or pass/fail results. Keep direct file evidence in the existing artifact log directory so a killed process does not discard its last completed stage.",
   "edits": [
     {
-      "path": "src/Kairnfall.Core/GameConnection.cs",
-      "expected_blob": "4804ab7aa100040c2efe1cb9b26e2d7a7ea21268",
+      "path": "client/Tests/ControlRulesContract.cs",
+      "expected_blob": "93c5caef235be1ef3a7e7a5ec2e3c9c9bae9b1b2",
       "replacements": [
         {
-          "old": "    private async Task ReceiveLoopAsync(ClientWebSocket current, CancellationToken cancel)",
-          "new": "    private static bool ExpectedReceiveShutdown(Exception error, CancellationToken cancel)\n        => cancel.IsCancellationRequested && (error is OperationCanceledException or ObjectDisposedException);\n\n    private async Task ReceiveLoopAsync(ClientWebSocket current, CancellationToken cancel)"
+          "old": "    public override async void _Ready()",
+          "new": "    private static void TraceStage(string stage)\n    {\n        string line = DateTime.UtcNow.ToString(\"O\") + \" CONTROL_STAGE: \" + stage;\n        Console.WriteLine(line); Console.Out.Flush();\n        string directory = System.IO.Path.GetFullPath(System.IO.Path.Combine(ProjectSettings.GlobalizePath(\"res://\"), \"..\", \"artifacts\", \"experience\", \"logs\"));\n        System.IO.Directory.CreateDirectory(directory);\n        System.IO.File.AppendAllText(System.IO.Path.Combine(directory, \"controls-progress.log\"), line + Environment.NewLine);\n    }\n\n    public override async void _Ready()"
         },
         {
-          "old": "        catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }",
-          "new": "        // Abort may dispose the socket between the state check and ReceiveAsync.\n        // Only an explicitly cancelled receiver can treat that disposal as shutdown.\n        catch (Exception error) when (ExpectedReceiveShutdown(error, cancel)) { }"
-        }
-      ]
-    },
-    {
-      "path": "tools/world_probe/ItemCommerceChecks.cs",
-      "expected_blob": "ef2c099710551df27e463893ad5292fe9593f59a",
-      "replacements": [
+          "old": "            GetWindow().Size = new Vector2I(1280, 720);\n            await Frame(); await Frame();",
+          "new": "            TraceStage(\"enter; display=\" + DisplayServer.GetName());\n            GetWindow().Size = new Vector2I(1280, 720);\n            await Frame(); await Frame();\n            TraceStage(\"initial frames received\");"
+        },
         {
-          "old": "        // Bulk coverage changes only a copied fixture catalog; production stack and bag limits stay unchanged.",
-          "new": "        Test(\"Only explicitly cancelled socket disposal is classified as normal receive shutdown\", () =>\n        {\n            var method = typeof(GameConnection).GetMethod(\"ExpectedReceiveShutdown\", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)\n                ?? throw new InvalidOperationException(\"The receive shutdown filter is missing.\");\n            bool Expected(Exception error, CancellationToken token) => (bool)method.Invoke(null, new object[] { error, token })!;\n            using var stopping = new CancellationTokenSource();\n            var disposed = new ObjectDisposedException(\"ClientWebSocket\");\n            var cancelled = new OperationCanceledException();\n            Need(!Expected(disposed, stopping.Token) && !Expected(cancelled, stopping.Token), \"Active-session errors must not be hidden.\");\n            stopping.Cancel();\n            Need(Expected(disposed, stopping.Token) && Expected(cancelled, stopping.Token), \"Cancelled receive shutdown must tolerate the abort/dispose race.\");\n            foreach (var error in new Exception[] { new JsonException(), new RuleException(\"Invalid packet\"), new IOException(), new InvalidOperationException(), new System.Net.WebSockets.WebSocketException() })\n                Need(!Expected(error, stopping.Token), \"A non-shutdown error was silently classified as expected.\");\n        });\n        // Bulk coverage changes only a copied fixture catalog; production stack and bag limits stay unchanged."
-        }
-      ]
-    },
-    {
-      "path": "client/Tests/LiveExperienceContract.cs",
-      "expected_blob": "060d082804e318823b1df25918459c5e0091da5d",
-      "replacements": [
+          "old": "            var data = PixelAssets.LoadCatalog(); var realm = new RealmEngine(data);",
+          "new": "            TraceStage(\"load catalog\");\n            var data = PixelAssets.LoadCatalog();\n            TraceStage(\"construct realm\");\n            var realm = new RealmEngine(data);\n            TraceStage(\"realm constructed\");"
+        },
         {
-          "old": "            Require(!Field<bool>(game, \"attackKeyHeld\"), \"Reconnect does not resume an old held attack\");",
-          "new": "            Require(!Field<bool>(game, \"attackKeyHeld\"), \"Reconnect does not resume an old held attack\");\n            for (int cycle = 0; cycle < 3; cycle++)\n            {\n                await reconnected.DisconnectAsync(); game.World.ClearSession();\n                Require(!reconnected.Connected, \"Repeated live shutdown completes without a disposed-socket failure\");\n                await reconnected.ConnectAsync(characterId);\n                await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, \"Repeated reconnect did not restore the authoritative snapshot.\");\n                Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId)\n                    && Self.Equipment.GetValueOrDefault(\"weapon\") == weapon && Progression.Total(Self) == checkpointXp,\n                    \"Repeated reconnect retains sold quantities, exact gold, equipment and earned XP\");\n            }"
+          "old": "            await VerifySkillGuide(game, data, self);",
+          "new": "            TraceStage(\"skill guide\");\n            await VerifySkillGuide(game, data, self);"
+        },
+        {
+          "old": "            await AbilityGuideChecks.Run(this, game, data, self, Require);",
+          "new": "            TraceStage(\"ability guide\");\n            await AbilityGuideChecks.Run(this, game, data, self, Require);"
+        },
+        {
+          "old": "            await PresentationChecks.Run(this, game, Require);",
+          "new": "            TraceStage(\"presentation\");\n            await PresentationChecks.Run(this, game, Require);"
+        },
+        {
+          "old": "            await EquipmentGuideChecks.Run(this,game,data,self,Require);",
+          "new": "            TraceStage(\"equipment guide\");\n            await EquipmentGuideChecks.Run(this,game,data,self,Require);"
+        },
+        {
+          "old": "            await CraftingGuideChecks.Run(this,game,data,Require);",
+          "new": "            TraceStage(\"crafting guide\");\n            await CraftingGuideChecks.Run(this,game,data,Require);"
+        },
+        {
+          "old": "            await EquipmentMaintenanceUiChecks.Run(this,game,Require);",
+          "new": "            TraceStage(\"equipment maintenance\");\n            await EquipmentMaintenanceUiChecks.Run(this,game,Require);"
+        },
+        {
+          "old": "            await JourneyUiChecks.Run(this,game,Require);",
+          "new": "            TraceStage(\"journey\");\n            await JourneyUiChecks.Run(this,game,Require);"
+        },
+        {
+          "old": "            await HuntingGuideChecks.Run(this,game,Require);",
+          "new": "            TraceStage(\"hunting guide\");\n            await HuntingGuideChecks.Run(this,game,Require);"
+        },
+        {
+          "old": "            await NativePixelChecks.Run(this,game,Require);",
+          "new": "            TraceStage(\"native pixels\");\n            await NativePixelChecks.Run(this,game,Require);"
+        },
+        {
+          "old": "            await InventoryRefreshChecks.Run(this,game,Require);",
+          "new": "            TraceStage(\"inventory refresh\");\n            await InventoryRefreshChecks.Run(this,game,Require);"
+        },
+        {
+          "old": "            await ItemCommerceUiChecks.Run(this,game,Require);",
+          "new": "            TraceStage(\"item commerce and merchant boundaries\");\n            await ItemCommerceUiChecks.Run(this,game,Require);"
+        },
+        {
+          "old": "            await ChallengeHudChecks.Run(this,game,Require);",
+          "new": "            TraceStage(\"challenge HUD\");\n            await ChallengeHudChecks.Run(this,game,Require);"
+        },
+        {
+          "old": "            await NativeTestLifetime.ReleaseSceneAsync(this, game);",
+          "new": "            TraceStage(\"release scene\");\n            await NativeTestLifetime.ReleaseSceneAsync(this, game);"
+        },
+        {
+          "old": "            GetTree().Quit(0);",
+          "new": "            TraceStage(\"all assertions passed\");\n            GetTree().Quit(0);"
+        },
+        {
+          "old": "            GD.PushError(\"CONTROL_RULES_CONTRACT: \" + error);",
+          "new": "            TraceStage(\"failure: \" + error.GetType().Name + \"; \" + error.Message);\n            GD.PushError(\"CONTROL_RULES_CONTRACT: \" + error);"
         }
       ]
     }
