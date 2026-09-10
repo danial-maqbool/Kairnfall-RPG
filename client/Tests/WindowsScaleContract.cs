@@ -10,6 +10,11 @@ public partial class WindowsScaleContract : Node
     private int checks;
     private static T Field<T>(GameRoot game,string name)=> (T)typeof(GameRoot).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(game)!;
     private static object? Call(GameRoot game,string method,params object?[] args)=>typeof(GameRoot).GetMethod(method,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(game,args);
+    private static void AttachConnectedFixture(GameRoot game,GameConnection connection)
+    {
+        typeof(GameConnection).GetField("connected",BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(connection,true);
+        typeof(GameRoot).GetProperty(nameof(GameRoot.Connection))!.SetValue(game,connection);
+    }
     private async Task Frame()=>await ToSignal(GetTree(),SceneTree.SignalName.ProcessFrame);
     private void Require(bool value,string message)
     {
@@ -40,6 +45,7 @@ public partial class WindowsScaleContract : Node
     public override async void _Ready()
     {
         GameRoot? game=null;
+        GameConnection? connection=null;
         try
         {
             Require(OS.GetName()=="Windows","Contract runs on the Windows engine build");
@@ -48,6 +54,9 @@ public partial class WindowsScaleContract : Node
             using(var scene=GD.Load<PackedScene>("res://Main.tscn")) game=scene.Instantiate<GameRoot>();
             AddChild(game); game.SetProcess(false); await Frame(); await Frame();
             Field<Control>(game,"frontend").Hide(); GetViewport().GuiReleaseFocus(); game.World.Accept(new TransportPacket{Snapshot=realm.Snapshot(self.Id),Loot=[]}); Call(game,"UpdateHud"); await Frame();
+            // The fixture uses a local authoritative snapshot and no remote server. Mark a loopback
+            // transport fixture connected so the real GameRoot input gate follows its in-world path.
+            connection=new GameConnection("http://127.0.0.1:1"); AttachConnectedFixture(game,connection);
 
             foreach(float scale in new[]{1.25f,1.50f})
             foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
@@ -78,12 +87,13 @@ public partial class WindowsScaleContract : Node
             }
             GetWindow().ContentScaleFactor=1;
             GD.Print($"WINDOWS_SCALE_CONTRACT: {checks} checks passed for 125% and 150% emulation at 1280x720 and 1920x1080. Physical Windows monitor DPI approval is not inferred.");
-            await NativeTestLifetime.ReleaseSceneAsync(this,game); GetTree().Quit(0);
+            await NativeTestLifetime.ReleaseSceneAsync(this,game); connection=null; GetTree().Quit(0);
         }
         catch(Exception error)
         {
             GD.PushError("WINDOWS_SCALE_CONTRACT: "+error);
             if(game is not null&&GodotObject.IsInstanceValid(game)) await NativeTestLifetime.ReleaseSceneAsync(this,game);
+            else if(connection is not null) await connection.DisposeAsync();
             GetTree().Quit(1);
         }
     }
