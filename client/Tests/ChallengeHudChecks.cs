@@ -34,7 +34,7 @@ internal static class ChallengeHudChecks
                 host.GetWindow().Size=size;host.GetWindow().ContentScaleSize=size;await Frame();Refresh();await Frame();await Frame();
                 var pacing=Find<Label>("ExperiencePacing");var target=Find<Label>("TargetChallenge");
                 check(Fits(pacing)&&Fits(target),"XP pacing and selected-target feedback fit "+size);
-                check(pacing.Text.Contains("Overall XP")&&pacing.TooltipText.Contains("skill"),"HUD distinguishes skill practice from overall advancement");
+                check(pacing.Text.Contains("Character XP")&&pacing.TooltipText.Contains("skill")&&pacing.TooltipText.Contains("contributes directly"),"HUD identifies character XP and explains direct skill XP contribution");
                 check(target.Text.Contains("Trivial hunt")&&target.Text.Contains("practice"),"The target frame identifies under-level farming and its low practice rate");
                 var quest=Find<Control>("QuestTracker");
                 check(Find<Control>("Vitals").GetGlobalRect().End.Y<=quest.GetGlobalRect().Position.Y+1,"XP feedback does not overlap the objective tracker");
