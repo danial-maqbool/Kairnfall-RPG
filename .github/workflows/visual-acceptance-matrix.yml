@@ -1,0 +1,75 @@
+name: Visual acceptance matrix
+on:
+  push:
+    branches: [main, 'team/**']
+    paths:
+      - 'atelier/**'
+      - 'client/**'
+      - 'content/**'
+      - 'content_src/**'
+      - 'tools/art/**'
+      - 'tools/build_game_assets.py'
+      - 'tools/review_visual_art.py'
+      - 'tools/validate_game_assets.py'
+      - 'tools/visual_acceptance_preflight.py'
+      - '.github/workflows/visual-acceptance-matrix.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: visual-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  visual-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      KAIRNFALL_SCREENSHOTS: ${{ github.workspace }}/artifacts/visual-acceptance/godot
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build catalog and run exhaustive actor matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/visual-acceptance/logs
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py | tee artifacts/visual-acceptance/logs/content.log
+          python tools/visual_acceptance_preflight.py | tee artifacts/visual-acceptance/logs/structural.log
+      - name: Rebuild and validate deterministic shipped assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build_game_assets.py | tee artifacts/visual-acceptance/logs/assets.log
+          python tools/validate_game_assets.py | tee artifacts/visual-acceptance/logs/validation.log
+          python tools/review_visual_art.py --output artifacts/visual-acceptance/review | tee artifacts/visual-acceptance/logs/review.log
+      - name: Build native client and install verified Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build client/Kairnfall.Client.csproj -c Debug | tee artifacts/visual-acceptance/logs/client-build.log
+          python tools/get_godot.py --os linux | tee artifacts/visual-acceptance/logs/godot.log
+      - name: Run native visual presentation fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/visual-acceptance/logs/import.log
+          timeout 180 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/VisualPresentationContract.tscn 2>&1 | tee artifacts/visual-acceptance/logs/native.log
+          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/visual-acceptance/logs/{import,native}.log; then exit 1; fi
+          test -s artifacts/visual-acceptance/godot/ui-inventory-1280.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-acceptance-${{ github.sha }}
+          path: artifacts/visual-acceptance/
+          retention-days: 14
+          if-no-files-found: error
