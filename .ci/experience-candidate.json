@@ -1,6 +1,6 @@
 {
-  "sha": "e022642c460b9a36f87ff31bc05ad996d40cf639",
+  "sha": "93b4142a07a29bb9dd6ebe81211b105e9bb1e171",
   "base": "816af1b8fcb972bd26e95ffe778c0297cfd24831",
   "mode": "repair",
-  "purpose": "Task 1 acceptance: verify simplified character XP, permanent character and last-skill XP bars, a native HUD contract that requires an actual character-level increase from awarded skill XP, live authoritative combat XP, reconnect persistence, graphical smoke, and retained server/client contracts."
+  "purpose": "Task 1 acceptance: verify the permanent character and last-skill XP HUD with the repaired challenge HUD contract, direct skill-XP contribution to character progression, live authoritative combat XP, reconnect persistence, graphical smoke, and retained server/client contracts."
 }
