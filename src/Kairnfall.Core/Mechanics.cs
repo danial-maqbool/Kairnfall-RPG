@@ -29,28 +29,24 @@ public static class Progression
     }
     public static int Level(Character p,string skill) => Math.Clamp(BaseLevel(p,skill)+EquipmentSkillBonus(p,skill),1,SkillCap);
     public static long Total(Character p) => p.SkillXp.Values.Sum(x=>Math.Clamp(x,0,Threshold(SkillCap)));
-    public static double PlayerLevelValue(Character p,bool includeCreditRemainder=false)
+    public static double PlayerLevelValue(Character p)
     {
-        double mastery=Math.Clamp(Total(p)/(60.0*Threshold(SkillCap)),0,1);
-        long wholeTraining=ChallengeProgression.OverallTraining(p);
-        double equivalent=BeginnerProgression.OverallEquivalentXp(wholeTraining);
-        if(includeCreditRemainder&&double.IsFinite(p.OverallCreditRemainder)&&p.OverallCreditRemainder>0)
-        {
-            double fraction=Math.Clamp(p.OverallCreditRemainder,0,.999999999);
-            double next=BeginnerProgression.OverallEquivalentXp(wholeTraining+1);
-            equivalent+=(next-equivalent)*fraction;
-        }
+        // Character XP is simply the sum of awarded skill XP. Skill challenge rules
+        // already reduce weak/trivial actions, so do not apply a second hidden filter.
+        long total=Total(p);
+        double equivalent=BeginnerProgression.OverallEquivalentXp(total);
         double ratio=Math.Clamp(equivalent/(60.0*Threshold(SkillCap)),0,1);
-        double credited=1+199*Math.Pow(ratio,0.30);
-        // Late mastery approaches the cap continuously. It does not create a final-point jump.
+        double trained=1+199*Math.Pow(ratio,0.30);
+        // Late mastery still approaches the cap continuously.
+        double mastery=Math.Clamp(total/(60.0*Threshold(SkillCap)),0,1);
         double mastered=1+199*Math.Pow(mastery,1.5);
-        return Math.Clamp(Math.Max(credited,mastered),1,PlayerCap);
+        return Math.Clamp(Math.Max(trained,mastered),1,PlayerCap);
     }
     public static int PlayerLevel(Character p)=>Math.Clamp((int)Math.Floor(PlayerLevelValue(p)),1,PlayerCap);
     public static double PlayerLevelProgress(Character p)
     {
         int level=PlayerLevel(p);
-        return level>=PlayerCap?1:Math.Clamp(PlayerLevelValue(p,true)-level,0,1);
+        return level>=PlayerCap?1:Math.Clamp(PlayerLevelValue(p)-level,0,1);
     }
     public static double SkillLevelProgress(long xp)
     {

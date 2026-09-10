@@ -273,7 +273,7 @@ public sealed partial class RealmEngine
             catch(RuleException) { a.Expires=State.Time+60; }
         }
         foreach(var t in State.Trades.Values.Where(x=>x.Expires<=State.Time).ToList()) { State.Trades.Remove(t.Id); EconomicDirty=true; }
-        foreach(var l in Loot.Values.Where(x=>x.Expires<=State.Time).ToList()) { Loot.Remove(l.Id); EconomicDirty=true; }
+        foreach(var l in Loot.Values.Where(x=>!double.IsFinite(x.Expires)||x.Expires<=State.Time).ToList()) { Loot.Remove(l.Id); EconomicDirty=true; }
         TickEvents();
         InvalidateTradeConsents();
     }
@@ -303,7 +303,9 @@ public sealed partial class RealmEngine
     }
     public List<LootPile> VisibleLoot(string player)
     {
-        var p=Player(player); return Loot.Values.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=30).Select(Wire.Copy).ToList();
+        var p=Player(player); return Loot.Values
+            .Where(x=>double.IsFinite(x.Expires)&&x.Expires>State.Time&&x.Zone==p.Zone&&x.Position.Distance(p.Position)<=30)
+            .Select(Wire.Copy).ToList();
     }
     public void Disconnect(string id)
     {

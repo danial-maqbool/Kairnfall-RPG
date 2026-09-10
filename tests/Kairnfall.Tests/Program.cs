@@ -38,12 +38,27 @@ Test("Skill curve monotonicity and exact thresholds",()=>
         if(level>1) Check(Progression.Threshold(level)>Progression.Threshold(level-1),"Curve is not increasing.");
     }
 });
-Test("Overall level derives from skill XP and respects cap",()=>
+Test("Overall level derives directly from awarded skill XP and respects cap",()=>
 {
     var r=NewRealm(); var p=NewPlayer(r); Check(Progression.PlayerLevel(p)==1,"New character level.");
-    Progression.Train(p,"mining",1000,1,data); Check(Progression.PlayerLevel(p)>1,"Noncombat skill did not raise overall level.");
+    Progression.Train(p,"mining",1000,1,data);
+    int trainedLevel=Progression.PlayerLevel(p); double trainedProgress=Progression.PlayerLevelProgress(p);
+    Check(trainedLevel>1,"Noncombat skill did not raise character level.");
+    p.PracticeOnlyXp=Progression.Total(p); p.OverallCreditRemainder=0;
+    Check(Progression.PlayerLevel(p)==trainedLevel&&Math.Abs(Progression.PlayerLevelProgress(p)-trainedProgress)<.000001,"Hidden credit metadata changed character XP.");
     foreach(var skill in data.Skills) p.SkillXp[skill.Id]=Progression.Threshold(100);
     Check(Progression.PlayerLevel(p)==200,"Overall cap mismatch.");
+});
+Test("Expired ground loot is hidden and removed",()=>
+{
+    var r=NewRealm(); var p=NewPlayer(r);
+    var expired=new LootPile{Zone=p.Zone,Position=p.Position,Expires=r.State.Time-1}; r.Loot[expired.Id]=expired;
+    Check(!r.VisibleLoot(p.Id).Any(x=>x.Id==expired.Id),"Expired loot was still visible.");
+    var fresh=new LootPile{Zone=p.Zone,Position=p.Position,Expires=r.State.Time+.2}; r.Loot[fresh.Id]=fresh;
+    Check(r.VisibleLoot(p.Id).Any(x=>x.Id==fresh.Id),"Fresh loot was hidden early.");
+    r.Tick(.1); r.Tick(.1); r.Tick(.1);
+    Check(!r.Loot.ContainsKey(fresh.Id),"Expired loot remained in the realm.");
+    Check(LootPile.LifetimeSeconds==180,"Ground-loot lifetime must stay at three minutes.");
 });
 Test("Trivial successful actions retain bounded fractional practice",()=>
 {

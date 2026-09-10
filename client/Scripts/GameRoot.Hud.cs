@@ -27,6 +27,11 @@ public partial class GameRoot
         var column = Ui.Column(vitals); column.AddThemeConstantOverride("separation", 4);
         characterTitle = Ui.Label("", 17, Ui.Gold); column.AddChild(characterTitle);
         experiencePacing = Ui.Label("", 11, Ui.Muted, true); experiencePacing.Name = "ExperiencePacing"; column.AddChild(experiencePacing);
+        characterExperienceBar = Ui.Bar(new Color("c2a55f"), 262); characterExperienceBar.Name = "CharacterExperienceBar";
+        characterExperienceBar.CustomMinimumSize = new Vector2(262, 9); characterExperienceBar.MouseFilter = MouseFilterEnum.Ignore; column.AddChild(characterExperienceBar);
+        skillExperienceText = Ui.Label("Skill XP · train any skill", 11, Ui.Muted, true); skillExperienceText.Name = "SkillExperienceText"; column.AddChild(skillExperienceText);
+        skillExperienceBar = Ui.Bar(new Color("789b62"), 262); skillExperienceBar.Name = "SkillExperienceBar";
+        skillExperienceBar.CustomMinimumSize = new Vector2(262, 9); skillExperienceBar.MouseFilter = MouseFilterEnum.Ignore; column.AddChild(skillExperienceBar);
         healthText = Ui.Label("", 13); column.AddChild(healthText); health = Ui.Bar(new Color("a94c46"), 262); column.AddChild(health);
         manaText = Ui.Label("", 13); column.AddChild(manaText); mana = Ui.Bar(new Color("587db7"), 262); column.AddChild(mana);
         staminaText = Ui.Label("", 13); column.AddChild(staminaText); stamina = Ui.Bar(new Color("899955"), 262); column.AddChild(stamina);
@@ -177,13 +182,20 @@ public partial class GameRoot
         characterTitle.TooltipText = Data.Class(self.Class).Name + " · " + self.Gold + " gold";
         int overallLevel = Progression.PlayerLevel(self);
         double overallProgress=Progression.PlayerLevelProgress(self);
-        experiencePacing.Text = overallLevel>=Progression.PlayerCap ? "Overall level cap reached" : $"Level progress {overallProgress:P0} · training credit {ChallengeProgression.OverallRate(overallLevel):P0}";
-        experiencePacing.TooltipText = "Successful skill practice advances overall level. Trivial practice is strongly reduced but no longer enters a permanent zero-XP dead zone.";
-        if(characterExperienceBar is not null)
-        {
-            characterExperienceBar.MaxValue=100; characterExperienceBar.Value=overallProgress*100;
-            characterExperienceBar.TooltipText=overallLevel>=Progression.PlayerCap?"Overall level 200 · maximum":$"Overall level {overallLevel} → {overallLevel+1} · {overallProgress:P1}";
-        }
+        experiencePacing.Text = overallLevel>=Progression.PlayerCap ? "Character XP · Level 200" : $"Character XP · Level {overallLevel} → {overallLevel+1}";
+        experiencePacing.TooltipText = "Every awarded skill XP point contributes directly to character level.";
+        characterExperienceBar.MaxValue=100; characterExperienceBar.Value=overallProgress*100;
+        characterExperienceBar.TooltipText=overallLevel>=Progression.PlayerCap?"Character level 200 · maximum":$"Character level {overallLevel} → {overallLevel+1} · {overallProgress:P1}";
+        string displaySkill=lastExperienceSkill;
+        if(displaySkill==""||!Data.Skills.Any(x=>x.Id==displaySkill))
+            displaySkill=Data.Skills.OrderByDescending(x=>self.SkillXp.GetValueOrDefault(x.Id)).ThenBy(x=>x.Id).First().Id;
+        long displayedXp=self.SkillXp.GetValueOrDefault(displaySkill);
+        int displayedLevel=Progression.SkillLevel(displayedXp);
+        double displayedProgress=Progression.SkillLevelProgress(displayedXp);
+        string displayedName=Data.Skill(displaySkill).Name;
+        skillExperienceText.Text=displayedLevel>=Progression.SkillCap?$"{displayedName} XP · Level 100":$"{displayedName} XP · Level {displayedLevel} → {displayedLevel+1}";
+        skillExperienceBar.MaxValue=100; skillExperienceBar.Value=displayedProgress*100;
+        skillExperienceBar.TooltipText=displayedLevel>=Progression.SkillCap?displayedName+" mastered":$"{displayedProgress:P1} toward {displayedName} level {displayedLevel+1}";
         health.MaxValue = stats.Health; health.Value = self.Health; healthText.Text = $"Health  {Math.Ceiling(self.Health):0} / {stats.Health:0}";
         mana.MaxValue = stats.Mana; mana.Value = self.Mana; manaText.Text = $"Mana  {Math.Ceiling(self.Mana):0} / {stats.Mana:0}";
         stamina.MaxValue = stats.Stamina; stamina.Value = self.Stamina; staminaText.Text = $"Stamina  {Math.Ceiling(self.Stamina):0} / {stats.Stamina:0}";

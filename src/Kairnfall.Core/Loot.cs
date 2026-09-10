@@ -2,6 +2,7 @@ namespace Kairnfall.Core;
 
 public sealed class LootPile
 {
+    public const double LifetimeSeconds=180;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Zone { get; set; } = "";
     public Point Position { get; set; }

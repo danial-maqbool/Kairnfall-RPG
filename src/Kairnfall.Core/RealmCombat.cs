@@ -182,7 +182,7 @@ public sealed partial class RealmEngine
             Progress(p,"kill",def.Id); if(def.Boss) { p.Achievements.Add("boss:"+def.Id); Progress(p,"boss",def.Id); }
         }
         var owner=contributors.OrderByDescending(x=>mob.Threat.GetValueOrDefault(x.Id)).First();
-        var pile=new LootPile{Zone=mob.Zone,Position=mob.Position,Owner=owner.Id,Party=owner.Party,Gold=def.Gold+RandomNumberGenerator.GetInt32(Math.Max(1,def.Gold/3+1)),PublicAt=State.Time+60,Expires=State.Time+300};
+        var pile=new LootPile{Zone=mob.Zone,Position=mob.Position,Owner=owner.Id,Party=owner.Party,Gold=def.Gold+RandomNumberGenerator.GetInt32(Math.Max(1,def.Gold/3+1)),PublicAt=State.Time+60,Expires=State.Time+LootPile.LifetimeSeconds};
         var ordinaryDrops=def.Drops.Where(template=>!Data.Item(template).Tags.Contains("boss_unique",StringComparer.Ordinal)).ToArray();
         foreach(var template in ordinaryDrops)
         {

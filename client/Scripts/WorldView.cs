@@ -230,6 +230,7 @@ public partial class WorldView : Control
             }
             foreach (var pile in Loot)
             {
+                if (!double.IsFinite(pile.Expires) || pile.Expires <= RealmTime) continue;
                 visuals.Add(new Visual((float)pile.Position.Y, "loot", pile.Id, pile.Position, pile));
                 interactions.Add(new WorldTarget("loot", pile.Id, "Dropped loot", pile.Position));
             }
