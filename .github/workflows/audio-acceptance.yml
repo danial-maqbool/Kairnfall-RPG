@@ -1,0 +1,48 @@
+name: Audio acceptance
+on:
+  push:
+    branches: [main, 'team/acceptance-06-audio']
+    paths:
+      - 'atelier/forge/score.py'
+      - 'client/Scripts/ClientAudio.cs'
+      - 'tools/build_game_assets.py'
+      - 'tools/audio_quality_audit.py'
+      - '.github/workflows/audio-acceptance.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: audio-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  technical-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate deterministic shipped audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/audio
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py | tee artifacts/audio/content.log
+          python tools/build_game_assets.py | tee artifacts/audio/assets.log
+      - name: Measure WAV format level clipping and loop boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/audio_quality_audit.py | tee artifacts/audio/audit.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-acceptance-${{ github.sha }}
+          path: artifacts/audio/
+          retention-days: 14
+          if-no-files-found: error
