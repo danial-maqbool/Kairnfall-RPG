@@ -1,0 +1,334 @@
+"""Authored anatomy for common fauna. All poses use a fixed 64px canvas.
+
+Separate frontal, rear, and side constructions preserve the direction of heads,
+feet, shells, and tails. Unsupported species keep their existing authored renderer.
+"""
+from __future__ import annotations
+import math
+from .common import Pixel, canvas, palette, shade, INK
+from .creature_pack import body_colour
+from .species_refinement import frame as previous_frame
+from .humanoid import limb, finish
+from .creature_actions import pose as action_pose
+
+# body half-length, body half-height, head size, muzzle length, leg height, tail length
+PROFILES={
+    'rat':(12,7,5,5,5,20),'mouse':(9,7,4,3,4,17),
+    'hare':(10,11,5,3,6,3),'weasel':(16,6,4,5,4,12),
+    'fox':(14,9,5,7,9,19),'arctic_fox':(13,11,5,5,8,18),
+    'wolf':(17,10,6,7,11,16),'hound':(17,9,5,7,12,14),
+    'boar':(17,12,7,6,6,5),'bear':(18,14,7,4,8,3),
+    'polar_bear':(18,13,6,8,9,3),'badger':(15,9,5,5,5,6),
+    'wolverine':(15,11,6,4,7,8)}
+SUPPORTED=frozenset(PROFILES)|{'spider','quartz_spider','turtle','tortoise'}
+
+
+def polygon_oval(p,box,base):
+    x0,y0,x1,y1=box; c=palette(base); w=x1-x0; h=y1-y0
+    p.poly([(x0+w*.2,y0),(x0+w*.7,y0),(x1,y0+h*.27),(x1-1,y0+h*.72),
+            (x0+w*.73,y1),(x0+w*.25,y1),(x0,y0+h*.7),(x0,y0+h*.28)],c[2])
+    p.poly([(x0+w*.2,y0+1),(x0+w*.65,y0+1),(x0+w*.8,y0+h*.45),
+            (x0+w*.64,y0+h*.65),(x0+w*.16,y0+h*.63),(x0+1,y0+h*.32)],c[3],None)
+    p.line([(x0+w*.2,y0+2),(x0+w*.46,y0+1),(x0+w*.65,y0+2)],c[4])
+
+
+def foot(p,x,y,width,c,hoof=False):
+    p.poly([(x-width,y-2),(x+width-1,y-2),(x+width+1,y),(x+width,y+1),(x-width,y+1)],c[1] if hoof else c[2])
+    p.line([(x-width+1,y-1),(x+width-1,y-1)],c[4])
+    if hoof: p.line([(x,y-1),(x,y+1)],c[0])
+    elif width>=3:
+        for dx in (-1,1): p.dot(x+dx,y+1,c[0])
+
+
+def mammal(p,m,state,n,direction):
+    family=m['family']; length,height,head,muzzle,legs,tail=PROFILES[family]
+    base=body_colour(m); c=palette(base); side=direction in (1,2); s=-1 if direction==1 else 1
+    walk=math.sin(n*math.tau/8) if state=='walk' else 0
+    attack=(0,-1,-2,3,4,2,0,0)[n] if state=='attack' else 0
+    collapse=(0,0,1,3,5,7,8,8)[n] if state=='death' else 0
+    cy=53-legs-height//2+collapse*.35
+    if side:
+        cx=29; length=min(length,17); rear=cx-length; front=cx+length-2
+        def xy(x,y): return (64-x,y) if s<0 else (x,y)
+        # All left/right coordinates are authored before projection, not image-rotated.
+        class View:
+            def poly(self,pts,color,outline=INK): p.poly([xy(x,y) for x,y in pts],color,outline)
+            def line(self,pts,color,width=1): p.line([xy(x,y) for x,y in pts],color,width)
+            def dot(self,x,y,color): p.dot(*xy(x,y),color)
+        q=View()
+        if tail>5:
+            curve=[(rear+2,cy+2),(max(2,rear-tail*.4),cy+4),(max(2,rear-tail*.8),cy+1),(max(2,rear-tail),cy-4)]
+            q.line(curve,c[0],3 if family in ('rat','mouse') else 7)
+            q.line(curve,'b09085' if family in ('rat','mouse') else c[2],1 if family in ('rat','mouse') else 5)
+            if family=='fox': q.line(curve[-2:],'d4c9ad',3)
+        else: q.poly([(rear+1,cy),(rear-4,cy-3),(rear-4,cy+2),(rear+1,cy+4)],c[3])
+        for far in (True,False):
+            for fore in (False,True):
+                x=(front-4 if fore else rear+5)+(1 if far else -1)
+                swing=round(walk*(2 if legs<7 else 3))*(-1 if fore==far else 1)
+                knee=(x+swing*.4,cy+height*.6+legs*.35)
+                end=(x+swing,54-(max(0,swing) if state=='walk' else 0))
+                if collapse: knee=(x+(-4 if fore else 4),53); end=(x+(4 if fore else -4),55)
+                limb(p,xy(x,cy+height*.35),xy(*knee),4 if family in ('bear','polar_bear','boar') else 3,c[1] if far else base)
+                limb(p,xy(*knee),xy(*end),3,c[1] if far else base)
+                foot(p,*xy(*end),3 if family in ('bear','polar_bear') else 2,c,family=='boar')
+            if far:
+                # Low shoulders and narrower waist produce animal-specific silhouettes.
+                pts=[(rear,cy-2),(rear+3,cy-height*.65),(cx,cy-height),(front-1,cy-height*.8),
+                     (front+2,cy-2),(front,cy+height*.6),(cx+3,cy+height*.65),(cx-4,cy+height*.4),(rear+1,cy+height*.55)]
+                q.poly(pts,c[2]); q.poly([(rear+3,cy-2),(cx-3,cy-height*.7),(front-3,cy-height*.6),(front-4,cy+height*.2),(cx-4,cy+height*.15)],c[3],None)
+                q.line([(rear+4,cy-height*.4),(cx-2,cy-height*.75),(front-5,cy-height*.65)],c[4])
+        hx=front+2+attack; hy=cy-height*.55+collapse*.4
+        if family=='polar_bear':
+            q.poly([(front-7,cy-height*.6),(hx+3,hy-2),(hx+2,hy+6),(front-4,cy+4)],c[3])
+        q.poly([(hx-head,hy-head*.5),(hx-2,hy-head),(hx+head-1,hy-head*.5),(hx+head,hy+3),(hx+1,hy+head),(hx-head,hy+3)],c[3])
+        q.poly([(hx+2,hy),(min(62,hx+head+muzzle),hy+2),(min(61,hx+head+muzzle),hy+5),(hx+2,hy+5)],c[2])
+        q.dot(min(61,hx+head+muzzle),hy+2,c[0]); q.dot(hx+2,hy-1,INK); q.dot(hx+1,hy-2,c[4])
+        q.line([(hx+3,hy+5),(min(61,hx+head+muzzle-1),hy+5)],c[1])
+        if family in ('wolf','fox','arctic_fox'):
+            q.poly([(hx-head+1,hy-3),(hx-head+1,hy-12),(hx+1,hy-5)],c[2]); q.line([(hx-head+2,hy-8),(hx-head+3,hy-4)],c[4])
+        elif family=='hare':
+            for dx in (-3,2): q.poly([(hx+dx-2,hy-3),(hx+dx-4,hy-18),(hx+dx-1,hy-20),(hx+dx+2,hy-4)],c[3]); q.line([(hx+dx-2,hy-15),(hx+dx,hy-6)],'ae8e85')
+            # Folded haunch, visibly larger than a rat's hind leg.
+            q.poly([(rear+4,cy),(rear+10,cy-1),(rear+13,cy+7),(rear+8,cy+11),(rear+2,cy+8)],c[2]); q.line([(rear+5,cy+2),(rear+9,cy+4),(rear+9,cy+7)],c[4])
+        else:
+            ear=4 if family in ('rat','mouse') else 3
+            q.poly([(hx-head,hy-3),(hx-head-1,hy-ear-5),(hx-head+3,hy-ear-6),(hx-head+5,hy-3)],c[2])
+            if family in ('rat','mouse'): q.line([(hx-head+1,hy-6),(hx-head+3,hy-4)],'bf9f96',2)
+        if family=='boar':
+            q.poly([(hx+head,hy+5),(hx+head+3,hy+6),(hx+head+4,hy+1),(hx+head+2,hy+3)],'ddcbae')
+            for x in range(round(cx-6),round(front-2),3): q.line([(x,cy-height+2),(x-1,cy-height-2)],c[0])
+        if family=='badger': q.line([(hx-2,hy-head+1),(hx+3,hy+2)],'d2cbb9',3)
+        if family=='wolverine': q.line([(rear+5,cy-1),(cx,cy+3),(front-5,cy+2)],'b29b78',2)
+    else:
+        back=direction==3; x=32; width=min(14,round(length*.65)); by=36+collapse*.5
+        prone=collapse/8 if family in ('rat','hare','wolf','boar') else 0
+        # Face south: head overlaps chest. Face north: rump overlaps neck.
+        head_y=by+7 if not back else by-12
+        head_y=head_y*(1-prone)+(46 if back else 47)*prone
+        for sign in (-1,1):
+            for fore in (False,True):
+                px=x+sign*(width-3); py=48 if fore else 52
+                sway=round(walk*2)*(sign if fore else -sign)
+                foot(p,px+sway,py+min(3,collapse),3 if family in ('bear','polar_bear') else 2,c,family=='boar')
+        # In a frontal fall the torso settles onto the ground and widens as
+        # the legs fold outwards. The head lowers separately from the rump.
+        polygon_oval(p,(x-width-prone*2,by-12+prone*11,
+                        x+width+prone*2,by+14),base)
+        if tail>5:
+            ty=by+14 if back else by-11; end=ty+(10 if back else -10)
+            if prone:
+                ty=min(54,ty)*(1-prone)+48*prone
+                end=end*(1-prone)+53*prone
+            p.line([(x,ty),(x+3+prone*5,end),(x+7+prone*5,end+1)],c[1],2 if family in ('rat','mouse') else 5)
+        elif family=='hare': p.ellipse((x-3,by+10,x+3,by+16),c[4],INK)
+        hy=head_y+attack*(1 if not back else -1)
+        polygon_oval(p,(x-head-1,hy-head*(1-.4*prone),x+head+1,hy+head*(1-.3*prone)),base)
+        if not back:
+            snout=muzzle*(1-.3*prone)
+            p.poly([(x-3,hy+2),(x+3,hy+2),(x+3,hy+snout),(x,hy+snout+2),(x-3,hy+snout)],c[3]); p.line([(x-1,hy+snout),(x+1,hy+snout)],c[0])
+            for dx in (-3,3): p.dot(x+dx,hy,INK); p.dot(x+dx-1,hy-1,c[4])
+        for sign in (-1,1):
+            ex=x+sign*(head-1)
+            if family=='hare':
+                # Folded ears spread along the ground instead of keeping an
+                # upright standing silhouette as the head drops.
+                tip=ex+sign*prone*6
+                p.poly([(ex-2,hy-4),(tip-2,hy-19+prone*14),
+                        (tip+1,hy-21+prone*14),(ex+2,hy-4)],c[2])
+                p.line([(tip,hy-17+prone*12),(ex,hy-7+prone*3)],'b69b8f')
+            elif family in ('wolf','fox','arctic_fox'): p.poly([(ex-3,hy-3),(ex+sign*prone*2,hy-12+prone*7),(ex+3,hy-3)],c[2])
+            else: p.ellipse((ex-3,hy-8,ex+3,hy-3),c[2],INK)
+        if family=='boar' and not back:
+            for sign in (-1,1): p.poly([(x+sign*5,hy+6),(x+sign*7,hy+5),(x+sign*6,hy+1)],'ddcbae')
+        if family=='badger' and not back:
+            for sign in (-1,1): p.line([(x+sign*2,hy-5),(x+sign*3,hy-1)],'e0d6bd',2)
+
+
+def bear(p,m,state,n,direction):
+    """Plantigrade bears: broad paws, round ears, a heavy neck and blunt muzzle."""
+    polar=m['family']=='polar_bear'; base='cecbb1' if polar else '665449'; c=palette(base)
+    gait=round(math.sin(n*math.tau/8)*3) if state=='walk' else 0
+    fall=(0,0,2,4,7,9,11,12)[n] if state=='death' else 0
+    lunge=(0,-1,0,2,3,1,0,0)[n] if state=='attack' else 0
+    def xy(x,y): return (64-x,y) if direction==1 else (x,y)
+    def poly(points,color,outline=INK): p.poly([xy(x,y) for x,y in points],color,outline)
+    def line(points,color,width=1): p.line([xy(x,y) for x,y in points],color,width)
+    if direction in (1,2):
+        # The polar bear has a longer neck and lower rump; the black bear a
+        # compact barrel chest. Both carry weight on broad soles, not hooves.
+        top=29 if polar else 26
+        for far in (True,False):
+            for fore in (False,True):
+                x=(42 if fore else 18)+(2 if far else -2)
+                swing=gait*(-1 if fore==far else 1)
+                end=x+swing
+                if fall: end=x+(5 if fore else -5)
+                color=c[1] if far else c[2]
+                # Rounded thigh/shoulder narrows at the wrist or hock, then
+                # spreads into a plantigrade sole. Bent joints stay attached.
+                joint=x+(2 if fore else -2)+swing//2
+                poly([(x-4,37+fall//3),(x+2,36+fall//3),(x+5,40+fall//3),
+                      (joint+3,47),(end+2,51),(end+5,52),(end+6,54),
+                      (end+6,55),(end-4,55),(end-4,53),(end-2,50),
+                      (joint-3,46),(x-5,42+fall//3)],color)
+                line([(x-2,40+fall//3),(joint-1,46),(end,51)],c[3] if not far else c[2])
+                line([(end-2,53),(end+4,53)],c[3])
+                for dx in (1,3,5): line([(end+dx,54),(end+dx,55)],c[0])
+            if far:
+                poly([(9,38+fall//2),(12,top+4+fall),(21,top+fall),(32,top+1+fall),
+                      (42,top+4+fall),(48,35+fall),(45,46+fall//2),(34,49),(19,48),(11,45)],c[2])
+                poly([(13,top+5+fall),(22,top+2+fall),(34,top+4+fall),(42,35+fall//2),
+                      (35,41+fall//2),(19,40+fall//2)],c[3],None)
+                line([(15,top+5+fall),(23,top+3+fall),(31,top+4+fall)],c[4])
+        hx=(49 if polar else 46)+lunge; hy=(36 if polar else 34)+fall
+        if polar:
+            # A sloping extended neck ends in a smaller, flatter head.
+            poly([(32,32+fall),(38,30+fall),(hx-3,hy-5),(hx+3,hy-4),
+                  (hx+6,hy),(hx+6,hy+5),(hx+1,hy+7),(hx-5,hy+5),
+                  (38,44+fall//2),(33,43+fall//2)],c[2])
+            poly([(35,33+fall),(40,33+fall),(hx-2,hy-3),(hx+3,hy-2),
+                  (hx+4,hy+2),(hx-3,hy+2),(39,40+fall//2)],c[3],None)
+        else:
+            poly([(36,33+fall),(hx-2,hy-7),(hx+5,hy-5),(hx+8,hy),(hx+7,hy+8),(hx-3,hy+9),(37,43+fall//2)],c[2])
+            poly([(hx-2,hy-5),(hx+4,hy-4),(hx+6,hy+1),(hx+3,hy+5),(hx-3,hy+3)],c[3],None)
+        # Small rounded pinna and a broad nose with a lower jaw.
+        poly([(hx-4,hy-3),(hx-6,hy-6),(hx-5,hy-9),(hx-1,hy-9),(hx+1,hy-6),(hx,hy-3)],c[2])
+        line([(hx-4,hy-7),(hx-2,hy-7)],c[4])
+        poly([(hx+3,hy+2),(min(62,hx+12),hy+3),(min(62,hx+12),hy+7),(hx+4,hy+8)],c[3] if polar else 'a18b70')
+        poly([(min(60,hx+10),hy+3),(min(62,hx+12),hy+3),(min(62,hx+12),hy+5),(min(60,hx+10),hy+5)],c[0],None)
+        line([(hx+4,hy+7),(min(61,hx+10),hy+7)],c[1])
+        p.dot(*xy(hx+3,hy),INK)
+    else:
+        back=direction==3; width=14 if polar else 16
+        by=30+fall//2
+        for sign in (-1,1):
+            px=32+sign*(width-3)+gait*sign
+            p.poly([(px-4,39),(px+3,39),(px+4,44),(px+3,49),
+                    (px+3,53),(px+3,54),(px-3,54),(px-3,49),(px-4,44)],c[2])
+            p.line([(px-1,43),(px,48),(px,52)],c[3])
+            foot(p,px,54,4,c)
+        # Rounded haunches and narrower neck form a pear-shaped rear view;
+        # the frontal shoulder mass sits outside the descending forelegs.
+        bottom=min(54,by+18)
+        if back:
+            p.poly([(26,by-10),(38,by-10),(42,by-5),
+                    (32+width-1,by+1),(32+width,by+8),
+                    (32+width-2,bottom-5),(40,bottom-1),(35,bottom),
+                    (29,bottom),(24,bottom-1),(34-width,bottom-5),
+                    (32-width,by+8),(33-width,by+1),(22,by-5)],c[2])
+            p.poly([(26,by-7),(37,by-7),(41,by),(42,by+8),
+                    (37,bottom-5),(28,bottom-4),(22,by+9),(23,by)],c[3],None)
+            p.line([(24,by+5),(23,by+10),(25,bottom-5)],c[4])
+        else:
+            shoulder=width-1
+            p.poly([(26,by-9),(38,by-9),(43,by-6),
+                    (32+shoulder,by-2),(32+width,by+4),
+                    (32+width-1,by+10),(42,bottom-2),(37,bottom),
+                    (27,bottom),(22,bottom-2),(33-width,by+10),
+                    (32-width,by+4),(32-shoulder,by-2),(21,by-6)],c[2])
+            p.poly([(24,by-5),(29,by-7),(36,by-7),(41,by-4),
+                    (43,by+4),(40,by+10),(24,by+10),(21,by+4)],c[3],None)
+            p.line([(23,by-3),(26,by-5),(29,by-6)],c[4])
+        # A rump view hides the muzzle. The frontal neck merges into the chest.
+        hy=min(46,(by-5 if back else by+7)+fall//3)
+        head_half=7 if polar else 9
+        polygon_oval(p,(32-head_half,hy-7,32+head_half,hy+9),base)
+        for ex in (33-head_half,31+head_half):
+            p.ellipse((ex-3,hy-8,ex+3,hy-2),c[2],INK)
+            p.line([(ex-1,hy-6),(ex+1,hy-6)],c[4])
+        if not back:
+            p.ellipse((27,hy+2,37,hy+10),c[3] if polar else 'a18b70',INK)
+            p.rect((30,hy+4,34,hy+6),c[0]); p.line([(32,hy+6),(32,hy+8)],c[1])
+            for ex in (27,37): p.dot(ex,hy,INK)
+        else:
+            p.ellipse((29,by+15,35,by+20),c[2],INK)
+
+
+def arachnid(p,m,state,n,direction):
+    c=palette(body_colour(m)); step=math.sin(n*math.tau/8) if state=='walk' else 0
+    crystalline=m['family']=='quartz_spider'
+    folded=(0,0,.2,.4,.7,1,1,1)[n] if state=='death' else 0
+    action=action_pose(m['family'],state,n)
+    # Four attachment pairs. Projection changes the longitudinal body axis, not the bitmap.
+    def xy(lateral,longitudinal):
+        longitudinal += action.advance
+        if direction==0: return (32+lateral,34+longitudinal)
+        if direction==3: return (32-lateral,34-longitudinal)
+        if direction==2: return (32+longitudinal,34+lateral*.7)
+        return (32-longitudinal,34-lateral*.7)
+    for sign in (-1,1):
+        for i in range(4):
+            attach=(-5+i*3); gait=round(step*2)*(1 if i%2 else -1)
+            knee=sign*((21 if crystalline else 18)-folded*8); tip=sign*((28 if crystalline else 27)-folded*14)
+            strike=action.foreleg if i>=2 else 0
+            points=[xy(sign*5,attach),xy(knee,attach-8+i*4+gait+strike),xy(tip,attach-13+i*7+gait+strike)]
+            p.line(points,c[0],4 if crystalline else 3); p.line(points,c[3],2 if crystalline else 1)
+            if crystalline:
+                kx,ky=points[1]
+                p.poly([(kx-3,ky),(kx,ky-4),(kx+3,ky),(kx,ky+3)],c[2])
+                p.line([(kx-1,ky),(kx,ky-2)],c[5])
+    abdomen=xy(0,-8); thorax=xy(0,5); head=xy(0,11)
+    if crystalline:
+        p.poly([xy(-5,-22),xy(4,-24),xy(12,-15),xy(11,-6),xy(5,1),xy(-7,-1),xy(-12,-10)],c[2])
+        p.poly([xy(-4,-20),xy(3,-21),xy(8,-14),xy(3,-5),xy(-5,-7)],c[3])
+        p.line([xy(-3,-19),xy(2,-20),xy(6,-14)],c[5])
+    else:
+        polygon_oval(p,(abdomen[0]-9,abdomen[1]-10,abdomen[0]+9,abdomen[1]+9),c[3])
+    polygon_oval(p,(thorax[0]-6,thorax[1]-5,thorax[0]+6,thorax[1]+5),c[2])
+    p.line([xy(-3,13),xy(-2,17+action.fang)],c[4],2)
+    p.line([xy(3,13),xy(2,17+action.fang)],c[4],2)
+    for side in (-1,1):
+        for offset in (0,2): p.dot(*xy(side*(2+offset),10+offset//2),'d5bc88')
+    if m['family']=='quartz_spider':
+        p.poly([(abdomen[0],abdomen[1]-9),(abdomen[0]+5,abdomen[1]),(abdomen[0],abdomen[1]+6),(abdomen[0]-4,abdomen[1])],'b1cad2')
+        p.line([(abdomen[0],abdomen[1]-7),(abdomen[0]-2,abdomen[1])],'e1e2ce')
+
+
+def turtle(p,m,state,n,direction):
+    sea=m['family']=='turtle'; c=palette('849871' if sea else '727c64')
+    wave=math.sin(n*math.tau/8) if state in ('walk','idle') else 0
+    action=action_pose(m['family'],state,n)
+    tuck=((0,0,.2,.5,.8,1,1,1)[n] if state=='death' else 0)+action.tuck
+    def xy(lateral,longitudinal):
+        if direction==0: return (32+lateral,33+longitudinal)
+        if direction==3: return (32-lateral,33-longitudinal)
+        if direction==2: return (32+longitudinal,35+lateral*.65)
+        return (32-longitudinal,35-lateral*.65)
+    for sign in (-1,1):
+        for front in (True,False):
+            start=9 if front else -9; reach=(27 if front and sea else 17 if sea else 15)*(1-.25*tuck)
+            sway=round(wave*(3 if front else 2))*sign
+            if front and state=='attack' and n in (3,4): sway-=2
+            points=[xy(sign*8,start),xy(sign*reach,start-8+sway),xy(sign*(reach-2),start-12+sway),xy(sign*10,start-6)]
+            p.poly(points,c[2]); p.line([xy(sign*10,start-2),xy(sign*(reach-3),start-9+sway)],c[4])
+    head=xy(0,20-5*tuck+action.neck)
+    p.line([xy(0,12),head],c[1],7); p.line([xy(-1,13),(head[0]-1,head[1])],c[3],4)
+    p.ellipse((head[0]-4,head[1]-4,head[0]+4,head[1]+4),c[3],INK)
+    for sign in (-1,1): p.dot(*xy(sign*2,21-5*tuck+action.neck),INK)
+    if state=='attack' and n in (3,4):
+        p.line([xy(-2,22-5*tuck+action.neck),xy(2,22-5*tuck+action.neck)],c[0])
+    p.poly([xy(-2,-14),xy(0,-22),xy(2,-14)],c[2])
+    shell=palette('776c4d' if sea else '85806a')
+    outline=[(-9,-15),(8,-15),(13,-9),(14,7),(8,14),(-8,14),(-14,7),(-13,-9)]
+    p.poly([xy(a,b) for a,b in outline],shell[1]); p.poly([xy(a*.88,b*.88) for a,b in outline],shell[3])
+    # Scutes follow the shell axis for all four directions.
+    for y in (-9,0,8):
+        p.poly([xy(-4,y-4),xy(3,y-4),xy(6,y),xy(3,y+4),xy(-4,y+4),xy(-6,y)],shell[2])
+        p.line([xy(-3,y-3),xy(2,y-3),xy(4,y-1)],shell[4])
+    for sign in (-1,1):
+        for y in (-9,0,8): p.line([xy(sign*5,y),xy(sign*11,y-3)],shell[0])
+
+
+def frame(definition,state,number,direction):
+    family=definition['family']
+    if family not in SUPPORTED or definition.get('boss'): return previous_frame(definition,state,number,direction)
+    image=canvas(); p=Pixel(image)
+    if family in ('bear','polar_bear'): bear(p,definition,state,number,direction)
+    elif family in PROFILES: mammal(p,definition,state,number,direction)
+    elif family in ('spider','quartz_spider'): arachnid(p,definition,state,number,direction)
+    else: turtle(p,definition,state,number,direction)
+    if definition.get('elite'):
+        # Scars are an explicit elite treatment, never used to fake normal-species uniqueness.
+        p.line([(28,30),(32,34)],'b7a488',2)
+    return finish(image,state,number)
