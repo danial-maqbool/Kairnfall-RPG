@@ -69,7 +69,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dotnet run --no-build --project tools/load_probe/Kairnfall.LoadProbe.csproj -c Release -- http://127.0.0.1:5090 20 artifacts/load/load-report.json | tee artifacts/load/probe.log
+          dotnet run --no-build --project tools/load_probe/Kairnfall.LoadProbe.csproj -c Release -- http://127.0.0.1:5090 20 artifacts/load/load-report.json 2>&1 | tee artifacts/load/probe.log
       - name: Capture final server resource measurements
         if: always()
         shell: bash
