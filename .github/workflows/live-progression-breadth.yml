@@ -1,0 +1,94 @@
+name: Live progression breadth
+on:
+  push:
+    branches: [main, 'team/**']
+    paths:
+      - 'client/**'
+      - 'src/**'
+      - 'content/**'
+      - 'content_src/**'
+      - 'tools/build_content.py'
+      - 'tools/build_game_assets.py'
+      - 'tools/get_godot.py'
+      - '.github/workflows/live-progression-breadth.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: live-progression-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  graphical-progression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports: ['127.0.0.1:5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      KAIRNFALL_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_TEST_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_DB_TESTS: '1'
+      KAIRNFALL_ALLOW_LOCAL_HTTP: '1'
+      ASPNETCORE_ENVIRONMENT: Testing
+      ASPNETCORE_URLS: http://127.0.0.1:5079
+      KAIRNFALL_SMOKE_URL: http://127.0.0.1:5079
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      KAIRNFALL_SCREENSHOTS: ${{ github.workspace }}/artifacts/live-progression/screenshots
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build source, deterministic content and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/live-progression/logs artifacts/live-progression/screenshots
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py | tee artifacts/live-progression/logs/content.log
+          dotnet build Kairnfall.slnx -c Release | tee artifacts/live-progression/logs/build.log
+          python tools/build_game_assets.py | tee artifacts/live-progression/logs/assets.log
+      - name: Install verified Godot and import the client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/get_godot.py --os linux | tee artifacts/live-progression/logs/godot.log
+          timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/live-progression/logs/import.log
+      - name: Run graphical combat and progression acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet src/Kairnfall.Server/bin/Release/net10.0/Kairnfall.Server.dll > artifacts/live-progression/logs/server.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:5079/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:5079/health
+          timeout 300 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveExperienceContract.tscn 2>&1 | tee artifacts/live-progression/logs/combat.log
+          timeout 300 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveProgressionBreadthContract.tscn 2>&1 | tee artifacts/live-progression/logs/breadth.log
+          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/live-progression/logs/{import,combat,breadth}.log; then exit 1; fi
+          grep -q 'LIVE_EXPERIENCE_CONTRACT:' artifacts/live-progression/logs/combat.log
+          grep -q 'LIVE_PROGRESSION_BREADTH_CONTRACT:' artifacts/live-progression/logs/breadth.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-progression-${{ github.sha }}
+          path: artifacts/live-progression/
+          retention-days: 14
+          if-no-files-found: error
