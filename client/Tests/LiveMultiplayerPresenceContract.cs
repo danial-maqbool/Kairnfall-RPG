@@ -34,6 +34,7 @@ public partial class LiveMultiplayerPresenceContract : Node
     public override async void _Ready()
     {
         GameConnection? connection=null;
+        int exitCode=0;
         try
         {
             if(DisplayServer.GetName()=="headless") throw new InvalidOperationException("This contract requires graphical rendering.");
@@ -67,15 +68,22 @@ public partial class LiveMultiplayerPresenceContract : Node
             Require(true,"Peer movement synchronizes into the rendered shared world");
             await Delay(1.0);
             GD.Print($"GRAPHICAL_MULTIPLAYER_CONTRACT: role {role}; {checks} checks passed; independent process peer observed. Protocol party/trade/loot/reconnect/restart checks run in the same CI gate. Human multiplayer approval is not inferred.");
-            GetTree().Quit(0);
         }
         catch(Exception error)
         {
-            GD.PushError(error.ToString()); GetTree().Quit(1);
+            GD.PushError(error.ToString());
+            exitCode=1;
         }
         finally
         {
             if(connection is not null) await connection.DisposeAsync();
+            if(game is not null&&GodotObject.IsInstanceValid(game))
+            {
+                game.QueueFree();
+                await Frame();
+                await Frame();
+            }
+            GetTree().Quit(exitCode);
         }
     }
 }
