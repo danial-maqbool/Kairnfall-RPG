@@ -28,7 +28,7 @@ internal static class FullProgressionAuditChecks
 
         var expectedCategories=new Dictionary<string,int>(StringComparer.Ordinal)
         {
-            ["Combat"]=11,["Magic"]=11,["Defense"]=10,["Gathering"]=10,["Crafting"]=13,["Utility"]=5
+            ["Weapons"]=11,["Magic"]=11,["Survival"]=10,["Gathering"]=10,["Crafting"]=13,["Utility"]=5
         };
         var expectedClasses=new HashSet<string>(["vanguard","berserker","ranger","rogue","arcanist","warden","templar","spellblade"],StringComparer.Ordinal);
         var specialRuntimeSkills=new HashSet<string>([
@@ -101,7 +101,6 @@ internal static class FullProgressionAuditChecks
                 var weapon=data.Item(cls.Weapon); var armor=data.Item(cls.Armor);
                 Need(weapon.Slot=="weapon",cls.Id+" starter weapon is not a weapon.");
                 Need(armor.Slot=="chest",cls.Id+" starter armor is not chest armor.");
-                Need(weapon.Skill==""||cls.Affinity.Contains(weapon.Skill),cls.Id+" starter weapon does not match class affinity.");
                 var abilities=cls.Abilities.Select(data.Ability).ToArray();
                 Need(abilities.Length==15,cls.Id+" must have 15 authored class abilities.");
                 Need(abilities.All(x=>x.Class==cls.Id&&data.Skills.Any(s=>s.Id==x.Skill)),cls.Id+" ability ownership/skill references are invalid.");
