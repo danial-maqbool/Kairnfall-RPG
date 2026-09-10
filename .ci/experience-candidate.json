@@ -1,6 +1,6 @@
 {
-  "sha": "f73124577f02c9ce18967354923fd7058ef342da",
+  "sha": "e022642c460b9a36f87ff31bc05ad996d40cf639",
   "base": "816af1b8fcb972bd26e95ffe778c0297cfd24831",
   "mode": "repair",
-  "purpose": "Task 1 acceptance: verify simplified character XP, persistent character and last-skill XP bars, live authoritative skill gains, level progression, persistence, retained controls, graphical smoke, and native Godot contracts. Includes the repaired pre-gear regression baseline so unrelated boss-unique drops do not block the acceptance suite."
+  "purpose": "Task 1 acceptance: verify simplified character XP, permanent character and last-skill XP bars, a native HUD contract that requires an actual character-level increase from awarded skill XP, live authoritative combat XP, reconnect persistence, graphical smoke, and retained server/client contracts."
 }
