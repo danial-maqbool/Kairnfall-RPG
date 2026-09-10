@@ -1,0 +1,110 @@
+name: Graphical multiplayer acceptance
+on:
+  push:
+    branches: [main, 'team/acceptance-07-graphical-multiplayer']
+    paths:
+      - 'client/**'
+      - 'src/**'
+      - 'tests/Kairnfall.Integration/**'
+      - 'content/**'
+      - 'content_src/**'
+      - 'tools/build_content.py'
+      - 'tools/build_game_assets.py'
+      - 'tools/get_godot.py'
+      - '.github/workflows/graphical-multiplayer.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: graphical-multiplayer-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  two-graphical-clients:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports: ['127.0.0.1:5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      KAIRNFALL_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_TEST_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_DB_TESTS: '1'
+      KAIRNFALL_ALLOW_LOCAL_HTTP: '1'
+      ASPNETCORE_ENVIRONMENT: Testing
+      KAIRNFALL_SMOKE_URL: http://127.0.0.1:5079
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build source content client and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/graphical-multiplayer/logs
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py | tee artifacts/graphical-multiplayer/logs/content.log
+          dotnet build Kairnfall.slnx -c Release | tee artifacts/graphical-multiplayer/logs/build.log
+          dotnet build client/Kairnfall.Client.csproj -c Debug | tee artifacts/graphical-multiplayer/logs/client-build.log
+          python tools/build_game_assets.py | tee artifacts/graphical-multiplayer/logs/assets.log
+          python tools/complete_skill_icons.py
+          python tools/get_godot.py --os linux | tee artifacts/graphical-multiplayer/logs/godot.log
+      - name: Run retained multi-client protocol and restart suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release -- content/catalog.json | tee artifacts/graphical-multiplayer/logs/protocol.log
+      - name: Import native client
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/graphical-multiplayer/logs/import.log
+      - name: Run two independent graphical clients in one shared realm
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASPNETCORE_URLS=http://127.0.0.1:5079 dotnet src/Kairnfall.Server/bin/Release/net10.0/Kairnfall.Server.dll > artifacts/graphical-multiplayer/logs/server.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:5079/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:5079/health
+          KAIRNFALL_GRAPHICAL_ROLE=A KAIRNFALL_GRAPHICAL_PEER_ROLE=B timeout 150 xvfb-run -a -s '-screen 0 1280x720x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveMultiplayerPresenceContract.tscn > artifacts/graphical-multiplayer/logs/client-a.log 2>&1 &
+          a=$!
+          KAIRNFALL_GRAPHICAL_ROLE=B KAIRNFALL_GRAPHICAL_PEER_ROLE=A timeout 150 xvfb-run -a -s '-screen 0 1280x720x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveMultiplayerPresenceContract.tscn > artifacts/graphical-multiplayer/logs/client-b.log 2>&1 &
+          b=$!
+          set +e
+          wait "$a"; ar=$?
+          wait "$b"; br=$?
+          set -e
+          cat artifacts/graphical-multiplayer/logs/client-a.log
+          cat artifacts/graphical-multiplayer/logs/client-b.log
+          test "$ar" -eq 0
+          test "$br" -eq 0
+          grep -q 'GRAPHICAL_MULTIPLAYER_CONTRACT: role A' artifacts/graphical-multiplayer/logs/client-a.log
+          grep -q 'GRAPHICAL_MULTIPLAYER_CONTRACT: role B' artifacts/graphical-multiplayer/logs/client-b.log
+          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/graphical-multiplayer/logs/{import,client-a,client-b}.log; then exit 1; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: graphical-multiplayer-${{ github.sha }}
+          path: artifacts/graphical-multiplayer/
+          retention-days: 14
+          if-no-files-found: error
