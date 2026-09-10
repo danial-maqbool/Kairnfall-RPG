@@ -23,10 +23,10 @@ public partial class WindowsScaleContract : Node
     }
     private async Task Tap(Key key)
     {
-        using(var press=new InputEventKey{PhysicalKeycode=key,Keycode=key,Pressed=true}) Input.ParseInputEvent(press);
-        Input.FlushBufferedEvents(); await Frame();
-        using(var release=new InputEventKey{PhysicalKeycode=key,Keycode=key,Pressed=false}) Input.ParseInputEvent(release);
-        Input.FlushBufferedEvents(); await Frame(); await Frame();
+        using(var press=new InputEventKey{PhysicalKeycode=key,Keycode=key,Pressed=true}) GetViewport().PushInput(press,true);
+        await Frame();
+        using(var release=new InputEventKey{PhysicalKeycode=key,Keycode=key,Pressed=false}) GetViewport().PushInput(release,true);
+        await Frame(); await Frame();
     }
     private async Task Click(Control control)
     {
@@ -47,7 +47,7 @@ public partial class WindowsScaleContract : Node
             var self=realm.CreateCharacter("windows-scale","Windows Scale","vanguard",new()); realm.Active.Add(self.Id);
             using(var scene=GD.Load<PackedScene>("res://Main.tscn")) game=scene.Instantiate<GameRoot>();
             AddChild(game); game.SetProcess(false); await Frame(); await Frame();
-            Field<Control>(game,"frontend").Hide(); game.World.Accept(new TransportPacket{Snapshot=realm.Snapshot(self.Id),Loot=[]}); Call(game,"UpdateHud"); await Frame();
+            Field<Control>(game,"frontend").Hide(); GetViewport().GuiReleaseFocus(); game.World.Accept(new TransportPacket{Snapshot=realm.Snapshot(self.Id),Loot=[]}); Call(game,"UpdateHud"); await Frame();
 
             foreach(float scale in new[]{1.25f,1.50f})
             foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
@@ -60,7 +60,7 @@ public partial class WindowsScaleContract : Node
                 var minimap=game.FindChildren("MinimapPanel","Control",true,false).OfType<Control>().Single(); Require(Contained(minimap),label+" minimap fits the viewport");
                 Require(Field<Button[]>(game,"hotbarButtons").All(Contained),label+" hotbar fits the viewport");
 
-                await Tap(Key.I); Require(Field<string>(game,"currentPage")=="Inventory",label+" physical I opens Inventory");
+                GetViewport().GuiReleaseFocus(); await Tap(Key.I); Require(Field<string>(game,"currentPage")=="Inventory",label+" physical I opens Inventory");
                 var action=game.FindChildren("PrimaryEquipmentAction","Button",true,false).Cast<Button>().Single();
                 Require(Contained(action)&&action.Size.Y>=40,label+" equipment comparison action remains reachable");
                 await Tap(Key.Escape); Require(Field<string>(game,"currentPage")=="",label+" physical Escape closes Inventory");
