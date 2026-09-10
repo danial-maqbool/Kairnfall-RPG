@@ -55,7 +55,7 @@ public partial class LiveMultiplayerPresenceContract : Node
             Require(peer.Position.Distance(Self.Position)<50,"The same-region snapshot contains the second graphical client near the starting point");
 
             string ownMessage="GRAPHICAL_MULTI:"+role; string peerMessage="GRAPHICAL_MULTI:"+peerRole;
-            var chat=await connection.ActAsync(new GameCommand{Kind="chat",Target="say",Arg=ownMessage});
+            var chat=await connection.ActAsync(new GameCommand{Kind="chat",Target="local",Arg=ownMessage});
             Require(chat.Ok,"The graphical client can send shared chat");
             await Until(()=>Field<List<string>>(game,"history").Any(line=>line.Contains(peerMessage,StringComparison.Ordinal)),"The peer graphical chat message did not arrive.",20);
             Require(true,"The second graphical client message reaches the rendered client");
