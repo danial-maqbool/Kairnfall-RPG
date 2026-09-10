@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render source contact sheets. These are not gameplay screenshots or approval."""
+"""Render source contact sheets. These are inspection evidence, not gameplay screenshots or approval."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -32,6 +32,7 @@ def main():
     from art.common import STATES
     data=json.loads(args.catalog.read_text(encoding='utf-8'))
     records=[]
+    coverage={'normal_mobs':0,'elites':0,'bosses':0,'mob_action_direction_frames':0,'visible_equipment_slots':0,'equipment_action_direction_frames':0}
     def save(image,name):
         path=output/(name+'.png'); image.save(path,optimize=True)
         records.append({'file':path.name,'width':image.width,'height':image.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
@@ -41,7 +42,7 @@ def main():
             tile=tile.resize((tile.width*scale,tile.height*scale),Image.Resampling.NEAREST)
             x=(i%columns)*cell[0]; y=(i//columns)*cell[1]
             image.alpha_composite(tile,(x+(cell[0]-tile.width)//2,y+4))
-            draw.text((x+5,y+cell[1]-19),label[:26],fill='#e9dfc5')
+            draw.text((x+4,y+cell[1]-17),label[:22],fill='#e9dfc5')
         save(image,name)
     def order(direction):
         # The baseline intentionally uses the historical order for a fair before-state.
@@ -58,9 +59,46 @@ def main():
             else: continue
             result.alpha_composite(layer)
         return result
+    def representative_frame(state):
+        return {'idle':0,'walk':3,'attack':3,'cast':3,'hit':2,'death':7}.get(state,0)
+    def mob_action_matrix(mobs,name):
+        entries=[]
+        for mob in mobs:
+            for state in STATES:
+                n=representative_frame(state)
+                for direction in range(4):
+                    entries.append((f'{mob["id"]} {state} {direction}',creature_frame(mob,state,n,direction)))
+        contact(entries,name,columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
+        coverage['mob_action_direction_frames']+=len(entries)
+
     equipment=[item for item in data['items'] if item.get('slot')]
-    basegear={slot:next(item for item in equipment if item['slot']==slot) for slot in ('helmet','chest','legs','boots','cloak')}
+    visible_slots=[]
+    for slot in order(0):
+        if slot not in {'body','hair'} and slot not in visible_slots and any(item['slot']==slot for item in equipment): visible_slots.append(slot)
+    basegear={slot:next(item for item in equipment if item['slot']==slot) for slot in visible_slots if slot not in {'weapon','offhand'}}
+    coverage['visible_equipment_slots']=len(visible_slots)
+
     contact([(f'body {b} skin {skin}',body_frame(b,skin,'idle',0,0)) for b in range(2) for skin in range(6)],'player-bodies')
+    contact([(f'body {b} {state} {direction}',body_frame(b,2,state,representative_frame(state),direction))
+        for b in range(2) for state in STATES for direction in range(4)],'player-body-actions',columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
+
+    layer_entries=[]
+    for slot in visible_slots:
+        item=next(item for item in equipment if item['slot']==slot)
+        gear=dict(basegear); gear[slot]=item
+        if slot!='weapon':
+            weapon=next((candidate for candidate in equipment if candidate['slot']=='weapon' and 'sword' in candidate.get('tags',[])),None)
+            if weapon is not None: gear['weapon']=weapon
+        if slot!='offhand':
+            shield=next((candidate for candidate in equipment if candidate['slot']=='offhand' and 'shield' in candidate.get('tags',[])),None)
+            if shield is not None: gear['offhand']=shield
+        for state in STATES:
+            n=representative_frame(state)
+            for direction in range(4):
+                layer_entries.append((f'{slot} {state} {direction}',person(0,state,n,direction,gear)))
+    coverage['equipment_action_direction_frames']=len(layer_entries)
+    contact(layer_entries,'equipment-all-layers',columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
+
     for family in ('sword','axe','bow','staff','spear'):
         item=next(item for item in equipment if item['slot']=='weapon' and family in item.get('tags',[]))
         gear=dict(basegear,weapon=item)
@@ -70,9 +108,18 @@ def main():
             for d in range(4):
                 for n in range(8): entries.append((f'{state} {d} / {n}',person(0,state,n,d,gear)))
         contact(entries,'equipment-'+family,columns=8,cell=(136,151))
-    contact([(m['id'],creature_frame(m,'idle',0,0)) for m in data['mobs'] if not m['boss'] and not m.get('elite')],'normal-mobs',columns=8)
-    contact([(m['id'],creature_frame(m,'idle',0,0)) for m in data['mobs'] if m.get('elite')],'elites')
-    contact([(m['id'],creature_frame(m,'idle',0,0)) for m in data['mobs'] if m['boss']],'bosses',columns=5,cell=(160,158),scale=1)
+
+    normal=[m for m in data['mobs'] if not m['boss'] and not m.get('elite')]
+    elites=[m for m in data['mobs'] if m.get('elite')]
+    bosses=[m for m in data['mobs'] if m['boss']]
+    coverage['normal_mobs']=len(normal); coverage['elites']=len(elites); coverage['bosses']=len(bosses)
+    contact([(m['id'],creature_frame(m,'idle',0,0)) for m in normal],'normal-mobs',columns=8)
+    contact([(m['id'],creature_frame(m,'idle',0,0)) for m in elites],'elites')
+    contact([(m['id'],creature_frame(m,'idle',0,0)) for m in bosses],'bosses',columns=5,cell=(160,158),scale=1)
+    mob_action_matrix(normal,'normal-mob-actions')
+    mob_action_matrix(elites,'elite-actions')
+    mob_action_matrix(bosses,'boss-actions')
+
     for ident in ('field_rat','wild_hare','pine_wolf','polar_bear','sea_turtle','wood_spider'):
         mob=next(m for m in data['mobs'] if m['id']==ident)
         contact([(f'{state} {d} / {n}',creature_frame(mob,state,n,d)) for state in STATES for d in range(4) for n in range(8)],'animation-'+ident,8,(136,151))
@@ -96,8 +143,8 @@ def main():
                         entries.append((family.split('/')[-1]+' '+state+' '+str(direction),person(0,state,number,direction,gear)))
             contact(entries,f'equipment-grade-{tier["level"]:03d}',columns=12,cell=(100,92),scale=1)
     revision=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
-    (output/'review-manifest.json').write_text(json.dumps({'source_revision':revision,'evidence_kind':'source-rendered contact sheets; not gameplay','visual_approval':'not_reviewed','files':records},indent=2)+'\n',encoding='utf-8')
-    print(f'VISUAL_REVIEW: {len(records)} source contact sheets; visual approval not inferred.')
+    (output/'review-manifest.json').write_text(json.dumps({'source_revision':revision,'evidence_kind':'source-rendered contact sheets; not gameplay','visual_approval':'not_reviewed','coverage':coverage,'files':records},indent=2)+'\n',encoding='utf-8')
+    print(f'VISUAL_REVIEW: {len(records)} source contact sheets; {coverage["normal_mobs"]} normal mobs, {coverage["elites"]} elites and {coverage["bosses"]} bosses covered across actions/directions; {coverage["visible_equipment_slots"]} visible equipment slots covered; visual approval not inferred.')
 
 
 if __name__=='__main__': main()
