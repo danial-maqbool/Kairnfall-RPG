@@ -27,7 +27,7 @@ if(mode=="create")
     await connection.ConnectAsync(character.Id,cancel); var initial=await Snapshot(connection);
     for(int i=0;i<15;i++) { await connection.MoveAsync(1,0,cancel); await Task.Delay(100,cancel); }
     await connection.MoveAsync(0,0,cancel); await Task.Delay(400,cancel);
-    var chat=await connection.ActAsync(new GameCommand{Kind="chat",Target="say",Arg="package restart persistence"},cancel);
+    var chat=await connection.ActAsync(new GameCommand{Kind="chat",Target="local",Arg="package restart persistence"},cancel);
     if(!chat.Ok) throw new InvalidOperationException("Persistence command failed: "+chat.Message);
     var moved=await Snapshot(connection);
     if(moved.Self.Position.Distance(initial.Self.Position)<1) throw new InvalidOperationException("Packaged probe character did not move before restart.");
