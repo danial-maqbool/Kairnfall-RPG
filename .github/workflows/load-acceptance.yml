@@ -4,6 +4,8 @@ on:
     branches: [main, 'team/acceptance-08-load']
     paths:
       - 'src/**'
+      - 'content_src/**'
+      - 'tools/build_content.py'
       - 'tools/load_probe/**'
       - 'Kairnfall.slnx'
       - '.github/workflows/load-acceptance.yml'
@@ -40,11 +42,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Build release server and load probe
+      - name: Generate catalog and build release server and load probe
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts/load
+          python3 tools/build_content.py | tee artifacts/load/content.log
+          test -s content/catalog.json
           dotnet build Kairnfall.slnx -c Release | tee artifacts/load/build.log
       - name: Start disposable server and resource sampler
         shell: bash
@@ -55,6 +59,7 @@ jobs:
           echo "$server" > artifacts/load/server.pid
           for n in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:5090/health >/dev/null; then break; fi
+            if ! kill -0 "$server" 2>/dev/null; then cat artifacts/load/server.log; exit 1; fi
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:5090/health > artifacts/load/health-start.json
