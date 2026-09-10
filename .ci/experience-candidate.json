@@ -1,6 +1,6 @@
 {
-  "sha": "816af1b8fcb972bd26e95ffe778c0297cfd24831",
-  "base": "dba0ee9c623d2b005d7722f746abd41a70367e09",
+  "sha": "f73124577f02c9ce18967354923fd7058ef342da",
+  "base": "816af1b8fcb972bd26e95ffe778c0297cfd24831",
   "mode": "repair",
-  "purpose": "Task 1 acceptance: verify the simplified character XP path, permanent character and last-skill XP bars, live authoritative skill gains, level progression, persistence, retained controls, graphical smoke, and native Godot contracts against a disposable realm."
+  "purpose": "Task 1 acceptance: verify simplified character XP, persistent character and last-skill XP bars, live authoritative skill gains, level progression, persistence, retained controls, graphical smoke, and native Godot contracts. Includes the repaired pre-gear regression baseline so unrelated boss-unique drops do not block the acceptance suite."
 }
