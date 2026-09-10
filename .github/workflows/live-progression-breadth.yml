@@ -61,6 +61,7 @@ jobs:
           python -m pip install Pillow==12.0.0
           python tools/build_content.py | tee artifacts/live-progression/logs/content.log
           dotnet build Kairnfall.slnx -c Release | tee artifacts/live-progression/logs/build.log
+          dotnet build client/Kairnfall.Client.csproj -c Debug | tee artifacts/live-progression/logs/client-build.log
           python tools/build_game_assets.py | tee artifacts/live-progression/logs/assets.log
       - name: Install verified Godot
         run: python tools/get_godot.py --os linux | tee artifacts/live-progression/logs/godot.log
