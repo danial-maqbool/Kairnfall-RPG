@@ -62,11 +62,12 @@ jobs:
           python tools/build_content.py | tee artifacts/live-progression/logs/content.log
           dotnet build Kairnfall.slnx -c Release | tee artifacts/live-progression/logs/build.log
           python tools/build_game_assets.py | tee artifacts/live-progression/logs/assets.log
-      - name: Install verified Godot and import the client
+      - name: Install verified Godot
+        run: python tools/get_godot.py --os linux | tee artifacts/live-progression/logs/godot.log
+      - name: Import the client
         shell: bash
         run: |
           set -euo pipefail
-          python tools/get_godot.py --os linux | tee artifacts/live-progression/logs/godot.log
           timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/live-progression/logs/import.log
       - name: Run graphical combat and progression acceptance
         shell: bash
