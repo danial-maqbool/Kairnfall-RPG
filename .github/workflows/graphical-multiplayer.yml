@@ -86,9 +86,10 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:5079/health
-          KAIRNFALL_GRAPHICAL_ROLE=A KAIRNFALL_GRAPHICAL_PEER_ROLE=B timeout 150 xvfb-run -a -s '-screen 0 1280x720x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveMultiplayerPresenceContract.tscn > artifacts/graphical-multiplayer/logs/client-a.log 2>&1 &
+          mkdir -p "$RUNNER_TEMP/kairnfall-godot-a" "$RUNNER_TEMP/kairnfall-godot-b"
+          XDG_DATA_HOME="$RUNNER_TEMP/kairnfall-godot-a" KAIRNFALL_GRAPHICAL_ROLE=A KAIRNFALL_GRAPHICAL_PEER_ROLE=B timeout 150 xvfb-run -a -s '-screen 0 1280x720x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveMultiplayerPresenceContract.tscn > artifacts/graphical-multiplayer/logs/client-a.log 2>&1 &
           a=$!
-          KAIRNFALL_GRAPHICAL_ROLE=B KAIRNFALL_GRAPHICAL_PEER_ROLE=A timeout 150 xvfb-run -a -s '-screen 0 1280x720x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveMultiplayerPresenceContract.tscn > artifacts/graphical-multiplayer/logs/client-b.log 2>&1 &
+          XDG_DATA_HOME="$RUNNER_TEMP/kairnfall-godot-b" KAIRNFALL_GRAPHICAL_ROLE=B KAIRNFALL_GRAPHICAL_PEER_ROLE=A timeout 150 xvfb-run -a -s '-screen 0 1280x720x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveMultiplayerPresenceContract.tscn > artifacts/graphical-multiplayer/logs/client-b.log 2>&1 &
           b=$!
           set +e
           wait "$a"; ar=$?
