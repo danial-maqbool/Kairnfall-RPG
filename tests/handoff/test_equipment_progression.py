@@ -11,7 +11,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT)); sys.path.insert(0,str(ROOT/'tools'))
-from content_src import skills,items,abilities,mobs,world,quests,presentation,gear_progression
+from content_src import skills,items,abilities,mobs,boss_uniques,world,quests,presentation,gear_progression
 from art import items as item_art, humanoid
 from art.common import STATES
 spec=importlib.util.spec_from_file_location('equipment_progression_builder',ROOT/'tools/build_content.py')
@@ -20,7 +20,10 @@ builder=importlib.util.module_from_spec(spec); spec.loader.exec_module(builder)
 
 def original():
     data={key:[] for key in ('skills','classes','items','abilities','recipes','zones','mobs','resources','npcs','quests')}
-    for module in (skills,items,abilities,mobs,world,quests,presentation): module.build(data)
+    # This baseline represents the catalog immediately before gear_progression runs.
+    # Keep later independent extensions, such as boss uniques, in the baseline so
+    # this test only protects identities that the gear extension is responsible for.
+    for module in (skills,items,abilities,mobs,boss_uniques,world,quests,presentation): module.build(data)
     return data
 
 
