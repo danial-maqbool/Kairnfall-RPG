@@ -16,7 +16,18 @@ public static class Progression
         while(low<high) { int mid=(low+high+1)/2; if(Threshold(mid)<=xp) low=mid; else high=mid-1; }
         return low;
     }
-    public static int Level(Character p,string skill) => SkillLevel(p.SkillXp.GetValueOrDefault(skill));
+    public static int BaseLevel(Character p,string skill) => SkillLevel(p.SkillXp.GetValueOrDefault(skill));
+    public static int EquipmentSkillBonus(Character p,string skill)
+    {
+        int bonus=0;
+        foreach(var id in p.Equipment.Values.Distinct())
+        {
+            var item=p.Inventory.FirstOrDefault(x=>x.Id==id);
+            if(item is not null&&item.Durability>0) bonus+=Math.Max(0,item.SkillBonuses.GetValueOrDefault(skill));
+        }
+        return Math.Clamp(bonus,0,SkillCap-1);
+    }
+    public static int Level(Character p,string skill) => Math.Clamp(BaseLevel(p,skill)+EquipmentSkillBonus(p,skill),1,SkillCap);
     public static long Total(Character p) => p.SkillXp.Values.Sum(x=>Math.Clamp(x,0,Threshold(SkillCap)));
     public static double PlayerLevelValue(Character p,bool includeCreditRemainder=false)
     {
@@ -140,6 +151,31 @@ public static class CombatMath
         return Math.Max(0,raw*(100/(100+Math.Max(0,armor)))*(1-Math.Clamp(resistance,-0.5,1)));
     }
     public static double Resist(DerivedStats stats,Element e)=>Math.Clamp(stats.Bonus("resist_"+e.ToString().ToLowerInvariant())/100,-0.5,0.75);
+    public static bool ElementStrongAgainst(Element attack,Element target)=> (attack,target) switch
+    {
+        (Element.Fire,Element.Nature) or (Element.Fire,Element.Frost) => true,
+        (Element.Nature,Element.Lightning) or (Element.Nature,Element.Poison) => true,
+        (Element.Lightning,Element.Frost) or (Element.Lightning,Element.Arcane) => true,
+        (Element.Frost,Element.Poison) or (Element.Frost,Element.Shadow) => true,
+        (Element.Poison,Element.Arcane) or (Element.Poison,Element.Radiant) => true,
+        (Element.Arcane,Element.Shadow) or (Element.Arcane,Element.Fire) => true,
+        (Element.Shadow,Element.Radiant) or (Element.Shadow,Element.Nature) => true,
+        (Element.Radiant,Element.Fire) or (Element.Radiant,Element.Lightning) => true,
+        _ => false
+    };
+    public static int ElementRelationship(Element attack,Element target)
+    {
+        if(attack==Element.Physical||target==Element.Physical||attack==target) return 0;
+        return ElementStrongAgainst(attack,target)?1:ElementStrongAgainst(target,attack)?-1:0;
+    }
+    public static double ElementMultiplier(Element attack,Element target,int attackerPoints=0,int defenderPoints=0)
+    {
+        int relation=ElementRelationship(attack,target);
+        if(relation==0) return 1;
+        // Attunement increases both the reward and the risk of elemental specialization.
+        double magnitude=Math.Min(.25,.05+.0125*Math.Clamp(attackerPoints+defenderPoints,0,16));
+        return 1+relation*magnitude;
+    }
     public static bool Roll(double probability)=>RandomNumberGenerator.GetInt32(1000000)<Math.Clamp(probability,0,1)*1000000;
     public static double RandomUnit()=>RandomNumberGenerator.GetInt32(1000000)/1000000.0;
     public static double StatusPower(IEnumerable<StatusEffect> effects,string kind,double now)=>effects.Where(x=>x.Kind==kind&&x.Until>now).Sum(x=>x.Power);
@@ -152,16 +188,100 @@ public static class Items
     public const long GoldCap=1_000_000_000_000;
     public static Rarity RollRarity(int bonus=0)
     {
+        // Approximate natural drop rates: 65% Common, 23% Uncommon, 8.5% Rare,
+        // 2.5% Epic, 0.75% Legendary, 0.2% Mythic and 0.05% Relic.
         int n=RandomNumberGenerator.GetInt32(10000)-Math.Clamp(bonus,0,500);
         return n<5?Rarity.Relic:n<25?Rarity.Mythic:n<100?Rarity.Legendary:n<350?Rarity.Epic:n<1200?Rarity.Rare:n<3500?Rarity.Uncommon:Rarity.Common;
     }
-    public static Item Create(Catalog catalog,string template,int quantity=1,Rarity rarity=Rarity.Common)
+    public static (int Min,int Max) SkillBonusRange(Rarity rarity)
+    {
+        int minimum=(int)rarity;
+        return (minimum,minimum+1);
+    }
+    public static int CraftRarityRequirement(Rarity rarity,int baseRequirement)
+    {
+        int[] offsets=[0,3,8,15,25,35,45];
+        return Math.Clamp(baseRequirement+offsets[Math.Clamp((int)rarity,0,offsets.Length-1)],1,Progression.SkillCap);
+    }
+    public static Rarity RollCraftRarity(int skillLevel,int baseRequirement)
+    {
+        skillLevel=Math.Clamp(skillLevel,1,Progression.SkillCap);
+        (Rarity rarity,double chance)[] rolls=[
+            (Rarity.Relic,.00035),(Rarity.Mythic,.0015),(Rarity.Legendary,.006),
+            (Rarity.Epic,.025),(Rarity.Rare,.08),(Rarity.Uncommon,.22)];
+        foreach(var (rarity,baseChance) in rolls)
+        {
+            int gate=CraftRarityRequirement(rarity,baseRequirement);
+            if(skillLevel<gate) continue;
+            double mastery=1+Math.Min(1,(skillLevel-gate)/25.0);
+            if(CombatMath.Roll(baseChance*mastery)) return rarity;
+        }
+        return Rarity.Common;
+    }
+    private static int RollSkillBonusTotal(Rarity rarity)
+    {
+        var range=SkillBonusRange(rarity);
+        double upperChance=Math.Max(.08,.20-.02*(int)rarity);
+        return range.Min+(CombatMath.Roll(upperChance)?1:0);
+    }
+    private static string RollSkill(Catalog catalog,ItemDef def,Character? source)
+    {
+        if(source is not null)
+        {
+            var affinity=catalog.Class(source.Class).Affinity.Where(x=>catalog.Skills.Any(s=>s.Id==x)).ToArray();
+            if(affinity.Length>0&&CombatMath.Roll(.65)) return affinity[RandomNumberGenerator.GetInt32(affinity.Length)];
+        }
+        if(def.Skill!=""&&catalog.Skills.Any(x=>x.Id==def.Skill)&&CombatMath.Roll(.35)) return def.Skill;
+        return catalog.Skills[RandomNumberGenerator.GetInt32(catalog.Skills.Count)].Id;
+    }
+    private static Element RollElement(ItemDef def,Rarity rarity)
+    {
+        if(def.Element!=Element.Physical||def.Tags.Contains("boss_unique",StringComparer.Ordinal)) return def.Element;
+        double[] chances=[.05,.10,.18,.30,.45,.65,.85];
+        if(!CombatMath.Roll(chances[Math.Clamp((int)rarity,0,chances.Length-1)])) return Element.Physical;
+        return (Element)RandomNumberGenerator.GetInt32(1,Enum.GetValues<Element>().Length);
+    }
+    public static Element ElementOf(Item item,ItemDef def)=>item.Element??def.Element;
+    public static int ElementPoints(Item item,ItemDef def)
+    {
+        if(ElementOf(item,def)==Element.Physical||item.Durability<=0) return 0;
+        return 1+(int)item.Rarity+(def.Tags.Contains("boss_unique",StringComparer.Ordinal)?2:0);
+    }
+    public static int EquippedElementPoints(Character p,Element element,Catalog catalog)
+    {
+        if(element==Element.Physical) return 0;
+        int total=0;
+        foreach(var id in p.Equipment.Values.Distinct())
+        {
+            var item=p.Inventory.FirstOrDefault(x=>x.Id==id);
+            if(item is null) continue;
+            var def=catalog.Item(item.Template);
+            if(ElementOf(item,def)==element) total+=ElementPoints(item,def);
+        }
+        return total;
+    }
+    public static Element DominantElement(Character p,Catalog catalog)
+    {
+        var best=Enum.GetValues<Element>().Where(x=>x!=Element.Physical)
+            .Select(x=>(Element:x,Points:EquippedElementPoints(p,x,catalog)))
+            .OrderByDescending(x=>x.Points).ThenBy(x=>(int)x.Element).First();
+        return best.Points>0?best.Element:Element.Physical;
+    }
+    public static Item Create(Catalog catalog,string template,int quantity=1,Rarity rarity=Rarity.Common,Character? source=null)
     {
         var def=catalog.Item(template);
         if(quantity<1||quantity>999) throw new RuleException("Invalid item quantity.");
+        if(def.Tags.Contains("boss_unique",StringComparer.Ordinal)) rarity=Rarity.Relic;
         var item=new Item{Template=template,Quantity=quantity,Rarity=def.StackMax>1?Rarity.Common:rarity};
         if(def.Slot!=""&&def.Type!="tool")
         {
+            item.Element=RollElement(def,item.Rarity);
+            int skillPoints=RollSkillBonusTotal(item.Rarity);
+            for(int point=0;point<skillPoints;point++)
+            {
+                string skill=RollSkill(catalog,def,source);
+                item.SkillBonuses[skill]=item.SkillBonuses.GetValueOrDefault(skill)+1;
+            }
             item.Sockets=Math.Min(4,(int)item.Rarity/2+(CombatMath.Roll(0.1)?1:0));
             string[] pool=def.Slot=="weapon"?["strength","dexterity","physical","crit","attack_speed","intellect","spell"]:["vitality","resolve","armor","health","evasion","spirit","resist_fire","resist_frost"];
             for(int n=0;n<Math.Min(4,(int)item.Rarity);n++)
@@ -179,8 +299,8 @@ public static class Items
     {
         var def=catalog.Item(item.Template);
         if(item.Quantity<1||item.Quantity>999) throw new RuleException("Invalid item quantity.");
-        bool stackable=def.StackMax>1&&item.Affixes.Count==0&&item.Runes.Count==0;
-        var stacks=stackable?destination.Where(x=>x.Template==item.Template&&x.Rarity==item.Rarity&&x.Affixes.Count==0&&x.Runes.Count==0).ToList():[];
+        bool stackable=def.StackMax>1&&item.Affixes.Count==0&&item.Runes.Count==0&&item.SkillBonuses.Count==0&&item.Element is null;
+        var stacks=stackable?destination.Where(x=>x.Template==item.Template&&x.Rarity==item.Rarity&&x.Affixes.Count==0&&x.Runes.Count==0&&x.SkillBonuses.Count==0&&x.Element is null).ToList():[];
         int free=stacks.Sum(x=>def.StackMax-x.Quantity);
         int needed=Math.Max(0,item.Quantity-free);
         int slots=(needed+def.StackMax-1)/def.StackMax;
@@ -233,7 +353,7 @@ public static class Items
         var item=Owned(p,id); var def=catalog.Item(item.Template);
         if(def.Slot==""||item.Durability==0) throw new RuleException("This item cannot be equipped.");
         int required = BeginnerProgression.EquipmentRequirement(def);
-        if(def.Skill!=""&&Progression.Level(p,def.Skill)<required) throw new RuleException($"Requires {catalog.Skill(def.Skill).Name} {required}. Your level: {Progression.Level(p,def.Skill)}.");
+        if(def.Skill!=""&&Progression.BaseLevel(p,def.Skill)<required) throw new RuleException($"Requires {catalog.Skill(def.Skill).Name} {required}. Your trained level: {Progression.BaseLevel(p,def.Skill)}. Equipment skill bonuses do not satisfy equipment requirements.");
         if(def.Slot=="weapon"&&!HandEquipment.Compatible(def,HandEquipment.Definition(p,"offhand",catalog)))
             p.Equipment.Remove("offhand");
         if(def.Slot=="offhand"&&!HandEquipment.Compatible(HandEquipment.Definition(p,"weapon",catalog),def))
@@ -263,6 +383,8 @@ public static class Items
             if(!ids.Add(i.Id)||!Guid.TryParseExact(i.Id,"N",out _)) errors.Add("Duplicate or malformed item ID: "+i.Id);
             var def=data.Items.FirstOrDefault(x=>x.Id==i.Template);
             if(def is null||i.Quantity<1||i.Quantity>def.StackMax||i.Sockets<0||i.Sockets>4||i.Runes.Count>i.Sockets||i.Durability<0||i.Durability>100) errors.Add("Invalid item: "+i.Id);
+            if(i.SkillBonuses.Any(x=>data.Skills.All(s=>s.Id!=x.Key)||x.Value<1||x.Value>7)||i.SkillBonuses.Values.Sum()>7) errors.Add("Invalid item skill bonus: "+i.Id);
+            if(def is not null&&def.StackMax>1&&(i.SkillBonuses.Count>0||i.Element is not null)) errors.Add("Stackable item has instance equipment modifiers: "+i.Id);
             foreach(var r in i.Runes) if(!ids.Add(r.Id)||data.Items.All(x=>x.Id!=r.Template||x.Type!="rune")) errors.Add("Invalid socketed rune: "+r.Id);
         }
         foreach(var p in state.Characters.Values)

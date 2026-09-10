@@ -230,12 +230,12 @@ public partial class GameRoot
             string id = hotbar[i]; var button = (AbilitySlot)hotbarButtons[i]; string key = (i == 9 ? 0 : i + 1).ToString();
             if (string.IsNullOrEmpty(id))
             {
-                button.Present(null, key, 0, 1, "", "Assign an ability from Arts [B].", Online); continue;
+                button.Present(null, key, 0, 1, Element.Physical, "", "Assign an ability from Arts [B].", Online); continue;
             }
             var ability = Data.Ability(id);
             double cooldown = Math.Max(self.Cooldowns.GetValueOrDefault("ability:" + id), self.Cooldowns.GetValueOrDefault("global_ability")) - snap.Time;
             string problem = ExperienceRules.AbilityProblem(self, ability, Data, snap.Time);
-            button.Present(Assets.AbilityIcon(id), key, cooldown, ability.Cooldown, problem,
+            button.Present(Assets.AbilityIcon(id), key, cooldown, ability.Cooldown, ability.Element, problem,
                 AbilityTooltip(self, ability) + (problem == "" ? "" : "\n" + problem), Online && gameWindow is null && !Typing && applicationFocused);
         }
     }

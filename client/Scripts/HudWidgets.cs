@@ -1,4 +1,5 @@
 using Godot;
+using Kairnfall.Core;
 
 namespace Kairnfall.Client;
 
@@ -29,12 +30,13 @@ public partial class AbilitySlot : ActionButton
     public string KeyLabel { get; private set; } = "";
     public double CooldownSeconds { get; private set; }
     public string BlockReason { get; private set; } = "";
+    public Element AbilityElement { get; private set; } = Element.Physical;
     private double cooldownLength = 1;
     private double activeUntil;
 
-    public void Present(Texture2D? icon, string key, double remaining, double duration, string reason, string tooltip, bool connected)
+    public void Present(Texture2D? icon, string key, double remaining, double duration, Element element, string reason, string tooltip, bool connected)
     {
-        AbilityIcon = icon; KeyLabel = key; CooldownSeconds = Math.Max(0, remaining);
+        AbilityIcon = icon; KeyLabel = key; CooldownSeconds = Math.Max(0, remaining); AbilityElement=element;
         cooldownLength = Math.Max(.01, duration); BlockReason = reason;
         Text = ""; Icon = null; TooltipText = tooltip;
         Disabled = !connected || icon is null || reason != "";
@@ -57,6 +59,12 @@ public partial class AbilitySlot : ActionButton
             DrawTextureRect(AbilityIcon, area, false, Disabled ? new Color(.64f, .62f, .57f) : Colors.White);
             if (CooldownSeconds > 0)
                 DrawRect(new Rect2(area.Position, new Vector2(area.Size.X, area.Size.Y * (float)Math.Clamp(CooldownSeconds / cooldownLength, 0, 1))), new Color(0, 0, 0, .72f));
+            if(AbilityElement!=Element.Physical)
+            {
+                var badge=new Rect2(area.Position.X+area.Size.X-14,area.Position.Y+1,13,13);
+                DrawRect(badge,Ui.Ink); DrawRect(badge,Ui.ElementColor(AbilityElement),false,1);
+                DrawString(GetThemeDefaultFont(),new Vector2(badge.Position.X+3,badge.Position.Y+11),Ui.ElementGlyph(AbilityElement),HorizontalAlignment.Left,-1,9,Ui.ElementColor(AbilityElement));
+            }
         }
         var font = GetThemeDefaultFont();
         DrawRect(new Rect2(2, 2, 19, 18), new Color("171512"));

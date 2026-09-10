@@ -64,7 +64,10 @@ public static class CompactItemCard
         name.Name = "ItemName";
         box.AddChild(name);
 
-        var metadata = Centered(item.Rarity + " · " + Ui.Words(def.Type) + (self is not null && Items.Equipped(self, item.Id) ? " · Equipped" : ""), metaSize, Ui.Muted);
+        int skillTotal=item.SkillBonuses.Values.Sum();
+        Element actualElement=Items.ElementOf(item,def);
+        string rolledMeta=(skillTotal>0?$" · +{skillTotal} skill":"")+(actualElement!=Element.Physical?$" · {actualElement}":"");
+        var metadata = Centered(item.Rarity + " · " + Ui.Words(def.Type) + rolledMeta + (self is not null && Items.Equipped(self, item.Id) ? " · Equipped" : ""), metaSize, Ui.Muted);
         metadata.Name = "ItemMeta";
         box.AddChild(metadata);
 
@@ -81,6 +84,15 @@ public static class CompactItemCard
             var requirement = Centered($"Requires {data.Skill(def.Skill).Name} {BeginnerProgression.EquipmentRequirement(def)}", metaSize, Ui.Muted);
             requirement.Name = "ItemRequirement";
             box.AddChild(requirement);
+        }
+
+        if (!compact && item.SkillBonuses.Count > 0)
+        {
+            foreach (var skill in item.SkillBonuses.OrderBy(x=>x.Key))
+            {
+                var bonus = Centered($"+{skill.Value} {data.Skill(skill.Key).Name} level while equipped", metaSize, Ui.Success);
+                bonus.Name = "ItemSkillBonus"; box.AddChild(bonus);
+            }
         }
 
         if (info.ComparedWith != "")
@@ -149,9 +161,10 @@ public static class CompactItemCard
             box.AddChild(condition);
         }
 
-        if (def.Slot == "weapon")
+        if (!compact && (def.Slot == "weapon" || actualElement != Element.Physical))
         {
-            var element = Centered(compact ? "Element: " + def.Element : def.Element + " · Lower attack interval is faster", compact ? metaSize : 11, Ui.Muted);
+            string points=actualElement==Element.Physical?"":$" · {Items.ElementPoints(item,def)} attunement points";
+            var element = Centered(actualElement + points + (def.Slot=="weapon"?" · Lower attack interval is faster":""), 11, Ui.Muted);
             element.Name = "ItemElement";
             box.AddChild(element);
         }

@@ -3559,6 +3559,326 @@
       "sha256": "7d5a64a22b8234b6180e062fc3efa67e5bb0e37cc09752f25ffc968ae2144144"
     },
     {
+      "key": "equipment/boss_arcanist_100_aether_equation",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "94dbf48551c91015d0c53c4b3d177a4f8249a6eade3c0a38f81e2cbe6ba23002"
+    },
+    {
+      "key": "equipment/boss_arcanist_25_prism_reed",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "828b73f53662485ae5dcc29cf0bb84ca4e94050a5cbec0a49f615fde032a61e5"
+    },
+    {
+      "key": "equipment/boss_arcanist_45_astral_measure",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "822b1aa9f88c313ee21cb1245add97c16385b995669903bfd6a5e7ac97d2e392"
+    },
+    {
+      "key": "equipment/boss_arcanist_65_null_canticle",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "7138558758397841057e63a8ce1093449382581af276862bf46ba00f9c12ca0d"
+    },
+    {
+      "key": "equipment/boss_arcanist_85_eventide_spire",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "c41ce9a80c7bbdecb507a022633bcbc4fbec500a628e0b906e567fa3157ad71b"
+    },
+    {
+      "key": "equipment/boss_berserker_100_worldsplitter",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "9e45fdd8f4b2d23d0ac128fe431f9d7ba5be931f997b45f83ecd5c67b78f35f2"
+    },
+    {
+      "key": "equipment/boss_berserker_25_red_wake",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "da086bc8ffdd100193fa23b92d4833d96cdee3a8d2595a9087f921d5601dc0e3"
+    },
+    {
+      "key": "equipment/boss_berserker_45_skullstorm",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "d86b591416bafd18d6169fdd9b413d54755a803cca3863f81a668e6f94f799e3"
+    },
+    {
+      "key": "equipment/boss_berserker_65_ashhowl",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "fd5300a665c32f2ae77a4f46bc02f16fa216c8ba5308618c3bc8ae604418abbc"
+    },
+    {
+      "key": "equipment/boss_berserker_85_ruin_feast",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "3dcaf514ae852e1c878a89a07ce35c9ba35b2cbfdae28a6f2432a4bdb1c26b69"
+    },
+    {
+      "key": "equipment/boss_ranger_100_horizon_piercer",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "f93bae588a4d7ed885392ef69d827df412336520f00c255b5c78af7f6a3a88b3"
+    },
+    {
+      "key": "equipment/boss_ranger_25_gale_thorn",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "adfde93f029fe7d4ffc0c75ac8da2613138df50e57633dcc5912a63f14e7d41c"
+    },
+    {
+      "key": "equipment/boss_ranger_45_skytrace",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "30601ec17824e08f1fb282b9d0a45b1f95af04944ffb70ce920edcdd027aac07"
+    },
+    {
+      "key": "equipment/boss_ranger_65_tempest_string",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "b4816235789631c9b5f5f8384f2924e26774879564af2d88bcb9851c188ba549"
+    },
+    {
+      "key": "equipment/boss_ranger_85_starhunter",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "e690c6398989739648f4af44038e3206af45a011e099ae4c9e94505a426b5c12"
+    },
+    {
+      "key": "equipment/boss_rogue_100_kingless_mercy",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "e711b0e793e8f1f04e08c180d1f6eaf1ffb250af49892a440aedcaeab7a0217b"
+    },
+    {
+      "key": "equipment/boss_rogue_25_whisperfang",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "5933796823fa9672832b1c13c30ded0dfea36c71a789efea9ebe847ecebc9ff2"
+    },
+    {
+      "key": "equipment/boss_rogue_45_nightglass",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "4aaf13af38035798c6aca16615d10e517a706631b8ed78fd7a747f52877584c3"
+    },
+    {
+      "key": "equipment/boss_rogue_65_venom_psalm",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "d26a307821eafe2dc3d33fc53faaf78673bed6e2d9b63cae603fb539006dac41"
+    },
+    {
+      "key": "equipment/boss_rogue_85_eclipse_needle",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "cb9919d00c45e55ec08d8e811fdaba9160aa858da7a7f7eab5e76ca216e85984"
+    },
+    {
+      "key": "equipment/boss_spellblade_100_kairnfall_edge",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "39719e2be914a1a5a91175888ef93b433c17c7c76c46fa7e7197098925e7332d"
+    },
+    {
+      "key": "equipment/boss_spellblade_25_riftbrand",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "a5119198b5747016a92cdd0da1d29e1b5b21ef1ebc90eb01c7a2754b17b89925"
+    },
+    {
+      "key": "equipment/boss_spellblade_45_hexsteel",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "397776bc74f52d57e1a2d7e94c8b189360ea30198b3bce7017552ecc28160fae"
+    },
+    {
+      "key": "equipment/boss_spellblade_65_mirror_edge",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "52eeefc014f410f8cedce1914d9e622811b2c7f249512f4b1c36f2f01f57e6b4"
+    },
+    {
+      "key": "equipment/boss_spellblade_85_void_accord",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "1b429b73531e3c0f78fd84402808c2eb877ef925b775700fa00b2548deb0e2a6"
+    },
+    {
+      "key": "equipment/boss_templar_100_last_benediction",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "0c519a7ec9418e605739f4307eefd2761072f739e93e9283f5d3569e6a057fde"
+    },
+    {
+      "key": "equipment/boss_templar_25_dawn_bell",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "2015789cfd61ed7eac509cbdc74796c572404cb55645f78c90210664c32e2d9d"
+    },
+    {
+      "key": "equipment/boss_templar_45_mercy_weight",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "61496101deb3bfaf457f8dbe9b4a81d53ad0ba214745616386eedc3e5a0c84b8"
+    },
+    {
+      "key": "equipment/boss_templar_65_sunward_vow",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "04185abfe46ff57cbff5061d09f5e2566bf90c01b720dc56207eaf947647e0c7"
+    },
+    {
+      "key": "equipment/boss_templar_85_saintfire",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "98ac60c0ac6126d5fd9dc500546324ede6b7c5aea22521bea2d88313ae95f474"
+    },
+    {
+      "key": "equipment/boss_vanguard_100_last_citadel",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "39719e2be914a1a5a91175888ef93b433c17c7c76c46fa7e7197098925e7332d"
+    },
+    {
+      "key": "equipment/boss_vanguard_25_oathsteel",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "a5119198b5747016a92cdd0da1d29e1b5b21ef1ebc90eb01c7a2754b17b89925"
+    },
+    {
+      "key": "equipment/boss_vanguard_45_gatewarden",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "397776bc74f52d57e1a2d7e94c8b189360ea30198b3bce7017552ecc28160fae"
+    },
+    {
+      "key": "equipment/boss_vanguard_65_bastion_edge",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "6708756ce291af3f4cb15f9238f28ecac83cf4b38de46dce670c8666598d1f38"
+    },
+    {
+      "key": "equipment/boss_vanguard_85_crownward",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "1b429b73531e3c0f78fd84402808c2eb877ef925b775700fa00b2548deb0e2a6"
+    },
+    {
+      "key": "equipment/boss_warden_100_first_grove",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "94dbf48551c91015d0c53c4b3d177a4f8249a6eade3c0a38f81e2cbe6ba23002"
+    },
+    {
+      "key": "equipment/boss_warden_25_rootsong",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "828b73f53662485ae5dcc29cf0bb84ca4e94050a5cbec0a49f615fde032a61e5"
+    },
+    {
+      "key": "equipment/boss_warden_45_hartwood",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "822b1aa9f88c313ee21cb1245add97c16385b995669903bfd6a5e7ac97d2e392"
+    },
+    {
+      "key": "equipment/boss_warden_65_briar_covenant",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "ac5ff26b7024fb7896a6c52cfeccc0a4db94a27d3516a78f1a4a40120f05fa91"
+    },
+    {
+      "key": "equipment/boss_warden_85_verdant_moon",
+      "group": "equipment",
+      "width": 512,
+      "height": 1536,
+      "animated": true,
+      "sha256": "c41ce9a80c7bbdecb507a022633bcbc4fbec500a628e0b906e567fa3157ad71b"
+    },
+    {
       "key": "equipment/bronze_axe",
       "group": "equipment",
       "width": 512,
@@ -21501,6 +21821,326 @@
       "height": 32,
       "animated": false,
       "sha256": "3665eda60420afbf6cbbdfc1e622d5c3d0d5534492860c3125261c079025cac4"
+    },
+    {
+      "key": "items/boss_arcanist_100_aether_equation",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "dcaa82acb221911f8fb8a199dab26a6ab1c96a676ec54995d4ac8c86174d7b27"
+    },
+    {
+      "key": "items/boss_arcanist_25_prism_reed",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "8923694e678e523143378ce93f6d5e6c4c70da45925cb6ea80d76e21dacd3133"
+    },
+    {
+      "key": "items/boss_arcanist_45_astral_measure",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "95e33d468f80affe5d72b4d41d6fa3ab3b201c488d721dc5e8f0625535b05dc5"
+    },
+    {
+      "key": "items/boss_arcanist_65_null_canticle",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "1e95bd21e05f945fb66f474b53fce7111d2130d86bfa7a13e1307aadcb6e45f3"
+    },
+    {
+      "key": "items/boss_arcanist_85_eventide_spire",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "2937c51f8cacdf2c0fdf4d7fbfab33e9dcd645f3931475a05f85db7e750ef52f"
+    },
+    {
+      "key": "items/boss_berserker_100_worldsplitter",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "68d68b5c16e97b90201c4831cb3a80183b3d06ac40bf36c9b2eb369942b6e277"
+    },
+    {
+      "key": "items/boss_berserker_25_red_wake",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "bd49b54c3b332f90f6c8bb638f3e129a530a1a5d9b695b1b3f09f04f104c93d8"
+    },
+    {
+      "key": "items/boss_berserker_45_skullstorm",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "bfecb22d2db7662536abeac280162f1d2d0e6c37162403a470e6f82a9ec70f00"
+    },
+    {
+      "key": "items/boss_berserker_65_ashhowl",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "58196514593efdd4e79384b4ecaaaf0df3e8dfc66614af774919ad9a7bba9be2"
+    },
+    {
+      "key": "items/boss_berserker_85_ruin_feast",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "e2ce711d65d9f929640a75af8f508e8946a391d8fa04bafffc3760d81af9755d"
+    },
+    {
+      "key": "items/boss_ranger_100_horizon_piercer",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "14752e5dda4f2ad4aeb891541f872549439d23bbef9b389b706a46de44927746"
+    },
+    {
+      "key": "items/boss_ranger_25_gale_thorn",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "d38a35f7505b42dbe6442fff6c9436c668a370249ca3fc89fe9294c89c6244ce"
+    },
+    {
+      "key": "items/boss_ranger_45_skytrace",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "22d38a7d150c5178b0b8dcecf8654c77a834a03d96d89a215a14cf8072ded07a"
+    },
+    {
+      "key": "items/boss_ranger_65_tempest_string",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "c89abdf32e741cdd390677ea494abc40de3ca69926171f9ad95622b86d5b6ac0"
+    },
+    {
+      "key": "items/boss_ranger_85_starhunter",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "1b4c7457ac7d898fcbc3cdce915a7aff51663795497869a8887002039d454a86"
+    },
+    {
+      "key": "items/boss_rogue_100_kingless_mercy",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "b0613d09933b142239d69d10a56e6a5b968ddc2ea9c337be8ab06de685f0c328"
+    },
+    {
+      "key": "items/boss_rogue_25_whisperfang",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "ea40cd3fd5aa98b3cbe8a0436161dba5bfa692755a7ba785428278073775638b"
+    },
+    {
+      "key": "items/boss_rogue_45_nightglass",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "c293ec0bdcdf1bbfccab0bbcfc604e5f781b7725a33b4935395fad136f8c411e"
+    },
+    {
+      "key": "items/boss_rogue_65_venom_psalm",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "dfa8c3f0dacfc8af52b5569a45a2f23d5236270fad7fdedb149e8554c624447e"
+    },
+    {
+      "key": "items/boss_rogue_85_eclipse_needle",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "bf5b430d7faebb81cf99c50c3348b0097ea302c5bcbb1800623d073e73e8acc2"
+    },
+    {
+      "key": "items/boss_spellblade_100_kairnfall_edge",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "6263b24c9c2a159a5022801ee12f7966190031ab9ed2b6aa1bd3592c6a1f2265"
+    },
+    {
+      "key": "items/boss_spellblade_25_riftbrand",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "14bd2be8bc3a719f28f3a6ad60d013007f6d03a55e85666ffd08a050313e58a3"
+    },
+    {
+      "key": "items/boss_spellblade_45_hexsteel",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "c4ef6c40193c06b7e2c56d72a8f3c153d31a638a2598e4c7c8d59dcc5985615f"
+    },
+    {
+      "key": "items/boss_spellblade_65_mirror_edge",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "df75ae71d3f962a94d3d4e3d9635e21561f194190e7a91eedec0bbf6f565dcb0"
+    },
+    {
+      "key": "items/boss_spellblade_85_void_accord",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "da4d738b459cf44b366e8ae0bd7ab1f4b1eb02de87a455d47b13d8ff5767e639"
+    },
+    {
+      "key": "items/boss_templar_100_last_benediction",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "28e64a79126dbb7aa366a9eb0e98505ace6c49a489471ec8586a0ff9243a125b"
+    },
+    {
+      "key": "items/boss_templar_25_dawn_bell",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "543f24a4190de30ec277e85efc20a71f83169f7bcd36a06324f5aefc2fe17564"
+    },
+    {
+      "key": "items/boss_templar_45_mercy_weight",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "41f175f87b91ef5424dc5c65e54ac4228a23128445d01468bb3fd69382101467"
+    },
+    {
+      "key": "items/boss_templar_65_sunward_vow",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "d1dca33d18772edaf56aef3780ceee626c24acc82077e1c1159cf466d3c74582"
+    },
+    {
+      "key": "items/boss_templar_85_saintfire",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "78754ee5f4c3296846a9353a889f111b32c91ca3bcfdccc3b48413c35b459a36"
+    },
+    {
+      "key": "items/boss_vanguard_100_last_citadel",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "c1bb8d154d2e80c96ce0cc6b25220d3c7a224779b24aa3f7025e7eac66d47472"
+    },
+    {
+      "key": "items/boss_vanguard_25_oathsteel",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "45d192127faf8b5adaf3707bff890ca51bb9e8fbb3556c001fa7d3ba2ab78cfa"
+    },
+    {
+      "key": "items/boss_vanguard_45_gatewarden",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "d0c7c1389ca425847fe1274ac38c17f9afef4c6efc03b0074c141e531b76814b"
+    },
+    {
+      "key": "items/boss_vanguard_65_bastion_edge",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "d0b0e74bddc39e6617d66a7f7f2263736071c1e4088cc7943622afa9f0b1b72a"
+    },
+    {
+      "key": "items/boss_vanguard_85_crownward",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "3b0b1257c8870e105a03f0061ba4a49769831219b56e4cc75924d9234d1116ec"
+    },
+    {
+      "key": "items/boss_warden_100_first_grove",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "f0e1cad3c48425c45f4479defe8debe800ccee95ee72579294b46eef1f3756be"
+    },
+    {
+      "key": "items/boss_warden_25_rootsong",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "362c6adf1be3975d0106e5b65126ad14e6db35d277b0255a52003d520b73f571"
+    },
+    {
+      "key": "items/boss_warden_45_hartwood",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "9f3cdaff6e3550c505118b8f79a747e6f0ac1851e8d1ba0099c8828c8adf4353"
+    },
+    {
+      "key": "items/boss_warden_65_briar_covenant",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "af9590ace18b141cb5667ff6f13364fc23a154b041f1ed40eefe73f872a80e65"
+    },
+    {
+      "key": "items/boss_warden_85_verdant_moon",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "1a4d1e8b949ad2e44ad8afb167203c44c943fb8e224a1e83b8ebfc28c2be9def"
     },
     {
       "key": "items/bread",

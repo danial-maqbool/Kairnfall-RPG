@@ -12,10 +12,10 @@ public sealed partial class RealmEngine
     private string Attack(Character p,string target)
     {
         var stats=CombatMath.Stats(p,Data);
-        ItemDef? weapon=null;
+        ItemDef? weapon=null; Item? weaponItem=null;
         if(p.Equipment.TryGetValue("weapon",out var weaponId))
         {
-            var instance=Items.Owned(p,weaponId); Need(instance.Durability>0,"Your weapon needs repair."); weapon=Data.Item(instance.Template);
+            var instance=Items.Owned(p,weaponId); Need(instance.Durability>0,"Your weapon needs repair."); weapon=Data.Item(instance.Template); weaponItem=instance;
         }
         string skill=weapon?.Skill is {Length:>0} ws?ws:"unarmed_combat";
         var mob=Hostile(p,target,weapon?.Range??1.6);
@@ -27,11 +27,12 @@ public sealed partial class RealmEngine
         double raw=stats.Physical*CombatTrainingCurve.Physical(Progression.Level(p,skill));
         if(p.Class=="berserker") raw*=1+0.25*(1-p.Health/stats.Health);
         if(CombatMath.Roll(stats.Crit)) raw*=stats.CritDamage;
+        Element attackElement=weapon is null?Element.Physical:Items.ElementOf(weaponItem!,weapon);
         if(HandEquipment.IsProjectileWeapon(weapon))
         {
-            State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=mob.Position,Direction=p.Facing,Shape="projectile",Skill=skill,Element=weapon?.Element??Element.Physical,Radius=0.8,Power=raw,Resolves=State.Time+Math.Min(0.6,p.Position.Distance(mob.Position)/15)});
+            State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=mob.Position,Direction=p.Facing,Shape="projectile",Skill=skill,Element=attackElement,Radius=0.8,Power=raw,Resolves=State.Time+Math.Min(0.6,p.Position.Distance(mob.Position)/15)});
         }
-        else HitCreature(p,mob,raw,weapon?.Element??Element.Physical,skill);
+        else HitCreature(p,mob,raw,attackElement,skill);
         return "";
     }
     private string Cast(Character p,string abilityId,string target,Point location)
@@ -140,7 +141,9 @@ public sealed partial class RealmEngine
         var def=Data.Mob(mob.Template); var stats=CombatMath.Stats(p,Data);
         double bonus=Math.Clamp(stats.Bonus("damage_"+element.ToString().ToLowerInvariant())/100,0,2);
         double empower=Math.Clamp(CombatMath.StatusPower(p.Statuses,"empower",State.Time),0,0.5);
-        double damage=CombatMath.Damage(raw*(1+bonus+empower),element==Element.Physical?def.Armor:def.Armor*0.2,def.Resistances.GetValueOrDefault(element));
+        int attunement=Items.EquippedElementPoints(p,element,Data);
+        double matchup=CombatMath.ElementMultiplier(element,def.Element,attunement,0);
+        double damage=CombatMath.Damage(raw*(1+bonus+empower)*matchup,element==Element.Physical?def.Armor:def.Armor*0.2,def.Resistances.GetValueOrDefault(element));
         if(element==Element.Lightning&&WorldTime.Weather(Data.Zone(p.Zone),State.Time) is "rain" or "storm") damage*=1.15;
         if(mob.Statuses.Any(x=>x.Kind=="vulnerable"&&x.Until>State.Time)) damage*=1.15;
         damage=Math.Min(mob.Health,Math.Max(0,damage)); mob.Health-=damage;
@@ -180,12 +183,24 @@ public sealed partial class RealmEngine
         }
         var owner=contributors.OrderByDescending(x=>mob.Threat.GetValueOrDefault(x.Id)).First();
         var pile=new LootPile{Zone=mob.Zone,Position=mob.Position,Owner=owner.Id,Party=owner.Party,Gold=def.Gold+RandomNumberGenerator.GetInt32(Math.Max(1,def.Gold/3+1)),PublicAt=State.Time+60,Expires=State.Time+300};
-        foreach(var template in def.Drops)
+        var ordinaryDrops=def.Drops.Where(template=>!Data.Item(template).Tags.Contains("boss_unique",StringComparer.Ordinal)).ToArray();
+        foreach(var template in ordinaryDrops)
         {
             var item=Data.Item(template); bool guaranteed=item.Type is "material" or "ore" or "wood" or "animal_material";
-            if(guaranteed||CombatMath.Roll(def.Boss?0.8:0.25)) pile.Items.Add(Items.Create(Data,template,1,item.StackMax==1?Items.RollRarity(def.Boss?300:0):Rarity.Common));
+            if(guaranteed||CombatMath.Roll(def.Boss?0.8:0.25)) pile.Items.Add(Items.Create(Data,template,1,item.StackMax==1?Items.RollRarity(def.Boss?300:0):Rarity.Common,owner));
         }
-        if(pile.Items.Count==0&&def.Drops.Length>0) pile.Items.Add(Items.Create(Data,def.Drops[0]));
+        if(def.Boss)
+        {
+            var uniques=def.Drops.Where(template=>Data.Item(template).Tags.Contains("boss_unique",StringComparer.Ordinal)).ToArray();
+            if(uniques.Length>0&&CombatMath.Roll(.04))
+            {
+                var classPool=uniques.Where(template=>Data.Item(template).Tags.Contains("class:"+owner.Class,StringComparer.Ordinal)).ToArray();
+                var choices=classPool.Length>0&&CombatMath.Roll(.70)?classPool:uniques;
+                string unique=choices[RandomNumberGenerator.GetInt32(choices.Length)];
+                pile.Items.Add(Items.Create(Data,unique,1,Rarity.Relic,owner));
+            }
+        }
+        if(pile.Items.Count==0&&ordinaryDrops.Length>0) pile.Items.Add(Items.Create(Data,ordinaryDrops[0],1,Rarity.Common,owner));
         Loot[pile.Id]=pile; mob.Threat.Clear(); EconomicDirty=true;
         if(def.Anatomy.StartsWith("animal:",StringComparison.Ordinal)&&Data.Resources.Any(x=>x.Id=="animal_carcass"))
         {
@@ -199,7 +214,10 @@ public sealed partial class RealmEngine
         var stats=CombatMath.Stats(p,Data); var def=Data.Mob(mob.Template);
         if(mob.Owner=="") SupportTraining.Record(p,def.Level,State.Time);
         if(CombatMath.Roll(stats.Evasion)) { ChallengeProgression.TrainCombat(p,"evasion",12,def.Level,Data); return; }
-        double damage=CombatMath.Damage(raw,element==Element.Physical?stats.Armor:stats.Armor*0.2,CombatMath.Resist(stats,element));
+        Element defenseElement=Items.DominantElement(p,Data);
+        int defensePoints=Items.EquippedElementPoints(p,defenseElement,Data);
+        double matchup=CombatMath.ElementMultiplier(element,defenseElement,0,defensePoints);
+        double damage=CombatMath.Damage(raw*matchup,element==Element.Physical?stats.Armor:stats.Armor*0.2,CombatMath.Resist(stats,element));
         if(CombatMath.Roll(stats.Block)) { damage*=0.4; ChallengeProgression.TrainCombat(p,"shield_mastery",12,def.Level,Data); }
         damage*=1-Math.Clamp(CombatMath.StatusPower(p.Statuses,"guard",State.Time),0,0.6);
         foreach(var shield in p.Statuses.Where(x=>x.Kind=="shield"&&x.Until>State.Time).ToList())

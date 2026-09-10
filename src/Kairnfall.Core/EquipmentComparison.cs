@@ -65,8 +65,8 @@ public static class EquipmentComparison
             if (ownedRequired && !self.Inventory.Any(x => x.Id == item.Id)) blocked.Add("Move this item to your backpack first.");
             if (item.Durability <= 0) blocked.Add("Broken: repair before equipping.");
             int required = BeginnerProgression.EquipmentRequirement(def);
-            if (def.Skill != "" && Progression.Level(self, def.Skill) < required)
-                blocked.Add($"Requires {data.Skill(def.Skill).Name} {required} (current {Progression.Level(self, def.Skill)}).");
+            if (def.Skill != "" && Progression.BaseLevel(self, def.Skill) < required)
+                blocked.Add($"Requires {data.Skill(def.Skill).Name} {required} (trained {Progression.BaseLevel(self, def.Skill)}; equipment bonuses do not count).");
             if (def.Slot == "offhand" && !HandEquipment.Compatible(HandEquipment.Definition(self, "weapon", data), def))
                 blocked.Add("Incompatible with your equipped weapon.");
             if (blocked.Count == 0 && !Items.Equipped(self, item.Id))

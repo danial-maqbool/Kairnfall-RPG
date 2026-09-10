@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import math
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from . import gear, pigment
 from .brush import Sketch, catmull, refine_sprite, taper_shape
@@ -1866,6 +1866,51 @@ def _polish_icon(image, item):
     return out
 
 
+def _boss_unique_finish(image, item):
+    """Give boss-only relics a hard-edged elemental aura and an ID-stable sigil."""
+    if 'boss_unique' not in item.get('tags', ()) or image.mode != 'RGBA':
+        return image
+    alpha = image.getchannel('A')
+    outer = alpha.filter(ImageFilter.MaxFilter(5))
+    inner = alpha.filter(ImageFilter.MaxFilter(3))
+    ring = ImageChops.subtract(outer, inner).point(lambda value: min(170, value))
+    element = item.get('element', 'Arcane')
+    hex_color = pigment.ELEMENTS.get(element, '#d7c47f').lstrip('#')
+    rgb = tuple(int(hex_color[index:index + 2], 16) for index in (0, 2, 4))
+    aura = Image.new('RGBA', image.size, rgb + (0,))
+    aura.putalpha(ring)
+    out = Image.alpha_composite(aura, image)
+    draw = ImageDraw.Draw(out)
+    seed = pigment.keyed(str(item.get('id', '')) + '|boss-unique-aura', 2**24)
+    bright = tuple(min(255, channel + 58) for channel in rgb) + (235,)
+    # Four two-pixel sparks orbit the silhouette. The stable item ID controls placement.
+    placed = 0
+    for attempt in range(32):
+        x = 2 + ((seed >> ((attempt * 3) % 20)) + attempt * 7) % 28
+        y = 2 + ((seed >> ((attempt * 5 + 2) % 20)) + attempt * 11) % 28
+        if alpha.getpixel((x, y)) != 0:
+            continue
+        draw.point((x, y), fill=bright)
+        nx = x + (1 if (seed >> attempt) & 1 else -1)
+        if 0 <= nx < 32 and alpha.getpixel((nx, y)) == 0:
+            draw.point((nx, y), fill=rgb + (190,))
+        placed += 1
+        if placed == 4:
+            break
+    # A tiny deliberate corner sigil makes same-family relics visually distinct without blur.
+    sx, sy = 3, 3
+    shape = seed % 4
+    if shape == 0:
+        draw.line([(sx, sy + 3), (sx + 2, sy), (sx + 4, sy + 3)], fill=bright, width=1)
+    elif shape == 1:
+        draw.rectangle((sx + 1, sy, sx + 3, sy + 3), outline=bright, width=1)
+    elif shape == 2:
+        draw.line([(sx, sy), (sx + 4, sy + 4)], fill=bright, width=1); draw.line([(sx + 4, sy), (sx, sy + 4)], fill=bright, width=1)
+    else:
+        draw.line([(sx + 2, sy), (sx + 2, sy + 4)], fill=bright, width=1); draw.line([(sx, sy + 2), (sx + 4, sy + 2)], fill=bright, width=1)
+    return out
+
+
 TYPE_ICONS = {
     'weapon': weapon_icon,
     'offhand': weapon_icon,
@@ -1908,4 +1953,4 @@ def icon(item):
     else:
         handler = TYPE_ICONS.get(kind)
         image = _material_icon(item) if handler is None else handler(item)
-    return _polish_icon(image, item)
+    return _boss_unique_finish(_polish_icon(image, item), item)

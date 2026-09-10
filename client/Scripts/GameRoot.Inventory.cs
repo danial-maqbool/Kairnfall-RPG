@@ -28,12 +28,15 @@ public partial class GameRoot
     private string ItemDescription(Item item, bool compare = true)
     {
         var def = Data.Item(item.Template); var text = new StringBuilder();
-        text.AppendLine(def.Name).AppendLine(item.Rarity + " · " + Ui.Words(def.Type));
+        Element itemElement=Items.ElementOf(item,def);
+        text.AppendLine(def.Name).AppendLine(item.Rarity + " · " + Ui.Words(def.Type) + (itemElement==Element.Physical?"":" · "+itemElement));
         if (def.Power > 0) text.AppendLine($"Power: {def.Power * (1 + .1 * (int)item.Rarity):0.0}");
         if (def.Armor > 0) text.AppendLine($"Armor: {def.Armor * (1 + .1 * (int)item.Rarity):0.0}");
-        if (def.Slot == "weapon") text.AppendLine($"Range: {def.Range:0.0} tiles · {def.Element}");
+        if (def.Slot == "weapon") text.AppendLine($"Range: {def.Range:0.0} tiles");
+        if (def.Slot != "" && itemElement != Element.Physical) text.AppendLine($"Element: {itemElement} · {Items.ElementPoints(item,def)} attunement points");
         foreach (var stat in def.Stats) text.AppendLine($"{stat.Value:+0.0;-0.0;0} {Ui.Words(stat.Key)}");
         foreach (var affix in item.Affixes) text.AppendLine($"{affix.Value:+0.0;-0.0;0} {Ui.Words(affix.Stat)}");
+        foreach (var skill in item.SkillBonuses.OrderBy(x=>x.Key)) text.AppendLine($"+{skill.Value} {Data.Skill(skill.Key).Name} level while equipped");
         if (def.Skill != "") text.AppendLine($"Requires {Data.Skill(def.Skill).Name} {BeginnerProgression.EquipmentRequirement(def)}" + (BeginnerProgression.EquipmentRequirement(def) < def.Requirement ? $" · Grade {def.Requirement}" : ""));
         if (def.Slot != "") text.AppendLine($"Durability: {item.Durability}% · Runes: {item.Runes.Count}/{item.Sockets}");
         else if (def.Type == "tool") text.AppendLine($"Tool durability: {item.Durability}%");
@@ -64,7 +67,7 @@ public partial class GameRoot
     {
         return new EquipmentItemSlot
         {
-            Item = item, Icon = Assets.Icon(item.Template), Bag = bag,
+            Item = item, Icon = Assets.Icon(item.Template), Bag = bag, ItemElement = Items.ElementOf(item,Data.Item(item.Template)),
             Equipped = Snapshot is { } s && Items.Equipped(s.Self, item.Id), Selected = item.Id == selectedItem,
             TooltipText = SlotTooltip(item), TooltipFactory = () => ItemTooltip(item.Id, bag),
             Clicked = clicked ?? (() => { selectedItem = item.Id; selectedBag = bag; lastPageStamp = ""; }),
@@ -167,6 +170,7 @@ public partial class GameRoot
             {
                 if (!slotViews.TryGetValue(item.Id, out var slot)) continue;
                 slot.Item = item; slot.Selected = item.Id == selectedItem; slot.Equipped = Items.Equipped(self, item.Id);
+                slot.ItemElement = Items.ElementOf(item,Data.Item(item.Template));
                 slot.TooltipText = SlotTooltip(item) + (group.Key == 2 ? "\n" + ExperienceRules.EquipmentProblem(self, item, Data) : "");
                 slot.QueueRedraw();
             }

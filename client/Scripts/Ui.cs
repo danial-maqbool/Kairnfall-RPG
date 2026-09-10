@@ -8,6 +8,16 @@ public static class Ui
     public static readonly Color Ink = new("171512"), Panel = new("27231d"), Raised = new("3a3228"), Gold = new("d1b87c"), Text = new("ece4cf"), Muted = new("b2ab99"), Danger = new("e39782"), Success = new("b2cb91");
     public static readonly Color[] RarityColors = [new("c1c5bd"), new("8abd8b"), new("81b0d3"), new("b099d4"), new("dbad69"), new("d5808c"), new("e7d99b")];
     public static Color RarityColor(Rarity rarity) => RarityColors[Math.Clamp((int)rarity, 0, RarityColors.Length - 1)];
+    public static Color ElementColor(Element element) => element switch
+    {
+        Element.Fire => new("e39b63"), Element.Frost => new("97d2db"), Element.Lightning => new("e2d98a"), Element.Nature => new("9ac77d"),
+        Element.Poison => new("b6cc78"), Element.Arcane => new("b49ad9"), Element.Radiant => new("f0e0ae"), Element.Shadow => new("a38ebb"), _ => new("ceb49d")
+    };
+    public static string ElementGlyph(Element element) => element switch
+    {
+        Element.Fire => "F", Element.Frost => "I", Element.Lightning => "L", Element.Nature => "N", Element.Poison => "P",
+        Element.Arcane => "A", Element.Radiant => "R", Element.Shadow => "S", _ => ""
+    };
     public static string Words(string text) => System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(text.Replace('_', ' '));
 
     public static StyleBoxFlat Box(Color color, Color? border = null, int padding = 10)
@@ -113,6 +123,7 @@ public partial class ItemSlot : Control
     public Texture2D? Icon { get; set; }
     public Item? Item { get; set; }
     public string Bag { get; set; } = "inventory";
+    public Element ItemElement { get; set; } = Element.Physical;
     public bool Equipped { get; set; }
     public bool Selected { get; set; }
     public Action? Clicked { get; set; }
@@ -123,6 +134,12 @@ public partial class ItemSlot : Control
         Color border = Selected ? Ui.Gold : Item is null ? new Color("425359") : Ui.RarityColor(Item.Rarity);
         DrawStyleBox(Ui.Box(Ui.Ink, border, 0), new Rect2(Vector2.Zero, Size));
         if (Icon is not null) DrawTextureRect(Icon, PixelPresentation.InventoryIconRect(Size,Icon.GetSize()), false);
+        if (ItemElement != Element.Physical)
+        {
+            var badge = new Rect2(Size.X - 18, 3, 15, 15);
+            DrawRect(badge, Ui.Ink); DrawRect(badge, Ui.ElementColor(ItemElement), false, 1);
+            DrawString(ThemeDB.FallbackFont, new Vector2(badge.Position.X + 4, badge.Position.Y + 12), Ui.ElementGlyph(ItemElement), HorizontalAlignment.Left, -1, 10, Ui.ElementColor(ItemElement));
+        }
         if (Equipped) DrawString(ThemeDB.FallbackFont, new Vector2(4, 14), "E", HorizontalAlignment.Left, -1, 11, Ui.Gold);
         if (Item is { Quantity: > 1 })
         {

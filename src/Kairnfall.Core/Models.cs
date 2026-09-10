@@ -92,6 +92,10 @@ public sealed class Item
     public string Template { get; set; } = "";
     public int Quantity { get; set; } = 1;
     public Rarity Rarity { get; set; }
+    // Null keeps historical saves compatible and falls back to the template element.
+    public Element? Element { get; set; }
+    // Rolled equipment skill levels are temporary while equipped and never satisfy equipment gates.
+    public Dictionary<string,int> SkillBonuses { get; set; } = [];
     public int Sockets { get; set; }
     public int Durability { get; set; } = 100;
     public List<Affix> Affixes { get; set; } = [];

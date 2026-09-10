@@ -66,6 +66,49 @@ Test("Player and skill experience progress fractions are bounded and move forwar
     Check(p.SkillXp["mining"]>skillBefore,"Mining XP did not increase.");
     Check(Progression.PlayerLevel(p)>1||Progression.PlayerLevelProgress(p)>playerBefore,"Overall experience did not move.");
 });
+Test("Rarity skill bonus ranges and crafting gates are ordered",()=>
+{
+    int previous=0;
+    foreach(Rarity rarity in Enum.GetValues<Rarity>())
+    {
+        var range=Items.SkillBonusRange(rarity);
+        Check(range.Min==(int)rarity&&range.Max==(int)rarity+1,"Unexpected skill bonus range for "+rarity);
+        int gate=Items.CraftRarityRequirement(rarity,10); Check(gate>=previous,"Craft rarity gate moved backward."); previous=gate;
+        var r=NewRealm(); var p=NewPlayer(r,"Rarity "+rarity);
+        var item=Items.Create(data,"steel_sword",1,rarity,p);
+        int total=item.SkillBonuses.Values.Sum(); Check(total>=range.Min&&total<=range.Max,"Rolled skill bonus outside rarity range: "+rarity);
+        Check(item.SkillBonuses.Keys.All(skill=>data.Skills.Any(x=>x.Id==skill)),"Unknown rolled skill.");
+    }
+    for(int n=0;n<100;n++) Check(Items.RollCraftRarity(1,1)==Rarity.Common,"Craft rarity bypassed its skill gate.");
+});
+Test("Equipment skill levels work but never satisfy equipment requirements",()=>
+{
+    var r=NewRealm(); var p=NewPlayer(r); var targetDef=data.Item("steel_sword");
+    int required=BeginnerProgression.EquipmentRequirement(targetDef);
+    p.SkillXp[targetDef.Skill]=Progression.Threshold(Math.Max(1,required-1));
+    var belt=Items.Create(data,"linen_heavy_belt",1,Rarity.Common,p); belt.SkillBonuses.Clear(); belt.SkillBonuses[targetDef.Skill]=1;
+    Items.Add(p.Inventory,belt,data); Items.Equip(p,belt.Id,data);
+    Check(Progression.BaseLevel(p,targetDef.Skill)==Math.Max(1,required-1),"Base level changed from equipment.");
+    Check(Progression.Level(p,targetDef.Skill)>=required,"Equipment skill bonus did not raise effective level.");
+    var target=Items.Create(data,targetDef.Id,1,Rarity.Common,p); Items.Add(p.Inventory,target,data);
+    bool rejected=false; try { Items.Equip(p,target.Id,data); } catch(RuleException) { rejected=true; }
+    Check(rejected,"Equipment bonus incorrectly satisfied another equipment requirement.");
+});
+Test("Element relationships are balanced and attunement scales matchup magnitude",()=>
+{
+    var elements=Enum.GetValues<Element>().Where(x=>x!=Element.Physical).ToArray();
+    foreach(var element in elements)
+    {
+        Check(elements.Count(target=>CombatMath.ElementRelationship(element,target)==1)==2,"Element does not have exactly two strengths: "+element);
+        Check(elements.Count(target=>CombatMath.ElementRelationship(element,target)==-1)==2,"Element does not have exactly two weaknesses: "+element);
+        foreach(var target in elements) Check(CombatMath.ElementRelationship(element,target)==-CombatMath.ElementRelationship(target,element),"Element relationship is not reciprocal.");
+    }
+    double strong=CombatMath.ElementMultiplier(Element.Fire,Element.Nature);
+    double attuned=CombatMath.ElementMultiplier(Element.Fire,Element.Nature,8,0);
+    double weak=CombatMath.ElementMultiplier(Element.Fire,Element.Arcane,8,0);
+    Check(strong>1&&attuned>strong&&weak<1,"Element matchup or attunement scaling failed.");
+    Check(CombatMath.ElementMultiplier(Element.Physical,Element.Fire,20,20)==1,"Physical must remain neutral.");
+});
 Test("All classes create valid characters and starter equipment",()=>
 {
     var r=NewRealm(); foreach(var cls in data.Classes) NewPlayer(r,"Hero "+cls.Name,cls.Id);

@@ -84,9 +84,8 @@ public sealed partial class RealmEngine
         {
             for(int n=0;n<outputCount;n++)
             {
-                double quality=(Progression.Level(p,recipe.Skill)-recipe.Requirement)*0.002;
-                var rarity=CombatMath.Roll(0.04+quality)?Rarity.Rare:CombatMath.Roll(0.2+quality)?Rarity.Uncommon:Rarity.Common;
-                Items.Add(p.Inventory,Items.Create(Data,output.Id,1,rarity),Data);
+                var rarity=Items.RollCraftRarity(Progression.Level(p,recipe.Skill),recipe.Requirement);
+                Items.Add(p.Inventory,Items.Create(Data,output.Id,1,rarity,p),Data);
             }
         }
         else Items.Add(p.Inventory,Items.Create(Data,output.Id,outputCount),Data);
