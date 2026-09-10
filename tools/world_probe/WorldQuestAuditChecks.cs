@@ -104,18 +104,17 @@ internal static class WorldQuestAuditChecks
             });
         }
 
-        Test("every authored resource and boss has a seeded reachable world instance",()=>
+        Test("every static resource and boss has a real world instance",()=>
         {
-            foreach(var resource in data.Resources)
-            {
-                if(resource.Id=="wheat_crop") continue;
+            var dynamicResources=new HashSet<string>(["animal_carcass","wheat_crop","meteor_ore"],StringComparer.Ordinal);
+            foreach(var resource in data.Resources.Where(resource=>!dynamicResources.Contains(resource.Id)))
                 Need(realm.State.Nodes.Values.Any(n=>n.Template==resource.Id),"No seeded node uses resource "+resource.Id+".");
-            }
+            Need(data.Resources.Any(x=>x.Id=="animal_carcass")&&data.Resources.Any(x=>x.Id=="wheat_crop")&&data.Resources.Any(x=>x.Id=="meteor_ore"),"Dynamic resource definitions are incomplete.");
             foreach(var boss in data.Mobs.Where(m=>m.Boss))
                 Need(realm.State.Creatures.Values.Any(c=>c.Template==boss.Id),"No world arena contains boss "+boss.Id+".");
         });
 
-        Console.WriteLine($"WORLD_QUEST_AUDIT: {data.Zones.Count} zones; 4 layers; {npcCount} NPC/service anchors; {nodeCount} resource nodes; {chestCount} chests; {creatureCount} creature anchors; {bossCount} boss arenas; {data.Quests.Count} quests; {passed} groups passed; failures {failures.Count}. Automated reachability/reference audit; human walkthrough remains separate.");
+        Console.WriteLine($"WORLD_QUEST_AUDIT: {data.Zones.Count} zones; 4 layers; {npcCount} NPC/service anchors; {nodeCount} seeded resource nodes; {chestCount} chests; {creatureCount} creature anchors; {bossCount} boss arenas; {data.Quests.Count} quests; {passed} groups passed; failures {failures.Count}. Animal carcass, wheat crop and meteor ore are dynamic resources. Automated reachability/reference audit; human walkthrough remains separate.");
     }
 
     private static HashSet<(int X,int Y)> Flood(ZoneDef zone)
