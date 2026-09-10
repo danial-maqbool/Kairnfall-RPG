@@ -79,6 +79,8 @@ public partial class LiveMultiplayerPresenceContract : Node
             if(connection is not null) await connection.DisposeAsync();
             if(game is not null&&GodotObject.IsInstanceValid(game))
             {
+                Field<ClientAudio>(game,"audio").ReleasePlayback();
+                await Delay(.25);
                 game.QueueFree();
                 await Frame();
                 await Frame();
