@@ -9,6 +9,7 @@ on:
       - 'content_src/**'
       - 'tools/art/**'
       - 'tools/build_game_assets.py'
+      - 'tools/complete_skill_icons.py'
       - 'tools/review_visual_art.py'
       - 'tools/validate_game_assets.py'
       - 'tools/visual_acceptance_preflight.py'
@@ -50,6 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           python tools/build_game_assets.py | tee artifacts/visual-acceptance/logs/assets.log
+          python tools/complete_skill_icons.py
           python tools/validate_game_assets.py | tee artifacts/visual-acceptance/logs/validation.log
           python tools/review_visual_art.py --output artifacts/visual-acceptance/review | tee artifacts/visual-acceptance/logs/review.log
       - name: Build native client and install verified Godot
