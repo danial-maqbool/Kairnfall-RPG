@@ -52,7 +52,7 @@ public partial class LiveMultiplayerPresenceContract : Node
             await Until(()=>game.Snapshot is not null,"The graphical client did not receive its first snapshot.");
             await Until(()=>game.Snapshot!.Players.Any(p=>p.Id!=Self.Id),"The second graphical client did not appear in the shared world.",25);
             var peer=game.Snapshot!.Players.First(p=>p.Id!=Self.Id); string peerId=peer.Id;
-            Require(peer.Zone==Self.Zone,"Both graphical clients share the same authoritative region");
+            Require(peer.Position.Distance(Self.Position)<50,"The same-region snapshot contains the second graphical client near the starting point");
 
             string ownMessage="GRAPHICAL_MULTI:"+role; string peerMessage="GRAPHICAL_MULTI:"+peerRole;
             var chat=await connection.ActAsync(new GameCommand{Kind="chat",Target="say",Arg=ownMessage});
