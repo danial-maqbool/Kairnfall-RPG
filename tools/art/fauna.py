@@ -6,7 +6,7 @@ The lower ground anchor remains fixed.
 """
 from __future__ import annotations
 from PIL import Image
-from .fauna_base import frame as base_frame
+from .fauna_base import SUPPORTED, frame as base_frame
 
 STATIC_WALK_FAMILIES=frozenset({'wisp','geode','snail','fungus','mimic','manta'})
 
