@@ -1,12 +1,12 @@
 name: Review exact visual candidate
 on:
   push:
-    branches: [main]
-    paths: ['.ci/experience-candidate.json', '.github/workflows/visual-review.yml']
+    branches: [main, 'team/acceptance-03-visual-matrix']
+    paths: ['.ci/experience-candidate.json', '.github/workflows/visual-review.yml', 'tools/review_visual_art.py', 'tools/art/**', 'content_src/**']
 permissions:
   contents: read
 concurrency:
-  group: visual-review
+  group: visual-review-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   render:
@@ -27,7 +27,10 @@ jobs:
           python3 - <<'PY'
           import json, os, re
           from pathlib import Path
-          value=json.loads(Path('.ci/experience-candidate.json').read_text())['sha']
+          if os.environ.get('GITHUB_REF_NAME') == 'main':
+              value=json.loads(Path('.ci/experience-candidate.json').read_text())['sha']
+          else:
+              value=os.environ['GITHUB_SHA']
           if not re.fullmatch('[0-9a-f]{40}',value): raise SystemExit('Invalid candidate revision')
           with open(os.environ['GITHUB_OUTPUT'],'a') as out: out.write('candidate='+value+'\n')
           PY
@@ -116,14 +119,13 @@ jobs:
           if not re.fullmatch('[0-9a-f]{40}',candidate): raise SystemExit('Invalid source revision')
           api_root='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']
           def api(path,payload):
-              # Review creates objects only. It never updates a ref or branch.
               if path not in ('/git/blobs','/git/trees','/git/commits'): raise ValueError('Unsupported operation')
               req=urllib.request.Request(api_root+path,data=json.dumps(payload).encode(),headers={
                   'Authorization':'Bearer '+os.environ['GH_TOKEN'], 'Accept':'application/vnd.github+json',
                   'Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'})
               with urllib.request.urlopen(req,timeout=45) as response: return json.load(response)
-          allowed={'player-bodies.png','animation-field_rat.png','animation-wild_hare.png',
-              'animation-polar_bear.png','animation-sea_turtle.png','normal-mobs.png','item-icons.png',
+          allowed={'player-bodies.png','player-body-actions.png','equipment-all-layers.png','normal-mob-actions.png','elite-actions.png','boss-actions.png',
+              'animation-field_rat.png','animation-wild_hare.png','animation-polar_bear.png','animation-sea_turtle.png','normal-mobs.png','elites.png','bosses.png','item-icons.png',
               'npc-roles.png','building-starter_building_0.png','building-starter_building_1.png',
               '01-village-1280.png','01-village-1920.png','ui-inventory-1280.png','ui-character-1280.png',
               'ui-skills-1280.png','ui-abilities-1280.png','ui-map-1280.png',
@@ -134,7 +136,7 @@ jobs:
               relative=path.relative_to(root)
               if len(relative.parts)!=2 or relative.parts[0] not in {'before','after','engine'} or path.name not in allowed: continue
               raw=path.read_bytes()
-              if len(raw)>5_000_000 or not raw.startswith(b'\x89PNG\r\n\x1a\n'): raise ValueError('Invalid preview PNG')
+              if len(raw)>15_000_000 or not raw.startswith(b'\x89PNG\r\n\x1a\n'): raise ValueError('Invalid preview PNG')
               sha=api('/git/blobs',{'content':base64.b64encode(raw).decode(),'encoding':'base64'})['sha']
               entries.append({'path':'review/'+relative.as_posix(),'mode':'100644','type':'blob','sha':sha})
               manifest.append({'file':relative.as_posix(),'sha256':hashlib.sha256(raw).hexdigest()})
