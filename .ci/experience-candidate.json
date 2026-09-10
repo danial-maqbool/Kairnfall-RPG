@@ -1,6 +1,6 @@
 {
-  "sha": "677892b941543e956ffbf0fb86632eb0bfc2393e",
-  "base": "35fff888b8b8149c281c8725250cd0dfa0dcb05e",
+  "sha": "816af1b8fcb972bd26e95ffe778c0297cfd24831",
+  "base": "dba0ee9c623d2b005d7722f746abd41a70367e09",
   "mode": "repair",
-  "purpose": "Verify the compact item hover-card repair before integration. The candidate bounds compact stat rows and metadata, reduces compact typography and spacing, preserves full-detail content, and adds native layout regression coverage for all item types, long names, rare metadata, icon bounds, clipping, overlap, supported resolutions, and viewport-edge placement."
+  "purpose": "Task 1 acceptance: verify the simplified character XP path, permanent character and last-skill XP bars, live authoritative skill gains, level progression, persistence, retained controls, graphical smoke, and native Godot contracts against a disposable realm."
 }
