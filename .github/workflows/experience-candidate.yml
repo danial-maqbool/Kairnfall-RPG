@@ -115,10 +115,12 @@ jobs:
           if [ "$CANDIDATE_MODE" = repair ]; then
             test -f client/Tests/PlayerExperienceContract.tscn
             test -f client/Tests/ControlRulesContract.tscn
+            test -f client/Tests/XpHudAcceptanceContract.tscn
             timeout 120 "$GODOT_BIN" --verbose --headless --path client res://Tests/PlayerExperienceContract.tscn 2>&1 | tee artifacts/experience/logs/experience.log
             timeout 120 "$GODOT_BIN" --verbose --headless --path client res://Tests/ControlRulesContract.tscn 2>&1 | tee artifacts/experience/logs/control-rules.log
+            timeout 120 "$GODOT_BIN" --verbose --headless --path client res://Tests/XpHudAcceptanceContract.tscn 2>&1 | tee artifacts/experience/logs/xp-hud.log
           fi
-          for log in import signals input experience control-rules; do
+          for log in import signals input experience control-rules xp-hud; do
             if [ -f "artifacts/experience/logs/$log.log" ] && grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' "artifacts/experience/logs/$log.log"; then exit 1; fi
           done
       - name: Render and exercise native input against a disposable realm
@@ -168,15 +170,15 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           root = Path('evidence')
-          names = ('revision.txt','client-build.log','core.log','review.log','security.log','security-probe.log','world.log','network.log','database.log','handoff.log','editor.log','signals.log','input.log','experience.log','control-rules.log','live-client.log','live-experience.log')
-          native = {'signals.log','input.log','experience.log','control-rules.log','live-client.log','live-experience.log'}
+          names = ('revision.txt','client-build.log','core.log','review.log','security.log','security-probe.log','world.log','network.log','database.log','handoff.log','editor.log','signals.log','input.log','experience.log','control-rules.log','xp-hud.log','live-client.log','live-experience.log')
+          native = {'signals.log','input.log','experience.log','control-rules.log','xp-hud.log','live-client.log','live-experience.log'}
           for suffix in names:
               paths = list(root.rglob(suffix))
               print('\n=== ' + suffix + ' ===')
               for path in paths:
                   lines = path.read_text(encoding='utf-8',errors='replace').splitlines()
                   if suffix in native:
-                      interesting = [i for i,x in enumerate(lines) if any(k in x for k in ('ERROR:', 'WARNING:', 'Leaked instance:', 'Resource still in use:', '_CONTRACT:', 'SMOKE:', 'PASS LIVE EXPERIENCE:'))]
+                      interesting = [i for i,x in enumerate(lines) if any(k in x for k in ('ERROR:', 'WARNING:', 'Leaked instance:', 'Resource still in use:', '_CONTRACT:', 'SMOKE:', 'PASS LIVE EXPERIENCE:', 'PASS XP HUD:'))]
                       take = sorted({j for i in interesting for j in range(max(0,i-1), min(len(lines),i+5))})
                       print('\n'.join(lines[j] for j in take)[-24000:])
                   else:
