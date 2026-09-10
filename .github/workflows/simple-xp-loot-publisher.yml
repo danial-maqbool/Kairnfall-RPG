@@ -1,0 +1,61 @@
+name: Publish simple XP and loot expiry
+on:
+  push:
+    branches: ['fix/simple-xp-loot-expiry']
+permissions:
+  contents: write
+jobs:
+  publish:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/simple-xp-loot-expiry
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply reviewed XP and loot patch
+        run: python tools/phase_simple_xp_loot_patch.py
+      - name: Prepare deterministic content
+        run: |
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py
+      - name: Compile and run core regressions
+        run: |
+          dotnet build Kairnfall.slnx -c Release
+          dotnet build client/Kairnfall.Client.csproj -c Debug
+          dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
+          dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release
+      - name: Verify visible XP HUD contract in source
+        run: |
+          grep -q 'Name = "CharacterExperienceBar"' client/Scripts/GameRoot.Hud.cs
+          grep -q 'Name = "SkillExperienceBar"' client/Scripts/GameRoot.Hud.cs
+          grep -q 'column.AddChild(characterExperienceBar)' client/Scripts/GameRoot.Hud.cs
+          grep -q 'column.AddChild(skillExperienceBar)' client/Scripts/GameRoot.Hud.cs
+          grep -q 'pile.Expires <= RealmTime' client/Scripts/WorldView.cs
+          ! grep -q 'SkillExperienceFeed' client/Scripts/GameRoot.Experience.cs
+      - name: Build and validate final game asset pack
+        run: |
+          python tools/build_game_assets.py
+          python tools/complete_skill_icons.py
+          python tools/validate_game_assets.py
+      - name: Run verified native Godot import and contract
+        run: |
+          python tools/get_godot.py --os linux
+          GODOT_BIN=$(python -c "import json; print(json.load(open('.tools/godot.json'))['binary'])")
+          timeout 180 "$GODOT_BIN" --headless --editor --path client --import
+          timeout 180 "$GODOT_BIN" --headless --path client res://Tests/CompactItemCardContract.tscn
+      - name: Commit and push verified implementation
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/Kairnfall.Core/Mechanics.cs src/Kairnfall.Core/Loot.cs src/Kairnfall.Core/RealmCombat.cs src/Kairnfall.Core/RealmEngine.cs client/Scripts/WorldView.cs client/Scripts/GameRoot.Experience.cs client/Scripts/GameRoot.Hud.cs client/Scripts/GameRoot.cs tests/Kairnfall.Tests/Program.cs
+          git diff --cached --quiet && { echo 'No implementation changes staged'; exit 1; }
+          git commit -m 'fix(progression): simplify XP and expire ground loot' -m 'Derive character level directly from awarded skill XP, keep character and last-skill XP bars permanently visible in the vitals panel, and hide/remove ground loot after three minutes.'
+          git push origin HEAD:fix/simple-xp-loot-expiry
