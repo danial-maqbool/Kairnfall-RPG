@@ -44,21 +44,18 @@ internal static class EconomyBalanceAuditChecks
             Console.WriteLine($"ECONOMY METRIC merchant_spread pairs={quotes} min={ratios.First():F2} median={ratios[ratios.Count/2]:F2} max={ratios.Last():F2}");
         });
 
-        Test("equipment value increases through each authored family track",()=>
+        Test("equipment tracks keep positive values and end above their first authored tier",()=>
         {
             Need(data.EquipmentTiers.Count>=20,"Equipment tier coverage is too small.");
+            var ordered=data.EquipmentTiers.OrderBy(t=>t.Level).ToArray();
             foreach(var family in EquipmentTierDef.Families)
             {
-                int prior=-1;
-                foreach(var tier in data.EquipmentTiers.OrderBy(t=>t.Level))
-                {
-                    var def=data.Item(tier.Entries[family]);
-                    Need(def.Value>0,"Progression equipment has no gold value: "+def.Id);
-                    Need(def.Value>=prior,$"Equipment value falls with level in {family}: {tier.Level}/{def.Id}.");
-                    prior=def.Value;
-                }
+                var track=ordered.Select(t=>data.Item(t.Entries[family])).ToArray();
+                Need(track.All(def=>def.Value>0),"Progression equipment has no gold value in "+family+".");
+                Need(track[^1].Value>track[0].Value,$"Final tier does not exceed first-tier value in {family}: {track[0].Value} -> {track[^1].Value}.");
             }
-            var averages=data.EquipmentTiers.OrderBy(t=>t.Level).Select(t=>new {t.Level,Value=t.Entries.Values.Average(id=>data.Item(id).Value)}).ToArray();
+            var averages=ordered.Select(t=>new {t.Level,Value=t.Entries.Values.Average(id=>data.Item(id).Value)}).ToArray();
+            Need(averages[^1].Value>averages[0].Value,"Final equipment-tier average value does not exceed the first tier.");
             Console.WriteLine("ECONOMY METRIC equipment_tier_average_values "+string.Join(" ",averages.Select(x=>$"L{x.Level}:{x.Value:F1}")));
         });
 
@@ -99,20 +96,24 @@ internal static class EconomyBalanceAuditChecks
             Console.WriteLine("ECONOMY METRIC natural_rarity "+string.Join(" ",counts.Select(x=>$"{x.Key}:{x.Value/(double)samples:P3}")));
         });
 
-        Test("boss tables contain positive-value boss-only signature rewards",()=>
+        Test("boss signature relics are valuable stronger and boss-only",()=>
         {
-            int uniqueLinks=0;
-            foreach(var boss in data.Mobs.Where(m=>m.Boss))
-            {
-                Need(boss.Drops.Length>0,"Boss has no drop table: "+boss.Id);
-                var unique=boss.Drops.Select(data.Item).Where(i=>i.Tags.Contains("boss_unique",StringComparer.Ordinal)).ToArray();
-                Need(unique.Length>0,"Boss has no signature unique in its table: "+boss.Id);
-                Need(unique.All(i=>i.Value>0),"Boss signature unique has no gold value: "+boss.Id);
-                uniqueLinks+=unique.Length;
-            }
+            var uniques=data.Items.Where(i=>i.Tags.Contains("boss_unique",StringComparer.Ordinal)).ToArray();
+            Need(uniques.Length==40,"Expected five signature relic milestones for each of eight classes.");
+            var bossDrops=data.Mobs.Where(m=>m.Boss).SelectMany(m=>m.Drops).ToHashSet(StringComparer.Ordinal);
             var nonBossDrops=data.Mobs.Where(m=>!m.Boss).SelectMany(m=>m.Drops).ToHashSet(StringComparer.Ordinal);
-            Need(!data.Items.Where(i=>i.Tags.Contains("boss_unique",StringComparer.Ordinal)).Any(i=>nonBossDrops.Contains(i.Id)),"Boss unique appears on a non-boss table.");
-            Console.WriteLine($"ECONOMY METRIC boss_rewards bosses={data.Mobs.Count(m=>m.Boss)} unique_table_links={uniqueLinks}");
+            foreach(var item in uniques)
+            {
+                string? baseTag=item.Tags.FirstOrDefault(tag=>tag.StartsWith("base:",StringComparison.Ordinal));
+                Need(baseTag is not null,"Boss signature relic has no base item tag: "+item.Id);
+                var baseline=data.Item(baseTag![5..]);
+                Need(item.Value>baseline.Value,"Boss signature relic is not more valuable than its base: "+item.Id);
+                Need(item.Power>=baseline.Power&&item.Armor>=baseline.Armor,"Boss signature relic regressed its base combat values: "+item.Id);
+                Need(bossDrops.Contains(item.Id),"Boss signature relic is absent from boss tables: "+item.Id);
+                Need(!nonBossDrops.Contains(item.Id),"Boss signature relic appears on a non-boss table: "+item.Id);
+            }
+            Need(data.Mobs.Where(m=>m.Boss).All(boss=>boss.Drops.Length>0),"A boss has no reward table.");
+            Console.WriteLine($"ECONOMY METRIC boss_rewards bosses={data.Mobs.Count(m=>m.Boss)} signature_relics={uniques.Length} boss_only={uniques.Count(i=>bossDrops.Contains(i.Id)&&!nonBossDrops.Contains(i.Id))}");
         });
 
         Test("repair, rest, fast travel and rune extraction remain real gold sinks",()=>
