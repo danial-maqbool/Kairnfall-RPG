@@ -1,6 +1,7 @@
-"""Integrate the checked-in Atelier catalog art without changing gameplay records.
+"""Integrate checked-in Atelier catalog art without changing gameplay records.
 
-Read-only source: atelier/Assets. Derived output: client/Assets. The independent
+Read-only sources: atelier/Assets plus the optional authored player hero sheet at
+atelier/authored/player/hero.png. Derived output: client/Assets. The independent
 Atelier gear/gear_worn ladder is NOT a second catalog and is never copied here.
 People, worn equipment and NPCs switch as one complete rig cohort.
 """
@@ -75,6 +76,26 @@ def plan(library:Path,output:Path,keys:list[str])->tuple[list[tuple[str,Path,str
     return selected,skipped
 
 
+def install_authored_hero(library:Path,output:Path)->dict|None:
+    source=library.parent/'authored/player/hero.png'
+    if not source.is_file():return None
+    with Image.open(source) as image:
+        rgba=image.convert('RGBA')
+        if rgba.size!=(512,1536) or rgba.getchannel('A').getbbox() is None:
+            raise ValueError('Authored hero must be a non-empty 512x1536 sprite sheet')
+        alpha=rgba.getchannel('A')
+        for row in range(24):
+            for frame in range(8):
+                if alpha.crop((frame*64,row*64,(frame+1)*64,(row+1)*64)).getbbox() is None:
+                    raise ValueError(f'Blank authored hero frame: {row}/{frame}')
+    digest=hashlib.sha256(source.read_bytes()).hexdigest()
+    target=safe_path(output,'people/hero');target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(source,target)
+    if hashlib.sha256(target.read_bytes()).hexdigest()!=digest:
+        raise ValueError('Authored hero bytes changed while copying')
+    return {'key':'people/hero','source':'atelier/authored/player/hero.png','sha256':digest,'width':512,'height':1536}
+
+
 def integrate(library:Path,output:Path,keys:list[str])->dict:
     library=library.resolve();output=output.resolve()
     if output==library or library.is_relative_to(output) or output.is_relative_to(library):
@@ -89,12 +110,14 @@ def integrate(library:Path,output:Path,keys:list[str])->dict:
         for key,_,_ in selected:
             target=safe_path(output,key);target.parent.mkdir(parents=True,exist_ok=True)
             safe_path(stage,key).replace(target)
+    hero=install_authored_hero(library,output)
     counts=dict(sorted(Counter(key.split('/')[0] for key,_,_ in selected).items()))
     report={'schema':1,'source':'atelier/Assets','source_manifest_sha256':hashlib.sha256((library/'manifest.json').read_bytes()).hexdigest(),
             'integrated':len(selected),'groups':counts,'skipped':skipped,'rig':'complete Atelier people/equipment/NPC cohort',
             'catalog_ids_changed':False,'independent_gear_ladder_imported':False,'visual_approval':'not_granted_by_integrity_checks',
             'assets':[{'key':key,'sha256':digest} for key,_,digest in selected]}
+    if hero is not None:report['authored_player_hero']=hero
     (output/'atelier-integration.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     (output/'ATELIER_CREDITS.txt').write_text((library/'CREDITS.txt').read_text(encoding='utf-8'),encoding='utf-8')
-    print('ATELIER INTEGRATION:',len(selected),'catalog assets;',counts,'; fallback:',len(skipped),flush=True)
+    print('ATELIER INTEGRATION:',len(selected),'catalog assets;',counts,'; fallback:',len(skipped),'; hero:',bool(hero),flush=True)
     return report
