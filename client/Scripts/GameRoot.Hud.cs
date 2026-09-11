@@ -134,7 +134,7 @@ public partial class GameRoot
         };
         hud.AddChild(navigation);
         var grid = new GridContainer { Columns = 4 }; grid.AddThemeConstantOverride("h_separation", 4); grid.AddThemeConstantOverride("v_separation", 4); navigation.AddChild(grid);
-        foreach (var entry in new[] { ("Bag [I]", "Inventory"), ("Gear [C]", "Character"), ("Skills [K]", "Skills"), ("Arts [B]", "Abilities"), ("Quest [J]", "Quests"), ("Craft [F]", "Crafting"), ("Social [P]", "Social"), ("Menu", "Settings") })
+        foreach (var entry in new[] { ("Bag [I]", "Inventory"), ("Gear [C]", "Character"), ("Skills [K]", "Skills"), ("Arts [B]", "Abilities"), ("Quest [J]", "Quests"), ("Hunt [H]", "Hunting"), ("Craft [F]", "Crafting"), ("Social [P]", "Social"), ("Menu", "Settings") })
         {
             var button = Ui.Button(entry.Item1, () => OpenPage(entry.Item2));
             button.FocusMode = FocusModeEnum.None; button.AddThemeFontSizeOverride("font_size", 12); grid.AddChild(button);
@@ -181,9 +181,11 @@ public partial class GameRoot
         characterTitle.Text = self.Name + " · Level " + Progression.PlayerLevel(self);
         characterTitle.TooltipText = Data.Class(self.Class).Name + " · " + self.Gold + " gold";
         int overallLevel = Progression.PlayerLevel(self);
-        double overallProgress=Progression.PlayerLevelProgress(self);
-        experiencePacing.Text = overallLevel>=Progression.PlayerCap ? "Character XP · Level 200" : $"Character XP · Level {overallLevel} → {overallLevel+1}";
-        experiencePacing.TooltipText = "Every awarded skill XP point contributes directly to character level.";
+        double overallProgress=Progression.PlayerLevelProgress(self);long characterXp=Progression.Total(self);
+        long nextCharacterXp=overallLevel>=Progression.PlayerCap?characterXp:Progression.PlayerThreshold(overallLevel+1);
+        long remainingCharacterXp=Math.Max(0,nextCharacterXp-characterXp);
+        experiencePacing.Text = overallLevel>=Progression.PlayerCap ? "Character XP · Level 200" : $"Character XP · Level {overallLevel} → {overallLevel+1} · {remainingCharacterXp:N0} XP";
+        experiencePacing.TooltipText = "Every awarded skill XP point contributes directly to character level. Levels 1-20 are deliberately quick; later bands require progressively more XP.";
         characterExperienceBar.MaxValue=100; characterExperienceBar.Value=overallProgress*100;
         characterExperienceBar.TooltipText=overallLevel>=Progression.PlayerCap?"Character level 200 · maximum":$"Character level {overallLevel} → {overallLevel+1} · {overallProgress:P1}";
         string displaySkill=lastExperienceSkill;
@@ -227,9 +229,17 @@ public partial class GameRoot
         }
         var tracked = self.Quests.OrderByDescending(x => Data.Quest(x.Key).Category == "main").FirstOrDefault();
         if (tracked.Value is null)
-            objectiveText.Text = zone.Kind == "interior"
-                ? "Speak to the village innkeeper.\nOutside the Lantern Hearth\nUse the marked exit to return."
-                : "Speak to the village innkeeper.\nBy the inn, northwest of the square\nMove: WASD / arrows · Talk: E";
+        {
+            var lead=JourneyProgression.LocalQuest(Data,self);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
+            if(lead is not null)objectiveText.Text=$"NEW LEAD · {lead.QuestName}\nTalk to {lead.GiverName} here.\nOpen Quest [J] or Hunt [H] for direction.";
+            else if(zone.Kind=="interior"&&zone.Exits.FirstOrDefault() is { } wayOut)
+                objectiveText.Text=$"Return outside\nExit toward {Data.Zone(wayOut.Target).Name}\nInteract: E";
+            else if(next is not null&&next.Locked)
+                objectiveText.Text=$"NEXT FRONTIER · {next.ZoneName}\nUnlocks at Level {next.EntryLevel} · {next.LevelsNeeded} to go\nTrain {activity?.Name??"skills"}, craft, gather or quest · Hunt [H]";
+            else if(next is not null)
+                objectiveText.Text=$"NEXT FRONTIER · {next.ZoneName}\nThreat {next.ThreatLevel} · Entry {next.EntryLevel}+ · READY\nOpen Hunt [H] and select the exit.";
+            else objectiveText.Text=activity is null?"Explore, quest, craft and hunt to advance.":$"BUILD {activity.Name.ToUpperInvariant()} · Level {Progression.BaseLevel(self,activity.Id)}\n{activity.Action}\nHunt [H] shows local routes.";
+        }
         else
         {
             var quest = Data.Quest(tracked.Key);

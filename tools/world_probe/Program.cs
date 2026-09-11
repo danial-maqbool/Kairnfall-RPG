@@ -163,6 +163,7 @@ EquipmentMaintenanceChecks.Run(catalog,failures);
 JourneyControlChecks.Run(catalog,failures);
 HuntingGroundChecks.Run(catalog,failures);
 HuntingDistributionChecks.Run(catalog,failures);
+JourneyPacingChecks.Run(catalog,failures);
 ChallengeProgressionChecks.Run(catalog,failures);
 SupportTrainingChecks.Run(catalog,failures);
 ItemCommerceChecks.Run(catalog,failures);

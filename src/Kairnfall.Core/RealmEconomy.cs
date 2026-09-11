@@ -145,9 +145,11 @@ public sealed partial class RealmEngine
         var source=Data.Zone(p.Zone);
         var exit=source.Exits.FirstOrDefault(x=>x.Id==exitId)??throw new RuleException("Unknown map exit.");
         Near(p,p.Zone,exit.Position,2.2);
-        Need(Progression.PlayerLevel(p)>=exit.Requirement,"Your overall level is too low for this passage.");
+        var target=Data.Zone(exit.Target);int currentLevel=Progression.PlayerLevel(p);
+        int required=JourneyProgression.ExitRequirement(Data,exit);
+        Need(currentLevel>=required,JourneyProgression.LockMessage(target,currentLevel,required));
         CancelTradesFor(p.Id); inputs.Remove(p.Id);
-        p.Zone=exit.Target; p.Position=WorldMap.FindFree(Data.Zone(exit.Target),exit.Arrival);
+        p.Zone=target.Id; p.Position=WorldMap.FindFree(target,exit.Arrival);
         if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Zone=p.Zone; pet.Position=p.Position; pet.Home=p.Position; }
         if(p.Discoveries.Add(p.Zone)) Progression.Train(p,"exploration",100,Math.Clamp(Data.Zone(p.Zone).Level,1,100),Data);
         Progress(p,"explore",p.Zone); return "Entered "+Data.Zone(p.Zone).Name+".";
@@ -157,6 +159,8 @@ public sealed partial class RealmEngine
         Need(p.Waypoints.Contains(destination),"Discover the destination waystone first.");
         var source=Data.Zone(p.Zone); var dest=Data.Zone(destination);
         Need(source.Kind is "city" or "settlement","Fast travel starts at a settlement waystone.");
+        int currentLevel=Progression.PlayerLevel(p),required=JourneyProgression.EntryRequirement(Data,dest);
+        Need(currentLevel>=required,JourneyProgression.LockMessage(dest,currentLevel,required));
         Near(p,p.Zone,source.Spawn,3);
         Need(State.Time-p.LastCombat>10,"You cannot travel during combat.");
         Need(dest.Kind is "city" or "settlement","Invalid fast-travel destination.");

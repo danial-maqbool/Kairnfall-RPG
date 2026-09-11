@@ -75,7 +75,9 @@ public partial class AtlasView : Control
             if (positions.TryGetValue(exit.Target, out var target)) DrawLine(positions[zone.Id], target, new Color("7d8066"), 2);
         foreach (var zone in zones)
         {
-            var at = positions[zone.Id]; Color color = zone.Id == Selected ? Ui.Text : zone.Kind == "city" ? Ui.Gold : new Color("91ae91");
+            var at = positions[zone.Id];int gate=JourneyProgression.EntryRequirement(Data,zone);
+            bool locked=player is not null&&Progression.PlayerLevel(player)<gate;
+            Color color = zone.Id == Selected ? Ui.Text : locked ? Ui.Danger : zone.Kind == "city" ? Ui.Gold : new Color("91ae91");
             if (zone.Id == player?.Zone) DrawArc(at, 13, 0, MathF.Tau, 24, new Color("a9cde2"), 2);
             DrawRect(new Rect2(at - new Vector2(5, 5), new Vector2(10, 10)), color);
             DrawStringOutline(ThemeDB.FallbackFont, at + new Vector2(-88, 25), zone.Name, HorizontalAlignment.Center, 176, 13, 3, Ui.Ink);
@@ -111,11 +113,15 @@ public partial class GameRoot
         {
             Ui.Clear(detail); if (Snapshot is null) return;
             var zone = Data.Zones.FirstOrDefault(x => x.Id == selectedZone) ?? Data.Zone(Snapshot.Self.Zone);
-            detail.AddChild(Ui.Label(zone.Name + " · " + Ui.Words(zone.Biome) + " · Suggested skill level " + zone.Level, 19, Ui.Gold)); detail.AddChild(Ui.Label(zone.Lore, 14, Ui.Muted, true));
+            int playerLevel=Progression.PlayerLevel(Snapshot.Self),threat=JourneyProgression.ThreatLevel(Data,zone),entryLevel=JourneyProgression.EntryRequirement(Data,zone);
+            bool locked=playerLevel<entryLevel;
+            detail.AddChild(Ui.Label(zone.Name + " · " + Ui.Words(zone.Biome) + $" · Threat {threat} · Entry {entryLevel}+", 19, locked?Ui.Danger:Ui.Gold));
+            detail.AddChild(Ui.Label(zone.Lore, 14, Ui.Muted, true));
+            if(locked)detail.AddChild(Ui.Label($"LOCKED · Reach character level {entryLevel} ({entryLevel-playerLevel} to go).",13,Ui.Danger,true));
             var actions = Ui.Row(detail); actions.AddChild(Ui.Button("Mark route", () => MarkDestination(zone.Id, zone.Spawn)));
-            bool canTravel = Snapshot.Self.Waypoints.Contains(zone.Id) && zone.Id != Snapshot.Self.Zone;
+            bool canTravel = Snapshot.Self.Waypoints.Contains(zone.Id) && zone.Id != Snapshot.Self.Zone && !locked;
             actions.AddChild(Ui.Button("Waystone travel · 20 gold", () => Send("travel", zone.Id), !canTravel));
-            detail.AddChild(Ui.Label("Fast travel starts beside a discovered settlement waystone. Hidden regions remain absent until discovered.", 13, Ui.Muted, true));
+            detail.AddChild(Ui.Label("Frontiers open five character levels below the area's ordinary-mob threat. Fast travel still requires a discovered settlement waystone.", 13, Ui.Muted, true));
         }
         atlas.Chosen = id => { selectedZone = id; RenderDetail(); };
         layer.ItemSelected += index => { atlas.Layer = layers[index]; atlas.QueueRedraw(); };
@@ -131,7 +137,7 @@ public partial class GameRoot
         {
             foreach (var exit in Data.Zone(current).Exits)
             {
-                if (exit.Requirement > Progression.PlayerLevel(self) || !visited.Add(exit.Target)) continue;
+                if (JourneyProgression.ExitRequirement(Data,exit) > Progression.PlayerLevel(self) || !visited.Add(exit.Target)) continue;
                 first[exit.Target] = current == self.Zone ? exit : first[current];
                 if (exit.Target == destination)
                 {

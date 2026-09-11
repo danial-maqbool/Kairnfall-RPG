@@ -29,18 +29,42 @@ public static class Progression
     }
     public static int Level(Character p,string skill) => Math.Clamp(BaseLevel(p,skill)+EquipmentSkillBonus(p,skill),1,SkillCap);
     public static long Total(Character p) => p.SkillXp.Values.Sum(x=>Math.Clamp(x,0,Threshold(SkillCap)));
+    public static long PlayerLevelCost(int level)
+    {
+        int current=Math.Clamp(level,1,PlayerCap);
+        if(current>=PlayerCap)return 0;
+        return current switch
+        {
+            <20 => 100L+20L*(current-1),
+            <30 => 550L+75L*(current-20),
+            <40 => 1350L+150L*(current-30),
+            <50 => 3000L+300L*(current-40),
+            <60 => 6500L+600L*(current-50),
+            <80 => 13000L+1000L*(current-60),
+            <100 => 35000L+2500L*(current-80),
+            <125 => 90000L+6000L*(current-100),
+            <150 => 250000L+15000L*(current-125),
+            <175 => 650000L+35000L*(current-150),
+            _ => 1600000L+100000L*(current-175)
+        };
+    }
+    public static long PlayerThreshold(int level)
+    {
+        int target=Math.Clamp(level,1,PlayerCap);
+        long total=0;
+        for(int current=1;current<target;current++)total=checked(total+PlayerLevelCost(current));
+        return total;
+    }
     public static double PlayerLevelValue(Character p)
     {
-        // Character XP is simply the sum of awarded skill XP. Skill challenge rules
-        // already reduce weak/trivial actions, so do not apply a second hidden filter.
-        long total=Total(p);
-        double equivalent=BeginnerProgression.OverallEquivalentXp(total);
-        double ratio=Math.Clamp(equivalent/(60.0*Threshold(SkillCap)),0,1);
-        double trained=1+199*Math.Pow(ratio,0.30);
-        // Late mastery still approaches the cap continuously.
-        double mastery=Math.Clamp(total/(60.0*Threshold(SkillCap)),0,1);
-        double mastered=1+199*Math.Pow(mastery,1.5);
-        return Math.Clamp(Math.Max(trained,mastered),1,PlayerCap);
+        // Character XP remains the exact sum of awarded skill XP. The visible level
+        // curve is intentionally easy through 20, then each ten-level band asks for
+        // gradually more practice instead of hiding a single late-game grind wall.
+        long total=Total(p);int low=1,high=PlayerCap;
+        while(low<high){int mid=(low+high+1)/2;if(PlayerThreshold(mid)<=total)low=mid;else high=mid-1;}
+        if(low>=PlayerCap)return PlayerCap;
+        long floor=PlayerThreshold(low),ceiling=PlayerThreshold(low+1);
+        return low+Math.Clamp((total-floor)/(double)Math.Max(1,ceiling-floor),0,1);
     }
     public static int PlayerLevel(Character p)=>Math.Clamp((int)Math.Floor(PlayerLevelValue(p)),1,PlayerCap);
     public static double PlayerLevelProgress(Character p)

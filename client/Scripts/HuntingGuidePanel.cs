@@ -11,23 +11,25 @@ public partial class HuntingGuidePanel : VBoxContainer
     public PixelAssets Assets { get; set; }=null!;
     public Func<Character?> ReadCharacter { get; set; }=()=>null;
     public string SelectedSite { get; private set; }="";
-    private Label overview=null!,details=null!,directions=null!;
+    private Label overview=null!,journey=null!,details=null!,directions=null!;
     private VBoxContainer list=null!;
     private HuntingRegionMap map=null!;
     private string region="";
+    private int shownLevel=-1;
     private HuntingPlan plan=null!;
     private readonly Dictionary<string,(string Name,Point Position,string Description)> sites=[];
     public override void _Ready()
     {
         Name="HuntingGuide"; SizeFlagsHorizontal=SizeFlags.ExpandFill;SizeFlagsVertical=SizeFlags.ExpandFill;
         overview=Ui.Label("",15,Ui.Gold,true);AddChild(overview);
+        journey=Ui.Label("",13,Ui.Text,true);journey.Name="JourneySuggestion";AddChild(journey);
         var body=Ui.Row(this);body.SizeFlagsVertical=SizeFlags.ExpandFill;
         list=Ui.Column(Ui.Scroll(body,new Vector2(270,100)));
         var right=Ui.Column(body,true);right.SizeFlagsStretchRatio=1.5f;
         map=new HuntingRegionMap{Data=Data,ReadCharacter=ReadCharacter,CustomMinimumSize=new Vector2(0,240),SizeFlagsHorizontal=SizeFlags.ExpandFill,SizeFlagsVertical=SizeFlags.ExpandFill};right.AddChild(map);
         details=Ui.Label("Choose a hunting area.",14,Ui.Text,true);details.Name="HuntDetails";right.AddChild(details);
         directions=Ui.Label("",14,Ui.Gold,true);directions.Name="HuntDirections";right.AddChild(directions);
-        right.AddChild(Ui.Label("Circle: hunting patch · Diamond: boss · Square: exit\nTravel on foot. Q dashes; Tab changes target. Hidden caches are not exposed by this map.",12,Ui.Muted,true));
+        right.AddChild(Ui.Label("Circle: hunting patch · Diamond: boss · Gold square: open exit · Red square: locked frontier\nTravel on foot. Q dashes; Tab changes target. Hidden caches are not exposed by this map.",12,Ui.Muted,true));
         RefreshSnapshot();
     }
     public void SelectSite(string id)
@@ -38,11 +40,10 @@ public partial class HuntingGuidePanel : VBoxContainer
     public void RefreshSnapshot()
     {
         if(!IsInsideTree()||overview is null||ReadCharacter() is not { } self)return;
-        var zone=Data.Zone(self.Zone);
-        if(region!=zone.Id)
+        var zone=Data.Zone(self.Zone);int playerLevel=Progression.PlayerLevel(self);
+        if(region!=zone.Id||shownLevel!=playerLevel)
         {
-            region=zone.Id;plan=HuntingGrounds.For(Data,zone);sites.Clear();Ui.Clear(list);
-            overview.Text=zone.Name+" · "+plan.Specialty+"\n"+plan.OrdinaryCount+" ordinary spawn slots · "+plan.Patches.Count+" separate patches";
+            region=zone.Id;shownLevel=playerLevel;plan=HuntingGrounds.For(Data,zone);sites.Clear();Ui.Clear(list);
             foreach(var patch in plan.Patches)
             {
                 var mob=Data.Mob(patch.Template);
@@ -67,12 +68,19 @@ public partial class HuntingGuidePanel : VBoxContainer
             }
             foreach(var exit in zone.Exits)
             {
-                var target=Data.Zone(exit.Target);string id=exit.Id;
-                sites[id]=("Exit: "+target.Name,exit.Position,$"{target.Name} · {target.Layer} · Suggested level {target.Level}\n{target.Lore}");
-                var button=Ui.Button("To "+target.Name,()=>SelectSite(id));button.Name="HuntExit_"+id;button.ClipText=true;list.AddChild(button);
+                var target=Data.Zone(exit.Target);string id=exit.Id;int threat=JourneyProgression.ThreatLevel(Data,target);int gate=JourneyProgression.ExitRequirement(Data,exit);bool locked=playerLevel<gate;
+                string status=locked?$"LOCKED · Level {gate}+ · {gate-playerLevel} to go":$"OPEN · Level {gate}+";
+                sites[id]=("Exit: "+target.Name,exit.Position,$"{target.Name} · {target.Layer} · Threat {threat} · {status}\n{target.Lore}");
+                var button=Ui.Button((locked?"LOCKED · ":"")+"To "+target.Name+" · Lv "+gate+"+",()=>SelectSite(id));button.Name="HuntExit_"+id;button.ClipText=true;button.TooltipText=sites[id].Description;list.AddChild(button);
             }
             SelectedSite=sites.Keys.FirstOrDefault()??"";map.Zone=zone;map.Plan=plan;
         }
+        overview.Text=zone.Name+" · "+plan.Specialty+$"\nCharacter {playerLevel} · Threat {JourneyProgression.ThreatLevel(Data,zone)} · "+plan.OrdinaryCount+" ordinary spawn slots · "+plan.Patches.Count+" patches";
+        var lead=JourneyProgression.LocalQuest(Data,self);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
+        journey.Text=lead is not null?$"NEXT LEAD · {lead.QuestName}\nTalk to {lead.GiverName} in {zone.Name}."
+            :next is not null?(next.Locked?$"NEXT FRONTIER · {next.ZoneName} · LOCKED at {next.EntryLevel}+ ({next.LevelsNeeded} to go)\nTrain skills, craft, gather or finish local quests while you prepare."
+                :$"NEXT FRONTIER · {next.ZoneName} · Threat {next.ThreatLevel} · Entry {next.EntryLevel}+ · READY\nSelect its exit below and follow the route marker.")
+            :activity is not null?$"CHANGE OF PACE · {activity.Name} level {Progression.BaseLevel(self,activity.Id)}\n{activity.Action}":"Explore, quest, craft and hunt to build your character.";
         if(sites.TryGetValue(SelectedSite,out var selected))
         {
             details.Text=selected.Description;map.Selected=selected.Position;
@@ -110,7 +118,11 @@ public partial class HuntingRegionMap : Control
         void Boss(Point p){var at=At(p);DrawPolyline([at+new Vector2(0,-5),at+new Vector2(5,0),at+new Vector2(0,5),at+new Vector2(-5,0),at+new Vector2(0,-5)],Ui.Danger,2);}
         if(plan.FieldBoss!="")Boss(plan.FieldBossPosition);
         if(zone.Boss!="")Boss(WorldMap.FindFree(zone,new Point(zone.Spawn.X+6,zone.Spawn.Y+3)));
-        foreach(var exit in zone.Exits)DrawRect(new Rect2(At(exit.Position)-new Vector2(2,2),new Vector2(5,5)),Ui.Gold);
+        foreach(var exit in zone.Exits)
+        {
+            bool locked=ReadCharacter() is { } viewer&&Progression.PlayerLevel(viewer)<JourneyProgression.ExitRequirement(Data,exit);
+            DrawRect(new Rect2(At(exit.Position)-new Vector2(2,2),new Vector2(5,5)),locked?Ui.Danger:Ui.Gold);
+        }
         if(ReadCharacter() is { } self&&self.Zone==zone.Id)DrawCircle(At(self.Position),3,Colors.White);
         DrawArc(At(Selected),7,0,Mathf.Tau,20,Ui.Gold,2);
     }
