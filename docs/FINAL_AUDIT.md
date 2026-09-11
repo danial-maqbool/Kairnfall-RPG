@@ -1,59 +1,91 @@
-# Final game audit — pending local acceptance
+# Final game audit — repository complete, human acceptance pending
 
-## Compact item cards and merchant sales — 2026-09-09
+Current status as of 2026-09-11.
 
-The requested item comparisons, red requirements, centered compact cards, explicit quantity sales and selected-stack Sell all are integrated and tested at `dbd31fc4b0391045754966eb30c73fb1e4404f71`. Both sale actions ran through the real server and retained exact item/gold results after reconnect. Full and graphical workflows passed. [Evidence](handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md) retains intermediate failures and distinguishes rendering from independent visual approval. Physical Windows/DPI, human playtesting, audio, load, performance and release-package gates remain open.
+Implementation baseline audited before this documentation-only consolidation: `defec56aadf5bc01289b4c7ec8c0e422b918624f` on `main`.
 
-## Hunting and presentation integration — 2026-09-09
+## Executive status
 
-The requested hunting, connected beginner dungeons, target/dash controls, early progression, shared inventory groups, Atelier integration and native-pixel source are integrated at `9d9b361fa49e5f85f802c494819227f1947b7f9c`. Full retained automatic verification and native graphical generation passed. [The exact record](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md) supersedes the old pending-candidate handoff. Independent image inspection and coding-agent reviews were not executed successfully; Windows DPI, physical input, sustained load, hardware frame rate, audio and packaged-release acceptance remain open. No whole-game completion or release approval is granted.
+Repository-side implementation and automated verification are complete for Tasks 2–10. Task 11 is the current documentation consolidation. Task 1 is implemented but its final hands-on Windows gameplay verification is intentionally deferred to the owner.
 
-## Equipment extension — 2026-09-09
+**Release status: NOT APPROVED — human acceptance remains.**
 
-Named gear tracks, obtainable crafting routes, working tool benefits, a native Upgrade guide and a bounded crafting browser are implemented and tested. Actual integrations are `b9dadef30bfd5747ff8a44c85c534bf22852dae7` and `4c560ccadf6a43ab4d0601844a8e200190795bd9`. The full retained suite and graphical fixture generation passed. See the [exact checkpoint](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md). No failed or unrun gate is promoted to accepted. Independent artwork review, full ordinary-account playtesting, Windows DPI, audio, sustained multiplayer, performance targets and Windows package acceptance still prevent project closure.
+This release status must not be interpreted as “the implementation is unfinished.” It means the project still has acceptance gates that require human observation or owner hardware and therefore cannot be honestly replaced by CI.
 
-Release status: NOT APPROVED.
+## Current acceptance summary
 
-Latest integrated repair: [action presentation and native UI](handoff/ACTION_PRESENTATION_2026-09-08.md),
-source integration `4d840b5f802fcf79f0e048ba2223ccf6fbecdcae`. The furnishing/practice-ring failure
-and side-facing bow source repair are no longer outstanding integration blockers.
-New creature action, short-animation timing, and UI lifetime/HUD fixes passed the retained
-full verification and graphical fixture workflows. Independent inspection of the new
-images remains open. This does not close full visual, gameplay, DPI, audio, load, or package gates.
+| Task | Automated / repository status | Remaining human acceptance |
+| --- | --- | --- |
+| 1. XP/HUD | Implemented; live progression and permanent Vitals XP UI exist. | Owner Windows gameplay pass for visible XP/level pacing and persistence. |
+| 2. Progression/classes | Passed: 60/60 skills and all 8 class kits / 120 class abilities exercise authoritative activity/effect handlers and persistence. | Subjective class identity and normal-play feel. |
+| 3. Character/creature visuals | Passed structural/native graphical verification at `defec56aadf5bc01289b4c7ec8c0e422b918624f`; 12 shipped body variants, 13 visible equipment slots, 100 normal creatures, 25 elites and 20 bosses are covered. | Independent artistic approval. |
+| 4. World/quests | Passed automated world/quest audit: 109 zone anchors and 166 quest anchors. | Full ordinary-account traversal and objective/boss/resource walkthrough. |
+| 5. Economy/balance | Passed authored correctness/balance audit. | Sustained pacing/feel approval. |
+| 6. Audio | Passed technical quality audit for all 22 runtime WAV assets. | Human listening approval. |
+| 7. Multiplayer | Passed two-process graphical Godot verification plus retained protocol/restart suites. | Optional human multi-client play session for final release confidence. |
+| 8. Load/performance | Passed reference 4/8/16-client staged load gate with tick/snapshot/DB/RSS/CPU measurements. | A production-capacity claim requires a separately approved target and hardware test. |
+| 9. Windows display/input | Passed native Windows automated keyboard/mouse and 125%/150% DPI-emulation gates at supported resolutions. | Physical monitor and hardware-input inspection. |
+| 10. Windows package | Passed Windows CI export, clean-path launch, server restart/reconnect and SHA-256 manifest gate. | Owner-machine clean extraction/launch if required for release sign-off. |
+| 11. Documentation | Consolidated in the current update. | Keep status synchronized after future acceptance work. |
 
-Previous Windows evidence: [September 8 Windows visual repair](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md).
-Source preparation and bounded automatic/native/graphical checks passed.
-Bear anatomy, common-fauna death poses, wand/mace presentation, NPC layout,
-inventory and HUD readability were repaired. Full visual acceptance is still
-incomplete; sparse interiors, bow occlusion and broader manual/DPI coverage
-remain. No audio, sustained-load or extracted-package approval was added.
-The next paragraph records historical September 7 status.
+## Current final automated evidence
 
-The [local Windows repair record](handoff/LOCAL_ACCEPTANCE_2026-09-07.md) documents
-source `90143df`, passing bounded automated/graphical checks, and repaired defects,
-including reviewed recovery of legacy saved positions and secure download resume.
-Full bootstrap is blocked by a matching-template download timeout. Actual art
-review failed. No complete normal-play sequence, audio approval, load capacity,
-or tested Windows package exists. This development checkpoint is not a release.
-This file prevents a source handoff from being mistaken for a finished game.
+Task 3 final baseline `defec56aadf5bc01289b4c7ec8c0e422b918624f` passed:
 
-The repository includes implementation and automated tests, but the complete accepted MMORPG has not passed all gates.
-See `handoff/VERIFICATION.md` for tested revisions and the distinction between structural and gameplay checks.
-See `requirements/ACCEPTED_REQUIREMENTS.md` for the unchanged full scope.
+- Build and verify run `34555269188` — Linux and Windows core passed, including world/progression, PostgreSQL/network and save-conflict stages.
+- Visual acceptance matrix run `34555269207` — passed exhaustive actor structure, Atelier refined-player source parity, deterministic shipped-asset rebuild, native client build and native Godot presentation.
+- Exact visual review run `34555269185` — passed rendered source evidence, native Godot evidence and artifact publication.
 
-The local continuation must record:
+Task 2 final authoritative progression evidence is recorded at `d2eb494ff9f3dacc4e3e7fecab811ab7883ddc7a`, CI run `34550409865`.
 
-- Exact source commit and complete dependency versions.
-- Implemented features and supported content counts.
-- Fresh-clone and source setup results.
-- Core, security, network, persistence, and crash-recovery results.
-- Full clean-account and multiplayer gameplay results.
-- Each skill, class, item/rune effect, quest chain, world connection, and boss coverage.
-- Actual sprite/UI/environment visual review and audio listening review.
-- Economy/balance results and sustained load/performance measurements.
-- Adversarial findings, reproduced defects, fixes, and remaining limitations.
-- Windows export and clean-directory package execution.
-- Package file list, SHA-256 checksums, launch commands, release/tag, and artifact locations.
+Task 7 graphical multiplayer acceptance passed in run `34534712045`.
 
-Do not mark this audit approved while a required check is failed, blocked, unrun, or represented only by a catalog record.
-Do not claim a public server is running when only the local development realm exists.
+The retained dedicated workflows for Tasks 4–10 remain part of the mainline and their successful results are summarized in `handoff/VERIFICATION.md`.
+
+## Visual acceptance detail
+
+The visual pipeline now:
+
+- reviews all 12 shipped base player variants;
+- checks player idle/walk/attack/cast/hit/death presentation in four directions;
+- covers every visible equipment slot and produces isolated per-slot evidence;
+- covers 100 normal creatures, 25 elites and 20 bosses;
+- preserves full 128×128 boss poses in review evidence;
+- rejects source/output drift for the refined Atelier player cohort;
+- rebuilds and validates the client asset pack deterministically;
+- executes a native Godot presentation fixture.
+
+The former write-to-main refined-body publisher was removed after generation. Permanent verification is read-only and reproducibility-based.
+
+## Progression acceptance detail
+
+The progression audit exercises all 60 skills through real server activity routes instead of treating catalog descriptions or direct XP mutation as implementation proof. It verifies skill XP, level transitions, Character XP contribution, unlock thresholds and persistence. All eight class kits and 120 class abilities are exercised through real effect handlers.
+
+Human normal-play feel remains separate from that authoritative correctness proof.
+
+## Manual release gates
+
+A release remains unapproved until the project owner accepts the applicable manual gates:
+
+1. Task 1 hands-on Windows XP/HUD gameplay pass.
+2. Normal-play pacing/feel for progression and class identity.
+3. Independent visual/art review.
+4. Full ordinary-account world and quest walkthrough.
+5. Sustained economy/balance review.
+6. Audio listening review.
+7. Production-scale load target, if a specific capacity will be advertised.
+8. Physical Windows DPI/input review.
+9. Owner-machine clean package extraction/launch if required by the release process.
+
+Do not convert any of these human gates to “passed” solely because a structural, graphical, emulated, protocol, or CI test is green.
+
+## Repository policy
+
+- Work from the live `main`; historical dated handoff files are evidence, not current status.
+- Keep generated assets reproducible from checked-in source.
+- Do not weaken tests, suppress engine errors, or lower accepted gameplay/content scope to obtain a green result.
+- Preserve player-save compatibility and server authority.
+- Do not claim a public production realm unless one is actually deployed and verified.
+- Do not claim a final release until the manual gates above are signed off against an exact source revision and package.
+
+See `handoff/VERIFICATION.md` for the current evidence record, `QA_MATRIX.md` for gate definitions, and `requirements/ACCEPTED_REQUIREMENTS.md` for accepted product scope.
