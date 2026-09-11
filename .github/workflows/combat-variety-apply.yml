@@ -27,6 +27,15 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/apply_combat_variety_update.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('content_src/mobs.py')
+          text=p.read_text(encoding='utf-8')
+          old="'healer':['projectile']"
+          if old not in text:
+              raise SystemExit('healer attack profile anchor missing')
+          p.write_text(text.replace(old,"'healer':['projectile','root']",1),encoding='utf-8')
+          PY
           python3 tools/build_content.py
       - name: Verify combat behavior, content, server, and client compile
         shell: bash
