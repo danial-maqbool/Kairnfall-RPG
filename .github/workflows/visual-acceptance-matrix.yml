@@ -46,6 +46,13 @@ jobs:
           python -m pip install Pillow==12.0.0
           python tools/build_content.py | tee artifacts/visual-acceptance/logs/content.log
           python tools/visual_acceptance_preflight.py | tee artifacts/visual-acceptance/logs/structural.log
+      - name: Verify refined Atelier humanoid source parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest atelier.tests.test_refined_body_batch01 -v 2>&1 | tee artifacts/visual-acceptance/logs/refined-body.log
+          python atelier/build.py --only people --jobs 1 2>&1 | tee artifacts/visual-acceptance/logs/refined-body-build.log
+          git diff --exit-code -- atelier/Assets/people atelier/Assets/manifest.json
       - name: Rebuild and validate deterministic shipped assets
         shell: bash
         run: |
