@@ -28,6 +28,39 @@ jobs:
           set -euo pipefail
           python3 tools/apply_economy_crafting_update.py
           python3 tools/build_content.py
+          python3 - <<'PY'
+          import json, math
+          d=json.load(open('content/catalog.json',encoding='utf-8'))
+          items={x['id']:x for x in d['items']}
+          target=next(r for r in d['recipes'] if r['id']=='make_frostweave_medium_helmet')
+          print('ECONOMY DIAGNOSTIC TARGET',target,'output_value',items[target['output']]['value'])
+          for ident,count in target['ingredients'].items():
+              sellers=[n for n in d['npcs'] if ident in n['stock']]
+              print('ECONOMY DIAGNOSTIC INGREDIENT',ident,'count',count,'value',items[ident]['value'],'sellers',[(n['id'],n['role']) for n in sellers[:10]])
+          rows=[]
+          for r in d['recipes']:
+              cost=0
+              for ident,count in r['ingredients'].items():
+                  sellers=[n for n in d['npcs'] if ident in n['stock']]
+                  if not sellers: break
+                  cost += math.ceil(items[ident]['value']*1.05)*count
+              else:
+                  out=items[r['output']]
+                  buyers=[]
+                  for n in d['npcs']:
+                      if not n['stock']: continue
+                      accepted=n['role']=='provisioner' or any(items[s]['type']==out['type'] for s in n['stock'])
+                      if accepted: buyers.append(n)
+                  if buyers:
+                      best=0
+                      for n in buyers:
+                          bonus=.10+.05+(0 if n['role']=='provisioner' else .08)
+                          base=max(1,out['value']*3//10)
+                          best=max(best,math.floor(base*(1+bonus))*r['quantity'])
+                      if best>=cost: rows.append((best-cost,best,cost,r['id'],r['output'],out['value'],r['ingredients']))
+          for row in sorted(rows,reverse=True)[:30]: print('ECONOMY DIAGNOSTIC ARBITRAGE',row)
+          print('ECONOMY DIAGNOSTIC ARBITRAGE_COUNT',len(rows))
+          PY
           git diff --check
       - name: Verify economy loops and complete server/client build
         shell: bash
