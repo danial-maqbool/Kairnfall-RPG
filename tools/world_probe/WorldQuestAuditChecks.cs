@@ -72,7 +72,7 @@ internal static class WorldQuestAuditChecks
             });
         }
 
-        var knownActions=new HashSet<string>(["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant"],StringComparer.Ordinal);
+        var knownActions=new HashSet<string>(["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant","survey"],StringComparer.Ordinal);
         foreach(var quest in data.Quests)
         {
             Test("quest anchors "+quest.Id,()=>
@@ -97,6 +97,7 @@ internal static class WorldQuestAuditChecks
                         "trade" or "socket" => objective.Target=="*",
                         "chest" => objective.Target is "locked" or "runic" or "*",
                         "plant" => objective.Target=="wheat"||data.Items.Any(i=>i.Id==objective.Target||i.Id==objective.Target+"_seed"),
+                        "survey" => data.Zones.SelectMany(z=>z.Buildings.Select(b=>(Zone:z,Building:b))).Count(x=>x.Building.Id==objective.Target&&JourneyProgression.IsLandmark(x.Zone,x.Building)&&WorldMap.Fits(x.Zone,JourneyProgression.LandmarkPoint(x.Building)))==1,
                         _ => false
                     };
                     Need(resolved,$"Objective {objective.Action}/{objective.Target} has no real content anchor.");

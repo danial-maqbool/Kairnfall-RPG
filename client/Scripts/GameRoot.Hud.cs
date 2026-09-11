@@ -227,7 +227,7 @@ public partial class GameRoot
             deathText.Text = "Your equipment remains yours. Repair damaged equipment after returning to a settlement.\nRespawn in " + Math.Max(0, Math.Ceiling(self.DeadUntil - snap.Time)) + " seconds.";
             respawnButton.Disabled = self.DeadUntil > snap.Time;
         }
-        var tracked = self.Quests.OrderByDescending(x => Data.Quest(x.Key).Category == "main").FirstOrDefault();
+        var tracked = self.Quests.OrderBy(x=>JourneyProgression.QuestPriority(Data.Quest(x.Key))).ThenBy(x=>x.Key,StringComparer.Ordinal).FirstOrDefault();
         if (tracked.Value is null)
         {
             var lead=JourneyProgression.LocalQuest(Data,self);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
@@ -244,8 +244,9 @@ public partial class GameRoot
         {
             var quest = Data.Quest(tracked.Key);
             int next = Enumerable.Range(0, quest.Objectives.Count).FirstOrDefault(i => tracked.Value.Counts.ElementAtOrDefault(i) < quest.Objectives[i].Count, -1);
+            string guidance=next<0?"":JourneyProgression.ObjectiveGuidance(Data,quest,quest.Objectives[next]);
             objectiveText.Text = quest.Name + "\n" + (next < 0 ? "Return to " + Data.Npcs.First(x => x.Id == quest.Giver).Name + " to claim the reward."
-                : quest.Objectives[next].Description + "\n" + tracked.Value.Counts.ElementAtOrDefault(next) + " / " + quest.Objectives[next].Count);
+                : quest.Objectives[next].Description + "\n" + tracked.Value.Counts.ElementAtOrDefault(next) + " / " + quest.Objectives[next].Count + (guidance==""?"":" · "+guidance));
         }
         for (int i = 0; i < hotbar.Length; i++)
         {

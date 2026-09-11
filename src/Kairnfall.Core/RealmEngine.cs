@@ -185,6 +185,7 @@ public sealed partial class RealmEngine
             case "unsocket": return Unsocket(p,c.Target,c.Amount);
             case "repair": return Repair(p,c.Item);
             case "talk": return Talk(p,c.Target);
+            case "inspect": return InspectLandmark(p,c.Target);
             case "accept_quest": return AcceptQuest(p,c.Item);
             case "claim_quest": return ClaimQuest(p,c.Item);
             case "transition": return Transition(p,c.Target);

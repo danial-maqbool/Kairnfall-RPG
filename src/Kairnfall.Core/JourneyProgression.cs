@@ -35,12 +35,46 @@ public static class JourneyProgression
         return need<=0?$"{zone.Name} is open.":$"{zone.Name} opens at character level {requirement}. You are level {playerLevel}; gain {need} more level{(need==1?"":"s")}.";
     }
 
+    public static int QuestPriority(QuestDef quest)=>quest.Category switch
+    {
+        "main"=>0,"regional"=>1,"side"=>2,"class"=>3,"repeatable"=>4,_=>5
+    };
+
+    public static bool IsLandmark(ZoneDef zone,BuildingDef building)
+        =>zone.Kind=="wilderness"&&building.Station==""&&building.Style is "ruin" or "shrine" or "camp";
+
+    public static Point LandmarkPoint(BuildingDef building)
+        =>new(building.X+building.Width/2+.5,building.Y+building.Height-.5);
+
+    public static string ObjectiveGuidance(Catalog data,QuestDef quest,ObjectiveDef objective)
+    {
+        ZoneDef? zone=null;string suffix="";
+        if(objective.Action=="survey")
+        {
+            foreach(var candidate in data.Zones)
+            {
+                var landmark=candidate.Buildings.FirstOrDefault(x=>x.Id==objective.Target&&IsLandmark(candidate,x));
+                if(landmark is null)continue;zone=candidate;suffix="Survey "+landmark.Name+" with Interact [E].";break;
+            }
+        }
+        else if(objective.Action is "explore" or "chart") zone=data.Zones.FirstOrDefault(x=>x.Id==objective.Target);
+        else if(objective.Action=="talk"&&data.Npcs.FirstOrDefault(x=>x.Id==objective.Target) is { } npc) zone=data.Zones.FirstOrDefault(x=>x.Id==npc.Zone);
+        else if(objective.Action is "boss" or "kill"&&data.Mobs.FirstOrDefault(x=>x.Id==objective.Target) is { } mob)
+            zone=data.Zones.FirstOrDefault(x=>x.Boss==mob.Id||x.Species.Contains(mob.Id));
+        else if(objective.Action=="gather"&&data.Resources.FirstOrDefault(x=>x.Item==objective.Target) is { } resource)
+            zone=data.Zones.FirstOrDefault(x=>x.Resources.Contains(resource.Id));
+        else if(objective.Action=="deliver"&&data.Npcs.FirstOrDefault(x=>x.Id==quest.Giver) is { } giver)
+            zone=data.Zones.FirstOrDefault(x=>x.Id==giver.Zone);
+        if(zone is null)return "";
+        return "Go to "+zone.Name+(suffix==""?".":" · "+suffix);
+    }
+
     public static JourneyQuestLead? LocalQuest(Catalog data,Character player)
     {
         foreach(var quest in data.Quests
             .Where(q=>!player.Quests.ContainsKey(q.Id)&&!player.CompletedQuests.Contains(q.Id)
                 &&(q.Prerequisite==""||player.CompletedQuests.Contains(q.Prerequisite)))
-            .OrderBy(q=>q.Category=="main"?0:q.Category=="side"?1:2)
+            .OrderBy(QuestPriority)
             .ThenBy(q=>q.Id,StringComparer.Ordinal))
         {
             var giver=data.Npc(quest.Giver);

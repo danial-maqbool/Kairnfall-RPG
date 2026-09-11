@@ -140,6 +140,16 @@ public sealed partial class RealmEngine
         if(p.CompletedQuests.Count==10) p.Achievements.Add("helping_hand");
         return "Completed: "+quest.Name;
     }
+    private string InspectLandmark(Character p,string id)
+    {
+        var zone=Data.Zone(p.Zone);
+        var landmark=zone.Buildings.FirstOrDefault(x=>x.Id==id&&JourneyProgression.IsLandmark(zone,x))??throw new RuleException("Landmark not found.");
+        Near(p,p.Zone,JourneyProgression.LandmarkPoint(landmark),2.5);
+        bool first=p.Discoveries.Add(zone.Id+":landmark:"+landmark.Id);
+        if(first)Progression.Train(p,"exploration",50,Math.Clamp(zone.Level,1,100),Data);
+        Progress(p,"survey",landmark.Id);
+        return first?$"Surveyed {landmark.Name} in {zone.Name}.":$"Reviewed {landmark.Name} in {zone.Name}.";
+    }
     private string Transition(Character p,string exitId)
     {
         var source=Data.Zone(p.Zone);

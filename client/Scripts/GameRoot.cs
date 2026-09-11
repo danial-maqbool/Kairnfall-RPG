@@ -242,6 +242,7 @@ public partial class GameRoot : Control
             else Send("gather", target.Id);
         }
         else if (target.Kind == "exit") Send("transition", target.Id);
+        else if (target.Kind == "landmark") Send("inspect", target.Id);
         else if (target.Kind == "chest") Send("chest", target.Id);
         else if (target.Kind == "loot") Send("loot", target.Id);
     }

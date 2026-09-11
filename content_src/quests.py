@@ -70,11 +70,30 @@ def build(data):
             target=parent if target=='@region' else nearby_dungeon if target=='@dungeon' else target
             ident=f'{city_id}_contract_{i+1:02d}'
             add(data,ident,name+' — '+city_name,city_id+'_'+role,story+' This contract serves '+city_name+'.',[objective(action,target,count)],reward=reward,gold=gold+city_index*5,faction=faction)
-    # Regional field contracts tie repeatable play to local ecology.
+    # Regional waymark chains make every wilderness region a place to learn, not merely a place to farm mobs.
+    settlement_for={parent:ident for ident,name,parent in __import__('content_src.world',fromlist=['SETTLEMENTS']).SETTLEMENTS}
+    landmark_rows=[('watch','Old Watch Post'),('shrine','Roadside Shrine'),('camp','Abandoned Camp'),('mill','Broken Storehouse')]
     for i,(region_id,region_name,biome,level,lore) in enumerate(REGIONS):
-        giver=CITIES[i%len(CITIES)][0]+'_traveler'
-        species=next(x for x in data['mobs'] if x['biome']==biome and not x['elite'] and not x['boss'])
-        add(data,'field_'+region_id,'Field Report: '+region_name,giver,'Visit '+region_name+' and document its current threats. '+lore,[objective('explore',region_id),objective('kill',species['id'],3)],'repeatable',gold=50+level*3,repeatable=True)
+        home=settlement_for.get(region_id,CITIES[i%len(CITIES)][0])
+        giver=home+'_traveler'
+        objectives=[objective('explore',region_id,1,'Reach '+region_name+'.')]
+        objectives += [objective('survey',region_id+'_'+suffix,1,'Survey '+label+' in '+region_name+'.') for suffix,label in landmark_rows]
+        add(data,'survey_'+region_id,'Waymarks of '+region_name,giver,
+            'The road ledger has names but no reliable landmarks. Walk the region, inspect its four surviving waymarks, and return with a route another traveler could actually follow. '+lore,
+            objectives,'regional',reward='parchment',gold=70+level*4)
+
+    # Repeatable field work now rotates exploration, observation, and gathering instead of defaulting to mob kills.
+    for i,(region_id,region_name,biome,level,lore) in enumerate(REGIONS):
+        home=settlement_for.get(region_id,CITIES[i%len(CITIES)][0])
+        giver=home+'_traveler'
+        zone=next(z for z in data['zones'] if z['id']==region_id)
+        resource_id=next(r for r in zone['resources'] if r not in {'buried_pottery','relic_deposit'})
+        resource=next(r for r in data['resources'] if r['id']==resource_id)
+        suffix,label=landmark_rows[i%len(landmark_rows)]
+        add(data,'field_'+region_id,'Field Report: '+region_name,giver,
+            'Revisit '+region_name+' as a working surveyor: confirm one landmark, collect a local material sample, and update the route without turning the assignment into another extermination order. '+lore,
+            [objective('explore',region_id),objective('survey',region_id+'_'+suffix,1,'Recheck '+label+' in '+region_name+'.'),objective('gather',resource['item'],2,'Gather 2 '+resource['item'].replace('_',' ')+' in '+region_name+'.')],
+            'repeatable',gold=50+level*3,repeatable=True)
     for i,(dungeon_id,name,parent,layer,biome,boss_id) in enumerate(DUNGEONS[:10]):
         giver=CITIES[i%5][0]+'_guild_registrar'
         add(data,'delve_'+dungeon_id,'Guild Delve: '+name,giver,'The guild will reward a verified return from '+name+'. Defeat its guardian after accepting this contract.',[objective('boss',boss_id)],'repeatable',gold=100+i*35,repeatable=True)

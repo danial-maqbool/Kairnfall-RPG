@@ -206,7 +206,12 @@ public partial class WorldView : Control
         foreach (var building in zone.Buildings)
         {
             var at = new Point(building.X + building.Width / 2.0, building.Y + building.Height);
-            if (IsWithinCameraBounds(at, building.Width + building.Height)) visuals.Add(new Visual((float)at.Y, "building", building.Id, at, building));
+            if (IsWithinCameraBounds(at, building.Width + building.Height))
+            {
+                visuals.Add(new Visual((float)at.Y, "building", building.Id, at, building));
+                if(JourneyProgression.IsLandmark(zone,building))
+                    interactions.Add(new WorldTarget("landmark",building.Id,building.Name,JourneyProgression.LandmarkPoint(building)));
+            }
         }
         foreach (var npc in Data.Npcs.Where(x => x.Zone == zone.Id))
         {
