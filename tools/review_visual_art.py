@@ -105,14 +105,14 @@ def main():
         if slot!='offhand':
             shield=next((candidate for candidate in equipment if candidate['slot']=='offhand' and 'shield' in candidate.get('tags',[])),None)
             if shield is not None: gear['offhand']=shield
+        isolated_gear={slot:item}
         slot_entries=[]
         for state in STATES:
             n=representative_frame(state)
             for direction in range(4):
-                tile=person(0,state,n,direction,gear)
                 short=f'{state} {direction_names[direction]}'
-                layer_entries.append((f'{slot} {short}',tile))
-                slot_entries.append((short,tile))
+                layer_entries.append((f'{slot} {short}',person(0,state,n,direction,gear)))
+                slot_entries.append((short,person(0,state,n,direction,isolated_gear)))
         contact(slot_entries,f'equipment-layers/{slot}',columns=4,cell=(112,92),scale=1)
         coverage['individual_equipment_sheets']+=1
     coverage['equipment_action_direction_frames']=len(layer_entries)
