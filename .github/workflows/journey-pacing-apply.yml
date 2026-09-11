@@ -33,6 +33,13 @@ jobs:
           new='''            Need(denied.Message.Contains(candidate.gate.ToString(),StringComparison.Ordinal),"Gate failure did not explain the required level.");\n            p=realm.Player(p.Id);\n            var ready=AtLevel(candidate.gate);p.SkillXp=new(ready.SkillXp);p.Position=candidate.exit.Position;\n'''
           if old not in text: raise SystemExit('Journey rollback fixture anchor missing.')
           path.write_text(text.replace(old,new,1),encoding='utf-8')
+
+          path=Path('client/Scripts/HuntingGuidePanel.cs')
+          text=path.read_text(encoding='utf-8')
+          old='''            bool locked=ReadCharacter() is { } self&&Progression.PlayerLevel(self)<JourneyProgression.ExitRequirement(Data,exit);'''
+          new='''            bool locked=ReadCharacter() is { } viewer&&Progression.PlayerLevel(viewer)<JourneyProgression.ExitRequirement(Data,exit);'''
+          if old not in text: raise SystemExit('Hunting map viewer anchor missing.')
+          path.write_text(text.replace(old,new,1),encoding='utf-8')
           PY
       - name: Verify content, server, journey rules, and client compile
         shell: bash
