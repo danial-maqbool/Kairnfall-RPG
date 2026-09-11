@@ -39,6 +39,30 @@ public sealed class GroupInvitation
     public string Leader { get; set; } = "";
     public bool Guild { get; set; }
 }
+public sealed class LfgListing
+{
+    public string Character { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Class { get; set; } = "";
+    public string Activity { get; set; } = "";
+    public string Role { get; set; } = "";
+    public string Zone { get; set; } = "";
+    public int Level { get; set; }
+    public int PartySize { get; set; } = 1;
+    public double Since { get; set; }
+}
+public sealed class SocialProfile
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Class { get; set; } = "";
+    public string Zone { get; set; } = "";
+    public string Guild { get; set; } = "";
+    public int Level { get; set; }
+    public bool Online { get; set; }
+    public bool Friend { get; set; }
+    public double LastSeen { get; set; }
+}
 public sealed class TradePreview
 {
     public string TradeId { get; set; } = "";
@@ -54,6 +78,9 @@ public sealed class TransportPacket
     public ChatMessage? Chat { get; set; }
     public List<LootPile>? Loot { get; set; }
     public List<GroupInvitation>? Invitations { get; set; }
+    public List<string> FriendInvitations { get; set; } = [];
+    public List<LfgListing> Lfg { get; set; } = [];
+    public List<SocialProfile> SocialProfiles { get; set; } = [];
     public List<TradePreview> TradeItems { get; set; } = [];
     public Dictionary<string,string> Names { get; set; } = [];
     public string Error { get; set; } = "";

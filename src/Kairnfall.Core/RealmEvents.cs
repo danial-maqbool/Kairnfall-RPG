@@ -197,6 +197,13 @@ public sealed partial class RealmEngine
         value.Contributions[player] = Math.Min(1_000_000, value.Contributions.GetValueOrDefault(player) + amount); EconomicDirty = true;
     }
 
+    private void RecordEventSupport(Character player, Character ally, double amount)
+    {
+        if(amount<=0) return;
+        foreach(var value in State.Events.Where(x=>x.Status=="active"&&x.Zone==player.Zone&&player.Position.Distance(x.Position)<=32&&ally.Position.Distance(x.Position)<=32))
+            AddEventContribution(value,player.Id,Math.Clamp(amount/12,.5,8));
+    }
+
     private void RecordEventDamage(Character player, Creature mob, double damage)
     {
         var value = WorldEventRules.Owner(State, mob.Id);
@@ -233,7 +240,7 @@ public sealed partial class RealmEngine
         Need(WorldEventRules.SupportsInteraction(value), "This event advances through its current world objective.");
         Near(player, value.Zone, value.Position, 3.2); Ready(player, "event:" + value.Id, 2.5);
         Need(player.Stamina >= 4, "Recover stamina before helping the event."); player.Stamina -= 4;
-        value.Progress += 1; AddEventContribution(value, player.Id, 8);
+        value.Progress += 1; AddEventContribution(value, player.Id, 8); Progress(player,"event",value.Kind);
         string kind = WorldEventRules.NormalizeKind(value.Kind);
         Progression.Train(player, kind == "arcane_rift" ? "survival" : "exploration", kind == "arcane_rift" ? 8 : 4, Math.Clamp(Data.Zone(value.Zone).Level, 1, 100), Data);
         return WorldEventRules.InteractionVerb(value) + "d · " + WorldEventRules.ProgressText(value) + ".";

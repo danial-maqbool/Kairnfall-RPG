@@ -8,6 +8,8 @@ public sealed class LootPile
     public Point Position { get; set; }
     public string Owner { get; set; } = "";
     public string Party { get; set; } = "";
+    // New party loot waits briefly for its round-robin owner. Zero preserves historical party access.
+    public double PartyAt { get; set; }
     public List<Item> Items { get; set; } = [];
     public long Gold { get; set; }
     public double PublicAt { get; set; }

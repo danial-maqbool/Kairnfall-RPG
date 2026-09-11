@@ -111,7 +111,7 @@ public static class ExperienceRules
 
     public static bool LootAvailable(Character self, LootPile pile, double serverTime)
         => double.IsFinite(serverTime) && pile.Zone == self.Zone
-            && (pile.Owner == self.Id || pile.PublicAt <= serverTime || (pile.Party != "" && pile.Party == self.Party));
+            && (pile.Owner == self.Id || pile.PublicAt <= serverTime || (pile.Party != "" && pile.Party == self.Party && pile.PartyAt <= serverTime));
 
     public static WorldTarget? ChooseInteraction(Character self, IEnumerable<WorldTarget> targets, Catalog data)
         => targets.Where(x => x.Kind is "npc" or "exit" or "node" or "chest" or "loot" or "landmark" or "event")

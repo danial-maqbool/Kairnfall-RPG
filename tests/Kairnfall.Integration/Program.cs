@@ -210,6 +210,36 @@ try
         var remote=await alice.ActAsync(new(){Kind="deposit",Item=state.Self.Inventory.First(x=>x.Template=="copper_pickaxe").Id},cancel); Check(!remote.Ok,"Remote bank access was accepted.");
         state=await State(alice); Check(state.Self.Gold==gold,"Rejected actions changed gold.");
     });
+    await Test("LFG listings and mutual friend requests propagate over real snapshots",async()=>
+    {
+        await Act(bob,"lfg_set","dungeon",arg:"damage");
+        bool listing=false; var watch=Stopwatch.StartNew();
+        while(watch.Elapsed<TimeSpan.FromSeconds(5)&&!listing)
+        {
+            while(alice.TryRead(out var packet))
+            {
+                if(packet?.Snapshot is { } s) states[alice]=s;
+                listing|=packet?.Lfg?.Any(x=>x.Character==bobCharacter!.Id&&x.Activity=="dungeon"&&x.Role=="damage")==true;
+            }
+            await Task.Delay(30,cancel);
+        }
+        Check(listing,"The live LFG listing was not visible to another account.");
+        await Act(bob,"lfg_set","off");
+        await Act(alice,"friend_invite",bobCharacter!.Id);
+        bool request=false; watch.Restart();
+        while(watch.Elapsed<TimeSpan.FromSeconds(5)&&!request)
+        {
+            while(bob.TryRead(out var packet))
+            {
+                if(packet?.Snapshot is { } s) states[bob]=s;
+                request|=packet?.FriendInvitations?.Contains(aliceCharacter!.Id)==true;
+            }
+            await Task.Delay(30,cancel);
+        }
+        Check(request,"The friend request did not reach the recipient."); await Act(bob,"friend_accept",aliceCharacter!.Id);
+        var a=await State(alice,s=>s.Self.Friends.Contains(bobCharacter!.Id)); var b=await State(bob,s=>s.Self.Friends.Contains(aliceCharacter!.Id));
+        Check(a.Self.Friends.Contains(bobCharacter!.Id)&&b.Self.Friends.Contains(aliceCharacter!.Id),"Friendship was not mutual.");
+    });
     await Test("Party invitations are visible and require recipient acceptance",async()=>
     {
         await Act(alice,"party_create"); await Act(alice,"party_invite",bobCharacter!.Id);
@@ -225,6 +255,9 @@ try
         }
         Check(invitation!="","The party invitation did not reach the recipient."); await Act(bob,"party_join",invitation);
         var state=await State(alice,s=>s.Party?.Members.Count==2); Check(state.Party!.Members.Contains(bobCharacter!.Id),"Party membership was not synchronized.");
+        await Act(alice,"party_ready_start"); await Act(bob,"party_ready");
+        state=await State(alice,s=>s.Party?.ReadyMembers.Count>=2);
+        Check(state.Party!.ReadyCheckEnds>state.Time&&state.Party.ReadyMembers.Contains(aliceCharacter!.Id)&&state.Party.ReadyMembers.Contains(bobCharacter!.Id),"Ready check state did not synchronize.");
     });
     await Test("Movement, resource gathering, crafting, and quest rewards work over the network",async()=>
     {
@@ -287,6 +320,7 @@ try
         await alice.ConnectAsync(aliceCharacter!.Id,cancel); await bob.ConnectAsync(bobCharacter!.Id,cancel);
         var a=await State(alice); var b=await State(bob);
         Check(a.Self.Gold==expectedGold&&a.Self.Zone=="dawnreach"&&a.Self.CompletedQuests.Contains("starter_ore"),"Acknowledged character state did not survive restart.");
+        Check(a.Self.Friends.Contains(bobCharacter!.Id)&&b.Self.Friends.Contains(aliceCharacter!.Id),"Social friendship state did not survive restart.");
         Check(a.Self.Inventory.First(x=>x.Id==expectedWeapon).Runes.Count==1&&b.Self.Inventory.Any(x=>x.Id==transferredItem),"Persistent item or rune ownership changed after restart.");
     });
     await Test("Session logout revokes further authenticated access",async()=>

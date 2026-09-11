@@ -13,13 +13,31 @@ public partial class GameRoot
         var top = Ui.Row(page); var recipient = Ui.Edit("Character name or selected player", selectedTargetKind == "player" ? SocialName(selectedTarget) : ""); top.AddChild(recipient);
         top.AddChild(Ui.Button("Invite to party", () => Send("party_invite", recipient.Text.Trim())));
         top.AddChild(Ui.Button("Trade", () => Send("trade_invite", recipient.Text.Trim())));
+        top.AddChild(Ui.Button("Add friend", () => Send("friend_invite", recipient.Text.Trim())));
         var whisperRow = Ui.Row(page); var message = Ui.Edit("Private message"); message.MaxLength = 240; whisperRow.AddChild(message);
         whisperRow.AddChild(Ui.Button("Whisper", () => { Send("chat", "whisper", recipient.Text.Trim(), arg: message.Text.Trim()); message.Text = ""; }));
+        var lfgRow = Ui.Row(page);
+        var activity = new OptionButton(); foreach (var value in SocialCooperationRules.LfgActivities) activity.AddItem(SocialCooperationRules.ActivityName(value)); lfgRow.AddChild(activity);
+        var role = new OptionButton(); foreach (var value in SocialCooperationRules.LfgRoles) role.AddItem(SocialCooperationRules.RoleName(value)); lfgRow.AddChild(role);
+        lfgRow.AddChild(Ui.Button("Advertise / update LFG", () => Send("lfg_set", SocialCooperationRules.LfgActivities[Math.Max(0, activity.Selected)], arg: SocialCooperationRules.LfgRoles[Math.Max(0, role.Selected)])));
+        lfgRow.AddChild(Ui.Button("Stop LFG", () => Send("lfg_set", "off")));
+        var inspection = Ui.Label("Inspect nearby players to compare class, level, guild, and visible equipment.", 13, Ui.Muted, true); page.AddChild(inspection);
         var scroll = Ui.Scroll(page, new Vector2(870, 440)); var body = Ui.Column(scroll);
         void Render()
         {
             if (Snapshot is null) return;
             Ui.Clear(body);
+            if(Snapshot.Self.LfgActivity!="") body.AddChild(Ui.Label("YOUR LFG · "+SocialCooperationRules.ActivityName(Snapshot.Self.LfgActivity)+" · "+SocialCooperationRules.RoleName(Snapshot.Self.LfgRole),14,Ui.Success,true));
+            if(friendInvitations.Count>0)
+            {
+                body.AddChild(Ui.Label("Friend requests",21,Ui.Gold));
+                foreach(string id in friendInvitations)
+                {
+                    var row=Ui.Row(body); row.AddChild(Ui.Label(SocialName(id),16));
+                    row.AddChild(Ui.Button("Accept",()=>Send("friend_accept",id)));
+                    row.AddChild(Ui.Button("Dismiss",()=>Send("friend_remove",id)));
+                }
+            }
             if (invitations.Count > 0)
             {
                 body.AddChild(Ui.Label("Invitations", 21, Ui.Gold));
@@ -27,6 +45,18 @@ public partial class GameRoot
                 {
                     var row = Ui.Row(body); row.AddChild(Ui.Label(invitation.Name + " · " + SocialName(invitation.Leader), 16));
                     row.AddChild(Ui.Button("Join", () => Send(invitation.Guild ? "guild_join" : "party_join", invitation.Id)));
+                }
+            }
+            if(lfgListings.Count>0)
+            {
+                body.AddChild(Ui.Label("Looking for group",21,Ui.Gold));
+                foreach(var listing in lfgListings)
+                {
+                    var row=Ui.Row(body); string zone=Data.Zones.Any(x=>x.Id==listing.Zone)?Data.Zone(listing.Zone).Name:listing.Zone;
+                    var text=Ui.Label($"{listing.Name} · Lv {listing.Level} {Data.Class(listing.Class).Name} · {SocialCooperationRules.RoleName(listing.Role)} · {SocialCooperationRules.ActivityName(listing.Activity)} · {zone} · {listing.PartySize}/6",14,Ui.Text,true);
+                    text.SizeFlagsHorizontal=SizeFlags.ExpandFill; row.AddChild(text);
+                    row.AddChild(Ui.Button("Request group",()=>Send("lfg_request",listing.Character),Snapshot.Self.Party!=""));
+                    row.AddChild(Ui.Button("Select",()=>{recipient.Text=listing.Name;SelectTarget("player",listing.Character);}));
                 }
             }
             foreach (var trade in Snapshot.Trades)
@@ -39,13 +69,43 @@ public partial class GameRoot
             body.AddChild(Ui.Label("Nearby travelers", 21, Ui.Gold));
             foreach (var player in Snapshot.Players)
             {
-                var row = Ui.Row(body); row.AddChild(Ui.Label(player.Name + " · Level " + player.Level + " · " + Data.Class(player.Class).Name, 16));
-                row.AddChild(Ui.Button("Select", () => { SelectTarget("player", player.Id); recipient.Text = player.Name; }));
+                var row = Ui.Row(body); row.AddChild(Ui.Label((player.Health<=0?"DOWNED · ":"")+player.Name + " · Level " + player.Level + " · " + Data.Class(player.Class).Name, 16, player.Health<=0?Ui.Danger:Ui.Text));
+                row.AddChild(Ui.Button("Inspect", () => { SelectTarget("player", player.Id); recipient.Text = player.Name; inspection.Text=DescribeSocialPlayer(player); }));
+                row.AddChild(Ui.Button(Snapshot.Self.Friends.Contains(player.Id)?"Friend":"Add friend", () => { if(!Snapshot.Self.Friends.Contains(player.Id)) Send("friend_invite",player.Id); }, Snapshot.Self.Friends.Contains(player.Id)));
                 row.AddChild(Ui.Button(Snapshot.Self.Ignored.Contains(player.Id) ? "Unmute" : "Mute", () => Send("ignore", player.Id)));
             }
             if (Snapshot.Players.Count == 0) body.AddChild(Ui.Label("No other players are in view. Party and guild invitations also accept character names.", 15, Ui.Muted, true));
+            var friends=socialProfiles.Where(x=>x.Friend).OrderByDescending(x=>x.Online).ThenBy(x=>x.Name,StringComparer.OrdinalIgnoreCase).ToArray();
+            if(friends.Length>0)
+            {
+                body.AddChild(Ui.Label("Friends",21,Ui.Gold));
+                foreach(var profile in friends) DrawSocialProfile(body,profile,recipient);
+            }
+            var recent=socialProfiles.Where(x=>!x.Friend&&x.LastSeen>0).OrderByDescending(x=>x.LastSeen).Take(12).ToArray();
+            if(recent.Length>0)
+            {
+                body.AddChild(Ui.Label("Recent travelers",21,Ui.Gold));
+                foreach(var profile in recent) DrawSocialProfile(body,profile,recipient);
+            }
         }
         refreshPage = Render; Render();
+    }
+
+    private string DescribeSocialPlayer(PublicPlayer player)
+    {
+        string guild=socialProfiles.FirstOrDefault(x=>x.Id==player.Id)?.Guild??"";
+        string gear=player.Equipment.Count==0?"No visible equipment":string.Join(", ",player.Equipment.OrderBy(x=>x.Key,StringComparer.Ordinal).Select(x=>Ui.Words(x.Key)+": "+Data.Item(x.Value).Name));
+        return $"{player.Name} · Level {player.Level} {Data.Class(player.Class).Name}"+(guild==""?"":" · "+guild)+"\n"+gear;
+    }
+    private void DrawSocialProfile(Node parent,SocialProfile profile,LineEdit recipient)
+    {
+        if(Snapshot is null)return;
+        var row=Ui.Row(parent); string zone=Data.Zones.Any(x=>x.Id==profile.Zone)?Data.Zone(profile.Zone).Name:profile.Zone;
+        string presence=profile.Online?"Online · "+zone:profile.LastSeen>0?$"Last seen {Math.Max(0,(Snapshot.Time-profile.LastSeen)/60):0} realm min ago":"Offline";
+        var label=Ui.Label($"{profile.Name} · Lv {profile.Level} {Data.Class(profile.Class).Name}"+(profile.Guild==""?"":" · "+profile.Guild)+" · "+presence,14,profile.Online?Ui.Text:Ui.Muted,true);
+        label.SizeFlagsHorizontal=SizeFlags.ExpandFill; row.AddChild(label);
+        row.AddChild(Ui.Button("Select",()=>{recipient.Text=profile.Name;SelectTarget("player",profile.Id);}));
+        if(profile.Friend) row.AddChild(Ui.Button("Remove friend",()=>Confirm("Remove friend","Remove "+profile.Name+" from your friends?",()=>Send("friend_remove",profile.Id))));
     }
 
     private void DrawGroup(Node parent, SocialGroup? group, bool guild, LineEdit recipient)
@@ -65,11 +125,42 @@ public partial class GameRoot
             return;
         }
         column.AddChild(Ui.Label(group.Name, 20));
+        bool leadership=group.Leader==Snapshot.Self.Id||group.Roles.GetValueOrDefault(Snapshot.Self.Id)=="officer";
+        if(guild)
+        {
+            int level=SocialCooperationRules.GuildLevel(group);
+            column.AddChild(Ui.Label($"Guild level {level} · {group.Experience:N0} renown · {group.CompletedProjects} projects completed",14,Ui.Success,true));
+            if(group.Project!="") column.AddChild(Ui.Label($"PROJECT · {SocialCooperationRules.ProjectName(group.Project)} · {group.ProjectProgress}/{group.ProjectGoal}",14,Ui.Gold,true));
+            else if(leadership)
+            {
+                var projects=Ui.Row(column);
+                foreach(string project in SocialCooperationRules.GuildProjects) projects.AddChild(Ui.Button(SocialCooperationRules.ProjectName(project),()=>Send("guild_project",project)));
+            }
+        }
+        else
+        {
+            bool ready=group.ReadyCheckEnds>Snapshot.Time;
+            int online=group.Members.Count(id=>id==Snapshot.Self.Id||socialProfiles.Any(x=>x.Id==id&&x.Online));
+            int readyCount=group.ReadyMembers.Count(id=>group.Members.Contains(id));
+            if(ready)
+            {
+                var readyRow=Ui.Row(column); readyRow.AddChild(Ui.Label($"READY CHECK · {readyCount}/{Math.Max(1,online)} online members · {Math.Max(0,Math.Ceiling(group.ReadyCheckEnds-Snapshot.Time))}s",14,Ui.Gold,true));
+                if(!group.ReadyMembers.Contains(Snapshot.Self.Id)) readyRow.AddChild(Ui.Button("I'm ready",()=>Send("party_ready")));
+            }
+            else if(leadership) column.AddChild(Ui.Button("Start ready check",()=>Send("party_ready_start")));
+        }
         if (group.Message != "") column.AddChild(Ui.Label(group.Message, 16, Ui.Muted, true));
         foreach (string member in group.Members)
         {
-            var row = Ui.Row(column); string presence = member == Snapshot.Self.Id || Snapshot.Players.Any(x => x.Id == member) ? "Nearby" : "Elsewhere or offline";
-            var label = Ui.Label(SocialName(member) + " · " + Ui.Words(group.Roles.GetValueOrDefault(member, "member")) + " · " + presence, 15); label.SizeFlagsHorizontal = SizeFlags.ExpandFill; row.AddChild(label);
+            var row = Ui.Row(column); string presence = member == Snapshot.Self.Id || Snapshot.Players.Any(x => x.Id == member) ? "Nearby" : socialProfiles.Any(x=>x.Id==member&&x.Online)?"Online elsewhere":"Offline";
+            string readyMark=!guild&&group.ReadyCheckEnds>Snapshot.Time?(group.ReadyMembers.Contains(member)?" · READY":" · not ready"):"";
+            var label = Ui.Label(SocialName(member) + " · " + Ui.Words(group.Roles.GetValueOrDefault(member, "member")) + " · " + presence+readyMark, 15); label.SizeFlagsHorizontal = SizeFlags.ExpandFill; row.AddChild(label);
+            if(!guild&&member!=Snapshot.Self.Id&&Snapshot.Players.FirstOrDefault(x=>x.Id==member) is {Health:<=0}) row.AddChild(Ui.Button("Revive",()=>Send("revive",member),Snapshot.Self.Health<=0));
+            if(guild&&group.Leader==Snapshot.Self.Id&&member!=Snapshot.Self.Id)
+            {
+                string current=group.Roles.GetValueOrDefault(member,"member");
+                row.AddChild(Ui.Button(current=="officer"?"Demote":"Promote",()=>Send("guild_role",member,arg:current=="officer"?"member":"officer")));
+            }
             if (group.Leader == Snapshot.Self.Id && member != Snapshot.Self.Id)
                 row.AddChild(Ui.Button("Remove", () => Confirm("Remove member", "Remove " + SocialName(member) + " from " + group.Name + "?", () => Send(guild ? "guild_kick" : "party_kick", member))));
         }

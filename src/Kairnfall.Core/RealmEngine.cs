@@ -217,6 +217,15 @@ public sealed partial class RealmEngine
             case "guild_kick": return GroupKick(p,true,c.Target);
             case "guild_message": return GuildMessage(p,c.Arg);
             case "guild_role": return GuildRole(p,c.Target,c.Arg);
+            case "guild_project": return GuildProject(p,c.Target);
+            case "party_ready_start": return PartyReadyStart(p);
+            case "party_ready": return PartyReady(p);
+            case "revive": return Revive(p,c.Target);
+            case "lfg_set": return LfgSet(p,c.Target,c.Arg);
+            case "lfg_request": return LfgRequest(p,c.Target);
+            case "friend_invite": return FriendInvite(p,c.Target);
+            case "friend_accept": return FriendAccept(p,c.Target);
+            case "friend_remove": return FriendRemove(p,c.Target);
             case "chat": return Chat(p,c.Target,c.Item,c.Arg);
             case "ignore": Need(State.Characters.ContainsKey(c.Target),"Character not found."); if(!p.Ignored.Add(c.Target)) p.Ignored.Remove(c.Target); return "Ignore list updated.";
             case "plant": return Plant(p,new(c.X,c.Y));
@@ -272,7 +281,7 @@ public sealed partial class RealmEngine
         aiElapsed+=dt;
         if(aiElapsed>=0.2) { TickCreatures(aiElapsed); aiElapsed=0; }
         environmentElapsed+=dt;
-        if(environmentElapsed>=1) { TickEnvironment(environmentElapsed); environmentElapsed=0; }
+        if(environmentElapsed>=1) { TickEnvironment(environmentElapsed); TickSocialCooperation(); environmentElapsed=0; }
         ResolveTelegraphs();
         if(State.Time>=State.NextRestock) Restock();
         foreach(var a in State.Auctions.Values.Where(x=>x.Expires<=State.Time).ToList())
@@ -319,6 +328,7 @@ public sealed partial class RealmEngine
     public void Disconnect(string id)
     {
         Active.Remove(id); inputs.Remove(id); playerTargets.Remove(id); transitionReady.Remove(id);
+        if(State.Characters.TryGetValue(id,out var player)) ClearLfg(player);
         foreach(var t in State.Trades.Values.Where(x=>x.A.Character==id||x.B.Character==id).ToList()) State.Trades.Remove(t.Id);
         EconomicDirty=true;
     }
@@ -378,6 +388,7 @@ public sealed partial class RealmEngine
     private void Progress(Character p,string action,string target,int amount=1)
     {
         if(amount<1) return;
+        AdvanceGuildProject(p,action,amount);
         foreach(var entry in p.Quests)
         {
             var q=Data.Quest(entry.Key); var progress=entry.Value;

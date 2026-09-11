@@ -150,7 +150,7 @@ public sealed partial class RealmEngine
         Items.Grant(p,quest.Gold);
         if(quest.Reward!="") Items.Add(p.Inventory,Items.Create(Data,quest.Reward),Data);
         p.CompletedQuests.Add(id); p.Quests.Remove(id);
-        p.Reputation[quest.Faction]=Math.Min(1000,p.Reputation.GetValueOrDefault(quest.Faction)+10);
+        p.Reputation[quest.Faction]=Math.Min(1000,p.Reputation.GetValueOrDefault(quest.Faction)+10); Progress(p,"quest",id);
         if(quest.Repeatable) p.Cooldowns["quest:"+id]=State.Time+WorldTime.DayLength;
         if(p.CompletedQuests.Count==10) p.Achievements.Add("helping_hand");
         return "Completed: "+quest.Name;
@@ -254,7 +254,7 @@ public sealed partial class RealmEngine
     private string CollectLoot(Character p,string id)
     {
         Need(Loot.TryGetValue(id,out var pile),"Loot is no longer available."); Near(p,pile!.Zone,pile.Position);
-        Need(pile.Owner==p.Id||pile.PublicAt<=State.Time||(pile.Party!=""&&pile.Party==p.Party),"This loot belongs to another player.");
+        Need(pile.Owner==p.Id||pile.PublicAt<=State.Time||(pile.Party!=""&&pile.Party==p.Party&&pile.PartyAt<=State.Time),"This loot is reserved for its round-robin owner for a short time.");
         foreach(var item in pile.Items) { Items.Add(p.Inventory,item,Data); Progress(p,"loot",item.Template,item.Quantity); }
         Items.Grant(p,pile.Gold); Loot.Remove(id); return "Loot collected.";
     }

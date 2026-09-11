@@ -426,8 +426,9 @@ public partial class WorldView : Control
                 break;
             case "player":
                 var player = (PublicPlayer)visual.Value!; var pp = Pose(player.Id, player.Position);
-                Shadow(feet); Assets.DrawPerson(this, player.Appearance, player.Equipment, feet, pp.State, pp.Direction, pp.Frame);
-                if (ShowNames) Nameplate(player.Position, player.Name + " · " + player.Level, new Color("a3c9df"), -61, 10);
+                if(player.Health>0) Shadow(feet);
+                Assets.DrawPerson(this, player.Appearance, player.Equipment, feet, player.Health<=0?5:pp.State, pp.Direction, player.Health<=0?7:pp.Frame);
+                if (ShowNames) Nameplate(player.Position, (player.Health<=0?"DOWNED · ":"")+player.Name + " · " + player.Level, player.Health<=0?Ui.Danger:new Color("a3c9df"), -61, 10);
                 break;
             case "self":
                 var character = (Character)visual.Value!; var self = Pose(character.Id, character.Position);

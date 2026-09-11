@@ -24,6 +24,9 @@ public partial class GameRoot : Control
     private readonly List<string> history = [];
     private readonly Dictionary<string, string> knownNames = [];
     private List<GroupInvitation> invitations = [];
+    private List<string> friendInvitations = [];
+    private List<LfgListing> lfgListings = [];
+    private List<SocialProfile> socialProfiles = [];
     private readonly Dictionary<string, Key> bindings = new()
     {
         ["move_left"] = Key.A, ["move_right"] = Key.D, ["move_up"] = Key.W, ["move_down"] = Key.S,
@@ -125,8 +128,13 @@ public partial class GameRoot : Control
                     var previous = Snapshot;
                     World.Accept(packet); ObservePlayerChanges(previous, snapshot);
                     invitations = packet.Invitations ?? [];
+                    friendInvitations = packet.FriendInvitations ?? [];
+                    lfgListings = packet.Lfg ?? [];
+                    socialProfiles = packet.SocialProfiles ?? [];
                     knownNames[snapshot.Self.Id] = snapshot.Self.Name;
                     foreach (var other in snapshot.Players) knownNames[other.Id] = other.Name;
+                    foreach (var listing in lfgListings) knownNames[listing.Character] = listing.Name;
+                    foreach (var profile in socialProfiles) knownNames[profile.Id] = profile.Name;
                     if (hotbarCharacter != snapshot.Self.Id)
                     {
                         hotbarCharacter = snapshot.Self.Id; SetInitialHotbar();
@@ -336,7 +344,8 @@ public partial class GameRoot : Control
         {
             Snapshot.Self.Inventory, Snapshot.Self.Bank, Snapshot.Self.Equipment, Snapshot.Self.SkillXp,
             Snapshot.Self.Quests, Snapshot.Self.Gold, Snapshot.Self.Zone, Dead = Snapshot.Self.Health <= 0,
-            Snapshot.Trades, Snapshot.Auctions, Snapshot.Party, Snapshot.Guild, Snapshot.ShopStock, Snapshot.Events, invitations
+            Snapshot.Trades, Snapshot.Auctions, Snapshot.Party, Snapshot.Guild, Snapshot.ShopStock, Snapshot.Events,
+            invitations, friendInvitations, lfgListings, socialProfiles
         }, Wire.Json);
     }
     private string PlayerName(string id) => knownNames.GetValueOrDefault(id, id == "" ? "None" : "Traveler " + id[..Math.Min(6, id.Length)]);
@@ -360,7 +369,7 @@ public partial class GameRoot : Control
         catch (Exception error) { GD.PushWarning(error.Message); }
         if (closing || !IsInsideTree()) return;
         Connection = null; World.ClearSession(); hotbarCharacter = "";
-        history.Clear(); knownNames.Clear(); invitations.Clear(); pickupNotes.Clear(); lastExperienceSkill = "";
+        history.Clear(); knownNames.Clear(); invitations.Clear(); friendInvitations.Clear(); lfgListings.Clear(); socialProfiles.Clear(); pickupNotes.Clear(); lastExperienceSkill = "";
         chatLog.Text = ""; RenderPickupFeed(); ShowLogin();
     }
     public override void _Notification(int what)

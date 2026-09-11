@@ -309,6 +309,14 @@ public sealed class Character
     public string Guild { get; set; } = "";
     public string Pet { get; set; } = "";
     public HashSet<string> Ignored { get; set; } = [];
+    // Mutual friends, pending requests, recent proximity contacts, and an optional LFG advert.
+    // Defaults keep historical saves compatible.
+    public HashSet<string> Friends { get; set; } = [];
+    public HashSet<string> FriendInvites { get; set; } = [];
+    public Dictionary<string,double> RecentPlayers { get; set; } = [];
+    public string LfgActivity { get; set; } = "";
+    public string LfgRole { get; set; } = "";
+    public double LfgSince { get; set; }
     public long LastAction { get; set; }
     public int Deaths { get; set; }
     public int PublicEventsCompleted { get; set; }
@@ -372,6 +380,16 @@ public sealed class SocialGroup
     public HashSet<string> Invites { get; set; } = [];
     public Dictionary<string,string> Roles { get; set; } = [];
     public string Message { get; set; } = "";
+    // Party cooperation state. Historical groups default to the original behavior safely.
+    public int LootCursor { get; set; }
+    public double ReadyCheckEnds { get; set; }
+    public HashSet<string> ReadyMembers { get; set; } = [];
+    // Guild progression. Level is derived from Experience so no migration is required.
+    public long Experience { get; set; }
+    public string Project { get; set; } = "";
+    public int ProjectProgress { get; set; }
+    public int ProjectGoal { get; set; }
+    public int CompletedProjects { get; set; }
 }
 public sealed class TradeOffer
 {

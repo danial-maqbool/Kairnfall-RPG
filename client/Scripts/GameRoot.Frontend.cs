@@ -105,7 +105,11 @@ public partial class GameRoot
         {
             await Connection.ConnectAsync(characterId, lifetime.Token);
             int read = 0;
-            while (read++ < 150 && Connection.TryRead(out var packet)) if (packet?.Snapshot is not null) { World.Accept(packet); invitations = packet.Invitations ?? []; }
+            while (read++ < 150 && Connection.TryRead(out var packet)) if (packet?.Snapshot is not null)
+            {
+                World.Accept(packet); invitations = packet.Invitations ?? []; friendInvitations = packet.FriendInvitations ?? [];
+                lfgListings = packet.Lfg ?? []; socialProfiles = packet.SocialProfiles ?? [];
+            }
             frontend.Visible = false; SetInitialHotbar(); ClosePage();
             Notify("Move: WASD or arrows. Interact: E. Hold Space to attack. Use your first class ability with 1.");
         }

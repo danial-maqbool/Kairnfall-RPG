@@ -169,6 +169,7 @@ MeaningfulObjectiveChecks.Run(catalog,failures);
 CombatVarietyChecks.Run(catalog,failures);
 ClassCombatIdentityChecks.Run(catalog,failures);
 LivingWorldEventChecks.Run(catalog,failures);
+SocialCooperationChecks.Run(catalog,failures);
 ExplorationRewardChecks.Run(catalog,failures);
 EconomyCraftingFeelChecks.Run(catalog,failures);
 MidLateGameContentChecks.Run(catalog,failures);

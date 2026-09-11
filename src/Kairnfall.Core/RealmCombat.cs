@@ -83,7 +83,11 @@ public sealed partial class RealmEngine
                 recipient.Health+=healing;
                 if(ability.Duration>0) ApplyStatus(recipient.Statuses,"regeneration",ability.Element,ability.Duration,healing/10,p.Id);
                 int encounterLevel=SupportTraining.EncounterLevel(recipient,State.Time);
-                if(encounterLevel>0) { ChallengeProgression.TrainCombat(p,ability.Skill,Math.Max(1,(int)healing/2),encounterLevel,Data); trained=true; }
+                if(encounterLevel>0)
+                {
+                    ChallengeProgression.TrainCombat(p,ability.Skill,Math.Max(1,(int)healing/2),encounterLevel,Data); trained=true;
+                    if(recipient.Id!=p.Id) { p.LastCombat=State.Time; Progress(p,"assist","heal"); RecordEventSupport(p,recipient,healing); }
+                }
                 break;
             }
             case "shield": ApplyStatus(p.Statuses,"shield",ability.Element,ability.Duration,basePower,p.Id); break;
@@ -161,6 +165,7 @@ public sealed partial class RealmEngine
     {
         if(mob.Health<=0||mob.Owner!="") return 0;
         var def=Data.Mob(mob.Template); var stats=CombatMath.Stats(p,Data);
+        raw*=1-Math.Clamp(CombatMath.StatusPower(p.Statuses,"revive_sickness",State.Time),0,.4);
         double bonus=Math.Clamp(stats.Bonus("damage_"+element.ToString().ToLowerInvariant())/100,0,2);
         double empower=Math.Clamp(CombatMath.StatusPower(p.Statuses,"empower",State.Time),0,0.5);
         int attunement=Items.EquippedElementPoints(p,element,Data);
@@ -200,16 +205,18 @@ public sealed partial class RealmEngine
         mob.Target=""; mob.Statuses.Clear(); State.Telegraphs.RemoveAll(x=>x.Source==mob.Id);
         var contributors=mob.Threat.Where(x=>x.Value>0&&State.Characters.ContainsKey(x.Key)).Select(x=>Player(x.Key)).Where(x=>x.Zone==mob.Zone&&x.Position.Distance(mob.Position)<=24&&Active.Contains(x.Id)).ToList();
         if(contributors.Count==0) contributors.Add(killer);
-        RecordEventKill(mob,contributors);
-        foreach(var p in contributors)
+        var recipients=CooperativeKillRecipients(mob,contributors);
+        RecordEventKill(mob,recipients);
+        foreach(var p in recipients)
         {
-            ChallengeProgression.TrainCombat(p,"slayer",Math.Max(1,def.Xp/contributors.Count),def.Level,Data);
-            if(def.Anatomy.StartsWith("animal:",StringComparison.Ordinal)) ChallengeProgression.TrainCombat(p,"hunting",Math.Max(1,def.Xp/3/contributors.Count),def.Level,Data);
+            double guildBonus=CooperativeGuildMultiplier(p,recipients);
+            ChallengeProgression.TrainCombat(p,"slayer",Math.Max(1,(int)Math.Ceiling(def.Xp/(double)recipients.Count*guildBonus)),def.Level,Data);
+            if(def.Anatomy.StartsWith("animal:",StringComparison.Ordinal)) ChallengeProgression.TrainCombat(p,"hunting",Math.Max(1,(int)Math.Ceiling(def.Xp/3.0/recipients.Count*guildBonus)),def.Level,Data);
             p.Bestiary[def.Id]=p.Bestiary.GetValueOrDefault(def.Id)+1;
             Progress(p,"kill",def.Id); if(def.Boss) { p.Achievements.Add("boss:"+def.Id); Progress(p,"boss",def.Id); }
         }
-        var owner=contributors.OrderByDescending(x=>mob.Threat.GetValueOrDefault(x.Id)).First();
-        var pile=new LootPile{Zone=mob.Zone,Position=mob.Position,Owner=owner.Id,Party=owner.Party,Gold=def.Gold+RandomNumberGenerator.GetInt32(Math.Max(1,def.Gold/3+1)),PublicAt=State.Time+60,Expires=State.Time+LootPile.LifetimeSeconds};
+        var owner=CooperativeLootOwner(mob,contributors,recipients);
+        var pile=new LootPile{Zone=mob.Zone,Position=mob.Position,Owner=owner.Id,Party=owner.Party,PartyAt=owner.Party!=""?State.Time+SocialCooperationRules.PartyLootDelay:0,Gold=def.Gold+RandomNumberGenerator.GetInt32(Math.Max(1,def.Gold/3+1)),PublicAt=State.Time+60,Expires=State.Time+LootPile.LifetimeSeconds};
         var ordinaryDrops=def.Drops.Where(template=>!Data.Item(template).Tags.Contains("boss_unique",StringComparer.Ordinal)).ToArray();
         foreach(var template in ordinaryDrops)
         {
