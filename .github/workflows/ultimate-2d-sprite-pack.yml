@@ -1,0 +1,115 @@
+name: Ultimate 2D full game sprite sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/art/ultimate_payload/**'
+      - 'tools/art/generate_kairnfall_ultimate_pack_runner.py'
+      - 'tools/integrate_ultimate_pack.py'
+      - 'tools/integrate_atelier.py'
+      - 'tools/complete_skill_icons.py'
+      - '.github/workflows/ultimate-2d-sprite-pack.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ultimate-2d-sprite-pack-main
+  cancel-in-progress: true
+
+jobs:
+  generate-validate-sync:
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'art: publish ultimate 2D full-game sprite pack'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebase onto current main
+        shell: bash
+        run: git pull --rebase origin main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Materialize reviewed sprite integration source
+        shell: bash
+        run: |
+          if [ -f tools/art/ultimate_payload/source_bundle.tar.gz ]; then
+            tar -xzf tools/art/ultimate_payload/source_bundle.tar.gz -C .
+          elif compgen -G 'tools/art/ultimate_payload/part_*' > /dev/null; then
+            mkdir -p artifacts
+            cat tools/art/ultimate_payload/part_* | base64 --decode > artifacts/ultimate-source.tar.gz
+            tar -xzf artifacts/ultimate-source.tar.gz -C .
+          fi
+      - name: Install image dependency
+        run: python -m pip install Pillow==12.0.0
+      - name: Generate full 2D sprite source pack
+        run: python tools/art/generate_kairnfall_ultimate_pack_runner.py --output atelier/UltimateAssets
+      - name: Validate source pack
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          import json
+          root=Path('atelier/UltimateAssets')
+          manifest=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
+          pngs=sorted(root.rglob('*.png'))
+          if len(pngs) != 1069:
+              raise SystemExit(f'Expected 1069 PNG files including previews; found {len(pngs)}')
+          if sum(manifest['counts'].values()) != 1066:
+              raise SystemExit('Ultimate pack asset count changed unexpectedly')
+          for path in pngs:
+              with Image.open(path) as image:
+                  if image.mode != 'RGBA' or image.getchannel('A').getbbox() is None:
+                      raise SystemExit(f'Blank/non-RGBA sprite: {path}')
+          for folder in [root/'actors/humanoid/body',root/'actors/humanoid/hair',root/'actors/humanoid/armor',
+                         root/'actors/humanoid/weapons',root/'actors/humanoid/complete',root/'actors/npcs',root/'actors/mobs']:
+              for path in folder.glob('*.png'):
+                  with Image.open(path) as image:
+                      if image.size != (512,1536): raise SystemExit(f'Bad actor sheet: {path} {image.size}')
+          for path in (root/'actors/bosses').glob('*.png'):
+              with Image.open(path) as image:
+                  if image.size != (1024,3072): raise SystemExit(f'Bad boss sheet: {path} {image.size}')
+          print('Ultimate source pack validated:',len(pngs),'PNGs')
+          PY
+      - name: Build and validate game integration
+        shell: bash
+        run: |
+          python tools/build_content.py
+          python tools/build_game_assets.py
+          python tools/complete_skill_icons.py
+          python tools/validate_game_assets.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('client/Assets/ultimate-sprite-integration.json').read_text(encoding='utf-8'))
+          if report['overridden'] < 200:
+              raise SystemExit(f"Too few Ultimate runtime overrides: {report['overridden']}")
+          if report['extra_sprite_keys'] < 100:
+              raise SystemExit('Ultimate future-facing sprite families were not packaged')
+          print('Ultimate runtime integration:',report['overridden'],'overrides and',report['extra_sprite_keys'],'extra keys')
+          PY
+      - name: Commit source and generated sprite pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ -d tools/art/ultimate_payload ]; then
+            git rm -r tools/art/ultimate_payload
+          fi
+          git add tools/art/generate_kairnfall_ultimate_pack_runner.py \
+                  tools/integrate_ultimate_pack.py tools/integrate_atelier.py \
+                  tools/complete_skill_icons.py docs/ULTIMATE_2D_SPRITE_PACK.md \
+                  atelier/UltimateAssets
+          if git diff --cached --quiet; then
+            echo 'Ultimate sprite integration already matches the repository.'
+            exit 0
+          fi
+          git commit -m 'art: publish ultimate 2D full-game sprite pack'
+          git pull --rebase origin main
+          git push origin HEAD:main
