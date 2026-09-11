@@ -41,7 +41,9 @@ jobs:
       - name: Install deterministic art dependencies
         run: python3 -m pip install -r tools/requirements-art.txt
       - name: Apply walk-through transition candidate
-        run: python3 tools/apply_walk_transitions.py
+        run: |
+          mkdir -p docs/acceptance
+          python3 tools/apply_walk_transitions.py
       - name: Generate deterministic content
         run: python3 tools/build_content.py
       - name: Compile complete solution and client
