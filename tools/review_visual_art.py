@@ -34,12 +34,15 @@ def main():
     records=[]
     coverage={'normal_mobs':0,'elites':0,'bosses':0,'mob_action_direction_frames':0,
         'individual_creature_sheets':0,'visible_equipment_slots':0,'equipment_action_direction_frames':0,
-        'individual_equipment_sheets':0}
+        'individual_equipment_sheets':0,'distinct_equipment_sheets':0,
+        'shipped_player_variants':0,'shipped_player_action_direction_frames':0}
     direction_names=('S','W','E','N')
+    state_index={state:index for index,state in enumerate(STATES)}
     def save(image,name):
         path=output/(name+'.png'); path.parent.mkdir(parents=True,exist_ok=True); image.save(path,optimize=True)
-        records.append({'file':path.relative_to(output).as_posix(),'width':image.width,'height':image.height,
-            'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+        digest=hashlib.sha256(path.read_bytes()).hexdigest()
+        records.append({'file':path.relative_to(output).as_posix(),'width':image.width,'height':image.height,'sha256':digest})
+        return digest
     def contact(entries,name,columns=6,cell=(144,156),scale=2):
         image=Image.new('RGBA',(columns*cell[0],max(1,math.ceil(len(entries)/columns))*cell[1]),'#24262b'); draw=ImageDraw.Draw(image)
         for i,(label,tile) in enumerate(entries):
@@ -47,7 +50,7 @@ def main():
             x=(i%columns)*cell[0]; y=(i//columns)*cell[1]
             image.alpha_composite(tile,(x+(cell[0]-tile.width)//2,y+4))
             draw.text((x+4,y+cell[1]-17),label[:22],fill='#e9dfc5')
-        save(image,name)
+        return save(image,name)
     def order(direction):
         # The baseline intentionally uses the historical order for a fair before-state.
         if not (source/'tools/art/humanoid.py').exists():
@@ -65,6 +68,15 @@ def main():
         return result
     def representative_frame(state):
         return {'idle':0,'walk':3,'attack':3,'cast':3,'hit':2,'death':7}.get(state,0)
+    def sheet_frame(path,state,number,direction,size=64):
+        row=state_index[state]*4+direction
+        with Image.open(path) as image:
+            expected=(size*8,size*24)
+            if image.mode!='RGBA' or image.size!=expected:
+                raise ValueError(f'Invalid shipped animation sheet {path}: expected RGBA {expected}, got {image.mode} {image.size}')
+            frame=image.crop((number*size,row*size,(number+1)*size,(row+1)*size)).copy()
+        if frame.getchannel('A').getbbox() is None: raise ValueError('Blank shipped animation frame: '+str(path))
+        return frame
     def mob_action_matrix(mobs,name):
         entries=[]
         for mob in mobs:
@@ -95,7 +107,28 @@ def main():
     contact([(f'body {b} {state} {direction_names[direction]}',body_frame(b,2,state,representative_frame(state),direction))
         for b in range(2) for state in STATES for direction in range(4)],'player-body-actions',columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
 
-    layer_entries=[]
+    shipped_people=source/'atelier/Assets/people'
+    shipped_body_paths=[shipped_people/f'body_{body}_{skin}.png' for body in range(2) for skin in range(6)]
+    present=[path.is_file() for path in shipped_body_paths]
+    if any(present):
+        if not all(present):
+            missing=[path.name for path,exists in zip(shipped_body_paths,present) if not exists]
+            raise ValueError('Incomplete shipped player body cohort: '+', '.join(missing))
+        coverage['shipped_player_variants']=len(shipped_body_paths)
+        contact([(f'body {body} skin {skin}',sheet_frame(shipped_people/f'body_{body}_{skin}.png','idle',0,0))
+            for body in range(2) for skin in range(6)],'shipped-player-bodies')
+        shipped_actions=[]
+        for body in range(2):
+            for skin in range(6):
+                path=shipped_people/f'body_{body}_{skin}.png'
+                for state in STATES:
+                    number=representative_frame(state)
+                    for direction in range(4):
+                        shipped_actions.append((f'b{body}s{skin} {state} {direction_names[direction]}',sheet_frame(path,state,number,direction)))
+        coverage['shipped_player_action_direction_frames']=len(shipped_actions)
+        contact(shipped_actions,'shipped-player-body-actions',columns=24,cell=(72,84),scale=1)
+
+    layer_entries=[]; equipment_sheet_hashes=[]
     for slot in visible_slots:
         item=next(item for item in equipment if item['slot']==slot)
         gear=dict(basegear); gear[slot]=item
@@ -113,8 +146,11 @@ def main():
                 short=f'{state} {direction_names[direction]}'
                 layer_entries.append((f'{slot} {short}',person(0,state,n,direction,gear)))
                 slot_entries.append((short,person(0,state,n,direction,isolated_gear)))
-        contact(slot_entries,f'equipment-layers/{slot}',columns=4,cell=(112,92),scale=1)
+        equipment_sheet_hashes.append(contact(slot_entries,f'equipment-layers/{slot}',columns=4,cell=(112,92),scale=1))
         coverage['individual_equipment_sheets']+=1
+    coverage['distinct_equipment_sheets']=len(set(equipment_sheet_hashes))
+    if equipment_sheet_hashes and coverage['distinct_equipment_sheets']<=1:
+        raise ValueError('Individual equipment review sheets collapsed to one identical composite')
     coverage['equipment_action_direction_frames']=len(layer_entries)
     contact(layer_entries,'equipment-all-layers',columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
 
@@ -163,7 +199,7 @@ def main():
             contact(entries,f'equipment-grade-{tier["level"]:03d}',columns=12,cell=(100,92),scale=1)
     revision=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
     (output/'review-manifest.json').write_text(json.dumps({'source_revision':revision,'evidence_kind':'source-rendered contact sheets; not gameplay','visual_approval':'not_reviewed','coverage':coverage,'files':records},indent=2)+'\n',encoding='utf-8')
-    print(f'VISUAL_REVIEW: {len(records)} source contact sheets; {coverage["normal_mobs"]} normal mobs, {coverage["elites"]} elites and {coverage["bosses"]} bosses covered across actions/directions; {coverage["individual_creature_sheets"]} readable creature sheets; {coverage["visible_equipment_slots"]} visible equipment slots and {coverage["individual_equipment_sheets"]} readable layer sheets covered; visual approval not inferred.')
+    print(f'VISUAL_REVIEW: {len(records)} source contact sheets; {coverage["normal_mobs"]} normal mobs, {coverage["elites"]} elites and {coverage["bosses"]} bosses covered across actions/directions; {coverage["individual_creature_sheets"]} readable creature sheets; {coverage["visible_equipment_slots"]} visible equipment slots and {coverage["individual_equipment_sheets"]} readable layer sheets ({coverage["distinct_equipment_sheets"]} distinct); {coverage["shipped_player_variants"]} shipped player variants with {coverage["shipped_player_action_direction_frames"]} representative action/direction frames; visual approval not inferred.')
 
 
 if __name__=='__main__': main()
