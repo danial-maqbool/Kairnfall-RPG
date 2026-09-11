@@ -6,6 +6,7 @@ on:
     paths:
       - 'tools/art/ultimate_payload/**'
       - 'tools/art/generate_kairnfall_ultimate_pack_runner.py'
+      - 'tools/art/patch_ultimate_mapper.py'
       - 'tools/integrate_ultimate_pack.py'
       - 'tools/integrate_atelier.py'
       - 'tools/complete_skill_icons.py'
@@ -44,6 +45,7 @@ jobs:
             cat tools/art/ultimate_payload/part_* | base64 --decode > artifacts/ultimate-source.tar.gz
             tar -xzf artifacts/ultimate-source.tar.gz -C .
           fi
+          python tools/art/patch_ultimate_mapper.py
       - name: Install image dependency
         run: python -m pip install Pillow==12.0.0
       - name: Generate full 2D sprite source pack
@@ -103,7 +105,7 @@ jobs:
             git rm -r tools/art/ultimate_payload
           fi
           git add tools/art/generate_kairnfall_ultimate_pack_runner.py \
-                  tools/integrate_ultimate_pack.py tools/integrate_atelier.py \
+                  tools/art/patch_ultimate_mapper.py tools/integrate_ultimate_pack.py tools/integrate_atelier.py \
                   tools/complete_skill_icons.py docs/ULTIMATE_2D_SPRITE_PACK.md \
                   atelier/UltimateAssets
           if git diff --cached --quiet; then
