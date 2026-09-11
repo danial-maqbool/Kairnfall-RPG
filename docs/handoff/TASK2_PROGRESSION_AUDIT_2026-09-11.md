@@ -24,6 +24,8 @@ For every skill the audit requires the real activity to increase skill XP, cross
 
 All eight accepted classes are checked for their authored role/passive metadata, three affinity skills, starter weapon and chest identity, restart persistence, and the class-affinity training multiplier. Every one of the 15 authored abilities per class is executed through the real cast handler, for 120 class abilities total, with an observable effect required for its behavior family (damage, heal, shield, buff, stealth, purge, summon, taunt, dash, interrupt or area/line/cone/field/projectile behavior).
 
+The first CI execution exposed a fixture error in the three self-centered taunt abilities: the audit supplied a hostile target position to zero-range taunts. The permanent fixture now keeps both the target identifier and cast location on the caster while retaining a nearby hostile to prove the taunt/guard effect. This corrects the test harness and does not change gameplay rules or lower an acceptance threshold.
+
 ## Evidence boundary
 
 This automated audit is deliberately stronger than catalog counting, but it is not the human normal-play acceptance requested by the QA matrix. Human review is still required for class feel/identity in sustained play, pacing, subjective usefulness, and physical Windows input. Those claims must not be inferred from this record.
