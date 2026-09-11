@@ -22,7 +22,18 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Apply focused source patch
-        run: python3 tools/apply_journey_pacing_update.py
+        shell: bash
+        run: |
+          python3 tools/apply_journey_pacing_update.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('tools/world_probe/JourneyPacingChecks.cs')
+          text=path.read_text(encoding='utf-8')
+          old='''            Need(denied.Message.Contains(candidate.gate.ToString(),StringComparison.Ordinal),"Gate failure did not explain the required level.");\n            var ready=AtLevel(candidate.gate);p.SkillXp=new(ready.SkillXp);p.Position=candidate.exit.Position;\n'''
+          new='''            Need(denied.Message.Contains(candidate.gate.ToString(),StringComparison.Ordinal),"Gate failure did not explain the required level.");\n            p=realm.Player(p.Id);\n            var ready=AtLevel(candidate.gate);p.SkillXp=new(ready.SkillXp);p.Position=candidate.exit.Position;\n'''
+          if old not in text: raise SystemExit('Journey rollback fixture anchor missing.')
+          path.write_text(text.replace(old,new,1),encoding='utf-8')
+          PY
       - name: Verify content, server, journey rules, and client compile
         shell: bash
         run: |
