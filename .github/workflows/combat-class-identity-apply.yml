@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'tools/apply_combat_class_identity.py'
+      - 'tools/refine_combat_class_identity.py'
       - '.github/workflows/combat-class-identity-apply.yml'
 permissions:
   contents: write
@@ -24,7 +25,9 @@ jobs:
       - name: Install deterministic art dependencies
         run: python3 -m pip install -r tools/requirements-art.txt
       - name: Apply combat feel and class identity candidate
-        run: python3 tools/apply_combat_class_identity.py
+        run: |
+          python3 tools/apply_combat_class_identity.py
+          python3 tools/refine_combat_class_identity.py
       - name: Regenerate deterministic content
         run: python3 tools/build_content.py
       - name: Compile complete solution and Godot client
@@ -36,7 +39,9 @@ jobs:
           dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
           dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release
       - name: Run world progression combat and class-identity acceptance
-        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee combat-class-world.log
+        run: |
+          set -o pipefail
+          dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee combat-class-world.log
       - name: Require class identity acceptance groups
         run: |
           grep -F 'CLASS COMBAT IDENTITY: 7 groups passed' combat-class-world.log
@@ -49,7 +54,7 @@ jobs:
         run: git diff --check
       - name: Publish verified feature and remove temporary tooling
         run: |
-          rm tools/apply_combat_class_identity.py .github/workflows/combat-class-identity-apply.yml
+          rm tools/apply_combat_class_identity.py tools/refine_combat_class_identity.py .github/workflows/combat-class-identity-apply.yml
           git add -A
           git diff --cached --stat
           test -n "$(git diff --cached --name-only)"
