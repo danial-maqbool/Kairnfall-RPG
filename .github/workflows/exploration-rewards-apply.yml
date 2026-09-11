@@ -22,17 +22,20 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Install deterministic art dependency
-        run: python3 -m pip install --disable-pip-version-check pillow
-      - name: Apply exploration-reward source patch and rebuild deterministic content/art
+      - name: Apply exploration-reward source patch
         shell: bash
         run: |
           set -euo pipefail
           python3 tools/apply_exploration_rewards_update.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tools/world_probe/ExplorationRewardChecks.cs')
+          text=p.read_text(encoding='utf-8')
+          text=text.replace('var landmark=ExplorationRewards.Landmarks(zone)[0];p.Position=JourneyProgression.LandmarkPoint(landmark);\n            var revisit=realm.Execute(p.Id,new GameCommand{Kind="inspect",Target=landmark.Id,Sequence=p.LastAction+1});',
+                            'var firstLandmark=ExplorationRewards.Landmarks(zone)[0];p.Position=JourneyProgression.LandmarkPoint(firstLandmark);\n            var revisit=realm.Execute(p.Id,new GameCommand{Kind="inspect",Target=firstLandmark.Id,Sequence=p.LastAction+1});')
+          p.write_text(text,encoding='utf-8')
+          PY
           python3 tools/build_content.py
-          python3 tools/build_game_assets.py
-          python3 tools/complete_skill_icons.py
-          python3 tools/validate_game_assets.py
       - name: Verify authoritative exploration loop, server, and client
         shell: bash
         run: |
@@ -41,6 +44,14 @@ jobs:
           dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release
           dotnet build client/Kairnfall.Client.csproj -c Debug
           git diff --check
+      - name: Rebuild and validate deterministic art including regional keepsakes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check pillow
+          python3 tools/build_game_assets.py
+          python3 tools/complete_skill_icons.py
+          python3 tools/validate_game_assets.py
       - name: Publish verified update and remove temporary helpers
         shell: bash
         run: |
