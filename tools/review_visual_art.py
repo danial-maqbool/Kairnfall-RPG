@@ -76,9 +76,12 @@ def main():
                     short=f'{state} {direction_names[direction]}'
                     entries.append((f'{mob["id"]} {short}',tile))
                     creature_entries.append((short,tile))
-            contact(creature_entries,f'creatures/{mob["id"]}',columns=4,cell=(112,92),scale=1)
+            creature_cell=(144,156) if mob.get('boss') else (112,92)
+            contact(creature_entries,f'creatures/{mob["id"]}',columns=4,cell=creature_cell,scale=1)
             coverage['individual_creature_sheets']+=1
-        contact(entries,name,columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
+        aggregate_boss=bool(mobs and any(mob.get('boss') for mob in mobs))
+        contact(entries,name,columns=12 if aggregate_boss else max(4,len(STATES)*4),
+            cell=(144,156) if aggregate_boss else (72,84),scale=1)
         coverage['mob_action_direction_frames']+=len(entries)
 
     equipment=[item for item in data['items'] if item.get('slot')]
