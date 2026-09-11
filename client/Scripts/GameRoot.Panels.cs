@@ -118,12 +118,14 @@ public partial class GameRoot
                 bool complete = Snapshot.Self.CompletedQuests.Contains(quest.Id);
                 bool unlocked = quest.Prerequisite == "" || Snapshot.Self.CompletedQuests.Contains(quest.Prerequisite);
                 bool cooldown = Snapshot.Self.Cooldowns.GetValueOrDefault("quest:" + quest.Id) > Snapshot.Time;
+                bool levelReady = Progression.PlayerLevel(Snapshot.Self) >= quest.MinimumLevel;
                 if (!active && ((!quest.Repeatable && complete) || !unlocked || cooldown)) continue;
                 var card = new PanelContainer(); offers.AddChild(card); var body = Ui.Column(card);
                 body.AddChild(Ui.Label(quest.Name + (quest.Repeatable ? " · Repeatable" : ""), 20, Ui.Gold)); body.AddChild(Ui.Label(quest.Story, 15, Ui.Text, true));
                 foreach (var objective in quest.Objectives) body.AddChild(Ui.Label("• " + objective.Description, 14, Ui.Muted, true));
+                if (!levelReady) body.AddChild(Ui.Label($"Requires character level {quest.MinimumLevel}.", 14, Ui.Danger));
                 body.AddChild(Ui.Label($"Reward: {quest.Gold} gold" + (quest.Reward != "" ? " · " + Data.Item(quest.Reward).Name : ""), 14, Ui.Success));
-                if (!active) body.AddChild(Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc)));
+                if (!active) body.AddChild(Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc) || !levelReady));
                 else if (progress!.Complete) body.AddChild(Ui.Button("Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc)));
                 else body.AddChild(Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); }));
             }

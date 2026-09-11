@@ -132,6 +132,8 @@ public sealed partial class RealmEngine
         var quest=Data.Quest(id); var npc=Data.Npc(quest.Giver); Near(p,npc.Zone,npc.Position,3);
         Need(!p.Quests.ContainsKey(id),"You already accepted this quest.");
         Need(quest.Repeatable||!p.CompletedQuests.Contains(id),"You already completed this quest.");
+        int playerLevel=Progression.PlayerLevel(p);
+        Need(playerLevel>=quest.MinimumLevel,$"Requires character level {quest.MinimumLevel}. You are level {playerLevel}.");
         Need(quest.Prerequisite==""||p.CompletedQuests.Contains(quest.Prerequisite),"Complete the previous quest first.");
         Need(p.Cooldowns.GetValueOrDefault("quest:"+id)<=State.Time,"This repeatable quest is not available yet.");
         p.Quests[id]=new(){Counts=Enumerable.Repeat(0,quest.Objectives.Count).ToList()};

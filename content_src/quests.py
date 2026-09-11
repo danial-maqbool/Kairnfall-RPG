@@ -6,8 +6,8 @@ def objective(action,target,count=1,description=''):
     return dict(action=action,target=target,count=count,description=description or f'{action.title()} {target.replace("_"," ")} ({count}).')
 
 
-def add(data,ident,name,giver,story,objectives,category='side',prerequisite='',reward='',gold=30,faction='wayfarers',repeatable=False):
-    data['quests'].append(dict(id=ident,name=name,giver=giver,story=story,objectives=objectives,category=category,prerequisite=prerequisite,reward=reward,gold=gold,faction=faction,repeatable=repeatable))
+def add(data,ident,name,giver,story,objectives,category='side',prerequisite='',reward='',gold=30,faction='wayfarers',repeatable=False,minimum=1):
+    data['quests'].append(dict(id=ident,name=name,giver=giver,story=story,objectives=objectives,category=category,prerequisite=prerequisite,reward=reward,gold=gold,faction=faction,repeatable=repeatable,minimumLevel=minimum))
 
 
 def build(data):
@@ -80,7 +80,7 @@ def build(data):
         objectives += [objective('survey',region_id+'_'+suffix,1,'Survey '+label+' in '+region_name+'.') for suffix,label in landmark_rows]
         add(data,'survey_'+region_id,'Waymarks of '+region_name,giver,
             'The road ledger has names but no reliable landmarks. Walk the region, inspect its four surviving waymarks, and return with a route another traveler could actually follow. '+lore,
-            objectives,'regional',reward='parchment',gold=70+level*4)
+            objectives,'regional',reward='parchment',gold=70+level*4,minimum=max(1,level-5))
 
     # Repeatable field work now rotates exploration, observation, and gathering instead of defaulting to mob kills.
     for i,(region_id,region_name,biome,level,lore) in enumerate(REGIONS):
@@ -93,10 +93,43 @@ def build(data):
         add(data,'field_'+region_id,'Field Report: '+region_name,giver,
             'Revisit '+region_name+' as a working surveyor: confirm one landmark, collect a local material sample, and update the route without turning the assignment into another extermination order. '+lore,
             [objective('explore',region_id),objective('survey',region_id+'_'+suffix,1,'Recheck '+label+' in '+region_name+'.'),objective('gather',resource['item'],2,'Gather 2 '+resource['item'].replace('_',' ')+' in '+region_name+'.')],
-            'repeatable',gold=50+level*3,repeatable=True)
-    for i,(dungeon_id,name,parent,layer,biome,boss_id) in enumerate(DUNGEONS[:10]):
-        giver=CITIES[i%5][0]+'_guild_registrar'
-        add(data,'delve_'+dungeon_id,'Guild Delve: '+name,giver,'The guild will reward a verified return from '+name+'. Defeat its guardian after accepting this contract.',[objective('boss',boss_id)],'repeatable',gold=100+i*35,repeatable=True)
+            'repeatable',gold=50+level*3,repeatable=True,minimum=max(1,level-5))
+
+    # Mid/late-game guild circuits give the six optional dungeons a narrative hook
+    # instead of leaving them as disconnected boss rooms.
+    add(data,'veteran_deepways_circuit','The Roads the Ledger Missed','dawnreach_guild_registrar',
+        'Two Deepway sites never entered the capital ledger. Verify both routes and their guardians before the guild treats them as safe expedition destinations.',
+        [objective('explore','drowned_cistern'),objective('boss','saltjaw'),
+         objective('explore','glasswing_grotto'),objective('boss','glasswing')],
+        'regional','main_18','rune_wanderer_3',650,'wayfarers',minimum=40)
+    add(data,'veteran_umbral_circuit','Four Seals of the Umbral Roads','emberhold_guild_registrar',
+        'The Umbral Crossroads opens onto four sealed routes outside the main road. Clear all four guardians so later expeditions have an established return path.',
+        [objective('explore','regents_tomb'),objective('boss','dune_regent'),
+         objective('explore','rime_abbey'),objective('boss','rime_abbess'),
+         objective('explore','cinder_barracks'),objective('boss','cinder_marshal'),
+         objective('explore','reef_sanctum'),objective('boss','reef_colossus')],
+        'regional','main_20','rune_warding_4',1400,'wayfarers',minimum=50)
+
+    repeatable_gate={
+      'broken_mill':'main_04','bell_crypt':'main_07','silken_tollhouse':'main_09','root_court':'main_10',
+      'sunken_foundry':'main_12','watchers_nest':'main_13','drowned_cistern':'veteran_deepways_circuit',
+      'unmoored_vault':'main_16','ivory_archive':'main_18','glasswing_grotto':'veteran_deepways_circuit',
+      'regents_tomb':'veteran_umbral_circuit','chorus_caverns':'main_19','winterhorn_pass':'main_15',
+      'rime_abbey':'veteran_umbral_circuit','cinder_barracks':'veteran_umbral_circuit',
+      'reef_sanctum':'veteran_umbral_circuit','hollow_throne':'main_21',
+      'prism_observatory':'main_23','unwritten_library':'main_24','engine_of_dawn':'main_25'
+    }
+    # Every dungeon has a daily expedition. High-level delves require a relic
+    # sample as well as the boss, so the loop also touches gathering/crafting supply.
+    for i,(dungeon_id,name,parent,layer,biome,boss_id) in enumerate(DUNGEONS):
+        boss=next(m for m in data['mobs'] if m['id']==boss_id)
+        giver=('dawnreach' if layer=='Aether Rift' else 'emberhold' if layer=='Umbral Depths' else CITIES[i%5][0])+'_guild_registrar'
+        objectives=[objective('explore',dungeon_id),objective('boss',boss_id)]
+        if boss['level']>=50:
+            objectives.append(objective('gather','relic_shard',1,'Recover one relic shard during the expedition.'))
+        add(data,'delve_'+dungeon_id,'Guild Expedition: '+name,giver,
+            'The guild will reward a verified return from '+name+'. Enter the site after accepting this contract, defeat its guardian, and bring back field evidence from veteran routes.',
+            objectives,'repeatable',repeatable_gate[dungeon_id],gold=80+boss['level']*6,repeatable=True,minimum=max(1,boss['level']-5))
     for cls in data['classes']:
         skill=cls['affinity'][0]; ability=cls['abilities'][0]
         add(data,'class_'+cls['id'],cls['name']+' Initiation','dawnreach_trainer','Demonstrate the first technique of the '+cls['name']+'. Other classes may undertake this discipline after training the required skill.',[objective('cast',ability,3)],'class',reward='rune_precision_1',gold=60)

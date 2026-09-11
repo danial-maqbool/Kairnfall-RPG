@@ -69,12 +69,17 @@ public static class JourneyProgression
         return "Go to "+zone.Name+(suffix==""?".":" · "+suffix);
     }
 
-    public static JourneyQuestLead? LocalQuest(Catalog data,Character player)
+    public static JourneyQuestLead? LocalQuest(Catalog data,Character player,double now=0)
     {
+        int level=Progression.PlayerLevel(player);
         foreach(var quest in data.Quests
-            .Where(q=>!player.Quests.ContainsKey(q.Id)&&!player.CompletedQuests.Contains(q.Id)
-                &&(q.Prerequisite==""||player.CompletedQuests.Contains(q.Prerequisite)))
+            .Where(q=>!player.Quests.ContainsKey(q.Id)
+                &&(q.Repeatable||!player.CompletedQuests.Contains(q.Id))
+                &&level>=q.MinimumLevel
+                &&(q.Prerequisite==""||player.CompletedQuests.Contains(q.Prerequisite))
+                &&(!q.Repeatable||player.Cooldowns.GetValueOrDefault("quest:"+q.Id)<=now))
             .OrderBy(QuestPriority)
+            .ThenBy(q=>q.MinimumLevel)
             .ThenBy(q=>q.Id,StringComparer.Ordinal))
         {
             var giver=data.Npc(quest.Giver);

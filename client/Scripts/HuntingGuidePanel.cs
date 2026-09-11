@@ -10,6 +10,7 @@ public partial class HuntingGuidePanel : VBoxContainer
     public Catalog Data { get; set; }=null!;
     public PixelAssets Assets { get; set; }=null!;
     public Func<Character?> ReadCharacter { get; set; }=()=>null;
+    public Func<double> ReadTime { get; set; }=()=>0;
     public string SelectedSite { get; private set; }="";
     private Label overview=null!,journey=null!,details=null!,directions=null!;
     private VBoxContainer list=null!;
@@ -77,7 +78,7 @@ public partial class HuntingGuidePanel : VBoxContainer
         }
         overview.Text=zone.Name+" · "+plan.Specialty+$"\nCharacter {playerLevel} · Threat {JourneyProgression.ThreatLevel(Data,zone)} · "+plan.OrdinaryCount+" ordinary spawn slots · "+plan.Patches.Count+" patches";
         if(ExplorationRewards.Eligible(zone))overview.Text+="\n"+ExplorationRewards.ProgressSummary(self,zone);
-        var lead=JourneyProgression.LocalQuest(Data,self);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
+        var lead=JourneyProgression.LocalQuest(Data,self,ReadTime());var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
         journey.Text=lead is not null?$"NEXT LEAD · {lead.QuestName}\nTalk to {lead.GiverName} in {zone.Name}."
             :next is not null?(next.Locked?$"NEXT FRONTIER · {next.ZoneName} · LOCKED at {next.EntryLevel}+ ({next.LevelsNeeded} to go)\nTrain skills, craft, gather or finish local quests while you prepare."
                 :$"NEXT FRONTIER · {next.ZoneName} · Threat {next.ThreatLevel} · Entry {next.EntryLevel}+ · READY\nSelect its exit below and follow the route marker.")
@@ -138,6 +139,6 @@ public partial class GameRoot
     private void BuildHuntingPage()
     {
         if(page is null||Snapshot is null)return;
-        var guide=new HuntingGuidePanel{Data=Data,Assets=Assets,ReadCharacter=()=>Snapshot?.Self};page.AddChild(guide);refreshPage=guide.RefreshSnapshot;
+        var guide=new HuntingGuidePanel{Data=Data,Assets=Assets,ReadCharacter=()=>Snapshot?.Self,ReadTime=()=>Snapshot?.Time??0};page.AddChild(guide);refreshPage=guide.RefreshSnapshot;
     }
 }

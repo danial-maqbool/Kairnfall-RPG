@@ -241,6 +241,7 @@ public sealed class QuestDef
     public string Category { get; set; } = "side";
     public string Prerequisite { get; set; } = "";
     public string Faction { get; set; } = "wayfarers";
+    public int MinimumLevel { get; set; } = 1;
     public List<ObjectiveDef> Objectives { get; set; } = [];
     public int Gold { get; set; } = 20;
     public string Reward { get; set; } = "";

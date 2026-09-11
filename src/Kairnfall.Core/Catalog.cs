@@ -66,7 +66,7 @@ public sealed class Catalog
         foreach(var npc in Npcs) if(!zones.Contains(npc.Zone)||npc.Stock.Any(x=>!items.Contains(x))) errors.Add($"Invalid NPC {npc.Id}");
         foreach(var quest in Quests)
         {
-            if(!npcs.Contains(quest.Giver)||quest.Objectives.Count==0||quest.Objectives.Any(x=>x.Count<1)||quest.Gold<0) errors.Add($"Invalid quest {quest.Id}");
+            if(!npcs.Contains(quest.Giver)||quest.Objectives.Count==0||quest.Objectives.Any(x=>x.Count<1)||quest.Gold<0||quest.MinimumLevel<1||quest.MinimumLevel>Progression.PlayerCap) errors.Add($"Invalid quest {quest.Id}");
             if(quest.Reward!=""&&!items.Contains(quest.Reward)) errors.Add($"Quest reward {quest.Id}");
             if(quest.Prerequisite!=""&&!quests.Contains(quest.Prerequisite)) errors.Add($"Quest prerequisite {quest.Id}");
             var current=quest; var visited=new HashSet<string>{quest.Id};

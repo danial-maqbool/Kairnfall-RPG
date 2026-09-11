@@ -232,7 +232,7 @@ public partial class GameRoot
         var tracked = self.Quests.OrderBy(x=>JourneyProgression.QuestPriority(Data.Quest(x.Key))).ThenBy(x=>x.Key,StringComparer.Ordinal).FirstOrDefault();
         if (tracked.Value is null)
         {
-            var lead=JourneyProgression.LocalQuest(Data,self);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
+            var lead=JourneyProgression.LocalQuest(Data,self,snap.Time);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
             if(lead is not null)objectiveText.Text=$"NEW LEAD · {lead.QuestName}\nTalk to {lead.GiverName} here.\nOpen Quest [J] or Hunt [H] for direction.";
             else if(zone.Kind=="interior"&&zone.Exits.FirstOrDefault() is { } wayOut)
                 objectiveText.Text=$"Return outside\nExit toward {Data.Zone(wayOut.Target).Name}\nInteract: E";
