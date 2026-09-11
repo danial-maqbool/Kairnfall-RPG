@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'tools/apply_walk_transitions.py'
+      - 'tools/refine_walk_transitions.py'
       - '.github/workflows/walk-transitions-apply.yml'
 permissions:
   contents: write
@@ -44,6 +45,7 @@ jobs:
         run: |
           mkdir -p docs/acceptance
           python3 tools/apply_walk_transitions.py
+          python3 tools/refine_walk_transitions.py
       - name: Generate deterministic content
         run: python3 tools/build_content.py
       - name: Compile complete solution and client
@@ -83,7 +85,7 @@ jobs:
         run: git diff --check
       - name: Publish verified feature and remove temporary tooling
         run: |
-          rm tools/apply_walk_transitions.py .github/workflows/walk-transitions-apply.yml
+          rm tools/apply_walk_transitions.py tools/refine_walk_transitions.py .github/workflows/walk-transitions-apply.yml
           git add -A
           git diff --cached --stat
           test -n "$(git diff --cached --name-only)"
