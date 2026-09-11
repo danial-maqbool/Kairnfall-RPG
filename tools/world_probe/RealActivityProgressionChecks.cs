@@ -113,8 +113,8 @@ internal static class RealActivityProgressionChecks
 
                 var realm = new RealmEngine(data);
                 var player = realm.CreateCharacter("class-persist-" + cls.Id, SafeName("Class " + cls.Id), cls.Id, new());
-                string weapon = player.Equipment.GetValueOrDefault("weapon");
-                string chest = player.Equipment.GetValueOrDefault("chest");
+                string weapon = player.Equipment.GetValueOrDefault("weapon")!;
+                string chest = player.Equipment.GetValueOrDefault("chest")!;
                 Need(weapon != "" && player.Inventory.Any(x => x.Id == weapon && x.Template == cls.Weapon),
                     cls.Id + " starter weapon identity failed.");
                 Need(chest != "" && player.Inventory.Any(x => x.Id == chest && x.Template == cls.Armor),
@@ -292,7 +292,7 @@ internal static class RealActivityProgressionChecks
         }
         else if (kind == "evasion")
         {
-            string equipped = p.Equipment.GetValueOrDefault("weapon");
+            string equipped = p.Equipment.GetValueOrDefault("weapon")!;
             var item = p.Inventory.First(x => x.Id == equipped);
             item.Affixes.Add(new() { Name = "audit evasion", Stat = "evasion", Value = 45 });
         }
