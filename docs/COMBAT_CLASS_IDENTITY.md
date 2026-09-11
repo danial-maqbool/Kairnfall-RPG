@@ -1,6 +1,6 @@
 # Combat feel and class identity
 
-Status: implementation candidate; the publication workflow replaces this line with exact verification evidence after the feature is pushed.
+Status: implemented and repository-verified. Feature commit: `db4b40caac12fe4da3e5a3e9cbe3971ca10821c2`. Focused verification/publish run: `34643559112` — passed.
 
 ## Class combat engines
 
@@ -25,6 +25,10 @@ The class resource is server-authoritative, persists safely through reconnect/sa
 - Existing deterministic sounds are pitch/body-remapped for hit, hurt, ready and release feedback; a larger audio-library expansion remains a later presentation task.
 - Character creation now explains the real class mechanic instead of showing an ornamental passive name.
 
-## Verification boundary
+## Verification evidence
 
-`ClassCombatIdentityChecks` validates the eight distinct resource loops, native spend rules, cross-class freedom, real `RealmEngine` representative casts, save/decay safety, and client feedback contracts. Existing 60-skill, 120-class-ability, combat-variety, world, economy and network suites must remain green. Automation establishes mechanics and code integration; subjective timing, punch and class feel still benefit from hands-on play.
+`ClassCombatIdentityChecks` passed all **7/7 groups** in focused run `34643559112`: eight distinct visible class resources, intended resource generation, caster/support/hybrid build-spend loops, native spend rules with cross-class skill freedom, real `RealmEngine` representative casts for all eight classes, save/decay safety, and client meter/input-buffer/impact-feedback contracts.
+
+The same focused run rebuilt the full deterministic game asset set and passed **55,687 / 55,687 technical asset checks** with zero failures or warnings. Full solution and Godot client builds completed with zero warnings/errors. Existing 60-skill, class-kit, combat-variety, world, exploration, economy and mid/late-game suites remained green.
+
+Automation establishes mechanics and integration. Subjective timing, punch, audio preference, and class feel still benefit from hands-on play and are not claimed as human-approved by this document.
