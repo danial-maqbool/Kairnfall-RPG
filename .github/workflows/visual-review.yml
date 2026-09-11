@@ -61,6 +61,9 @@ jobs:
           python tools/build_content.py
           dotnet build client/Kairnfall.Client.csproj -c Debug 2>&1 | tee artifacts/experience/visual/logs/build.log
           python -m unittest discover -s tests/handoff -p 'test_visual*.py' -v 2>&1 | tee artifacts/experience/visual/logs/art-tests.log
+          python -m unittest atelier.tests.test_refined_body_batch01 -v 2>&1 | tee artifacts/experience/visual/logs/refined-body.log
+          python atelier/build.py --only people --jobs 1 2>&1 | tee artifacts/experience/visual/logs/refined-body-build.log
+          git diff --exit-code -- atelier/Assets/people atelier/Assets/manifest.json
           python tools/build_game_assets.py 2>&1 | tee artifacts/experience/visual/logs/assets.log
           python tools/complete_skill_icons.py
           python tools/visual_acceptance_preflight.py 2>&1 | tee artifacts/experience/visual/logs/structural.log
@@ -115,7 +118,7 @@ jobs:
           import base64, hashlib, json, os, re, urllib.request
           from pathlib import Path
           root=Path('evidence')
-          for name in ('build.log','art-tests.log','assets.log','structural.log','validation.log','native-visual.log'):
+          for name in ('build.log','art-tests.log','refined-body.log','refined-body-build.log','assets.log','structural.log','validation.log','native-visual.log'):
               for path in root.rglob(name):
                   lines=path.read_text(encoding='utf-8',errors='replace').splitlines()
                   print('\n=== '+name+' ===\n'+'\n'.join(lines[-65:])[-14000:])
@@ -128,7 +131,8 @@ jobs:
                   'Authorization':'Bearer '+os.environ['GH_TOKEN'], 'Accept':'application/vnd.github+json',
                   'Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'})
               with urllib.request.urlopen(req,timeout=45) as response: return json.load(response)
-          allowed={'player-bodies.png','player-body-actions.png','equipment-all-layers.png','normal-mob-actions.png','elite-actions.png','boss-actions.png',
+          allowed={'player-bodies.png','player-body-actions.png','shipped-player-bodies.png','shipped-player-body-actions.png',
+              'equipment-all-layers.png','normal-mob-actions.png','elite-actions.png','boss-actions.png',
               'animation-field_rat.png','animation-wild_hare.png','animation-polar_bear.png','animation-sea_turtle.png','normal-mobs.png','elites.png','bosses.png','item-icons.png',
               'npc-roles.png','building-starter_building_0.png','building-starter_building_1.png',
               '01-village-1280.png','01-village-1920.png','ui-inventory-1280.png','ui-character-1280.png',
