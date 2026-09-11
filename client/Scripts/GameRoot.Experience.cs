@@ -271,6 +271,10 @@ public partial class GameRoot
     private void ObservePlayerChanges(Snapshot? previous, Snapshot current)
     {
         if (previous is null || previous.Self.Id != current.Self.Id) return;
+        if (previous.Self.Zone != current.Self.Zone)
+        {
+            route.Clear(); pendingInteraction = null; lastInput = Vector2.Zero; StopCombatInput();
+        }
         var before = previous.Self.Inventory.GroupBy(x => (x.Template, x.Rarity)).ToDictionary(x => x.Key, x => x.Sum(y => y.Quantity));
         double now = Time.GetTicksMsec() / 1000.0;
         bool changed = false;

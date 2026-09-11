@@ -5,7 +5,7 @@ import random
 from .common import Pixel, canvas, palette, shade, rgba, seed, INK, METALS, WOODS
 
 TERRAINS = {'grass':'687a46','dirt':'8b7452','stone':'7e8380','sand':'baa171','snow':'c5d2cf','water':'426f86','lava':'bb6040','wall':'696b70','wood':'93754e','moss':'586b4c','crystal':'777a99','marsh':'63725b','ash':'716e6c'}
-PROPS = ['oak','ancient_oak','pine','snow_pine','willow','palm','dead_tree','bush','flowers','rock','snow_rock','basalt','grass_tuft','reeds','mushrooms','cactus','crystal','signpost','waystone','stairs','stump','loot','shadow']
+PROPS = ['oak','ancient_oak','pine','snow_pine','willow','palm','dead_tree','bush','flowers','rock','snow_rock','basalt','grass_tuft','reeds','mushrooms','cactus','crystal','signpost','waystone','stairs','entrance_road','entrance_door','entrance_gate','entrance_cave','entrance_tunnel','entrance_lift','entrance_portal','entrance_stairs','stump','loot','shadow']
 
 
 def tile(kind: str, variant: int):
@@ -118,6 +118,46 @@ def prop(kind: str):
     if kind in {'oak','ancient_oak','pine','snow_pine','willow','palm','dead_tree'}: return tree(kind)
     if kind=='shadow':
         im=canvas((32,12)); Pixel(im).ellipse((1,1,30,10),(17,23,24,75)); return im
+    if kind.startswith('entrance_'):
+        im=canvas((64,72)); p=Pixel(im); x=32; floor=68
+        if kind=='entrance_cave':
+            p.poly([(3,floor),(7,35),(15,19),(27,10),(43,13),(56,27),(62,floor)],'55595b')
+            p.poly([(7,63),(11,37),(20,23),(31,16),(43,19),(54,35),(59,63)],'76766d',None)
+            p.ellipse((16,29,50,70),'171b20'); p.ellipse((21,34,45,69),'25282b')
+            p.line([(10,39),(20,26),(31,19)],'9b9a88',2); p.line([(46,23),(55,38)],'3d4144',2)
+            for yy in range(50,69,5): p.rect((22,yy,44,yy+2),'6d6860','343638')
+        elif kind=='entrance_tunnel':
+            p.rect((7,31,57,68),'555a5e'); p.ellipse((7,9,57,57),'666b6d'); p.ellipse((15,18,49,66),'171b20')
+            for xx in range(10,58,9): p.line([(xx,34),(xx+3,28)],'88877c')
+            p.line([(12,65),(52,65)],'929083',2)
+        elif kind=='entrance_door':
+            p.rect((14,17,50,69),'654c38','2d2926'); p.poly([(14,18),(19,8),(45,8),(50,18)],'8f7655','2d2926')
+            p.rect((20,20,44,68),'3d2f29','201d1b'); p.rect((23,23,31,65),'76573d'); p.rect((33,23,41,65),'725239')
+            p.line([(32,23),(32,65)],'b28c60'); p.sphere((37,43,40,46),'d2b36d')
+        elif kind=='entrance_gate':
+            p.rect((5,22,15,69),'77766d','303235'); p.rect((49,22,59,69),'77766d','303235')
+            p.poly([(4,23),(10,10),(20,20),(44,20),(54,10),(60,23)],'918e7d','303235')
+            for xx in range(20,49,7): p.line([(xx,25),(xx,68)],'5d4937',3)
+            p.line([(18,27),(50,27)],'9b7951',3)
+        elif kind=='entrance_road':
+            p.poly([(20,69),(24,42),(28,24),(36,24),(40,42),(45,69)],'9a805b')
+            p.line([(27,67),(29,40),(32,27)],'c3a273'); p.line([(39,67),(36,39)],'6e5b45')
+            p.rect((8,34,13,68),'70533b','2f2a25'); p.rect((51,34,56,68),'70533b','2f2a25')
+            p.poly([(6,31),(18,31),(15,37),(6,37)],'b29362','4b3a2b'); p.poly([(46,31),(59,31),(59,37),(49,37)],'b29362','4b3a2b')
+        elif kind=='entrance_lift':
+            p.rect((8,12,56,69),'53595e','272b2e'); p.rect((14,20,50,66),'252a2d','151719')
+            for xx in (17,27,37,47): p.line([(xx,21),(xx,65)],'8f8069',2)
+            p.line([(12,17),(52,17)],'b19b75',3); p.line([(32,3),(32,17)],'8d7654',2); p.sphere((28,0,36,8),'bca36e')
+        elif kind=='entrance_portal':
+            p.ellipse((6,9,58,70),'4c4e63'); p.ellipse((12,15,52,67),'8180a8'); p.ellipse((18,21,46,65),'2b2148')
+            p.ellipse((21,25,43,63),'6f58a6'); p.line([(32,23),(25,38),(39,49),(28,62)],'c7b6e8',2)
+            for xx,yy in [(11,28),(51,31),(16,55),(48,57)]: p.sphere((xx-2,yy-2,xx+2,yy+2),'b9a8de')
+        else:  # entrance_stairs
+            p.poly([(11,69),(13,28),(21,16),(43,16),(51,28),(53,69)],'5c6166','292c2f')
+            p.ellipse((18,23,46,58),'24282c')
+            for i in range(6):
+                yy=42+i*5; p.rect((19+i,yy,45-i,yy+3),'797c79','35383a'); p.line([(21+i,yy),(43-i,yy)],'a4a59b')
+        return im
     im=canvas((48,64)); p=Pixel(im); x,y=24,58
     if kind in {'rock','snow_rock','basalt'}:
         stone(p,x,y,34,28,'6d707a' if kind=='basalt' else '989c8b')

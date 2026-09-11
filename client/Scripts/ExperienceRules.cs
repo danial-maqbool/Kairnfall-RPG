@@ -123,7 +123,7 @@ public static class ExperienceRules
 
     public static string InteractionVerb(string kind) => kind switch
     {
-        "npc" => "Talk to", "exit" => "Enter", "node" => "Gather",
+        "npc" => "Talk to", "node" => "Gather",
         "chest" => "Open", "loot" => "Pick up", "landmark" => "Survey", _ => "Use"
     };
 

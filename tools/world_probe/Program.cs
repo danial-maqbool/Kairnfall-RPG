@@ -164,6 +164,7 @@ JourneyControlChecks.Run(catalog,failures);
 HuntingGroundChecks.Run(catalog,failures);
 HuntingDistributionChecks.Run(catalog,failures);
 JourneyPacingChecks.Run(catalog,failures);
+WalkTransitionChecks.Run(catalog,failures);
 MeaningfulObjectiveChecks.Run(catalog,failures);
 CombatVarietyChecks.Run(catalog,failures);
 ExplorationRewardChecks.Run(catalog,failures);

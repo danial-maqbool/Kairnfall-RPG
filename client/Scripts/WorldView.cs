@@ -191,12 +191,8 @@ public partial class WorldView : Control
         GatherFurnishings(zone);
         foreach (var exit in zone.Exits)
         {
-            if (!IsWithinCameraBounds(exit.Position, 4)) continue;
-            string prop = exit.Kind is "road" ? "signpost" : exit.Kind.Contains("portal", StringComparison.Ordinal) ? "waystone" : "stairs";
-            if (exit.Kind != "door") DrawProp("props/" + prop, exit.Position);
-            else DrawArc(Pixels(exit.Position), 10, 0, MathF.PI, 12, new Color(.72f, .64f, .43f, .65f), 1);
-            interactions.Add(new WorldTarget("exit", exit.Id, Data.Zone(exit.Target).Name, exit.Position));
-            if (exit.Position.Distance(Camera) < 6) Nameplate(exit.Position, "→ " + Data.Zone(exit.Target).Name, Ui.Gold, -72);
+            if (!IsWithinCameraBounds(exit.Position, 5)) continue;
+            visuals.Add(new Visual((float)exit.Position.Y + .05f, "exit", exit.Id, exit.Position, exit));
         }
         if (Waypoint is { } waypoint)
         {
@@ -302,6 +298,20 @@ public partial class WorldView : Control
         if (visual.Id == TargetId) DrawArc(feet, 12, 0, MathF.Tau, 24, Ui.Gold, 1.5f);
         switch (visual.Kind)
         {
+            case "exit":
+                var exit = (ExitDef)visual.Value!;
+                var destination = Data.Zone(exit.Target);
+                DrawProp("props/" + MapTransitionRules.EntranceVisualKey(zone, exit, destination), exit.Position);
+                if (exit.Position.Distance(Camera) < 7 && Snapshot is { } travelSnapshot)
+                {
+                    int required = JourneyProgression.ExitRequirement(Data, exit);
+                    int level = Progression.PlayerLevel(travelSnapshot.Self);
+                    string text = level < required
+                        ? $"LOCKED · Lv {required} · {destination.Name}"
+                        : (MapTransitionRules.IsBorderExit(zone, exit) ? "Continue → " : "Walk through → ") + destination.Name;
+                    Nameplate(exit.Position, text, level < required ? Ui.Danger : Ui.Gold, -72, 10);
+                }
+                break;
             case "furnishing":
                 DrawFurnishing((FurnishingDef)visual.Value!);
                 break;

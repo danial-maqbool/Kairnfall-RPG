@@ -88,7 +88,7 @@ async Task Navigate(GameConnection client,Point destination)
     route.Add(destination); int next=0; var watch=Stopwatch.StartNew();
     while(watch.Elapsed<TimeSpan.FromSeconds(100))
     {
-        snapshot=await State(client); Check(snapshot.Self.Zone==zoneId,"Navigation crossed an unexpected zone.");
+        snapshot=await State(client); Check(snapshot.Self.Zone==zoneId,$"Navigation crossed an unexpected zone {zoneId} -> {snapshot.Self.Zone} while heading to {destination}.");
         var position=snapshot.Self.Position;
         if(position.Distance(destination)<0.7) { await client.MoveAsync(0,0,cancel); return; }
         while(next<route.Count-1&&position.Distance(route[next])<0.7) next++;
@@ -99,13 +99,34 @@ async Task Navigate(GameConnection client,Point destination)
     }
     await client.MoveAsync(0,0,cancel); throw new TimeoutException("Navigation did not reach "+destination+" in "+zoneId);
 }
+async Task WalkThrough(GameConnection client,string destination)
+{
+    var snapshot=await State(client);string sourceId=snapshot.Self.Zone;var source=data.Zone(sourceId);
+    var exit=source.Exits.First(x=>x.Target==destination);
+    var outward=MapTransitionRules.BorderOutward(source,exit);
+    var forward=outward.Distance(new Point(0,0))>0.01 ? outward : source.Spawn.Direction(exit.Position);
+    var approach=WorldMap.FindFree(source,exit.Position.Add(forward.Scale(-1.20)));
+    var route=WorldMap.FindPath(source,snapshot.Self.Position,approach,source.Width*source.Height);route.Add(approach);
+    int next=0;var watch=Stopwatch.StartNew();
+    while(watch.Elapsed<TimeSpan.FromSeconds(100))
+    {
+        snapshot=await State(client);
+        if(snapshot.Self.Zone==destination) { await client.MoveAsync(0,0,cancel);return; }
+        Check(snapshot.Self.Zone==sourceId,$"Walk-through navigation crossed {sourceId} -> {snapshot.Self.Zone} while entering {destination}.");
+        var position=snapshot.Self.Position;Point direction;
+        if(position.Distance(approach)<0.80) direction=forward;
+        else
+        {
+            while(next<route.Count-1&&position.Distance(route[next])<0.7) next++;
+            direction=position.Direction(route[Math.Min(next,route.Count-1)]);
+        }
+        await client.MoveAsync(direction.X,direction.Y,cancel);await Task.Delay(100,cancel);Pump(client);
+    }
+    await client.MoveAsync(0,0,cancel);throw new TimeoutException("Walking did not enter "+destination+" from "+sourceId);
+}
 async Task ReachDawnreach(GameConnection client)
 {
-    foreach(var destination in new[]{"kingsmeadow","dawnreach"})
-    {
-        var state=await State(client); var exit=data.Zone(state.Self.Zone).Exits.First(x=>x.Target==destination);
-        await Navigate(client,exit.Position); await Act(client,"transition",exit.Id); await State(client,s=>s.Self.Zone==destination);
-    }
+    foreach(var destination in new[]{"kingsmeadow","dawnreach"}) await WalkThrough(client,destination);
 }
 
 await using var alice=new GameConnection(http.BaseAddress!.AbsoluteUri);

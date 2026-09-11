@@ -13,6 +13,7 @@ public sealed partial class RealmEngine
     public bool EconomicDirty { get; private set; }
     private readonly Dictionary<string,(Point Direction,double Until)> inputs=[];
     private readonly Dictionary<string,string> playerTargets=[];
+    private readonly Dictionary<string,double> transitionReady=[];
     private double aiElapsed;
     private double environmentElapsed;
     private long lastEventCycle=-1;
@@ -246,7 +247,10 @@ public sealed partial class RealmEngine
                     p.Statuses.RemoveAll(x=>x.Kind=="meditate");
                     double slow=Math.Clamp(1-CombatMath.StatusPower(p.Statuses,"chill",State.Time),0.25,1);
                     if(CombatMath.StatusPower(p.Statuses,"root",State.Time)>0||CombatMath.StatusPower(p.Statuses,"stun",State.Time)>0) slow=0;
+                    var before=p.Position;
                     p.Position=WorldMap.Move(zone,p.Position,direction.Scale(stats.MoveSpeed*slow*dt)); p.Facing=direction;
+                    if(slow>0) TryWalkTransition(p,zone,before,direction);
+                    zone=Data.Zone(p.Zone);
                 }
             }
             p.Stamina=Math.Min(stats.Stamina,p.Stamina+dt*(8+Progression.Level(p,"endurance")*0.08));
@@ -311,7 +315,7 @@ public sealed partial class RealmEngine
     }
     public void Disconnect(string id)
     {
-        Active.Remove(id); inputs.Remove(id); playerTargets.Remove(id);
+        Active.Remove(id); inputs.Remove(id); playerTargets.Remove(id); transitionReady.Remove(id);
         foreach(var t in State.Trades.Values.Where(x=>x.A.Character==id||x.B.Character==id).ToList()) State.Trades.Remove(t.Id);
         EconomicDirty=true;
     }

@@ -171,6 +171,25 @@ public sealed partial class RealmEngine
         string verb=first?$"Surveyed {landmark.Name} in {zone.Name}.":$"Reviewed {landmark.Name} in {zone.Name}.";
         return verb+"\n"+ExplorationRewards.LandmarkLore(zone,landmark)+"\n"+ExplorationRewards.ProgressSummary(p,zone)+clue+mastery;
     }
+    private bool TryWalkTransition(Character p,ZoneDef source,Point before,Point direction)
+    {
+        if(transitionReady.GetValueOrDefault(p.Id)>State.Time) return false;
+        var exit=MapTransitionRules.TriggeredExit(source,before,p.Position,direction);
+        if(exit is null) return false;
+        var target=Data.Zone(exit.Target);int currentLevel=Progression.PlayerLevel(p);
+        int required=JourneyProgression.ExitRequirement(Data,exit);
+        if(currentLevel<required) { p.Position=before; return false; }
+        CompleteTransition(p,source,exit);return true;
+    }
+    private string CompleteTransition(Character p,ZoneDef source,ExitDef exit)
+    {
+        var target=Data.Zone(exit.Target);
+        CancelTradesFor(p.Id);inputs.Remove(p.Id);transitionReady[p.Id]=State.Time+0.55;
+        p.Zone=target.Id;p.Position=MapTransitionRules.ArrivalPoint(Data,source,exit);
+        if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Zone=p.Zone;pet.Position=p.Position;pet.Home=p.Position; }
+        if(p.Discoveries.Add(p.Zone)) Progression.Train(p,"exploration",100,Math.Clamp(target.Level,1,100),Data);
+        Progress(p,"explore",p.Zone);return "Entered "+target.Name+".";
+    }
     private string Transition(Character p,string exitId)
     {
         var source=Data.Zone(p.Zone);
@@ -179,11 +198,7 @@ public sealed partial class RealmEngine
         var target=Data.Zone(exit.Target);int currentLevel=Progression.PlayerLevel(p);
         int required=JourneyProgression.ExitRequirement(Data,exit);
         Need(currentLevel>=required,JourneyProgression.LockMessage(target,currentLevel,required));
-        CancelTradesFor(p.Id); inputs.Remove(p.Id);
-        p.Zone=target.Id; p.Position=WorldMap.FindFree(target,exit.Arrival);
-        if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Zone=p.Zone; pet.Position=p.Position; pet.Home=p.Position; }
-        if(p.Discoveries.Add(p.Zone)) Progression.Train(p,"exploration",100,Math.Clamp(Data.Zone(p.Zone).Level,1,100),Data);
-        Progress(p,"explore",p.Zone); return "Entered "+Data.Zone(p.Zone).Name+".";
+        return CompleteTransition(p,source,exit);
     }
     private string Travel(Character p,string destination)
     {
