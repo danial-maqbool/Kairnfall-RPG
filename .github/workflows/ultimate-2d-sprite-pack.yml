@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   generate-validate-sync:
-    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'art: publish ultimate 2D full-game sprite pack'
+    if: "${{ github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'art: publish ultimate 2D full-game sprite pack' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
