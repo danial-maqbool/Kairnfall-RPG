@@ -17,4 +17,4 @@ public static class SocialCooperationContract
     }
 }
 
-// Exact-head verification receipt for the completed social-cooperation feature.
+// Exact-head verification receipt for the completed social-cooperation feature and canonical hero fallback.
