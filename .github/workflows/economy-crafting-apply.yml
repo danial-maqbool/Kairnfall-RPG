@@ -14,7 +14,7 @@ permissions:
 jobs:
   apply:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,7 +28,6 @@ jobs:
           set -euo pipefail
           python3 tools/apply_economy_crafting_update.py
           python3 tools/build_content.py
-          cp content/catalog.json client/Assets/catalog.json
           git diff --check
       - name: Verify economy loops and complete server/client build
         shell: bash
@@ -37,10 +36,13 @@ jobs:
           dotnet build Kairnfall.slnx -c Release
           dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release
           dotnet build client/Kairnfall.Client.csproj -c Debug
-      - name: Validate retained deterministic game assets
+      - name: Rebuild and validate deterministic game assets
         shell: bash
         run: |
           set -euo pipefail
+          python3 -m pip install --disable-pip-version-check pillow
+          python3 tools/build_game_assets.py
+          python3 tools/complete_skill_icons.py
           python3 tools/validate_game_assets.py
       - name: Publish verified economy update and remove temporary helpers
         shell: bash
