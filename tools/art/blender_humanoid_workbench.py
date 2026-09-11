@@ -7,9 +7,18 @@ sampling that is unnecessary after pixel quantization.
 """
 from __future__ import annotations
 
+import importlib.util
+from pathlib import Path
+import sys
+
 import bpy
 
-from tools.art import blender_humanoid_batch as batch
+HERE = Path(__file__).resolve().parent
+BATCH_PATH = HERE / "blender_humanoid_batch.py"
+SPEC = importlib.util.spec_from_file_location("kairnfall_blender_humanoid_batch", BATCH_PATH)
+batch = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = batch
+SPEC.loader.exec_module(batch)
 
 
 def setup_workbench_scene():
