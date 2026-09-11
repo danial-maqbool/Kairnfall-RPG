@@ -5,6 +5,7 @@ on:
       - main
     paths:
       - tools/apply_social_cooperation.py
+      - tools/refine_social_cooperation.py
       - .github/workflows/social-cooperation-apply.yml
 permissions:
   contents: write
@@ -20,7 +21,9 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Apply candidate
-        run: python3 tools/apply_social_cooperation.py
+        run: |
+          python3 tools/apply_social_cooperation.py
+          python3 tools/refine_social_cooperation.py
       - name: Generate content
         run: python3 tools/build_content.py
       - name: Compile solution and client
@@ -40,7 +43,7 @@ jobs:
         run: git diff --check
       - name: Publish verified feature
         run: |
-          rm tools/apply_social_cooperation.py .github/workflows/social-cooperation-apply.yml
+          rm tools/apply_social_cooperation.py tools/refine_social_cooperation.py .github/workflows/social-cooperation-apply.yml
           git add -A
           test -n "$(git diff --cached --name-only)"
           git config user.name 'github-actions[bot]'
