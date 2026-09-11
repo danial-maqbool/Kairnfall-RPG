@@ -1,0 +1,363 @@
+name: Apply journey and pacing update
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/journey-pacing-update.yml']
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Apply progression, gates and guidance
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p=Path(path); text=p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Expected patch anchor missing in {path}: {old[:120]!r}')
+              p.write_text(text.replace(old,new,1),encoding='utf-8')
+
+          Path('src/Kairnfall.Core/JourneyProgression.cs').write_text(r'''namespace Kairnfall.Core;
+
+public sealed record JourneySuggestion(string ZoneId,string ZoneName,int ThreatLevel,int EntryLevel,bool Locked,int LevelsNeeded);
+public sealed record JourneyQuestLead(string QuestId,string QuestName,string GiverId,string GiverName,string ZoneId);
+
+/// <summary>Shared server/client rules for level-gated frontiers and next-step guidance.</summary>
+public static class JourneyProgression
+{
+    public static int ThreatLevel(ZoneDef zone)=>Math.Clamp(zone.Level,1,100);
+    public static int EntryRequirement(ZoneDef zone,int authoredRequirement=1)
+        =>Math.Clamp(Math.Max(Math.Max(1,authoredRequirement),ThreatLevel(zone)-5),1,Progression.PlayerCap);
+    public static int ExitRequirement(Catalog data,ExitDef exit)=>EntryRequirement(data.Zone(exit.Target),exit.Requirement);
+    public static bool CanEnter(Character player,ZoneDef zone,int authoredRequirement=1)
+        =>Progression.PlayerLevel(player)>=EntryRequirement(zone,authoredRequirement);
+    public static string LockMessage(ZoneDef zone,int playerLevel,int requirement)
+    {
+        int need=Math.Max(0,requirement-playerLevel);
+        return need<=0?$"{zone.Name} is open.":$"{zone.Name} opens at character level {requirement}. You are level {playerLevel}; gain {need} more level{(need==1?"":"s")}.";
+    }
+    public static JourneyQuestLead? LocalQuest(Catalog data,Character player)
+    {
+        foreach(var quest in data.Quests
+            .Where(q=>!player.Quests.ContainsKey(q.Id)&&!player.CompletedQuests.Contains(q.Id)
+                &&(q.Prerequisite==""||player.CompletedQuests.Contains(q.Prerequisite)))
+            .OrderBy(q=>q.Category=="main"?0:q.Category=="side"?1:2).ThenBy(q=>q.Id,StringComparer.Ordinal))
+        {
+            var giver=data.Npc(quest.Giver);
+            if(giver.Zone==player.Zone)return new(quest.Id,quest.Name,giver.Id,giver.Name,giver.Zone);
+        }
+        return null;
+    }
+    public static SkillDef? SuggestedActivity(Catalog data,Character player)
+    {
+        string[] variety=["mining","woodcutting","fishing","herbalism","cooking","woodworking","smithing","exploration","farming","hunting"];
+        return variety.Where(id=>data.Skills.Any(s=>s.Id==id)).Select(data.Skill)
+            .OrderBy(s=>Progression.BaseLevel(player,s.Id)).ThenBy(s=>s.Id,StringComparer.Ordinal).FirstOrDefault();
+    }
+    public static JourneySuggestion? Suggest(Catalog data,Character player)
+    {
+        var source=data.Zone(player.Zone);int level=Progression.PlayerLevel(player);
+        var all=source.Exits.Select(exit=>(Exit:exit,Zone:data.Zone(exit.Target),Gate:ExitRequirement(data,exit)))
+            .GroupBy(x=>x.Zone.Id,StringComparer.Ordinal).Select(g=>g.OrderBy(x=>x.Gate).First()).ToArray();
+        if(all.Length==0)return null;
+        var candidates=all.Where(x=>x.Zone.Kind!="interior").ToArray();
+        if(candidates.Length==0)candidates=all;
+        var ready=candidates.Where(x=>x.Gate<=level&&x.Zone.Level>=Math.Max(1,source.Level-2))
+            .OrderBy(x=>player.Discoveries.Contains(x.Zone.Id)?1:0)
+            .ThenBy(x=>Math.Abs(x.Zone.Level-(level+5))).ThenByDescending(x=>x.Zone.Level).FirstOrDefault();
+        if(ready.Zone is not null)return new(ready.Zone.Id,ready.Zone.Name,ThreatLevel(ready.Zone),ready.Gate,false,0);
+        var locked=candidates.Where(x=>x.Gate>level).OrderBy(x=>x.Gate-level).ThenBy(x=>x.Zone.Level).FirstOrDefault();
+        if(locked.Zone is not null)return new(locked.Zone.Id,locked.Zone.Name,ThreatLevel(locked.Zone),locked.Gate,true,locked.Gate-level);
+        var fallback=candidates.Where(x=>x.Gate<=level).OrderBy(x=>player.Discoveries.Contains(x.Zone.Id)?1:0)
+            .ThenBy(x=>Math.Abs(x.Zone.Level-level)).FirstOrDefault();
+        return fallback.Zone is null?null:new(fallback.Zone.Id,fallback.Zone.Name,ThreatLevel(fallback.Zone),fallback.Gate,false,0);
+    }
+}
+''',encoding='utf-8')
+
+          replace('src/Kairnfall.Core/Mechanics.cs',r'''    public static double PlayerLevelValue(Character p)
+    {
+        // Character XP is simply the sum of awarded skill XP. Skill challenge rules
+        // already reduce weak/trivial actions, so do not apply a second hidden filter.
+        long total=Total(p);
+        double equivalent=BeginnerProgression.OverallEquivalentXp(total);
+        double ratio=Math.Clamp(equivalent/(60.0*Threshold(SkillCap)),0,1);
+        double trained=1+199*Math.Pow(ratio,0.30);
+        // Late mastery still approaches the cap continuously.
+        double mastery=Math.Clamp(total/(60.0*Threshold(SkillCap)),0,1);
+        double mastered=1+199*Math.Pow(mastery,1.5);
+        return Math.Clamp(Math.Max(trained,mastered),1,PlayerCap);
+    }
+    public static int PlayerLevel(Character p)=>Math.Clamp((int)Math.Floor(PlayerLevelValue(p)),1,PlayerCap);
+    public static double PlayerLevelProgress(Character p)
+    {
+        int level=PlayerLevel(p);
+        return level>=PlayerCap?1:Math.Clamp(PlayerLevelValue(p)-level,0,1);
+    }
+''',r'''    public static long PlayerThreshold(int level)
+    {
+        int clamped=Math.Clamp(level,1,PlayerCap);
+        long maximum=checked(60L*Threshold(SkillCap));
+        if(clamped<=1)return 0;
+        if(clamped>=PlayerCap)return maximum;
+        const long minimumStep=30;
+        const double exponent=5.6;
+        double t=(clamped-1)/(double)(PlayerCap-1);
+        double shaped=(maximum-minimumStep*(PlayerCap-1))*Math.Pow(t,exponent);
+        return Math.Clamp(minimumStep*(clamped-1)+(long)Math.Round(shaped,MidpointRounding.AwayFromZero),0,maximum);
+    }
+    public static long PlayerLevelCost(int level)
+    {
+        int clamped=Math.Clamp(level,1,PlayerCap);
+        return clamped>=PlayerCap?0:Math.Max(1,PlayerThreshold(clamped+1)-PlayerThreshold(clamped));
+    }
+    public static double PlayerLevelValue(Character p)
+    {
+        // Character XP remains exactly the sum of awarded skill XP. Only the level
+        // thresholds change: the opening levels are short and each later level costs more.
+        long total=Total(p);int low=1,high=PlayerCap;
+        while(low<high){int mid=(low+high+1)/2;if(PlayerThreshold(mid)<=total)low=mid;else high=mid-1;}
+        if(low>=PlayerCap)return PlayerCap;
+        long floor=PlayerThreshold(low),ceiling=PlayerThreshold(low+1);
+        return low+Math.Clamp((total-floor)/(double)Math.Max(1,ceiling-floor),0,1);
+    }
+    public static int PlayerLevel(Character p)=>Math.Clamp((int)Math.Floor(PlayerLevelValue(p)),1,PlayerCap);
+    public static double PlayerLevelProgress(Character p)
+    {
+        int level=PlayerLevel(p);
+        return level>=PlayerCap?1:Math.Clamp(PlayerLevelValue(p)-level,0,1);
+    }
+''')
+
+          replace('content_src/world.py',r'''def connect(a,b,at_a,at_b,kind='road',requirement=1):
+    a['exits'].append(dict(id=a['id']+'_to_'+b['id'],target=b['id'],position=point(*at_a),arrival=point(*at_b),kind=kind,requirement=requirement))
+    b['exits'].append(dict(id=b['id']+'_to_'+a['id'],target=a['id'],position=point(*at_b),arrival=point(*at_a),kind=kind,requirement=1))
+''',r'''def connect(a,b,at_a,at_b,kind='road',requirement=1):
+    # Frontiers open five character levels below the destination threat. Explicit
+    # authored gates can be stricter, but never weaker. Return paths use the same rule.
+    forward=max(requirement,max(1,int(b.get('level',1))-5))
+    backward=max(1,int(a.get('level',1))-5)
+    a['exits'].append(dict(id=a['id']+'_to_'+b['id'],target=b['id'],position=point(*at_a),arrival=point(*at_b),kind=kind,requirement=forward))
+    b['exits'].append(dict(id=b['id']+'_to_'+a['id'],target=a['id'],position=point(*at_b),arrival=point(*at_a),kind=kind,requirement=backward))
+''')
+
+          replace('src/Kairnfall.Core/RealmEconomy.cs',r'''        Need(Progression.PlayerLevel(p)>=exit.Requirement,"Your overall level is too low for this passage.");
+        CancelTradesFor(p.Id); inputs.Remove(p.Id);
+        p.Zone=exit.Target; p.Position=WorldMap.FindFree(Data.Zone(exit.Target),exit.Arrival);
+''',r'''        var target=Data.Zone(exit.Target);int currentLevel=Progression.PlayerLevel(p);
+        int required=JourneyProgression.ExitRequirement(Data,exit);
+        Need(currentLevel>=required,JourneyProgression.LockMessage(target,currentLevel,required));
+        CancelTradesFor(p.Id); inputs.Remove(p.Id);
+        p.Zone=target.Id; p.Position=WorldMap.FindFree(target,exit.Arrival);
+''')
+          replace('src/Kairnfall.Core/RealmEconomy.cs',r'''        Need(source.Kind is "city" or "settlement","Fast travel starts at a settlement waystone.");
+        Near(p,p.Zone,source.Spawn,3);
+''',r'''        Need(source.Kind is "city" or "settlement","Fast travel starts at a settlement waystone.");
+        int currentLevel=Progression.PlayerLevel(p),required=JourneyProgression.EntryRequirement(dest);
+        Need(currentLevel>=required,JourneyProgression.LockMessage(dest,currentLevel,required));
+        Near(p,p.Zone,source.Spawn,3);
+''')
+
+          replace('client/Scripts/Maps.cs',r'''            var at = positions[zone.Id]; Color color = zone.Id == Selected ? Ui.Text : zone.Kind == "city" ? Ui.Gold : new Color("91ae91");
+''',r'''            var at = positions[zone.Id];int gate=JourneyProgression.EntryRequirement(zone);
+            bool locked=player is not null&&Progression.PlayerLevel(player)<gate;
+            Color color = zone.Id == Selected ? Ui.Text : locked ? Ui.Danger : zone.Kind == "city" ? Ui.Gold : new Color("91ae91");
+''')
+          replace('client/Scripts/Maps.cs',r'''            detail.AddChild(Ui.Label(zone.Name + " · " + Ui.Words(zone.Biome) + " · Suggested skill level " + zone.Level, 19, Ui.Gold)); detail.AddChild(Ui.Label(zone.Lore, 14, Ui.Muted, true));
+            var actions = Ui.Row(detail); actions.AddChild(Ui.Button("Mark route", () => MarkDestination(zone.Id, zone.Spawn)));
+            bool canTravel = Snapshot.Self.Waypoints.Contains(zone.Id) && zone.Id != Snapshot.Self.Zone;
+            actions.AddChild(Ui.Button("Waystone travel · 20 gold", () => Send("travel", zone.Id), !canTravel));
+            detail.AddChild(Ui.Label("Fast travel starts beside a discovered settlement waystone. Hidden regions remain absent until discovered.", 13, Ui.Muted, true));
+''',r'''            int playerLevel=Progression.PlayerLevel(Snapshot.Self),entryLevel=JourneyProgression.EntryRequirement(zone);
+            bool locked=playerLevel<entryLevel;
+            detail.AddChild(Ui.Label(zone.Name + " · " + Ui.Words(zone.Biome) + $" · Threat {zone.Level} · Entry {entryLevel}+", 19, locked?Ui.Danger:Ui.Gold));
+            detail.AddChild(Ui.Label(zone.Lore, 14, Ui.Muted, true));
+            if(locked)detail.AddChild(Ui.Label($"LOCKED · Reach character level {entryLevel} ({entryLevel-playerLevel} to go).",13,Ui.Danger,true));
+            var actions = Ui.Row(detail); actions.AddChild(Ui.Button("Mark route", () => MarkDestination(zone.Id, zone.Spawn)));
+            bool canTravel = Snapshot.Self.Waypoints.Contains(zone.Id) && zone.Id != Snapshot.Self.Zone && !locked;
+            actions.AddChild(Ui.Button("Waystone travel · 20 gold", () => Send("travel", zone.Id), !canTravel));
+            detail.AddChild(Ui.Label("Frontiers open five levels below their threat level. Fast travel still requires a discovered settlement waystone.", 13, Ui.Muted, true));
+''')
+          replace('client/Scripts/Maps.cs','if (exit.Requirement > Progression.PlayerLevel(self) || !visited.Add(exit.Target)) continue;','if (JourneyProgression.ExitRequirement(Data,exit) > Progression.PlayerLevel(self) || !visited.Add(exit.Target)) continue;')
+
+          replace('client/Scripts/HuntingGuidePanel.cs','private Label overview=null!,details=null!,directions=null!;','private Label overview=null!,journey=null!,details=null!,directions=null!;')
+          replace('client/Scripts/HuntingGuidePanel.cs','private string region="";\n    private HuntingPlan plan=null!;','private string region="";\n    private int shownLevel=-1;\n    private HuntingPlan plan=null!;')
+          replace('client/Scripts/HuntingGuidePanel.cs',r'''        overview=Ui.Label("",15,Ui.Gold,true);AddChild(overview);
+        var body=Ui.Row(this);body.SizeFlagsVertical=SizeFlags.ExpandFill;
+''',r'''        overview=Ui.Label("",15,Ui.Gold,true);AddChild(overview);
+        journey=Ui.Label("",13,Ui.Text,true);journey.Name="JourneySuggestion";AddChild(journey);
+        var body=Ui.Row(this);body.SizeFlagsVertical=SizeFlags.ExpandFill;
+''')
+          replace('client/Scripts/HuntingGuidePanel.cs','right.AddChild(Ui.Label("Circle: hunting patch · Diamond: boss · Square: exit\\nTravel on foot. Q dashes; Tab changes target. Hidden caches are not exposed by this map.",12,Ui.Muted,true));','right.AddChild(Ui.Label("Circle: hunting patch · Diamond: boss · Gold square: open exit · Red square: locked frontier\\nTravel on foot. Q dashes; Tab changes target. Hidden caches are not exposed by this map.",12,Ui.Muted,true));')
+          replace('client/Scripts/HuntingGuidePanel.cs',r'''        var zone=Data.Zone(self.Zone);
+        if(region!=zone.Id)
+        {
+            region=zone.Id;plan=HuntingGrounds.For(Data,zone);sites.Clear();Ui.Clear(list);
+            overview.Text=zone.Name+" · "+plan.Specialty+"\n"+plan.OrdinaryCount+" ordinary spawn slots · "+plan.Patches.Count+" separate patches";
+''',r'''        var zone=Data.Zone(self.Zone);int playerLevel=Progression.PlayerLevel(self);
+        if(region!=zone.Id||shownLevel!=playerLevel)
+        {
+            region=zone.Id;shownLevel=playerLevel;plan=HuntingGrounds.For(Data,zone);sites.Clear();Ui.Clear(list);
+''')
+          replace('client/Scripts/HuntingGuidePanel.cs',r'''            foreach(var exit in zone.Exits)
+            {
+                var target=Data.Zone(exit.Target);string id=exit.Id;
+                sites[id]=("Exit: "+target.Name,exit.Position,$"{target.Name} · {target.Layer} · Suggested level {target.Level}\n{target.Lore}");
+                var button=Ui.Button("To "+target.Name,()=>SelectSite(id));button.Name="HuntExit_"+id;button.ClipText=true;list.AddChild(button);
+            }
+            SelectedSite=sites.Keys.FirstOrDefault()??"";map.Zone=zone;map.Plan=plan;
+        }
+        if(sites.TryGetValue(SelectedSite,out var selected))
+''',r'''            foreach(var exit in zone.Exits)
+            {
+                var target=Data.Zone(exit.Target);string id=exit.Id;int gate=JourneyProgression.ExitRequirement(Data,exit);bool locked=playerLevel<gate;
+                string status=locked?$"LOCKED · Level {gate}+ · {gate-playerLevel} to go":$"OPEN · Level {gate}+";
+                sites[id]=("Exit: "+target.Name,exit.Position,$"{target.Name} · {target.Layer} · Threat {target.Level} · {status}\n{target.Lore}");
+                var button=Ui.Button((locked?"LOCKED · ":"")+"To "+target.Name+" · Lv "+gate+"+",()=>SelectSite(id));button.Name="HuntExit_"+id;button.ClipText=true;button.TooltipText=sites[id].Description;list.AddChild(button);
+            }
+            SelectedSite=sites.Keys.FirstOrDefault()??"";map.Zone=zone;map.Plan=plan;
+        }
+        overview.Text=zone.Name+" · "+plan.Specialty+$"\nCharacter {playerLevel} · Threat {zone.Level} · "+plan.OrdinaryCount+" ordinary spawn slots · "+plan.Patches.Count+" patches";
+        var lead=JourneyProgression.LocalQuest(Data,self);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
+        journey.Text=lead is not null?$"NEXT LEAD · {lead.QuestName}\nTalk to {lead.GiverName} in {zone.Name}."
+            :next is not null?(next.Locked?$"NEXT FRONTIER · {next.ZoneName} · LOCKED at {next.EntryLevel}+ ({next.LevelsNeeded} to go)\nTrain skills, craft, gather or finish local quests while you prepare."
+                :$"NEXT FRONTIER · {next.ZoneName} · Threat {next.ThreatLevel} · Entry {next.EntryLevel}+ · READY\nSelect its exit below and follow the route marker.")
+            :activity is not null?$"CHANGE OF PACE · {activity.Name} level {Progression.BaseLevel(self,activity.Id)}\n{activity.Action}":"Explore, quest, craft and hunt to build your character.";
+        if(sites.TryGetValue(SelectedSite,out var selected))
+''')
+          replace('client/Scripts/HuntingGuidePanel.cs','foreach(var exit in zone.Exits)DrawRect(new Rect2(At(exit.Position)-new Vector2(2,2),new Vector2(5,5)),Ui.Gold);',r'''foreach(var exit in zone.Exits)
+        {
+            bool locked=ReadCharacter() is { } self&&Progression.PlayerLevel(self)<JourneyProgression.ExitRequirement(Data,exit);
+            DrawRect(new Rect2(At(exit.Position)-new Vector2(2,2),new Vector2(5,5)),locked?Ui.Danger:Ui.Gold);
+        }''')
+
+          replace('client/Scripts/GameRoot.Hud.cs',r'''        foreach (var entry in new[] { ("Bag [I]", "Inventory"), ("Gear [C]", "Character"), ("Skills [K]", "Skills"), ("Arts [B]", "Abilities"), ("Quest [J]", "Quests"), ("Craft [F]", "Crafting"), ("Social [P]", "Social"), ("Menu", "Settings") })
+''',r'''        foreach (var entry in new[] { ("Bag [I]", "Inventory"), ("Gear [C]", "Character"), ("Skills [K]", "Skills"), ("Arts [B]", "Abilities"), ("Quest [J]", "Quests"), ("Hunt [H]", "Hunting"), ("Craft [F]", "Crafting"), ("Social [P]", "Social"), ("Menu", "Settings") })
+''')
+          replace('client/Scripts/GameRoot.Hud.cs',r'''        double overallProgress=Progression.PlayerLevelProgress(self);
+        experiencePacing.Text = overallLevel>=Progression.PlayerCap ? "Character XP · Level 200" : $"Character XP · Level {overallLevel} → {overallLevel+1}";
+        experiencePacing.TooltipText = "Every awarded skill XP point contributes directly to character level.";
+''',r'''        double overallProgress=Progression.PlayerLevelProgress(self);long characterXp=Progression.Total(self);
+        long nextCharacterXp=overallLevel>=Progression.PlayerCap?characterXp:Progression.PlayerThreshold(overallLevel+1);
+        long remainingCharacterXp=Math.Max(0,nextCharacterXp-characterXp);
+        experiencePacing.Text = overallLevel>=Progression.PlayerCap ? "Character XP · Level 200" : $"Character XP · Level {overallLevel} → {overallLevel+1} · {remainingCharacterXp:N0} XP";
+        experiencePacing.TooltipText = "Every awarded skill XP point contributes directly to character level. Early levels are short; each later level costs progressively more XP.";
+''')
+          replace('client/Scripts/GameRoot.Hud.cs',r'''        if (tracked.Value is null)
+            objectiveText.Text = zone.Kind == "interior"
+                ? "Speak to the village innkeeper.\nOutside the Lantern Hearth\nUse the marked exit to return."
+                : "Speak to the village innkeeper.\nBy the inn, northwest of the square\nMove: WASD / arrows · Talk: E";
+        else
+''',r'''        if (tracked.Value is null)
+        {
+            var lead=JourneyProgression.LocalQuest(Data,self);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
+            if(lead is not null)objectiveText.Text=$"NEW LEAD · {lead.QuestName}\nTalk to {lead.GiverName} here.\nOpen Quest [J] or Hunt [H] for direction.";
+            else if(zone.Kind=="interior"&&zone.Exits.FirstOrDefault() is { } wayOut)
+                objectiveText.Text=$"Return outside\nExit toward {Data.Zone(wayOut.Target).Name}\nInteract: E";
+            else if(next is not null&&next.Locked)
+                objectiveText.Text=$"NEXT FRONTIER · {next.ZoneName}\nUnlocks at Level {next.EntryLevel} · {next.LevelsNeeded} to go\nTrain {activity?.Name??"skills"}, craft, gather or quest · Hunt [H]";
+            else if(next is not null)
+                objectiveText.Text=$"NEXT FRONTIER · {next.ZoneName}\nThreat {next.ThreatLevel} · Entry {next.EntryLevel}+ · READY\nOpen Hunt [H] and select the exit.";
+            else objectiveText.Text=activity is null?"Explore, quest, craft and hunt to advance.":$"BUILD {activity.Name.ToUpperInvariant()} · Level {Progression.BaseLevel(self,activity.Id)}\n{activity.Action}\nHunt [H] shows local routes.";
+        }
+        else
+''')
+
+          Path('tools/world_probe/JourneyPacingChecks.cs').write_text(r'''using Kairnfall.Core;
+
+internal static class JourneyPacingChecks
+{
+    public static void Run(Catalog data,List<string> failures)
+    {
+        int passed=0;
+        void Need(bool value,string text){if(!value)throw new InvalidOperationException(text);}
+        void Test(string name,Action action){try{action();passed++;Console.WriteLine("PASS JOURNEY PACING: "+name);}catch(Exception e){failures.Add(name);Console.WriteLine("FAIL JOURNEY PACING: "+name+": "+e.Message);}}
+        Character AtLevel(int target)
+        {
+            var p=new Character{Class="vanguard"};long remaining=Progression.PlayerThreshold(target);
+            foreach(var skill in data.Skills)
+            {
+                long chunk=Math.Min(remaining,Progression.Threshold(Progression.SkillCap));p.SkillXp[skill.Id]=chunk;remaining-=chunk;
+            }
+            Need(remaining==0,"Could not seed character XP for level "+target);
+            Need(Progression.PlayerLevel(p)==target,"Seeded level mismatch for "+target+": "+Progression.PlayerLevel(p));return p;
+        }
+        Test("Character XP thresholds are transparent, monotone and progressively harder",()=>
+        {
+            Need(Progression.PlayerThreshold(1)==0,"Level 1 should start at zero character XP.");
+            Need(Progression.PlayerThreshold(Progression.PlayerCap)==60L*Progression.Threshold(Progression.SkillCap),"Maximum character XP no longer matches all skill XP.");
+            long previousCost=0;
+            for(int level=1;level<Progression.PlayerCap;level++)
+            {
+                long cost=Progression.PlayerLevelCost(level);Need(cost>0,"Non-positive level cost at "+level);
+                Need(cost>=previousCost,"Level costs became easier at "+level);previousCost=cost;
+            }
+            Need(Progression.PlayerThreshold(20)<4_000,"Levels 1-20 are still too grindy.");
+            Need(Progression.PlayerThreshold(30)>Progression.PlayerThreshold(20)*5,"20-30 does not meaningfully step up.");
+            foreach(int level in new[]{1,10,20,30,50,100,150,200})_ = AtLevel(level);
+        });
+        Test("Every map frontier opens five levels below destination threat unless authored stricter",()=>
+        {
+            int checkedExits=0;
+            foreach(var source in data.Zones)foreach(var exit in source.Exits)
+            {
+                var target=data.Zone(exit.Target);int expected=Math.Clamp(Math.Max(exit.Requirement,Math.Max(1,target.Level-5)),1,Progression.PlayerCap);
+                Need(JourneyProgression.ExitRequirement(data,exit)==expected,$"Gate mismatch {source.Id}/{exit.Id}: expected {expected}");checkedExits++;
+            }
+            Need(checkedExits>100,"Too few frontiers checked.");
+        });
+        Test("A real transition rejects below-level entry and accepts the exact gate level",()=>
+        {
+            var candidate=(from source in data.Zones from exit in source.Exits let gate=JourneyProgression.ExitRequirement(data,exit)
+                           where gate>1&&source.Kind!="interior" orderby gate select (source,exit,gate)).First();
+            var realm=new RealmEngine(data);var p=realm.CreateCharacter("journey-gate","Gate Walker","vanguard",new());
+            p.Zone=candidate.source.Id;p.Position=candidate.exit.Position;
+            var low=AtLevel(candidate.gate-1);p.SkillXp=low.SkillXp;
+            var denied=realm.Execute(p.Id,new GameCommand{Kind="transition",Target=candidate.exit.Id,Sequence=p.LastAction+1,RequestId=Guid.NewGuid().ToString("N")});
+            Need(!denied.Ok&&p.Zone==candidate.source.Id,"Below-level player crossed a gated frontier.");
+            Need(denied.Message.Contains(candidate.gate.ToString(),StringComparison.Ordinal),"Gate failure did not explain the required level.");
+            var ready=AtLevel(candidate.gate);p.SkillXp=ready.SkillXp;p.Position=candidate.exit.Position;
+            var accepted=realm.Execute(p.Id,new GameCommand{Kind="transition",Target=candidate.exit.Id,Sequence=p.LastAction+1,RequestId=Guid.NewGuid().ToString("N")});
+            Need(accepted.Ok&&p.Zone==candidate.exit.Target,"Exact-level player could not cross the frontier: "+accepted.Message);
+        });
+        Test("Journey guidance always offers a valid next action when the current zone has exits",()=>
+        {
+            var p=AtLevel(12);p.Zone="wayfarers_rest";
+            var activity=JourneyProgression.SuggestedActivity(data,p);Need(activity is not null&&activity.Action!="","No change-of-pace skill guidance.");
+            var suggestion=JourneyProgression.Suggest(data,p);Need(suggestion is not null,"No frontier suggestion from the starter journey.");
+            Need(data.Zones.Any(z=>z.Id==suggestion!.ZoneId),"Suggested frontier does not exist.");
+            Need(suggestion.EntryLevel==JourneyProgression.EntryRequirement(data.Zone(suggestion.ZoneId))||data.Zone(p.Zone).Exits.Any(e=>e.Target==suggestion.ZoneId&&JourneyProgression.ExitRequirement(data,e)==suggestion.EntryLevel),"Suggested gate is inconsistent.");
+        });
+        Console.WriteLine($"JOURNEY PACING: {passed} groups passed; total failures {failures.Count}.");
+    }
+}
+''',encoding='utf-8')
+          replace('tools/world_probe/Program.cs','HuntingDistributionChecks.Run(catalog,failures);\nChallengeProgressionChecks.Run(catalog,failures);','HuntingDistributionChecks.Run(catalog,failures);\nJourneyPacingChecks.Run(catalog,failures);\nChallengeProgressionChecks.Run(catalog,failures);')
+          PY
+          python3 tools/build_content.py
+          dotnet build Kairnfall.slnx -c Release
+          dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release
+          dotnet build client/Kairnfall.Client.csproj -c Debug
+          git diff --check
+      - name: Commit verified update and remove this workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/journey-pacing-update.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/Kairnfall.Core/Mechanics.cs src/Kairnfall.Core/JourneyProgression.cs src/Kairnfall.Core/RealmEconomy.cs content_src/world.py content/catalog.json client/Data/catalog.json client/Scripts/Maps.cs client/Scripts/HuntingGuidePanel.cs client/Scripts/GameRoot.Hud.cs tools/world_probe/JourneyPacingChecks.cs tools/world_probe/Program.cs
+          git commit -m 'feat: add guided level-gated journey progression'
+          git pull --rebase origin main
+          git push origin HEAD:main
