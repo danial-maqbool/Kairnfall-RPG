@@ -145,10 +145,17 @@ public sealed partial class RealmEngine
         var zone=Data.Zone(p.Zone);
         var landmark=zone.Buildings.FirstOrDefault(x=>x.Id==id&&JourneyProgression.IsLandmark(zone,x))??throw new RuleException("Landmark not found.");
         Near(p,p.Zone,JourneyProgression.LandmarkPoint(landmark),2.5);
-        bool first=p.Discoveries.Add(zone.Id+":landmark:"+landmark.Id);
-        if(first)Progression.Train(p,"exploration",50,Math.Clamp(zone.Level,1,100),Data);
+        bool first=p.Discoveries.Add(ExplorationRewards.LandmarkKey(zone,landmark));
+        string clue="";
+        if(first)
+        {
+            Progression.Train(p,"exploration",50,Math.Clamp(zone.Level,1,100),Data);
+            clue=ExplorationRewards.TryRevealCacheClue(p,zone,Data);
+        }
         Progress(p,"survey",landmark.Id);
-        return first?$"Surveyed {landmark.Name} in {zone.Name}.":$"Reviewed {landmark.Name} in {zone.Name}.";
+        string mastery=ExplorationRewards.TryGrantRegionalReward(p,zone,Data);
+        string verb=first?$"Surveyed {landmark.Name} in {zone.Name}.":$"Reviewed {landmark.Name} in {zone.Name}.";
+        return verb+"\n"+ExplorationRewards.LandmarkLore(zone,landmark)+"\n"+ExplorationRewards.ProgressSummary(p,zone)+clue+mastery;
     }
     private string Transition(Character p,string exitId)
     {
@@ -243,7 +250,14 @@ public sealed partial class RealmEngine
         }
         Items.Grant(p,10+chest.Requirement*3); chest.ReadyAt=State.Time+600;
         Progression.Train(p,"treasure_hunting",80,chest.Requirement,Data); Progress(p,"chest",chest.Kind);
-        return "Chest opened.";
+        string exploration="";var chestZone=Data.Zone(chest.Zone);
+        if(chest.Hidden&&ExplorationRewards.Eligible(chestZone)&&id==ExplorationRewards.CacheId(chestZone)&&p.Discoveries.Add(ExplorationRewards.CacheOpenedKey(chestZone)))
+        {
+            Progression.Train(p,"treasure_hunting",60,chest.Requirement,Data);p.Achievements.Add("cache:"+chestZone.Id);
+            exploration="\nFIRST CACHE · This region's hidden cache is now recorded in your exploration journal.";
+        }
+        string mastery=ExplorationRewards.TryGrantRegionalReward(p,chestZone,Data);
+        return "Chest opened."+exploration+mastery+(ExplorationRewards.Eligible(chestZone)?"\n"+ExplorationRewards.ProgressSummary(p,chestZone):"");
     }
     private string AuctionList(Character p,string id,int quantity,string priceText)
     {
@@ -326,11 +340,12 @@ public sealed partial class RealmEngine
     private string Chart(Character p)
     {
         var zone=Data.Zone(p.Zone); Need(!p.Discoveries.Contains("charted:"+zone.Id),"You have already charted this region.");
-        int found=p.Discoveries.Count(x=>x.StartsWith(zone.Id+":",StringComparison.Ordinal));
-        Need(found>=4,"Explore at least four sectors before drawing a regional chart.");
+        int found=ExplorationRewards.SectorCount(p,zone);
+        Need(found>=ExplorationRewards.RequiredChartSectors,$"Explore at least {ExplorationRewards.RequiredChartSectors} real map sectors before drawing a regional chart ({found}/{ExplorationRewards.RequiredChartSectors}).");
         Items.Consume(p,"parchment",1); Items.Consume(p,"ink",1);
         p.Discoveries.Add("charted:"+zone.Id); Progression.Train(p,"cartography",120,Math.Clamp(zone.Level,1,100),Data);
-        Progress(p,"chart",zone.Id); return "Regional chart completed. Roads and known exits are now recorded.";
+        Progress(p,"chart",zone.Id);string mastery=ExplorationRewards.TryGrantRegionalReward(p,zone,Data);
+        return "Regional chart completed. Roads and known exits are now recorded."+mastery+(ExplorationRewards.Eligible(zone)?"\n"+ExplorationRewards.ProgressSummary(p,zone):"");
     }
     private string Read(Character p,string itemId)
     {

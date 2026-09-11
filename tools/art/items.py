@@ -233,6 +233,21 @@ def icon(item):
             for x in (11,15,19): p.line([(x,11),(x+2,13),(x,15)],'d0d1af')
         else:
             p.sphere((3,9,27,27),'a66650' if ident=='raw_meat' else 'a17b51'); p.poly([(19,7),(26,3),(30,7),(23,15)],'d6c8a2'); p.line([(8,15),(13,12),(20,15),(16,22),(9,21)],'d9b294',2)
+    elif kind=='treasure':
+        h=abs(seed(ident)); tones=['c9a45e','83a7a1','a9829d','8fa06a','9d8061','8197b1','b28b68','8d85ad']; base=tones[h%len(tones)]; c=palette(base)
+        p.sphere((5,5,27,27),base); p.sphere((8,8,24,24),shade(base,.72,0)); p.line([(9,9),(22,9),(24,16),(21,23),(10,23),(7,16),(9,9)],c[4])
+        variant=(h//len(tones))%4
+        if variant==0:
+            p.line([(16,9),(16,23)],c[5],2); p.line([(10,16),(22,16)],c[5],2); p.poly([(16,10),(19,15),(16,13),(13,15)],'f1ddad')
+        elif variant==1:
+            p.poly([(16,9),(22,16),(16,23),(10,16)],c[4]); p.poly([(16,12),(19,16),(16,20),(13,16)],'e7d19f'); p.dot(16,16,'fff1c8')
+        elif variant==2:
+            p.line([(10,21),(13,12),(18,10),(22,14),(20,22)],c[5],2); p.line([(12,18),(21,18)],'ead7aa'); p.dot(16,13,'fff0c6')
+        else:
+            for angle in range(0,360,90):
+                rad=math.radians(angle); p.line([(16,16),(16+math.cos(rad)*7,16+math.sin(rad)*7)],c[5],2)
+            p.sphere((13,13,19,19),'e9d5a4')
+        p.line([(9,25),(23,25)],c[1]); p.dot(8+(h%17),27,c[5])
     elif kind=='structure':
         p.plank((3,9,29,15),'97734f'); p.plank((5,16,10,28),'816344'); p.plank((23,16,28,28),'816344'); p.limb((8,21),(25,21),2,'6d523d'); p.rect((9,5,14,8),metal[3],INK)
     else:

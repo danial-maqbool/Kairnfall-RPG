@@ -79,6 +79,7 @@ public partial class AtlasView : Control
             bool locked=player is not null&&Progression.PlayerLevel(player)<gate;
             Color color = zone.Id == Selected ? Ui.Text : locked ? Ui.Danger : zone.Kind == "city" ? Ui.Gold : new Color("91ae91");
             if (zone.Id == player?.Zone) DrawArc(at, 13, 0, MathF.Tau, 24, new Color("a9cde2"), 2);
+            if(player is not null&&ExplorationRewards.Eligible(zone)&&ExplorationRewards.Rewarded(player,zone))DrawArc(at,10,0,MathF.Tau,20,Ui.Success,2);
             DrawRect(new Rect2(at - new Vector2(5, 5), new Vector2(10, 10)), color);
             DrawStringOutline(ThemeDB.FallbackFont, at + new Vector2(-88, 25), zone.Name, HorizontalAlignment.Center, 176, 13, 3, Ui.Ink);
             DrawString(ThemeDB.FallbackFont, at + new Vector2(-88, 25), zone.Name, HorizontalAlignment.Center, 176, 13, color);
@@ -117,6 +118,12 @@ public partial class GameRoot
             bool locked=playerLevel<entryLevel;
             detail.AddChild(Ui.Label(zone.Name + " · " + Ui.Words(zone.Biome) + $" · Threat {threat} · Entry {entryLevel}+", 19, locked?Ui.Danger:Ui.Gold));
             detail.AddChild(Ui.Label(zone.Lore, 14, Ui.Muted, true));
+            if(ExplorationRewards.Eligible(zone)&&(zone.Id==Snapshot.Self.Zone||Snapshot.Self.Discoveries.Contains(zone.Id)))
+            {
+                detail.AddChild(Ui.Label(ExplorationRewards.ProgressSummary(Snapshot.Self,zone),13,Ui.Success,true));
+                var prize=Data.Item(ExplorationRewards.RewardItemId(zone));
+                detail.AddChild(Ui.Label("Regional mastery reward · "+prize.Name+"\nSurvey every waymark, open the hidden cache, and chart four real map sectors.",12,Ui.Muted,true));
+            }
             if(locked)detail.AddChild(Ui.Label($"LOCKED · Reach character level {entryLevel} ({entryLevel-playerLevel} to go).",13,Ui.Danger,true));
             var actions = Ui.Row(detail); actions.AddChild(Ui.Button("Mark route", () => MarkDestination(zone.Id, zone.Spawn)));
             bool canTravel = Snapshot.Self.Waypoints.Contains(zone.Id) && zone.Id != Snapshot.Self.Zone && !locked;

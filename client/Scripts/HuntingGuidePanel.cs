@@ -29,7 +29,7 @@ public partial class HuntingGuidePanel : VBoxContainer
         map=new HuntingRegionMap{Data=Data,ReadCharacter=ReadCharacter,CustomMinimumSize=new Vector2(0,240),SizeFlagsHorizontal=SizeFlags.ExpandFill,SizeFlagsVertical=SizeFlags.ExpandFill};right.AddChild(map);
         details=Ui.Label("Choose a hunting area.",14,Ui.Text,true);details.Name="HuntDetails";right.AddChild(details);
         directions=Ui.Label("",14,Ui.Gold,true);directions.Name="HuntDirections";right.AddChild(directions);
-        right.AddChild(Ui.Label("Circle: hunting patch · Diamond: boss · Gold square: open exit · Red square: locked frontier\nTravel on foot. Q dashes; Tab changes target. Hidden caches are not exposed by this map.",12,Ui.Muted,true));
+        right.AddChild(Ui.Label("Circle: hunting patch · Diamond: boss · Gold square: open exit · Red square: locked frontier\nTravel on foot. Q dashes; Tab changes target. Cache clues improve search range but never expose exact cache coordinates on this map.",12,Ui.Muted,true));
         RefreshSnapshot();
     }
     public void SelectSite(string id)
@@ -76,11 +76,16 @@ public partial class HuntingGuidePanel : VBoxContainer
             SelectedSite=sites.Keys.FirstOrDefault()??"";map.Zone=zone;map.Plan=plan;
         }
         overview.Text=zone.Name+" · "+plan.Specialty+$"\nCharacter {playerLevel} · Threat {JourneyProgression.ThreatLevel(Data,zone)} · "+plan.OrdinaryCount+" ordinary spawn slots · "+plan.Patches.Count+" patches";
+        if(ExplorationRewards.Eligible(zone))overview.Text+="\n"+ExplorationRewards.ProgressSummary(self,zone);
         var lead=JourneyProgression.LocalQuest(Data,self);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
         journey.Text=lead is not null?$"NEXT LEAD · {lead.QuestName}\nTalk to {lead.GiverName} in {zone.Name}."
             :next is not null?(next.Locked?$"NEXT FRONTIER · {next.ZoneName} · LOCKED at {next.EntryLevel}+ ({next.LevelsNeeded} to go)\nTrain skills, craft, gather or finish local quests while you prepare."
                 :$"NEXT FRONTIER · {next.ZoneName} · Threat {next.ThreatLevel} · Entry {next.EntryLevel}+ · READY\nSelect its exit below and follow the route marker.")
             :activity is not null?$"CHANGE OF PACE · {activity.Name} level {Progression.BaseLevel(self,activity.Id)}\n{activity.Action}":"Explore, quest, craft and hunt to build your character.";
+        if(ExplorationRewards.Eligible(zone)&&ExplorationRewards.HasClue(self,zone)&&!ExplorationRewards.CacheDiscovered(self,zone))
+            journey.Text+=$"\nCACHE CLUE · Search off-road. The regional cache appears in-world when you are within {ExplorationRewards.CacheClueRevealRadius:0} tiles.";
+        else if(ExplorationRewards.Eligible(zone)&&ExplorationRewards.CacheDiscovered(self,zone)&&!ExplorationRewards.CacheOpened(self,zone))
+            journey.Text+="\nCACHE FOUND · Return to the discovered chest and open it for the first-cache bonus.";
         if(sites.TryGetValue(SelectedSite,out var selected))
         {
             details.Text=selected.Description;map.Selected=selected.Position;

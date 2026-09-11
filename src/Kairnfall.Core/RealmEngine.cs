@@ -291,7 +291,7 @@ public sealed partial class RealmEngine
         }
         snap.Creatures=State.Creatures.Values.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=range).Select(Wire.Copy).ToList();
         snap.Nodes=State.Nodes.Values.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=range).Select(Wire.Copy).ToList();
-        snap.Chests=State.Chests.Values.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=range&&(!x.Hidden||p.Discoveries.Contains("secret:"+x.Id))).Select(Wire.Copy).ToList();
+        snap.Chests=State.Chests.Values.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=range&&ExplorationRewards.VisibleChest(p,x,Data)).Select(Wire.Copy).ToList();
         snap.Telegraphs=State.Telegraphs.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=range).Select(Wire.Copy).ToList();
         snap.Events=State.Events.Where(x=>x.Zone==p.Zone).Select(Wire.Copy).ToList();
         snap.Trades=State.Trades.Values.Where(x=>x.A.Character==p.Id||x.B.Character==p.Id).Select(Wire.Copy).ToList();
