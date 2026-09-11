@@ -100,7 +100,11 @@ public partial class GameRoot
         if (npc.Station != "") services.AddChild(Ui.Button("Use " + Ui.Words(npc.Station), () => OpenPage("Crafting")));
         if (npc.Role == "blacksmith") services.AddChild(Ui.Button("Repair equipment", () => OpenPage("Inventory")));
         if (npc.Role == "enchanter") services.AddChild(Ui.Button("Work with runes", () => OpenPage("Inventory")));
-        if (npc.Role == "innkeeper") services.AddChild(Ui.Button("Rest · 5 gold", () => Send("rest")));
+        if (npc.Role == "innkeeper")
+        {
+            long restPrice=EconomyServices.RestPrice(Snapshot.Self);
+            services.AddChild(Ui.Button($"Rest · {restPrice:N0} gold", () => Send("rest"),Snapshot.Self.Gold<restPrice));
+        }
         if (npc.Role is "trainer" or "scholar") services.AddChild(Ui.Button("Skills and abilities", () => OpenPage("Skills")));
         if (npc.Role == "guild_registrar") services.AddChild(Ui.Button("Guild services", () => OpenPage("Social")));
         services.AddChild(Ui.Button("Waystone travel", () => OpenPage("Map")));

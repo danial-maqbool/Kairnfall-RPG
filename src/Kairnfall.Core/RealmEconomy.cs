@@ -10,12 +10,7 @@ public sealed partial class RealmEngine
         var npc=Data.Npc(id); Near(p,npc.Zone,npc.Position,3);
         Need(npc.Stock.Length>0,"This NPC does not trade goods."); return npc;
     }
-    public long BuyPrice(Character p,NpcDef merchant,ItemDef item)
-    {
-        double reputation=Math.Clamp(p.Reputation.GetValueOrDefault(merchant.Faction),0,1000)/20000.0;
-        double reduction=Math.Min(0.15,Progression.Level(p,"bartering")*0.001+reputation);
-        return Math.Max(1,(long)Math.Ceiling(item.Value*(1.2-reduction)));
-    }
+    public long BuyPrice(Character p,NpcDef merchant,ItemDef item)=>MerchantSales.BuyUnitPrice(p,merchant,item);
     private string Buy(Character p,string merchant,string template,int quantity)
     {
         Need(quantity is >0 and <=99,"Buy between 1 and 99 items.");
@@ -38,6 +33,11 @@ public sealed partial class RealmEngine
         var npc=Merchant(p,merchant); var item=Items.Owned(p,itemId); var def=Data.Item(item.Template);
         long value=MerchantSales.Quote(p,npc,item,quantity,Data);
         Items.Take(p.Inventory,itemId,quantity,p); Items.Grant(p,value);
+        if(p.Cooldowns.GetValueOrDefault("barter_xp")<=State.Time)
+        {
+            Progression.Train(p,"bartering",Math.Min(50,(int)Math.Min(value,50)),def.Requirement,Data);
+            p.Cooldowns["barter_xp"]=State.Time+10;
+        }
         Progress(p,"sell",def.Id,quantity); return $"Sold for {value} gold.";
     }
     private string Gather(Character p,string nodeId)
@@ -92,13 +92,25 @@ public sealed partial class RealmEngine
         Progression.Train(p,recipe.Skill,Math.Min(100000,recipe.Xp*quantity),recipe.Requirement,Data);
         Progress(p,"craft",output.Id,outputCount); return $"Crafted {outputCount} {output.Name}.";
     }
+    private string Salvage(Character p,string id)
+    {
+        var item=Items.Owned(p,id);var def=Data.Item(item.Template);
+        Need(!Items.Equipped(p,id),"Unequip this item before reclaiming materials.");
+        Need(item.Runes.Count==0,"Extract socketed runes before reclaiming this item.");
+        var plan=CraftEconomy.Reclaim(Data,item);Need(plan is not null,"This item has no reclaimable crafting route.");
+        Need(AtStation(p,plan!.Recipe.Station),"Use the "+plan.Recipe.Station+" station to reclaim this item.");
+        Ready(p,"salvage",1.2);
+        Items.Take(p.Inventory,id,1,p);Items.Add(p.Inventory,Items.Create(Data,plan.Material,plan.Quantity),Data);
+        Progress(p,"salvage",def.Id);
+        return $"Reclaimed {plan.Quantity} {Data.Item(plan.Material).Name} from {def.Name}.";
+    }
     private string Unsocket(Character p,string id,int index)
     {
         Need(NearService(p,"enchanter")||AtStation(p,"rune_table"),"Visit an enchanter or rune table.");
         var item=Items.Owned(p,id);
         Need(index>=0&&index<item.Runes.Count,"Invalid rune socket.");
         var rune=item.Runes[index]; var def=Data.Item(rune.Template);
-        Items.Spend(p,Math.Max(20,def.Value/2));
+        Items.Spend(p,EconomyServices.RuneExtractionPrice(def));
         var restored=Items.Create(Data,rune.Template); restored.Id=rune.Id;
         item.Runes.RemoveAt(index); Items.Add(p.Inventory,restored,Data);
         return "Rune extracted without destroying the equipment.";
@@ -107,7 +119,7 @@ public sealed partial class RealmEngine
     {
         Service(p,"blacksmith"); var item=Items.Owned(p,id); var def=Data.Item(item.Template);
         Need((def.Slot!=""||def.Type=="tool")&&item.Durability<100,"This item does not need repair.");
-        long price=Math.Max(1,(long)Math.Ceiling((100-item.Durability)*Math.Max(1,def.Value)/500.0));
+        long price=EconomyServices.RepairPrice(def,item.Durability);
         Items.Spend(p,price); item.Durability=100; return $"Repaired for {price} gold.";
     }
     private string Talk(Character p,string id)
@@ -181,10 +193,10 @@ public sealed partial class RealmEngine
         Near(p,p.Zone,source.Spawn,3);
         Need(State.Time-p.LastCombat>10,"You cannot travel during combat.");
         Need(dest.Kind is "city" or "settlement","Invalid fast-travel destination.");
-        Need(dest.Id!=p.Zone,"You are already here."); Items.Spend(p,20);
+        Need(dest.Id!=p.Zone,"You are already here."); long price=EconomyServices.TravelPrice(Data,p,source,dest);Items.Spend(p,price);
         CancelTradesFor(p.Id); inputs.Remove(p.Id); p.Zone=dest.Id; p.Position=dest.Spawn;
         if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Zone=p.Zone; pet.Position=p.Position; }
-        return "Arrived at "+dest.Name+".";
+        return $"Arrived at {dest.Name} for {price} gold.";
     }
     private string Consume(Character p,string id)
     {
@@ -207,10 +219,10 @@ public sealed partial class RealmEngine
         Need(State.Time-p.LastCombat>10,"You cannot rest during combat.");
         var stats=CombatMath.Stats(p,Data);
         Need(p.Health<stats.Health||p.Mana<stats.Mana||p.Stamina<stats.Stamina,"You are already fully rested.");
-        Ready(p,"rest",10); if(!camp) Items.Spend(p,5);
+        long price=camp?0:EconomyServices.RestPrice(p);Ready(p,"rest",10);if(price>0)Items.Spend(p,price);
         p.Health=stats.Health; p.Mana=stats.Mana; p.Stamina=stats.Stamina;
         Progression.Train(p,"survival",5,Math.Clamp(Data.Zone(p.Zone).Level,1,100),Data);
-        return "Health, mana, and stamina restored.";
+        return price==0?"Health, mana, and stamina restored at camp.":$"Health, mana, and stamina restored for {price} gold.";
     }
     private string Respawn(Character p)
     {

@@ -122,12 +122,12 @@ internal static class EconomyBalanceAuditChecks
             Need(pricedEquipment.Length>500,"Too few priced equipment/tool definitions.");
             foreach(var def in pricedEquipment)
             {
-                long fullRepair=Math.Max(1,(long)Math.Ceiling(100*Math.Max(1,def.Value)/500.0));
+                long fullRepair=EconomyServices.RepairPrice(def,0);
                 Need(fullRepair>0&&fullRepair<Math.Max(2,(long)Math.Ceiling(def.Value*1.2)),"Full repair is not cheaper than replacement for "+def.Id);
             }
             Need(data.Npcs.Any(n=>n.Role=="innkeeper")&&data.Npcs.Any(n=>n.Role=="blacksmith")&&data.Npcs.Any(n=>n.Role=="enchanter"),"Required paid-service NPCs are missing.");
             Need(data.Items.Any(i=>i.Type=="rune"&&Math.Max(20,i.Value/2)>0),"Rune extraction has no priced content.");
-            Console.WriteLine("ECONOMY METRIC gold_sinks rest=5 fast_travel=20 repair=ceil(missing_durability*value/500) unsocket=max(20,rune_value/2)");
+            Console.WriteLine("ECONOMY METRIC gold_sinks rest=progression_scaled fast_travel=distance_threat_progression_scaled repair=shared_value_rule unsocket=shared_rune_rule");
         });
 
         Console.WriteLine($"ECONOMY_BALANCE_AUDIT: {passed} guardrail groups passed; failures {failures.Count}. Metrics detect structural and numeric regressions. Sustained human pacing and market-feel approval remain separate.");

@@ -95,10 +95,10 @@ public partial class MerchantSellPanel : VBoxContainer
                 var item = items[i]; string problem = MerchantSales.Problem(self, Merchant, item, 1, Data);
                 list.SetItemText(i, Data.Item(item.Template).Name + " ×" + item.Quantity);
                 list.SetItemCustomFgColor(i, problem == "" ? Ui.Text : Ui.Danger);
-                list.SetItemTooltip(i, problem == "" ? MerchantSales.UnitPrice(Data.Item(item.Template)) + " gold each" : problem);
+                list.SetItemTooltip(i, problem == "" ? MerchantSales.UnitPrice(self,Merchant,item,Data) + " gold each · specialist, Bartering, reputation and quality included" : problem);
                 if (item.Id == selected) list.Select(i);
             }
-            money.Text = $"Gold: {self.Gold:N0} · One backpack: {self.Inventory.Count}/{Items.InventoryCapacity} slots";
+            money.Text = $"Gold: {self.Gold:N0} · One backpack: {self.Inventory.Count}/{Items.InventoryCapacity} slots · Specialists, Bartering, reputation and item quality improve sale quotes.";
             var current = Current(self);
             if (current is not null)
             {
@@ -138,7 +138,7 @@ public partial class MerchantSellPanel : VBoxContainer
         bool valid = TryQuantity(amount.Text, item.Quantity, out int count);
         string problem = MerchantSales.Problem(self!, Merchant, item, valid ? count : 1, Data);
         string allProblem = MerchantSales.Problem(self!, Merchant, item, item.Quantity, Data);
-        long unit = MerchantSales.UnitPrice(Data.Item(item.Template));
+        long unit = MerchantSales.UnitPrice(self!,Merchant,item,Data);
         sell.Disabled = busy || AwaitingSnapshot || confirming || !valid || problem != "";
         sellAll.Disabled = busy || AwaitingSnapshot || confirming || allProblem != "";
         sell.Text = valid ? $"Sell {count} · {unit * count:N0} gold" : "Sell quantity";

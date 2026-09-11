@@ -180,8 +180,13 @@ public partial class CraftingGuidePanel : VBoxContainer
             var label=ingredientLabels[ingredient.Key]; label.Text=Data.Item(ingredient.Key).Name+"  "+owned+" / "+needed;
             label.Modulate=owned>=needed?Ui.Success:Ui.Danger;
         }
+        long inputValue=CraftEconomy.RecipeInputValue(Data,recipe),outputValue=CraftEconomy.RecipeOutputValue(Data,recipe);
+        var reclaim=CraftEconomy.Reclaim(Data,new Item{Template=recipe.Output,Quantity=1});
         requirement.Text=Data.Skill(recipe.Skill).Name+" "+recipe.Requirement+" · "+Ui.Words(recipe.Station)+
-            "\nOutput: "+checked(recipe.Quantity*quantity)+" · Base skill XP per batch: "+recipe.Xp+"\nXP depends on challenge and class affinity.";
+            "\nOutput: "+checked(recipe.Quantity*quantity)+" · Base skill XP per batch: "+recipe.Xp+
+            $"\nMaterial value {inputValue:N0} → output base {outputValue:N0} · base merchant resale {MerchantSales.UnitPrice(item)*recipe.Quantity:N0}"+
+            "\n"+CraftEconomy.QualityHint(self,recipe,Data)+(reclaim is null?"":$"\nReclaim preview: {reclaim.Quantity} {Data.Item(reclaim.Material).Name} at {Ui.Words(reclaim.Recipe.Station)}.")+
+            "\nXP depends on challenge and class affinity.";
         string problem=Problem(self,recipe); readiness.Text=problem;
         primary.Text=structure?"Place structure":"Craft "+quantity+(quantity==1?" batch":" batches");
         primary.Disabled=problem!="" || (structure?PlaceRequested is null:CraftRequested is null);

@@ -366,6 +366,8 @@ public partial class GameRoot
         if (bag == "bank") menu.AddItem("Withdraw", 3, !NearRole("banker"));
         if (bag == "inventory" && definition.Type is "food" or "potion" or "scroll") menu.AddItem("Use", 2);
         if (bag == "inventory" && definition.Type is "book" or "treasure_map") menu.AddItem("Read", 4);
+        var reclaim=bag=="inventory"?CraftEconomy.Reclaim(Data,item):null;
+        if(reclaim is not null) menu.AddItem($"Reclaim → {reclaim.Quantity} {Data.Item(reclaim.Material).Name}",5,wasEquipped||!ClientAtStation(reclaim.Recipe.Station));
         menu.AddItem("Inspect item", 1);
         menu.SelectedAction = choice =>
         {
@@ -389,6 +391,8 @@ public partial class GameRoot
                 else Notify("Move closer to the banker.", true);
             }
             else if (choice == 4) Send("read", item: item.Id);
+            else if(choice==5&&CraftEconomy.Reclaim(Data,currentItem) is { } plan)
+                Confirm("Reclaim materials",$"Destroy {Data.Item(currentItem.Template).Name} and recover {plan.Quantity} {Data.Item(plan.Material).Name}?",()=>Send("salvage",item:currentItem.Id));
         };
         interfaceRoot.AddChild(menu);
         menu.OpenAt(at);

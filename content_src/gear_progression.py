@@ -188,6 +188,73 @@ def build(data):
                     stats=stats,_metal_color=metal_color,_wood=wood,description=desc)
             entries['tool/'+tag] = ident
         data['equipmentTiers'].append(dict(id='equipment_'+str(level),level=level,name=label,cloth=cloth,leather=leather,entries=entries))
+    # Economy pass: every progression item uses materials from its own grade and its
+    # base value follows the real recipe instead of inherited legacy price formulas.
+    # Saved template IDs and combat fields remain stable; only recipe inputs and gold value change.
+    recipes_by_output={}
+    for entry in data['recipes']:
+        if entry['quantity']==1: recipes_by_output.setdefault(entry['output'],[]).append(entry)
+    tier_rows={row[0]:row for row in TIERS}
+    for tier in data['equipmentTiers']:
+        level=tier['level']; key=next(row[1] for row in TIERS if row[0]==level)
+        _,_,_,cloth,_,_,_,_=tier_rows[level]
+        base_key,_,_,_,wood,_=material_at(level)
+        metal=key+'_bar'; cloth_key=cloth.lower().replace(' ','')+'_cloth'; hide_key='cured_leather' if level==1 else key+'_treated_leather'
+        for family,ident in tier['entries'].items():
+            if family.startswith('armor/light/'):
+                inputs={cloth_key:2,'thread':1}
+            elif family.startswith('armor/medium/'):
+                inputs={hide_key:2,'thread':1}
+            elif family.startswith('armor/heavy/'):
+                inputs={metal:3,hide_key:1}
+            elif family.startswith('weapon/'):
+                weapon_family=family.split('/',1)[1]
+                inputs={metal:1,'parchment':4,'ink':2} if weapon_family=='tome' else ({metal:1,hide_key:2,'thread':1} if weapon_family=='knuckles' else {metal:2,wood+'_plank':1,hide_key:1})
+            elif family.startswith('offhand/'):
+                inputs={metal:1,hide_key:2}
+            elif family.startswith('accessory/'):
+                inputs={metal:1,'polished_gem':1}
+            elif family.startswith('tool/'):
+                inputs={metal:1,wood+'_plank':1,hide_key:1}
+            else:
+                continue
+            routes=recipes_by_output.get(ident,[])
+            if not routes: raise ValueError('Missing recipe for progression item '+ident)
+            route=min(routes,key=lambda r:(r['requirement'],r['id']))
+            route['ingredients']=inputs
+            lookup[ident]['value']=price(inputs)
+    # Economy normalization also covers legacy craftable equipment that is not the
+    # selected representative for a modern progression tier.
+    weapon_families={row[0] for row in WEAPONS}
+    for route in data['recipes']:
+        if route['quantity']!=1: continue
+        output=lookup.get(route['output'])
+        if output is None or (output.get('slot','')=='' and output.get('type')!='tool'): continue
+        if 'boss_unique' in output.get('tags',[]) or 'exploration_unique' in output.get('tags',[]): continue
+        level=max(1,int(output.get('requirement',route['requirement'])))
+        tier_level,key,_,cloth,_,_,_,_=max((row for row in TIERS if row[0]<=level),key=lambda row:row[0])
+        base_key,_,_,_,wood,_=material_at(level)
+        metal=key+'_bar';hide_key='cured_leather' if tier_level==1 else key+'_treated_leather'
+        cloth_key=cloth.lower().replace(' ','')+'_cloth'
+        tags=set(output.get('tags',[]));kind=output.get('type','')
+        if kind=='armor':
+            weight=next((x for x in ('light','medium','heavy') if x in tags),None)
+            if weight=='light': inputs={cloth_key:2,'thread':1}
+            elif weight=='medium': inputs={hide_key:2,'thread':1}
+            elif weight=='heavy': inputs={metal:3,hide_key:1}
+            else: continue
+        elif kind=='weapon':
+            family=next((x for x in tags if x in weapon_families),None)
+            if family=='tome': inputs={metal:1,'parchment':4,'ink':2}
+            elif family=='knuckles': inputs={metal:1,hide_key:2,'thread':1}
+            else: inputs={metal:2,wood+'_plank':1,hide_key:1}
+        elif kind=='offhand': inputs={metal:1,hide_key:2}
+        elif kind=='accessory': inputs={metal:1,'polished_gem':1}
+        elif kind=='tool': inputs={metal:1,wood+'_plank':1,hide_key:1}
+        else: continue
+        if any(part not in lookup for part in inputs): continue
+        route['ingredients']=inputs
+        output['value']=price(inputs)
     # New materials remain obtainable without adding a mine or altering spawn geometry.
     for npc in data['npcs']:
         if npc['role'] in ('miner','blacksmith') and 'tin_ore' not in npc['stock']:
@@ -201,9 +268,15 @@ def build(data):
         for family,ident in row['entries'].items():
             wanted=(npc['role']=='weaponsmith' and family.startswith('weapon/')) or (npc['role']=='armorer' and family.startswith('armor/')) or (npc['role']=='jeweler' and family.startswith('accessory/')) or (npc['role']=='blacksmith' and family.startswith('tool/')) or (npc['role']=='fletcher' and family in ('weapon/bow','weapon/crossbow','offhand/quiver')) or (npc['role']=='enchanter' and family in ('offhand/focus','offhand/orb'))
             if wanted and ident not in npc['stock']: npc['stock'].append(ident)
-    # This is a save-compatibility invariant, not a snapshot of only catalog counts.
-    if any(lookup[key] != value for key,value in legacy.items()):
-        raise ValueError('A pre-existing item definition changed during progression extension')
+    # Save compatibility protects identities and combat semantics while allowing deliberate economy rebalancing.
+    protected_item_fields=('id','name','type','slot','skill','requirement','power','armor','speed','range','element','stats','tags','tier')
+    for key,before in legacy.items():
+        after=lookup[key]
+        if any(after.get(field)!=before.get(field) for field in protected_item_fields):
+            raise ValueError('A pre-existing item combat/identity field changed: '+key)
     now={r['id']:r for r in data['recipes']}
-    if any(now[key] != value for key,value in recipes_before.items()):
-        raise ValueError('A pre-existing recipe changed during progression extension')
+    protected_recipe_fields=('id','name','skill','station','output','requirement','quantity','xp')
+    for key,before in recipes_before.items():
+        after=now[key]
+        if any(after.get(field)!=before.get(field) for field in protected_recipe_fields):
+            raise ValueError('A pre-existing recipe identity/progression field changed: '+key)

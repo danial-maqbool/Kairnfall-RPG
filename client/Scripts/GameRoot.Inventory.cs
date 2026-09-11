@@ -200,7 +200,8 @@ public partial class GameRoot
         }
         if ((def.Slot != "" || def.Type == "tool") && item.Durability < 100)
         {
-            var repair = Ui.Button("Repair at blacksmith", () => Send("repair", item: item.Id), !NearRole("blacksmith"));
+            long repairPrice=EconomyServices.RepairPrice(def,item.Durability);
+            var repair = Ui.Button($"Repair at blacksmith · {repairPrice:N0} gold", () => Send("repair", item: item.Id), !NearRole("blacksmith")||self.Gold<repairPrice);
             repair.Name = "RepairEquipmentAction"; parent.AddChild(repair);
         }
         if (def.Type is "food" or "potion" or "scroll") parent.AddChild(Ui.Button("Use", () => Send("consume", item: item.Id)));
@@ -221,8 +222,15 @@ public partial class GameRoot
         for (int i = 0; i < item.Runes.Count; i++)
         {
             int index = i;
-            parent.AddChild(Ui.Button("Extract " + Data.Item(item.Runes[i].Template).Name,
-                () => Confirm("Extract rune", "The enchanter charges an extraction fee. The rune is returned intact.", () => Send("unsocket", item.Id, amount: index)), !NearRole("enchanter")));
+            var runeDef=Data.Item(item.Runes[i].Template);long extraction=EconomyServices.RuneExtractionPrice(runeDef);
+            parent.AddChild(Ui.Button("Extract " + runeDef.Name+$" · {extraction:N0} gold",
+                () => Confirm("Extract rune", $"Extraction costs {extraction:N0} gold. The rune is returned intact.", () => Send("unsocket", item.Id, amount: index)), !NearRole("enchanter")||self.Gold<extraction));
+        }
+        if(CraftEconomy.Reclaim(Data,item) is { } reclaim)
+        {
+            bool blocked=Items.Equipped(self,item.Id)||!ClientAtStation(reclaim.Recipe.Station);
+            string label=$"Reclaim at {Ui.Words(reclaim.Recipe.Station)} → {reclaim.Quantity} {Data.Item(reclaim.Material).Name}";
+            parent.AddChild(Ui.Button(label,()=>Confirm("Reclaim materials",$"Destroy {def.Name} and recover {reclaim.Quantity} {Data.Item(reclaim.Material).Name}? Reclaiming is deliberately lossy.",()=>Send("salvage",item:item.Id)),blocked));
         }
         if (selectedNpc != "" && Data.Npcs.Any(x => x.Id == selectedNpc && x.Stock.Length > 0))
             parent.AddChild(Ui.Button("Merchant selling", () => OpenPage("Sell")));

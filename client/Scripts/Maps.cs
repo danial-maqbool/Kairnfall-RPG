@@ -126,8 +126,11 @@ public partial class GameRoot
             }
             if(locked)detail.AddChild(Ui.Label($"LOCKED · Reach character level {entryLevel} ({entryLevel-playerLevel} to go).",13,Ui.Danger,true));
             var actions = Ui.Row(detail); actions.AddChild(Ui.Button("Mark route", () => MarkDestination(zone.Id, zone.Spawn)));
-            bool canTravel = Snapshot.Self.Waypoints.Contains(zone.Id) && zone.Id != Snapshot.Self.Zone && !locked;
-            actions.AddChild(Ui.Button("Waystone travel · 20 gold", () => Send("travel", zone.Id), !canTravel));
+            var source=Data.Zone(Snapshot.Self.Zone);long travelPrice=EconomyServices.TravelPrice(Data,Snapshot.Self,source,zone);
+            bool canTravel = Snapshot.Self.Waypoints.Contains(zone.Id) && zone.Id != Snapshot.Self.Zone && !locked && Snapshot.Self.Gold>=travelPrice;
+            actions.AddChild(Ui.Button($"Waystone travel · {travelPrice:N0} gold", () => Send("travel", zone.Id), !canTravel));
+            if(Snapshot.Self.Waypoints.Contains(zone.Id)&&zone.Id!=Snapshot.Self.Zone&&!locked&&Snapshot.Self.Gold<travelPrice)
+                detail.AddChild(Ui.Label($"Need {travelPrice-Snapshot.Self.Gold:N0} more gold for this waystone route.",12,Ui.Danger,true));
             detail.AddChild(Ui.Label("Frontiers open five character levels below the area's ordinary-mob threat. Fast travel still requires a discovered settlement waystone.", 13, Ui.Muted, true));
         }
         atlas.Chosen = id => { selectedZone = id; RenderDetail(); };
