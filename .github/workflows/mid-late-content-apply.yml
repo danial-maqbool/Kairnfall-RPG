@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/mid-late-content-apply.yml'
       - 'tools/apply_mid_late_game_update.py'
+      - 'tools/fix_mid_late_game_checks.py'
 
 permissions:
   contents: write
@@ -27,6 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/apply_mid_late_game_update.py
+          python3 tools/fix_mid_late_game_checks.py
           python3 tools/build_content.py
           git diff --check
       - name: Verify content contracts and complete server/client build
@@ -41,13 +43,13 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/validate_game_assets.py
-      - name: Publish verified Area 7 update and remove temporary helper
+      - name: Publish verified Area 7 update and remove temporary helpers
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm .github/workflows/mid-late-content-apply.yml tools/apply_mid_late_game_update.py
+          git rm .github/workflows/mid-late-content-apply.yml tools/apply_mid_late_game_update.py tools/fix_mid_late_game_checks.py
           git add -A
           git commit -m 'feat: deepen mid and late game expedition content'
           git pull --rebase origin main
