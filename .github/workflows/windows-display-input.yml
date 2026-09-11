@@ -1,0 +1,74 @@
+name: Windows display and input acceptance
+on:
+  push:
+    branches: [main, 'team/acceptance-09-windows-dpi-input']
+    paths:
+      - 'client/**'
+      - 'content/**'
+      - 'content_src/**'
+      - 'tools/build_content.py'
+      - 'tools/build_game_assets.py'
+      - 'tools/complete_skill_icons.py'
+      - 'tools/get_godot.py'
+      - '.github/workflows/windows-display-input.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-display-input-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows-native:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build deterministic Windows client inputs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/windows-display | Out-Null
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py 2>&1 | Tee-Object artifacts/windows-display/content.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/build_game_assets.py 2>&1 | Tee-Object artifacts/windows-display/assets.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/complete_skill_icons.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build client/Kairnfall.Client.csproj -c Debug 2>&1 | Tee-Object artifacts/windows-display/client-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/get_godot.py --os windows 2>&1 | Tee-Object artifacts/windows-display/godot.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Import native Godot project on Windows
+        shell: pwsh
+        run: |
+          & $env:GODOT_BIN --headless --editor --path client --import 2>&1 | Tee-Object artifacts/windows-display/import.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run physical-input and 125 150 percent scale contracts
+        shell: pwsh
+        run: |
+          & $env:GODOT_BIN --verbose --headless --path client res://Tests/InputContract.tscn 2>&1 | Tee-Object artifacts/windows-display/input.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $env:GODOT_BIN --verbose --headless --path client res://Tests/WindowsScaleContract.tscn 2>&1 | Tee-Object artifacts/windows-display/scale.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $env:GODOT_BIN --verbose --headless --path client res://Tests/XpHudAcceptanceContract.tscn 2>&1 | Tee-Object artifacts/windows-display/xp-hud.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $env:GODOT_BIN --verbose --headless --path client res://Tests/ControlRulesContract.tscn 2>&1 | Tee-Object artifacts/windows-display/control-rules.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Select-String -Path artifacts/windows-display/*.log -Pattern '(^|\s)(ERROR:|SCRIPT ERROR:|Unhandled exception)' -Quiet) { throw 'Godot error found in Windows native logs.' }
+          if (-not (Select-String -Path artifacts/windows-display/scale.log -Pattern 'WINDOWS_SCALE_CONTRACT:' -Quiet)) { throw 'Windows scale contract marker missing.' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-display-input-${{ github.sha }}
+          path: artifacts/windows-display/
+          retention-days: 14
+          if-no-files-found: error

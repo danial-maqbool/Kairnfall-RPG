@@ -43,6 +43,7 @@ public partial class CraftingGuidePanel : VBoxContainer
     public override void _Ready()
     {
         Name="CraftingGuide"; SizeFlagsHorizontal=SizeFlags.ExpandFill; SizeFlagsVertical=SizeFlags.ExpandFill;
+        bool compactHeight=GetViewport().GetVisibleRect().Size.Y<520;
         selectedStyle=Ui.Box(Ui.Raised.Lightened(.12f),Ui.Gold,8); normalStyle=Ui.Box(Ui.Ink,new Color("665941"),8);
         foreach(var recipe in Data.Recipes)
             searchable[recipe.Id]=recipe.Name+" "+Data.Skill(recipe.Skill).Name+" "+Ui.Words(recipe.Station)+" "+string.Join(" ",recipe.Ingredients.Keys.Select(k=>Data.Item(k).Name));
@@ -54,24 +55,24 @@ public partial class CraftingGuidePanel : VBoxContainer
         filters.AddChild(profession);
         learned=new OptionButton{Name="CraftAvailability"}; learned.AddItem("All recipes"); learned.AddItem("Skill learned"); filters.AddChild(learned);
         plant=Ui.Button("Plant wheat",()=>PlantRequested?.Invoke()); plant.Name="PlantWheat"; filters.AddChild(plant);
-        count=Ui.Label("",14,Ui.Muted,true); AddChild(count);
+        count=Ui.Label("",compactHeight?13:14,Ui.Muted,true); AddChild(count);
         var body=Ui.Row(this); body.SizeFlagsVertical=SizeFlags.ExpandFill;
         var listColumn=Ui.Column(body,true); listColumn.SizeFlagsStretchRatio=1;
-        var list=Ui.Scroll(listColumn,new Vector2(310,100)); list.Name="CraftRecipeList"; rows=Ui.Column(list);
+        var list=Ui.Scroll(listColumn,new Vector2(310,compactHeight?64:100)); list.Name="CraftRecipeList"; rows=Ui.Column(list);
         var navigation=Ui.Row(listColumn);
         previous=Ui.Button("Previous",()=>ChangePage(-1)); previous.Name="CraftPrevious"; navigation.AddChild(previous);
         next=Ui.Button("Next",()=>ChangePage(1)); next.Name="CraftNext"; navigation.AddChild(next);
         var detail=new PanelContainer{Name="CraftInspector",SizeFlagsHorizontal=SizeFlags.ExpandFill,SizeFlagsVertical=SizeFlags.ExpandFill,SizeFlagsStretchRatio=1.35f}; body.AddChild(detail);
         var inspector=Ui.Column(detail,true); var heading=Ui.Row(inspector);
-        icon=Ui.Image(null,56); heading.AddChild(icon); title=Ui.Label("Choose a recipe",21,Ui.Gold,true); heading.AddChild(title);
-        var information=Ui.Column(Ui.Scroll(inspector,new Vector2(0,70)));
-        description=Ui.Label("",15,Ui.Text,true); information.AddChild(description);
-        requirement=Ui.Label("",14,Ui.Gold,true); requirement.Name="CraftRequirements"; information.AddChild(requirement);
+        icon=Ui.Image(null,compactHeight?44:56); heading.AddChild(icon); title=Ui.Label("Choose a recipe",compactHeight?19:21,Ui.Gold,true); heading.AddChild(title);
+        var information=Ui.Column(Ui.Scroll(inspector,new Vector2(0,compactHeight?36:70)));
+        description=Ui.Label("",compactHeight?14:15,Ui.Text,true); information.AddChild(description);
+        requirement=Ui.Label("",compactHeight?13:14,Ui.Gold,true); requirement.Name="CraftRequirements"; information.AddChild(requirement);
         ingredientRows=Ui.Column(information);
-        readiness=Ui.Label("",14,Ui.Danger,true); readiness.Name="CraftReadiness"; inspector.AddChild(readiness);
-        var actions=Ui.Row(inspector); actions.AddChild(Ui.Label("Batches",14,Ui.Muted));
-        amount=new SpinBox{Name="CraftBatches",MinValue=1,MaxValue=20,Step=1,Value=1,CustomMinimumSize=new Vector2(105,38)}; actions.AddChild(amount);
-        primary=Ui.Button("Craft",()=>TrySubmit()); primary.Name="CraftPrimaryAction"; primary.CustomMinimumSize=new Vector2(180,42); primary.SizeFlagsHorizontal=SizeFlags.ExpandFill; actions.AddChild(primary);
+        readiness=Ui.Label("",compactHeight?13:14,Ui.Danger,true); readiness.Name="CraftReadiness"; inspector.AddChild(readiness);
+        var actions=Ui.Row(inspector); actions.AddChild(Ui.Label("Batches",compactHeight?13:14,Ui.Muted));
+        amount=new SpinBox{Name="CraftBatches",MinValue=1,MaxValue=20,Step=1,Value=1,CustomMinimumSize=new Vector2(105,compactHeight?34:38)}; actions.AddChild(amount);
+        primary=Ui.Button("Craft",()=>TrySubmit()); primary.Name="CraftPrimaryAction"; primary.CustomMinimumSize=new Vector2(180,compactHeight?36:42); primary.SizeFlagsHorizontal=SizeFlags.ExpandFill; actions.AddChild(primary);
         built=true; SelectedRecipe=InitialRecipe; Connect(); RefreshSnapshot();
     }
     public override void _EnterTree() { if(built) Connect(); }
