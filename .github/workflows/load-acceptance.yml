@@ -1,0 +1,106 @@
+name: Load acceptance
+on:
+  push:
+    branches: [main, 'team/acceptance-08-load']
+    paths:
+      - 'src/**'
+      - 'content_src/**'
+      - 'tools/build_content.py'
+      - 'tools/load_probe/**'
+      - 'Kairnfall.slnx'
+      - '.github/workflows/load-acceptance.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: load-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  staged-load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports: ['127.0.0.1:5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      KAIRNFALL_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_LOCAL_HTTP: '1'
+      ASPNETCORE_ENVIRONMENT: Testing
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Generate catalog and build release server and load probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/load
+          python3 tools/build_content.py | tee artifacts/load/content.log
+          test -s content/catalog.json
+          dotnet build Kairnfall.slnx -c Release | tee artifacts/load/build.log
+      - name: Start disposable server and resource sampler
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASPNETCORE_URLS=http://127.0.0.1:5090 dotnet src/Kairnfall.Server/bin/Release/net10.0/Kairnfall.Server.dll > artifacts/load/server.log 2>&1 &
+          server=$!
+          echo "$server" > artifacts/load/server.pid
+          for n in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:5090/health >/dev/null; then break; fi
+            if ! kill -0 "$server" 2>/dev/null; then cat artifacts/load/server.log; exit 1; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:5090/health > artifacts/load/health-start.json
+          (while kill -0 "$server" 2>/dev/null; do ps -p "$server" -o rss=,%cpu=,etime= || true; sleep 1; done) > artifacts/load/process-samples.txt &
+          echo $! > artifacts/load/sampler.pid
+      - name: Run 4 8 16 client sustained stages
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run --no-build --project tools/load_probe/Kairnfall.LoadProbe.csproj -c Release -- http://127.0.0.1:5090 20 artifacts/load/load-report.json 2>&1 | tee artifacts/load/probe.log
+      - name: Capture final server resource measurements
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          server=$(cat artifacts/load/server.pid 2>/dev/null)
+          sampler=$(cat artifacts/load/sampler.pid 2>/dev/null)
+          curl --silent http://127.0.0.1:5090/health > artifacts/load/health-final.json
+          kill "$sampler" 2>/dev/null
+          if [ -n "$server" ]; then kill "$server" 2>/dev/null; wait "$server" 2>/dev/null; fi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path('artifacts/load/process-samples.txt')
+          rows=[]
+          if path.exists():
+              for line in path.read_text().splitlines():
+                  parts=line.split()
+                  if len(parts)>=2:
+                      try: rows.append((int(parts[0]),float(parts[1])))
+                      except ValueError: pass
+          result={'samples':len(rows),'max_rss_kib':max((r for r,_ in rows),default=0),'max_cpu_percent':max((c for _,c in rows),default=0)}
+          Path('artifacts/load/process-summary.json').write_text(json.dumps(result,indent=2)+'\n')
+          print('LOAD PROCESS:',result)
+          if result['samples']<20: raise SystemExit('Insufficient server process samples.')
+          if result['max_rss_kib']>1572864: raise SystemExit('Server RSS exceeded 1.5 GiB CI reference limit.')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-acceptance-${{ github.sha }}
+          path: artifacts/load/
+          retention-days: 14
+          if-no-files-found: error

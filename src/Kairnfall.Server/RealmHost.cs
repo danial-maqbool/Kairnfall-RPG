@@ -167,7 +167,10 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
                 {
                     if (!ready) break;
                     Engine.Tick(.05); ticks++;
-                    if (Engine.EconomicDirty || Engine.State.Time - lastPeriodicSave >= 5) await PersistAsync(stoppingToken);
+                    // Commands still persist before acknowledgement. Tick-originated state is
+                    // batched to the existing periodic checkpoint so dynamic world updates do
+                    // not turn every simulation change into a blocking database transaction.
+                    if (Engine.State.Time - lastPeriodicSave >= 5) await PersistAsync(stoppingToken);
                     FlushChat(); if (ticks % 2 == 0) foreach (var peer in peers.Values) SendSnapshot(peer);
                 }
                 finally { gate.Release(); }
