@@ -37,11 +37,14 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y blender
+          sudo apt-get install -y blender libegl1 libgl1 libgl1-mesa-dri
           python -m pip install Pillow==12.0.0
           blender --version
       - name: Render 3D humanoid master frames
         shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          EGL_PLATFORM: surfaceless
         run: |
           rm -rf artifacts/blender-humanoid
           mkdir -p artifacts/blender-humanoid
