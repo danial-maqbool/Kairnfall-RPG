@@ -9,12 +9,12 @@ HERE = Path(__file__).resolve().parent
 ATELIER = HERE.parent
 sys.path.insert(0, str(ATELIER))
 
-from forge import blender_body, folk, rig  # noqa: E402
+from forge import authored_body, folk, rig  # noqa: E402
 
 
 class RefinedBodyBatchTests(unittest.TestCase):
     def test_folk_uses_authored_renderer(self):
-        self.assertIs(folk.body_frame, blender_body.body_frame)
+        self.assertIs(folk.body_frame, authored_body.body_frame)
 
     def test_all_base_frames_are_valid_and_deterministic(self):
         for build in range(2):
@@ -46,7 +46,7 @@ class RefinedBodyBatchTests(unittest.TestCase):
     def test_authored_batch_is_complete_when_present(self):
         root = ATELIER / 'authored' / 'humanoid'
         if not root.exists():
-            self.skipTest('Blender-authored sheets have not been generated yet')
+            self.skipTest('Authored 2D sheets have not been generated yet')
         files = sorted(root.glob('body_*.png'))
         self.assertEqual(len(files), 12)
 
