@@ -44,4 +44,48 @@ replace_once('tests/Kairnfall.Integration/Program.cs',
 '''        snapshot=await State(client); Check(snapshot.Self.Zone==zoneId,$"Navigation crossed an unexpected zone {zoneId} -> {snapshot.Self.Zone} while heading to {destination}.");
 ''')
 
-print('Refined directional walk-through entrance rules.')
+# The network acceptance route must model what a player does at a visible entrance:
+# reach the inside approach point first, then walk directly through the threshold.
+replace_once('tests/Kairnfall.Integration/Program.cs',
+'''    var exit=source.Exits.First(x=>x.Target==destination);
+    var route=WorldMap.FindPath(source,snapshot.Self.Position,exit.Position,source.Width*source.Height);route.Add(exit.Position);
+    int next=0;var watch=Stopwatch.StartNew();
+    while(watch.Elapsed<TimeSpan.FromSeconds(100))
+    {
+        snapshot=await State(client);
+        if(snapshot.Self.Zone==destination) { await client.MoveAsync(0,0,cancel);return; }
+        Check(snapshot.Self.Zone==sourceId,"Walk-through navigation crossed an unexpected zone.");
+        var position=snapshot.Self.Position;Point direction;
+        var outward=MapTransitionRules.BorderOutward(source,exit);
+        if(outward.Distance(new Point(0,0))>0.01&&position.Distance(exit.Position)<1.6) direction=outward;
+        else
+        {
+            while(next<route.Count-1&&position.Distance(route[next])<0.7) next++;
+            direction=position.Direction(route[Math.Min(next,route.Count-1)]);
+        }
+        await client.MoveAsync(direction.X,direction.Y,cancel);await Task.Delay(100,cancel);Pump(client);
+    }
+''',
+'''    var exit=source.Exits.First(x=>x.Target==destination);
+    var outward=MapTransitionRules.BorderOutward(source,exit);
+    var forward=outward.Distance(new Point(0,0))>0.01 ? outward : source.Spawn.Direction(exit.Position);
+    var approach=WorldMap.FindFree(source,exit.Position.Add(forward.Scale(-1.20)));
+    var route=WorldMap.FindPath(source,snapshot.Self.Position,approach,source.Width*source.Height);route.Add(approach);
+    int next=0;var watch=Stopwatch.StartNew();
+    while(watch.Elapsed<TimeSpan.FromSeconds(100))
+    {
+        snapshot=await State(client);
+        if(snapshot.Self.Zone==destination) { await client.MoveAsync(0,0,cancel);return; }
+        Check(snapshot.Self.Zone==sourceId,$"Walk-through navigation crossed {sourceId} -> {snapshot.Self.Zone} while entering {destination}.");
+        var position=snapshot.Self.Position;Point direction;
+        if(position.Distance(approach)<0.80) direction=forward;
+        else
+        {
+            while(next<route.Count-1&&position.Distance(route[next])<0.7) next++;
+            direction=position.Direction(route[Math.Min(next,route.Count-1)]);
+        }
+        await client.MoveAsync(direction.X,direction.Y,cancel);await Task.Delay(100,cancel);Pump(client);
+    }
+''')
+
+print('Refined directional walk-through entrance rules and network approach geometry.')
