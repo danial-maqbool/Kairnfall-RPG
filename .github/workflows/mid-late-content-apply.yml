@@ -38,11 +38,13 @@ jobs:
           dotnet build Kairnfall.slnx -c Release
           dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release
           dotnet build client/Kairnfall.Client.csproj -c Debug
-      - name: Validate retained deterministic game assets
+      - name: Rebuild and validate deterministic game assets
         shell: bash
         run: |
           set -euo pipefail
           python3 -m pip install --disable-pip-version-check pillow
+          python3 tools/build_game_assets.py
+          python3 tools/complete_skill_icons.py
           python3 tools/validate_game_assets.py
       - name: Publish verified Area 7 update and remove temporary helpers
         shell: bash
