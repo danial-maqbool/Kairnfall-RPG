@@ -34,7 +34,8 @@ jobs:
       - name: Run world and social acceptance
         run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee social-cooperation.log
       - name: Require seven social groups
-        run: grep -F 'SOCIAL COOPERATION: 7 groups passed' social-cooperation.log
+        run: |
+          grep -F 'SOCIAL COOPERATION: 7 groups passed' social-cooperation.log
       - name: Check patch
         run: git diff --check
       - name: Publish verified feature
