@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'tools/art/blender_humanoid_batch.py'
+      - 'tools/art/blender_humanoid_workbench.py'
       - 'tools/art/assemble_blender_humanoid.py'
       - 'atelier/forge/blender_body.py'
       - 'atelier/forge/__init__.py'
@@ -17,7 +18,7 @@ permissions:
 
 concurrency:
   group: blender-humanoid-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   render-and-sync:
@@ -48,7 +49,7 @@ jobs:
         run: |
           rm -rf artifacts/blender-humanoid
           mkdir -p artifacts/blender-humanoid
-          blender -b --python tools/art/blender_humanoid_batch.py -- --output artifacts/blender-humanoid/frames
+          blender -b --python tools/art/blender_humanoid_workbench.py -- --output artifacts/blender-humanoid/frames
       - name: Compile authored 8x24 sheets
         shell: bash
         run: |
