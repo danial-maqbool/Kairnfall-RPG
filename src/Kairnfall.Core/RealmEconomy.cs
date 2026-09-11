@@ -55,13 +55,14 @@ public sealed partial class RealmEngine
         Need(p.Stamina>=staminaCost,"Recover stamina before gathering."); Ready(p,"gather",1.8);
         int bonus=(Progression.Level(p,def.Skill)-def.Requirement)/25;
         int quantity=1+RandomNumberGenerator.GetInt32(1+Math.Max(0,bonus));
-        double yield=CombatMath.Stats(p,Data).Bonus("gather_yield")+ToolRules.Yield(tool);
+        double yield=CombatMath.Stats(p,Data).Bonus("gather_yield")+ToolRules.Yield(tool)+WorldEventRules.GatherYieldBonus(State,p.Zone,State.Time);
         if(CombatMath.Roll(Math.Clamp(yield/100,0,0.35))) quantity++;
         Items.Add(p.Inventory,Items.Create(Data,def.Item,quantity),Data);
         p.Stamina-=staminaCost;
         Progression.Train(p,def.Skill,def.Xp,def.Requirement,Data);
         Progression.Train(p,"endurance",4,def.Requirement,Data);
-        if(crop) State.Nodes.Remove(node.Id); else node.ReadyAt=State.Time+def.Respawn;
+        bool publicEventNode=RecordEventGather(p,node.Id);
+        if(publicEventNode||crop) State.Nodes.Remove(node.Id); else node.ReadyAt=State.Time+def.Respawn;
         Progress(p,"gather",def.Item,quantity);
         if(def.Skill=="fishing"&&WorldTime.Weather(Data.Zone(p.Zone),State.Time)=="storm")
             Progression.Train(p,"survival",8,def.Requirement,Data);
@@ -277,7 +278,9 @@ public sealed partial class RealmEngine
             if(runes.Length>0) Items.Add(p.Inventory,Items.Create(Data,runes[RandomNumberGenerator.GetInt32(runes.Length)].Id),Data);
             Progression.Train(p,"runecasting",50,chest.Requirement,Data);
         }
-        Items.Grant(p,10+chest.Requirement*3); chest.ReadyAt=State.Time+600;
+        long chestGold=(long)Math.Ceiling((10+chest.Requirement*3)*WorldEventRules.TreasureGoldMultiplier(State,p.Zone,State.Time));
+        Items.Grant(p,chestGold); bool publicEventChest=RecordEventChest(p,chest.Id);
+        if(publicEventChest) State.Chests.Remove(chest.Id); else chest.ReadyAt=State.Time+600;
         Progression.Train(p,"treasure_hunting",80,chest.Requirement,Data); Progress(p,"chest",chest.Kind);
         string exploration="";var chestZone=Data.Zone(chest.Zone);
         if(chest.Hidden&&ExplorationRewards.Eligible(chestZone)&&id==ExplorationRewards.CacheId(chestZone)&&p.Discoveries.Add(ExplorationRewards.CacheOpenedKey(chestZone)))

@@ -171,6 +171,7 @@ public sealed partial class RealmEngine
         if(element==Element.Lightning&&WorldTime.Weather(Data.Zone(p.Zone),State.Time) is "rain" or "storm") damage*=1.15;
         if(mob.Statuses.Any(x=>x.Kind=="vulnerable"&&x.Until>State.Time)) damage*=1.15;
         damage=Math.Min(mob.Health,Math.Max(0,damage)); mob.Health-=damage;
+        RecordEventDamage(p,mob,damage);
         mob.Threat[p.Id]=mob.Threat.GetValueOrDefault(p.Id)+damage*(p.Class=="vanguard"?1.4:1);
         p.LastCombat=State.Time; mob.Target=p.Id; playerTargets[p.Id]=mob.Id;
         if(damage>0)
@@ -195,10 +196,11 @@ public sealed partial class RealmEngine
     }
     private void KillCreature(Character killer,Creature mob)
     {
-        var def=Data.Mob(mob.Template); mob.Health=0; mob.RespawnAt=State.Time+(def.Boss?300:def.Elite?90:25); mob.Generation++;
+        var def=Data.Mob(mob.Template); var publicEvent=WorldEventRules.Owner(State,mob.Id); mob.Health=0; mob.RespawnAt=publicEvent is null?State.Time+(def.Boss?300:def.Elite?90:25):double.MaxValue; mob.Generation++;
         mob.Target=""; mob.Statuses.Clear(); State.Telegraphs.RemoveAll(x=>x.Source==mob.Id);
         var contributors=mob.Threat.Where(x=>x.Value>0&&State.Characters.ContainsKey(x.Key)).Select(x=>Player(x.Key)).Where(x=>x.Zone==mob.Zone&&x.Position.Distance(mob.Position)<=24&&Active.Contains(x.Id)).ToList();
         if(contributors.Count==0) contributors.Add(killer);
+        RecordEventKill(mob,contributors);
         foreach(var p in contributors)
         {
             ChallengeProgression.TrainCombat(p,"slayer",Math.Max(1,def.Xp/contributors.Count),def.Level,Data);
@@ -310,7 +312,7 @@ public sealed partial class RealmEngine
 
     private void QueueEnemyAttack(Creature mob,MobDef definition,Character target,string attack)
     {
-        double power=definition.Power*EnemyCombatRules.PowerMultiplier(definition,mob);
+        double power=definition.Power*EnemyCombatRules.PowerMultiplier(definition,mob)*WorldEventRules.EnemyPowerMultiplier(State,mob.Zone,State.Time);
         var facing=mob.Position.Direction(target.Position);if(facing.Distance(new(0,0))>.01)mob.Facing=facing;
         void Telegraph(string shape,Point position,double radius,double multiplier,double delay,Element? element=null)
             =>State.Telegraphs.Add(new(){Zone=mob.Zone,Source=mob.Id,Position=position,Direction=mob.Facing,Shape=shape,Skill=attack,Element=element??definition.Element,Radius=radius,Power=power*multiplier,Resolves=State.Time+delay});
@@ -498,31 +500,6 @@ public sealed partial class RealmEngine
         }
         foreach(var pair in State.Nodes.Where(x=>x.Key.StartsWith("carcass/",StringComparison.Ordinal)&&x.Value.ReadyAt>State.Time).ToList()) State.Nodes.Remove(pair.Key);
         foreach(var c in State.Creatures.Values.Where(x=>x.Id.Contains("/add/",StringComparison.Ordinal)&&x.Health<=0).ToList()) State.Creatures.Remove(c.Id);
-        EconomicDirty=true;
-    }
-    private void TickEvents()
-    {
-        if(WorldEventLifecycle.Expire(State,State.Time)>0) EconomicDirty=true;
-        long cycle=(long)(State.Time/300); if(cycle==lastEventCycle) return; lastEventCycle=cycle;
-        if(State.Events.Count>=4) return;
-        var zones=Data.Zones.Where(x=>x.Kind=="wilderness"&&x.Layer=="Surface").ToArray(); if(zones.Length==0) return;
-        var zone=zones[(int)(WorldMap.Hash((int)(cycle%int.MaxValue),0,911)%(uint)zones.Length)];
-        string[] kinds=["meteor","caravan","undead","arcane_storm"];
-        var kind=kinds[(int)(cycle%kinds.Length)];
-        var eNew=new WorldEvent{Id="event/"+cycle,Name=kind switch{"meteor"=>"A fallen star","caravan"=>"The wandering caravan","undead"=>"Restless graves",_=>"Arcane storm"},Kind=kind,Zone=zone.Id,Position=WorldMap.FindFree(zone,new(zone.Spawn.X+8,zone.Spawn.Y+6)),Ends=State.Time+240};
-        if(State.Events.Any(value=>value.Id==eNew.Id)) return;
-        State.Events.Add(eNew);
-        if(kind=="meteor"&&Data.Resources.Any(x=>x.Id=="meteor_ore")) State.Nodes[eNew.Id]=new(){Id=eNew.Id,Template="meteor_ore",Zone=zone.Id,Position=eNew.Position};
-        if(kind=="caravan") State.Chests[eNew.Id]=new(){Id=eNew.Id,Zone=zone.Id,Position=eNew.Position,Kind="royal",Requirement=zone.Level};
-        if(kind is "undead" or "arcane_storm")
-        {
-            var def=Data.Mobs.Where(x=>x.Family==(kind=="undead"?"skeleton":"elemental")&&!x.Boss&&!x.Elite&&x.Level<=zone.Level+5).OrderByDescending(x=>x.Level).FirstOrDefault();
-            if(def is not null) for(int n=0;n<3;n++)
-            {
-                string id=eNew.Id+"/"+n; var at=WorldMap.FindFree(zone,new(eNew.Position.X+n,eNew.Position.Y));
-                State.Creatures[id]=new(){Id=id,Template=def.Id,Zone=zone.Id,Position=at,Home=at,Health=def.Health};
-            }
-        }
         EconomicDirty=true;
     }
 }

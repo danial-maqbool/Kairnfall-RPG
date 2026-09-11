@@ -311,6 +311,7 @@ public sealed class Character
     public HashSet<string> Ignored { get; set; } = [];
     public long LastAction { get; set; }
     public int Deaths { get; set; }
+    public int PublicEventsCompleted { get; set; }
     public double LastCombat { get; set; } = -100;
     public LearningEncounter? RecentLearningEncounter { get; set; }
     public double DeadUntil { get; set; }
@@ -397,6 +398,21 @@ public sealed class WorldEvent
     public Point Position { get; set; }
     public double Ends { get; set; }
     public string Kind { get; set; } = "";
+    public string Status { get; set; } = "active";
+    public int Stage { get; set; }
+    public double Started { get; set; }
+    public double StageStarted { get; set; }
+    public double StageEnds { get; set; }
+    public double Progress { get; set; }
+    public double Goal { get; set; }
+    public Point Destination { get; set; }
+    public string Effect { get; set; } = "";
+    public double EffectEnds { get; set; }
+    public int Wave { get; set; }
+    public int Difficulty { get; set; } = 1;
+    public double LastTick { get; set; }
+    public Dictionary<string,double> Contributions { get; set; } = [];
+    public HashSet<string> Rewarded { get; set; } = [];
 }
 public sealed class Telegraph
 {

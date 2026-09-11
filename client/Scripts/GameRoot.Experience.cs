@@ -17,7 +17,7 @@ public partial class GameRoot
     private Label interactionHint = null!, skillExperienceText = null!;
     private VBoxContainer pickupFeed = null!;
     private ProgressBar characterExperienceBar = null!, skillExperienceBar = null!, classResourceBar = null!;
-    private Label classResourceText = null!;
+    private Label classResourceText = null!, publicEventText = null!;
     private Button interactionButton = null!;
     private Button basicAttackButton = null!;
     private double contextClock;
@@ -172,6 +172,7 @@ public partial class GameRoot
 
     private string ContextVerb(WorldTarget target)
     {
+        if (target.Kind == "event" && Snapshot?.Events.FirstOrDefault(x => x.Id == target.Id) is { } worldEvent) return WorldEventRules.InteractionVerb(worldEvent);
         if (target.Kind != "node") return ExperienceRules.InteractionVerb(target.Kind);
         string template = Snapshot?.Nodes.FirstOrDefault(x => x.Id == target.Id)?.Template ?? "";
         if (template.StartsWith("structure_", StringComparison.Ordinal)) return "Use";
@@ -247,6 +248,12 @@ public partial class GameRoot
         classResourceText = Ui.Label("", 12, Ui.Text, true); classResourceText.HorizontalAlignment = HorizontalAlignment.Center;
         classResourceBar = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 7), MouseFilter = MouseFilterEnum.Ignore };
         classMeter.AddChild(classResourceText); classMeter.AddChild(classResourceBar); hud.AddChild(classMeter);
+        publicEventText = Ui.Label("", 13, Ui.Gold, true);
+        publicEventText.Name = "PublicEventHud"; publicEventText.AnchorLeft = publicEventText.AnchorRight = .5f;
+        publicEventText.AnchorTop = publicEventText.AnchorBottom = 0; publicEventText.OffsetLeft = -310; publicEventText.OffsetRight = 310;
+        publicEventText.OffsetTop = 18; publicEventText.OffsetBottom = 78; publicEventText.HorizontalAlignment = HorizontalAlignment.Center;
+        publicEventText.MouseFilter = MouseFilterEnum.Ignore; publicEventText.AddThemeConstantOverride("outline_size", 4);
+        publicEventText.AddThemeColorOverride("font_outline_color", Ui.Ink); hud.AddChild(publicEventText);
         notice.OffsetTop = -252; notice.OffsetBottom = -216;
         pickupFeed = new VBoxContainer
         {
@@ -268,7 +275,7 @@ public partial class GameRoot
         contextClock = 0;
         double now = Time.GetTicksMsec() / 1000.0;
         var context = GameplayInputAllowed ? ContextTarget() : null;
-        UpdateMobControls(); UpdateClassResourceHud();
+        UpdateMobControls(); UpdateClassResourceHud(); UpdatePublicEventHud();
         interactionButton.Disabled = context is null;
         basicAttackButton.Disabled = !GameplayInputAllowed;
         basicAttackButton.Text = "Attack [" + bindings["basic_attack"] + "]";
@@ -301,6 +308,25 @@ public partial class GameRoot
         classResourceBar.TooltipText = description; classResourceText.TooltipText = description;
     }
 
+    private void UpdatePublicEventHud()
+    {
+        if (Snapshot is not { } snapshot || publicEventText is null) return;
+        var value = snapshot.Events.Where(x => x.Zone == snapshot.Self.Zone)
+            .OrderBy(x => x.Status == "active" ? 0 : 1).ThenByDescending(x => x.EffectEnds).FirstOrDefault();
+        if (value is null) { publicEventText.Text = ""; return; }
+        if (value.Status == "active")
+        {
+            int stage = Math.Min(WorldEventRules.StageCount(value.Kind), value.Stage + 1);
+            int remaining = Math.Max(0, (int)Math.Ceiling(value.StageEnds - snapshot.Time));
+            publicEventText.Text = $"PUBLIC EVENT · {value.Name}\nStage {stage}/{WorldEventRules.StageCount(value.Kind)} · {WorldEventRules.StageLabel(value)} · {WorldEventRules.ProgressText(value)} · {remaining}s · You {WorldEventRules.Contribution(value,snapshot.Self.Id):0}";
+        }
+        else
+        {
+            int remaining = Math.Max(0, (int)Math.Ceiling(value.EffectEnds - snapshot.Time));
+            publicEventText.Text = $"REGIONAL AFTERMATH · {(value.Status == "success" ? "SUCCESS" : "FAILED")} · {WorldEventRules.EffectLabel(value.Effect)} · {remaining}s";
+        }
+    }
+
     private void ObservePlayerChanges(Snapshot? previous, Snapshot current)
     {
         if (previous is null || previous.Self.Id != current.Self.Id) return;
@@ -330,6 +356,22 @@ public partial class GameRoot
         else if (beforeResource - afterResource >= Math.Min(40, threshold))
         {
             World.ClassBurst(current.Self.Position, resourceColor); audio?.PlayEffect("class_release");
+        }
+        foreach (var value in current.Events)
+        {
+            var beforeEvent = previous.Events.FirstOrDefault(x => x.Id == value.Id);
+            if (beforeEvent is null && value.Status == "active")
+            {
+                Notify("WORLD EVENT · " + value.Name + " · " + Data.Zone(value.Zone).Name); audio?.PlayEffect("ui");
+                if (value.Zone == current.Self.Zone) World.ClassBurst(value.Position, new Color("e0b868"));
+            }
+            else if (beforeEvent is not null && beforeEvent.Status != value.Status)
+            {
+                Notify(value.Status == "success" ? "EVENT COMPLETE · " + value.Name : "EVENT FAILED · " + value.Name, value.Status == "failure");
+                if (value.Zone == current.Self.Zone) World.ClassBurst(value.Position, value.Status == "success" ? Ui.Success : Ui.Danger);
+            }
+            else if (beforeEvent is not null && beforeEvent.Stage != value.Stage && value.Status == "active" && value.Zone == current.Self.Zone)
+                Notify("EVENT ADVANCED · " + WorldEventRules.StageLabel(value));
         }
         if (previous.Self.Zone != current.Self.Zone)
         {

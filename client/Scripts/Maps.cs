@@ -32,6 +32,7 @@ public partial class MinimapView : Control
         foreach (var exit in zone.Exits.Where(x => x.Position.Distance(World.Camera) < radius)) Dot(exit.Position, center, scale, new Color("d9d4bb"));
         if (World.Snapshot is { } snapshot)
         {
+            foreach (var worldEvent in snapshot.Events.Where(x => x.Zone == zone.Id)) Dot(worldEvent.Position, center, scale, worldEvent.Status == "failure" ? Ui.Danger : new Color("e0b868"));
             foreach (var player in snapshot.Players) Dot(player.Position, center, scale, new Color("94bddd"));
             foreach (var creature in snapshot.Creatures.Where(x => x.Health > 0 && x.Position.Distance(World.Camera) < radius)) Dot(creature.Position, center, scale, creature.Owner == self?.Id ? Ui.Success : new Color("b06d63"));
         }
@@ -49,6 +50,7 @@ public partial class AtlasView : Control
 {
     public Catalog Data { get; set; } = null!;
     public Func<Character?> Player { get; set; } = () => null;
+    public Func<IEnumerable<WorldEvent>> Events { get; set; } = () => [];
     public string Layer { get; set; } = "Surface";
     public string Selected { get; set; } = "";
     public Action<string>? Chosen { get; set; }
@@ -58,7 +60,7 @@ public partial class AtlasView : Control
     {
         if (Data is null) return;
         DrawRect(new Rect2(Vector2.Zero, Size), new Color("202f32"));
-        var player = Player();
+        var player = Player(); var publicEvents = Events().ToArray();
         var zones = Data.Zones.Where(z => z.Layer == Layer && z.Kind != "interior" && (z.Kind == "city" || z.Id == player?.Zone || player?.Discoveries.Contains(z.Id) == true || player is null)).ToArray();
         if (zones.Length == 0) { DrawString(ThemeDB.FallbackFont, new Vector2(20, 35), "No regions discovered on this layer.", HorizontalAlignment.Left, -1, 17, Ui.Muted); return; }
         int minX = zones.Min(x => x.WorldX), maxX = zones.Max(x => x.WorldX), minY = zones.Min(x => x.WorldY), maxY = zones.Max(x => x.WorldY);
@@ -79,6 +81,7 @@ public partial class AtlasView : Control
             bool locked=player is not null&&Progression.PlayerLevel(player)<gate;
             Color color = zone.Id == Selected ? Ui.Text : locked ? Ui.Danger : zone.Kind == "city" ? Ui.Gold : new Color("91ae91");
             if (zone.Id == player?.Zone) DrawArc(at, 13, 0, MathF.Tau, 24, new Color("a9cde2"), 2);
+            if (publicEvents.Any(x => x.Zone == zone.Id && x.Status == "active")) DrawArc(at, 17, 0, MathF.Tau, 28, new Color("e0b868"), 2);
             if(player is not null&&ExplorationRewards.Eligible(zone)&&ExplorationRewards.Rewarded(player,zone))DrawArc(at,10,0,MathF.Tau,20,Ui.Success,2);
             DrawRect(new Rect2(at - new Vector2(5, 5), new Vector2(10, 10)), color);
             DrawStringOutline(ThemeDB.FallbackFont, at + new Vector2(-88, 25), zone.Name, HorizontalAlignment.Center, 176, 13, 3, Ui.Ink);
@@ -108,7 +111,7 @@ public partial class GameRoot
         var layers = Data.Zones.Select(x => x.Layer).Distinct().ToArray();
         var top = Ui.Row(content); var layer = new OptionButton(); foreach (string name in layers) layer.AddItem(name); layer.Selected = Math.Max(0, Array.IndexOf(layers, Data.Zone(Snapshot.Self.Zone).Layer)); top.AddChild(layer);
         top.AddChild(Ui.Button("Record regional chart", () => Send("chart")));
-        var atlas = new AtlasView { Data = Data, Player = () => Snapshot?.Self, Layer = layers[layer.Selected], Selected = selectedZone, CustomMinimumSize = new Vector2(0, 370), SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill }; content.AddChild(atlas);
+        var atlas = new AtlasView { Data = Data, Player = () => Snapshot?.Self, Events = () => Snapshot?.Events ?? [], Layer = layers[layer.Selected], Selected = selectedZone, CustomMinimumSize = new Vector2(0, 370), SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill }; content.AddChild(atlas);
         var detail = Ui.Column(content);
         void RenderDetail()
         {
@@ -123,6 +126,14 @@ public partial class GameRoot
                 detail.AddChild(Ui.Label(ExplorationRewards.ProgressSummary(Snapshot.Self,zone),13,Ui.Success,true));
                 var prize=Data.Item(ExplorationRewards.RewardItemId(zone));
                 detail.AddChild(Ui.Label("Regional mastery reward · "+prize.Name+"\nSurvey every waymark, open the hidden cache, and chart four real map sectors.",12,Ui.Muted,true));
+            }
+            foreach(var worldEvent in Snapshot.Events.Where(x=>x.Zone==zone.Id))
+            {
+                Color eventColor=worldEvent.Status=="success"?Ui.Success:worldEvent.Status=="failure"?Ui.Danger:new Color("e0b868");
+                string eventText=worldEvent.Status=="active"
+                    ? $"PUBLIC EVENT · {worldEvent.Name}\n{WorldEventRules.StageLabel(worldEvent)} · {WorldEventRules.ProgressText(worldEvent)}"
+                    : $"AFTERMATH · {WorldEventRules.EffectLabel(worldEvent.Effect)}";
+                detail.AddChild(Ui.Label(eventText,13,eventColor,true));
             }
             if(locked)detail.AddChild(Ui.Label($"LOCKED · Reach character level {entryLevel} ({entryLevel-playerLevel} to go).",13,Ui.Danger,true));
             var actions = Ui.Row(detail); actions.AddChild(Ui.Button("Mark route", () => MarkDestination(zone.Id, zone.Spawn)));

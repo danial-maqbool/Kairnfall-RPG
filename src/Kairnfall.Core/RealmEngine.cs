@@ -23,7 +23,7 @@ public sealed partial class RealmEngine
         if(State.Schema!=1) throw new InvalidDataException("Unsupported realm schema.");
         if(state is not null) RecoverLegacyRoadPositions();
         SeedWorld();
-        if(state is not null) lastEventCycle=(long)(State.Time/300);
+        if(state is not null) lastEventCycle=(long)(State.Time/WorldEventRules.SpawnCadence);
     }
     private void RecoverLegacyRoadPositions()
     {
@@ -177,6 +177,7 @@ public sealed partial class RealmEngine
             case "cast": return Cast(p,c.Item,c.Target,new(c.X,c.Y));
             case "loot": return CollectLoot(p,c.Target);
             case "chest": return OpenChest(p,c.Target);
+            case "event": return EventAction(p,c.Target);
             case "buy": return Buy(p,c.Target,c.Item,c.Amount);
             case "sell": return Sell(p,c.Target,c.Item,c.Amount);
             case "deposit": Service(p,"banker"); Items.Add(p.Bank,Items.Take(p.Inventory,c.Item,c.Amount,p),Data,Items.BankCapacity); return "Deposited.";
@@ -248,16 +249,17 @@ public sealed partial class RealmEngine
                     double slow=Math.Clamp(1-CombatMath.StatusPower(p.Statuses,"chill",State.Time),0.25,1);
                     if(CombatMath.StatusPower(p.Statuses,"root",State.Time)>0||CombatMath.StatusPower(p.Statuses,"stun",State.Time)>0) slow=0;
                     var before=p.Position;
-                    p.Position=WorldMap.Move(zone,p.Position,direction.Scale(stats.MoveSpeed*slow*dt)); p.Facing=direction;
+                    double eventMove=WorldEventRules.MovementMultiplier(State,p.Zone,State.Time);
+                    p.Position=WorldMap.Move(zone,p.Position,direction.Scale(stats.MoveSpeed*slow*eventMove*dt)); p.Facing=direction;
                     if(slow>0) TryWalkTransition(p,zone,before,direction);
                     zone=Data.Zone(p.Zone);
                 }
             }
-            p.Stamina=Math.Min(stats.Stamina,p.Stamina+dt*(8+Progression.Level(p,"endurance")*0.08));
-            double manaRegen=2+Progression.Level(p,"meditation")*0.04;
+            p.Stamina=Math.Min(stats.Stamina,p.Stamina+dt*(8+Progression.Level(p,"endurance")*0.08+WorldEventRules.StaminaRegenBonus(State,p.Zone,State.Time)));
+            double manaRegen=2+Progression.Level(p,"meditation")*0.04+WorldEventRules.ManaRegenBonus(State,p.Zone,State.Time);
             if(p.Statuses.Any(x=>x.Kind=="meditate"&&x.Until>State.Time)) manaRegen*=4;
             p.Mana=Math.Min(stats.Mana,p.Mana+dt*manaRegen);
-            if(State.Time-p.LastCombat>8) p.Health=Math.Min(stats.Health,p.Health+dt*(1.5+stats.Bonus("health_regen")));
+            if(State.Time-p.LastCombat>8) p.Health=Math.Min(stats.Health,p.Health+dt*(1.5+stats.Bonus("health_regen")+WorldEventRules.HealthRegenBonus(State,p.Zone,State.Time)));
             p.Health=Math.Min(p.Health,stats.Health); p.Mana=Math.Min(p.Mana,stats.Mana);
             ClassCombatRules.Tick(p,dt,State.Time);
             p.Statuses.RemoveAll(x=>x.Until<=State.Time);
@@ -299,7 +301,7 @@ public sealed partial class RealmEngine
         snap.Nodes=State.Nodes.Values.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=range).Select(Wire.Copy).ToList();
         snap.Chests=State.Chests.Values.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=range&&ExplorationRewards.VisibleChest(p,x,Data)).Select(Wire.Copy).ToList();
         snap.Telegraphs=State.Telegraphs.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<=range).Select(Wire.Copy).ToList();
-        snap.Events=State.Events.Where(x=>x.Zone==p.Zone).Select(Wire.Copy).ToList();
+        snap.Events=State.Events.Select(Wire.Copy).ToList();
         snap.Trades=State.Trades.Values.Where(x=>x.A.Character==p.Id||x.B.Character==p.Id).Select(Wire.Copy).ToList();
         if(p.Party!="") snap.Party=Wire.Copy(State.Parties.GetValueOrDefault(p.Party));
         if(p.Guild!="") snap.Guild=Wire.Copy(State.Guilds.GetValueOrDefault(p.Guild));

@@ -242,6 +242,7 @@ public partial class GameRoot : Control
             else Send("gather", target.Id);
         }
         else if (target.Kind == "landmark") Send("inspect", target.Id);
+        else if (target.Kind == "event") Send("event", target.Id);
         else if (target.Kind == "chest") Send("chest", target.Id);
         else if (target.Kind == "loot") Send("loot", target.Id);
     }
@@ -335,7 +336,7 @@ public partial class GameRoot : Control
         {
             Snapshot.Self.Inventory, Snapshot.Self.Bank, Snapshot.Self.Equipment, Snapshot.Self.SkillXp,
             Snapshot.Self.Quests, Snapshot.Self.Gold, Snapshot.Self.Zone, Dead = Snapshot.Self.Health <= 0,
-            Snapshot.Trades, Snapshot.Auctions, Snapshot.Party, Snapshot.Guild, Snapshot.ShopStock, invitations
+            Snapshot.Trades, Snapshot.Auctions, Snapshot.Party, Snapshot.Guild, Snapshot.ShopStock, Snapshot.Events, invitations
         }, Wire.Json);
     }
     private string PlayerName(string id) => knownNames.GetValueOrDefault(id, id == "" ? "None" : "Traveler " + id[..Math.Min(6, id.Length)]);

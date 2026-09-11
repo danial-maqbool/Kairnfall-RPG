@@ -249,6 +249,11 @@ public partial class WorldView : Control
         }
         if (Snapshot is { } snapshot)
         {
+            foreach (var worldEvent in snapshot.Events.Where(x => x.Zone == zone.Id && IsWithinCameraBounds(x.Position, 8)))
+            {
+                visuals.Add(new Visual((float)worldEvent.Position.Y + .03f, "event", worldEvent.Id, worldEvent.Position, worldEvent));
+                if (WorldEventRules.SupportsInteraction(worldEvent)) interactions.Add(new WorldTarget("event", worldEvent.Id, worldEvent.Name, worldEvent.Position));
+            }
             foreach (var node in snapshot.Nodes)
             {
                 if (!IsWithinCameraBounds(node.Position, 5)) continue;
@@ -338,6 +343,16 @@ public partial class WorldView : Control
         if (visual.Id == TargetId) DrawArc(feet, 12, 0, MathF.Tau, 24, Ui.Gold, 1.5f);
         switch (visual.Kind)
         {
+            case "event":
+                var worldEvent = (WorldEvent)visual.Value!;
+                Color eventColor = worldEvent.Status == "success" ? Ui.Success : worldEvent.Status == "failure" ? Ui.Danger : new Color("e0b868");
+                float pulse = 10 + 2 * (1 + MathF.Sin((float)Clock * 3));
+                DrawCircle(feet, pulse, new Color(eventColor, .10f));
+                DrawArc(feet, pulse, 0, MathF.Tau, 28, eventColor, 2);
+                DrawColoredPolygon([feet + new Vector2(0,-7), feet + new Vector2(7,0), feet + new Vector2(0,7), feet + new Vector2(-7,0)], new Color(eventColor,.55f));
+                if (worldEvent.Position.Distance(Camera) < 12)
+                    Nameplate(worldEvent.Position, worldEvent.Name + " · " + WorldEventRules.StageLabel(worldEvent), eventColor, -53, 10);
+                break;
             case "exit":
                 var exit = (ExitDef)visual.Value!;
                 var destination = Data.Zone(exit.Target);

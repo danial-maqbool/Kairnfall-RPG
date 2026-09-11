@@ -10,6 +10,7 @@ public partial class HuntingGuidePanel : VBoxContainer
     public Catalog Data { get; set; }=null!;
     public PixelAssets Assets { get; set; }=null!;
     public Func<Character?> ReadCharacter { get; set; }=()=>null;
+    public Func<IEnumerable<WorldEvent>> ReadEvents { get; set; }=()=>[];
     public Func<double> ReadTime { get; set; }=()=>0;
     public string SelectedSite { get; private set; }="";
     private Label overview=null!,journey=null!,details=null!,directions=null!;
@@ -27,7 +28,7 @@ public partial class HuntingGuidePanel : VBoxContainer
         var body=Ui.Row(this);body.SizeFlagsVertical=SizeFlags.ExpandFill;
         list=Ui.Column(Ui.Scroll(body,new Vector2(270,100)));
         var right=Ui.Column(body,true);right.SizeFlagsStretchRatio=1.5f;
-        map=new HuntingRegionMap{Data=Data,ReadCharacter=ReadCharacter,CustomMinimumSize=new Vector2(0,240),SizeFlagsHorizontal=SizeFlags.ExpandFill,SizeFlagsVertical=SizeFlags.ExpandFill};right.AddChild(map);
+        map=new HuntingRegionMap{Data=Data,ReadCharacter=ReadCharacter,ReadEvents=ReadEvents,CustomMinimumSize=new Vector2(0,240),SizeFlagsHorizontal=SizeFlags.ExpandFill,SizeFlagsVertical=SizeFlags.ExpandFill};right.AddChild(map);
         details=Ui.Label("Choose a hunting area.",14,Ui.Text,true);details.Name="HuntDetails";right.AddChild(details);
         directions=Ui.Label("",14,Ui.Gold,true);directions.Name="HuntDirections";right.AddChild(directions);
         right.AddChild(Ui.Label("Circle: hunting patch · Diamond: boss · Gold square: open exit · Red square: locked frontier\nTravel on foot. Q dashes; Tab changes target. Cache clues improve search range but never expose exact cache coordinates on this map.",12,Ui.Muted,true));
@@ -78,8 +79,10 @@ public partial class HuntingGuidePanel : VBoxContainer
         }
         overview.Text=zone.Name+" · "+plan.Specialty+$"\nCharacter {playerLevel} · Threat {JourneyProgression.ThreatLevel(Data,zone)} · "+plan.OrdinaryCount+" ordinary spawn slots · "+plan.Patches.Count+" patches";
         if(ExplorationRewards.Eligible(zone))overview.Text+="\n"+ExplorationRewards.ProgressSummary(self,zone);
+        var publicEvent=ReadEvents().Where(x=>x.Zone==zone.Id).OrderBy(x=>x.Status=="active"?0:1).ThenByDescending(x=>x.EffectEnds).FirstOrDefault();
         var lead=JourneyProgression.LocalQuest(Data,self,ReadTime());var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
-        journey.Text=lead is not null?$"NEXT LEAD · {lead.QuestName}\nTalk to {lead.GiverName} in {zone.Name}."
+        journey.Text=publicEvent is { Status:"active" }?$"PUBLIC EVENT · {publicEvent.Name}\n{WorldEventRules.StageLabel(publicEvent)} · {WorldEventRules.ProgressText(publicEvent)} · You {WorldEventRules.Contribution(publicEvent,self.Id):0}"
+            :lead is not null?$"NEXT LEAD · {lead.QuestName}\nTalk to {lead.GiverName} in {zone.Name}."
             :next is not null?(next.Locked?$"NEXT FRONTIER · {next.ZoneName} · LOCKED at {next.EntryLevel}+ ({next.LevelsNeeded} to go)\nTrain skills, craft, gather or finish local quests while you prepare."
                 :$"NEXT FRONTIER · {next.ZoneName} · Threat {next.ThreatLevel} · Entry {next.EntryLevel}+ · READY\nSelect its exit below and follow the route marker.")
             :activity is not null?$"CHANGE OF PACE · {activity.Name} level {Progression.BaseLevel(self,activity.Id)}\n{activity.Action}":"Explore, quest, craft and hunt to build your character.";
@@ -103,6 +106,7 @@ public partial class HuntingRegionMap : Control
 {
     public Catalog Data { get; set; }=null!;
     public Func<Character?> ReadCharacter { get; set; }=()=>null;
+    public Func<IEnumerable<WorldEvent>> ReadEvents { get; set; }=()=>[];
     public ZoneDef? Zone { get; set; }
     public HuntingPlan? Plan { get; set; }
     public Point Selected { get; set; }
@@ -123,6 +127,7 @@ public partial class HuntingRegionMap : Control
         foreach(var patch in plan.Patches)DrawArc(At(patch.Position),Math.Max(3,(float)patch.Radius*scale),0,Mathf.Tau,16,new Color("b5bc87"),1);
         void Boss(Point p){var at=At(p);DrawPolyline([at+new Vector2(0,-5),at+new Vector2(5,0),at+new Vector2(0,5),at+new Vector2(-5,0),at+new Vector2(0,-5)],Ui.Danger,2);}
         if(plan.FieldBoss!="")Boss(plan.FieldBossPosition);
+        foreach(var worldEvent in ReadEvents().Where(x=>x.Zone==zone.Id))DrawArc(At(worldEvent.Position),8,0,Mathf.Tau,20,worldEvent.Status=="failure"?Ui.Danger:new Color("e0b868"),2);
         if(zone.Boss!="")Boss(WorldMap.FindFree(zone,new Point(zone.Spawn.X+6,zone.Spawn.Y+3)));
         foreach(var exit in zone.Exits)
         {
@@ -139,6 +144,6 @@ public partial class GameRoot
     private void BuildHuntingPage()
     {
         if(page is null||Snapshot is null)return;
-        var guide=new HuntingGuidePanel{Data=Data,Assets=Assets,ReadCharacter=()=>Snapshot?.Self,ReadTime=()=>Snapshot?.Time??0};page.AddChild(guide);refreshPage=guide.RefreshSnapshot;
+        var guide=new HuntingGuidePanel{Data=Data,Assets=Assets,ReadCharacter=()=>Snapshot?.Self,ReadEvents=()=>Snapshot?.Events??[],ReadTime=()=>Snapshot?.Time??0};page.AddChild(guide);refreshPage=guide.RefreshSnapshot;
     }
 }

@@ -114,7 +114,7 @@ public static class ExperienceRules
             && (pile.Owner == self.Id || pile.PublicAt <= serverTime || (pile.Party != "" && pile.Party == self.Party));
 
     public static WorldTarget? ChooseInteraction(Character self, IEnumerable<WorldTarget> targets, Catalog data)
-        => targets.Where(x => x.Kind is "npc" or "exit" or "node" or "chest" or "loot" or "landmark")
+        => targets.Where(x => x.Kind is "npc" or "exit" or "node" or "chest" or "loot" or "landmark" or "event")
             .Where(x => x.Position.Finite && self.Position.Distance(x.Position) <= 2.15)
             .Where(x => WorldMap.LineOfSight(data.Zone(self.Zone), self.Position, x.Position))
             .OrderBy(x => self.Position.Distance(x.Position))
@@ -124,7 +124,7 @@ public static class ExperienceRules
     public static string InteractionVerb(string kind) => kind switch
     {
         "npc" => "Talk to", "node" => "Gather",
-        "chest" => "Open", "loot" => "Pick up", "landmark" => "Survey", _ => "Use"
+        "chest" => "Open", "loot" => "Pick up", "landmark" => "Survey", "event" => "Contribute to", _ => "Use"
     };
 
     public static string EquipmentProblem(Character self, Item item, Catalog data, string expectedSlot = "")
