@@ -16,7 +16,8 @@ public partial class GameRoot
     private readonly AttackRequestGate interactionGate = new();
     private Label interactionHint = null!, skillExperienceText = null!;
     private VBoxContainer pickupFeed = null!;
-    private ProgressBar characterExperienceBar = null!, skillExperienceBar = null!;
+    private ProgressBar characterExperienceBar = null!, skillExperienceBar = null!, classResourceBar = null!;
+    private Label classResourceText = null!;
     private Button interactionButton = null!;
     private Button basicAttackButton = null!;
     private double contextClock;
@@ -237,6 +238,15 @@ public partial class GameRoot
         interactionHint.AddThemeConstantOverride("outline_size", 4);
         interactionHint.AddThemeColorOverride("font_outline_color", Ui.Ink);
         hud.AddChild(interactionHint);
+        var classMeter = new VBoxContainer
+        {
+            Name = "ClassResourceHud", AnchorLeft = .5f, AnchorRight = .5f, AnchorTop = 1, AnchorBottom = 1,
+            OffsetLeft = -235, OffsetRight = 235, OffsetTop = -214, OffsetBottom = -184,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        classResourceText = Ui.Label("", 12, Ui.Text, true); classResourceText.HorizontalAlignment = HorizontalAlignment.Center;
+        classResourceBar = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 7), MouseFilter = MouseFilterEnum.Ignore };
+        classMeter.AddChild(classResourceText); classMeter.AddChild(classResourceBar); hud.AddChild(classMeter);
         notice.OffsetTop = -252; notice.OffsetBottom = -216;
         pickupFeed = new VBoxContainer
         {
@@ -252,12 +262,13 @@ public partial class GameRoot
         if (!GameplayInputAllowed) StopCombatInput();
         if (attackKeyHeld && !Input.IsActionPressed("basic_attack")) StopCombatInput();
         if (attackKeyHeld) TryBasicAttack();
+        TickAbilityBuffer();
         contextClock += delta;
         if (contextClock < .1 || interactionHint is null) return;
         contextClock = 0;
         double now = Time.GetTicksMsec() / 1000.0;
         var context = GameplayInputAllowed ? ContextTarget() : null;
-        UpdateMobControls();
+        UpdateMobControls(); UpdateClassResourceHud();
         interactionButton.Disabled = context is null;
         basicAttackButton.Disabled = !GameplayInputAllowed;
         basicAttackButton.Text = "Attack [" + bindings["basic_attack"] + "]";
@@ -268,9 +279,58 @@ public partial class GameRoot
         if (pickupNotes.RemoveAll(x => now > x.Until) > 0) RenderPickupFeed();
     }
 
+    private static Color ClassResourceColor(string classId) => classId switch
+    {
+        "vanguard" => new Color("84a8c5"), "berserker" => new Color("d06a62"),
+        "ranger" => new Color("8fbd74"), "rogue" => new Color("b18ac8"),
+        "arcanist" => new Color("889be0"), "warden" => new Color("79b98b"),
+        "templar" => new Color("e3c873"), "spellblade" => new Color("7fc6d8"), _ => Ui.Gold
+    };
+
+    private void UpdateClassResourceHud()
+    {
+        if (Snapshot is not { } snapshot || classResourceBar is null || classResourceText is null) return;
+        ClassCombatRules.Normalize(snapshot.Self);
+        string name = ClassCombatRules.ResourceName(snapshot.Self.Class);
+        double threshold = ClassCombatRules.ReadyThreshold(snapshot.Self.Class);
+        bool ready = snapshot.Self.ClassResource >= threshold;
+        classResourceBar.Value = snapshot.Self.ClassResource;
+        classResourceBar.Modulate = ClassResourceColor(snapshot.Self.Class);
+        classResourceText.Text = name.ToUpperInvariant() + "  " + Math.Round(snapshot.Self.ClassResource) + "/100" + (ready ? "  ·  READY" : "");
+        string description = ClassCombatRules.PassiveDescription(snapshot.Self.Class) + "\n" + ClassCombatRules.Hint(snapshot.Self);
+        classResourceBar.TooltipText = description; classResourceText.TooltipText = description;
+    }
+
     private void ObservePlayerChanges(Snapshot? previous, Snapshot current)
     {
         if (previous is null || previous.Self.Id != current.Self.Id) return;
+        if (current.Self.Health < previous.Self.Health - .5)
+        {
+            World.CombatImpact(current.Self.Position, 3.2f); audio?.PlayEffect("hurt");
+        }
+        if (selectedTargetKind == "creature")
+        {
+            var beforeTarget = previous.Creatures.FirstOrDefault(x => x.Id == selectedTarget);
+            var afterTarget = current.Creatures.FirstOrDefault(x => x.Id == selectedTarget);
+            if (beforeTarget is not null && afterTarget is not null && afterTarget.Health < beforeTarget.Health - .5)
+            {
+                World.CombatImpact(afterTarget.Position, 2.1f); audio?.PlayEffect("impact");
+            }
+        }
+        double beforeResource = double.IsFinite(previous.Self.ClassResource) ? previous.Self.ClassResource : 0;
+        double afterResource = double.IsFinite(current.Self.ClassResource) ? current.Self.ClassResource : 0;
+        double threshold = ClassCombatRules.ReadyThreshold(current.Self.Class);
+        Color resourceColor = ClassResourceColor(current.Self.Class);
+        if (afterResource >= beforeResource + 4)
+            World.CombatNote(current.Self.Position, ClassCombatRules.ResourceName(current.Self.Class).ToUpperInvariant() + " +" + Math.Round(afterResource - beforeResource), resourceColor);
+        if (beforeResource < threshold && afterResource >= threshold)
+        {
+            World.ClassBurst(current.Self.Position, resourceColor); audio?.PlayEffect("class_ready");
+        }
+        else if (beforeResource - afterResource >= Math.Min(40, threshold))
+        {
+            World.ClassBurst(current.Self.Position, resourceColor); audio?.PlayEffect("class_release");
+        }
         if (previous.Self.Zone != current.Self.Zone)
         {
             route.Clear(); pendingInteraction = null; lastInput = Vector2.Zero; StopCombatInput();

@@ -107,13 +107,14 @@ public partial class ClientAudio : Node
         if (voices.Count == 0 || releasing) return;
         string key = action switch
         {
-            "attack" => "sword", "cast" => "spell", "gather" => "gather",
+            "attack" or "impact" => "sword", "cast" or "class_release" => "spell", "hurt" => "hammer", "class_ready" => "ui", "gather" => "gather",
             "loot" or "chest" or "buy" or "sell" => "coins", "craft" or "build" => "hammer",
             "equip" or "unequip" or "socket" or "unsocket" => "equip", "consume" or "rest" => "drink", _ => "ui"
         };
         var stream = Load("effect_" + key);
         if (stream is null) return;
         var player = voices[voice++ % voices.Count]; player.Stop(); player.Stream = stream;
-        player.PitchScale = 1 + (voice % 3 - 1) * .035f; player.Play();
+        float cuePitch = action switch { "hurt" => .72f, "impact" => .92f, "class_ready" => 1.22f, "class_release" => .84f, _ => 1f };
+        player.PitchScale = cuePitch * (1 + (voice % 3 - 1) * .035f); player.Play();
     }
 }

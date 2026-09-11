@@ -22,12 +22,16 @@ public sealed partial class RealmEngine
         Need(p.Stamina>=3,"Not enough stamina.");
         Need(!p.Statuses.Any(x=>x.Kind=="stun"&&x.Until>State.Time),"You are stunned.");
         Ready(p,"attack",Math.Max(0.25,(weapon?.Speed??0.8)/stats.AttackSpeed));
-        p.Stamina-=3; p.Facing=p.Position.Direction(mob.Position); p.Statuses.RemoveAll(x=>x.Kind=="stealth");
+        bool stealthed=p.Statuses.Any(x=>x.Kind=="stealth"&&x.Until>State.Time);
+        p.Stamina-=3; p.Facing=p.Position.Direction(mob.Position);
         playerTargets[p.Id]=mob.Id;
-        double raw=stats.Physical*CombatTrainingCurve.Physical(Progression.Level(p,skill));
+        Element attackElement=weapon is null?Element.Physical:Items.ElementOf(weaponItem!,weapon);
+        var classBonus=ClassCombatRules.PrepareBasicAttack(p,attackElement,stealthed);
+        double raw=stats.Physical*CombatTrainingCurve.Physical(Progression.Level(p,skill))*classBonus.PowerMultiplier;
         if(p.Class=="berserker") raw*=1+0.25*(1-p.Health/stats.Health);
         if(CombatMath.Roll(stats.Crit)) raw*=stats.CritDamage;
-        Element attackElement=weapon is null?Element.Physical:Items.ElementOf(weaponItem!,weapon);
+        p.Stamina=Math.Min(stats.Stamina,p.Stamina+classBonus.StaminaRefund);
+        p.Statuses.RemoveAll(x=>x.Kind=="stealth");
         if(HandEquipment.IsProjectileWeapon(weapon))
         {
             State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=mob.Position,Direction=p.Facing,Shape="projectile",Skill=skill,Element=attackElement,Radius=0.8,Power=raw,Resolves=State.Time+Math.Min(0.6,p.Position.Distance(mob.Position)/15)});
@@ -44,9 +48,12 @@ public sealed partial class RealmEngine
         Need(p.Mana>=ability.Mana&&p.Stamina>=ability.Stamina,"Not enough mana or stamina.");
         Ready(p,"ability:"+ability.Id,ability.Cooldown*(1-stats.CooldownReduction));
         Ready(p,"global_ability",0.25);
+        bool stealthed=p.Statuses.Any(x=>x.Kind=="stealth"&&x.Until>State.Time);
+        bool combatContext=State.Time-p.LastCombat<=10;
+        var classBonus=ClassCombatRules.PrepareCast(p,ability,stealthed);
         p.Mana-=ability.Mana; p.Stamina-=ability.Stamina;
         double basePower=(ability.Element==Element.Physical?stats.Physical:stats.Spell)*ability.Power;
-        basePower*=CombatTrainingCurve.Spell(Progression.Level(p,ability.Skill));
+        basePower*=CombatTrainingCurve.Spell(Progression.Level(p,ability.Skill))*classBonus.PowerMultiplier;
         var zone=Data.Zone(p.Zone);
         Creature? selected=target!=""&&State.Creatures.TryGetValue(target,out var creature)?creature:null;
         Point aim=selected?.Position??location;
@@ -130,9 +137,24 @@ public sealed partial class RealmEngine
                 if(ability.Kind=="drain") p.Health=Math.Min(stats.Health,p.Health+damage*0.25); break;
             default: throw new RuleException("Unsupported ability kind.");
         }
+        if(classBonus.Effect=="vanguard_resolve") ApplyStatus(p.Statuses,"vanguard_resolve",Element.Physical,6,0.18,p.Id);
+        else if(classBonus.Effect=="rogue_expose"&&selected is not null&&selected.Health>0) ApplyStatus(selected.Statuses,"vulnerable",Element.Arcane,4,0.15,p.Id);
+        else if(classBonus.Effect=="warden_bond")
+        {
+            if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var companion)&&companion.Health>0)
+            {
+                ApplyStatus(companion.Statuses,"warden_bond",Element.Nature,8,0.30,p.Id);
+                ApplyStatus(companion.Statuses,"fortify",Element.Nature,8,0.15,p.Id);
+            }
+            else ApplyStatus(p.Statuses,"regeneration",Element.Nature,6,Math.Max(1,stats.Healing),p.Id);
+        }
+        else if(classBonus.Effect=="templar_aegis") ApplyStatus(p.Statuses,"shield",Element.Radiant,5,Math.Max(8,stats.Health*0.10),p.Id);
+        p.Mana=Math.Min(stats.Mana,p.Mana+classBonus.ManaRefund);
+        p.Stamina=Math.Min(stats.Stamina,p.Stamina+classBonus.StaminaRefund);
         if(!selfKind) { p.LastCombat=State.Time; p.Statuses.RemoveAll(x=>x.Kind=="stealth"); }
         int supportLevel=SupportTraining.EncounterLevel(p,State.Time,10);
         if(!trained&&selfKind&&supportLevel>0&&ability.Kind!="heal") ChallengeProgression.TrainCombat(p,ability.Skill,5,supportLevel,Data);
+        ClassCombatRules.RecordCast(p,ability,combatContext||supportLevel>0);
         Progress(p,"cast",ability.Id); return "";
     }
     private double HitCreature(Character p,Creature mob,double raw,Element element,string skill)
@@ -154,6 +176,7 @@ public sealed partial class RealmEngine
         if(damage>0)
         {
             SupportTraining.Record(p,def.Level,State.Time);
+            ClassCombatRules.RecordDamage(p,damage,element,skill,p.Position.Distance(mob.Position));
             ChallengeProgression.TrainCombat(p,skill,Math.Clamp((int)damage,1,120),def.Level,Data);
             double leech=Math.Clamp(stats.Bonus("leech")/100,0,0.08);
             p.Health=Math.Min(stats.Health,p.Health+damage*leech);
@@ -215,19 +238,27 @@ public sealed partial class RealmEngine
         if(p.Health<=0) return;
         var stats=CombatMath.Stats(p,Data); var def=Data.Mob(mob.Template);
         if(mob.Owner=="") SupportTraining.Record(p,def.Level,State.Time);
-        if(CombatMath.Roll(stats.Evasion)) { ChallengeProgression.TrainCombat(p,"evasion",12,def.Level,Data); return; }
+        if(CombatMath.Roll(stats.Evasion))
+        {
+            ClassCombatRules.RecordIncoming(p,0,0,false,true);
+            ChallengeProgression.TrainCombat(p,"evasion",12,def.Level,Data); return;
+        }
         Element defenseElement=Items.DominantElement(p,Data);
         int defensePoints=Items.EquippedElementPoints(p,defenseElement,Data);
         double matchup=CombatMath.ElementMultiplier(element,defenseElement,0,defensePoints);
         double damage=CombatMath.Damage(raw*matchup,element==Element.Physical?stats.Armor:stats.Armor*0.2,CombatMath.Resist(stats,element));
-        if(CombatMath.Roll(stats.Block)) { damage*=0.4; ChallengeProgression.TrainCombat(p,"shield_mastery",12,def.Level,Data); }
+        bool blocked=CombatMath.Roll(stats.Block);
+        if(blocked) { damage*=0.4; ChallengeProgression.TrainCombat(p,"shield_mastery",12,def.Level,Data); }
         damage*=1-Math.Clamp(CombatMath.StatusPower(p.Statuses,"guard",State.Time),0,0.6);
+        damage*=1-Math.Clamp(CombatMath.StatusPower(p.Statuses,"vanguard_resolve",State.Time),0,0.35);
+        double pressure=damage;
         foreach(var shield in p.Statuses.Where(x=>x.Kind=="shield"&&x.Until>State.Time).ToList())
         {
             double absorbed=Math.Min(shield.Power,damage); shield.Power-=absorbed; damage-=absorbed;
             if(shield.Power<=0) p.Statuses.Remove(shield);
         }
         p.Health=Math.Max(0,p.Health-damage); p.LastCombat=State.Time; p.Statuses.RemoveAll(x=>x.Kind is "meditate" or "stealth");
+        ClassCombatRules.RecordIncoming(p,pressure,damage,blocked,false);
         if(damage>0&&EnemyCombatRules.EliteTrait(def)=="elite_vampiric") mob.Health=Math.Min(def.Health,mob.Health+damage*.3);
         string armorSkill="light_armor";
         if(p.Equipment.TryGetValue("chest",out var armorId))
@@ -424,7 +455,8 @@ public sealed partial class RealmEngine
         else if(pet.NextAttack<=State.Time)
         {
             pet.NextAttack=State.Time+2;
-            HitCreature(owner,enemy,def.Power,def.Element,pet.Id.StartsWith("summon/",StringComparison.Ordinal)?"summoning":"animal_handling");
+            double bond=CombatMath.StatusPower(pet.Statuses,"warden_bond",State.Time);
+            HitCreature(owner,enemy,def.Power*(1+Math.Clamp(bond,0,0.35)),def.Element,pet.Id.StartsWith("summon/",StringComparison.Ordinal)?"summoning":"animal_handling");
         }
     }
     private void TickEnvironment(double dt)

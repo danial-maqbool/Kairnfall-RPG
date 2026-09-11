@@ -26,6 +26,9 @@ public partial class WorldView : Control
     private string lastZone = "";
     private readonly Dictionary<string, ActorTrack> tracks = [];
     private readonly List<FloatingNumber> numbers = [];
+    private readonly List<CombatBurst> combatBursts = [];
+    private double impactUntil;
+    private float impactStrength;
     private readonly List<Visual> visuals = [];
     private readonly List<WorldTarget> interactions = [];
     private Vector2 origin;
@@ -46,6 +49,7 @@ public partial class WorldView : Control
         public int State;
     }
     private sealed record FloatingNumber(Point At, string Text, Color Color, double Started);
+    private sealed record CombatBurst(Point At, Color Color, double Started, float Strength);
     private readonly record struct Visual(float Depth, string Kind, string Id, Point At, object? Value = null);
 
     public override void _Ready()
@@ -111,6 +115,26 @@ public partial class WorldView : Control
         track.State = state; track.StateStart = Clock; track.StateUntil = Clock + duration;
     }
 
+    public void CombatNote(Point at, string text, Color color)
+    {
+        if (!at.Finite || string.IsNullOrWhiteSpace(text)) return;
+        numbers.Add(new FloatingNumber(at, text, color, Clock));
+    }
+
+    public void CombatImpact(Point at, float strength = 2.5f)
+    {
+        if (!at.Finite) return;
+        impactUntil = Math.Max(impactUntil, Clock + .16);
+        impactStrength = Math.Max(impactStrength, Math.Clamp(strength, .5f, 4f));
+        combatBursts.Add(new CombatBurst(at, new Color("f0c49b"), Clock, Math.Clamp(strength, .5f, 4f)));
+    }
+
+    public void ClassBurst(Point at, Color color)
+    {
+        if (!at.Finite) return;
+        combatBursts.Add(new CombatBurst(at, color, Clock, 3.4f));
+    }
+
     public override void _Process(double delta)
     {
         Clock += delta; sinceSnapshot += delta;
@@ -128,6 +152,8 @@ public partial class WorldView : Control
         }
         if (Snapshot is { } snapshot && tracks.TryGetValue(snapshot.Self.Id, out var self)) Camera = self.Position;
         numbers.RemoveAll(x => Clock - x.Started > 1.3);
+        combatBursts.RemoveAll(x => Clock - x.Started > .65);
+        if (Clock >= impactUntil) impactStrength = 0;
         double day = WorldTime.DayFraction(RealmTime);
         float darkness = zone.Kind == "interior" ? 0 : zone.Layer != "Surface" ? .1f : (float)Math.Clamp((Math.Cos(day * Math.Tau) - .1) * .23, 0, .22);
         SelfModulate = Colors.White.Lerp(new Color("61758d"), darkness);
@@ -168,7 +194,13 @@ public partial class WorldView : Control
         var zone = Data.Zone(ZoneId);
         PrepareSurface(zone);
         Zoom = Math.Clamp(Zoom, 1, 3);
-        origin = (Size / 2 - Pixels(Camera) * Zoom).Round();
+        Vector2 shake = Vector2.Zero;
+        if (Clock < impactUntil)
+        {
+            float fade = (float)Math.Clamp((impactUntil - Clock) / .16, 0, 1);
+            shake = new Vector2(MathF.Sin((float)Clock * 93f), MathF.Cos((float)Clock * 117f)) * impactStrength * fade;
+        }
+        origin = (Size / 2 - Pixels(Camera) * Zoom + shake).Round();
         DrawSetTransform(origin, 0, new Vector2(Zoom, Zoom));
         int minX = Math.Max(-1, (int)(Camera.X - Size.X / Zoom / Tile / 2) - 4);
         int maxX = Math.Min(zone.Width + 1, (int)(Camera.X + Size.X / Zoom / Tile / 2) + 4);
@@ -255,6 +287,14 @@ public partial class WorldView : Control
         }
         visuals.Sort((a, b) => a.Depth.CompareTo(b.Depth));
         foreach (var visual in visuals) DrawVisual(zone, visual);
+        foreach (var burst in combatBursts)
+        {
+            float elapsed = (float)(Clock - burst.Started);
+            float progress = Math.Clamp(elapsed / .65f, 0, 1);
+            float radius = 7 + progress * 22 * burst.Strength / 3.4f;
+            Color color = burst.Color; color.A = 1 - progress;
+            DrawArc(Pixels(burst.At), radius, 0, MathF.Tau, 28, color, 1.5f);
+        }
         foreach (var number in numbers)
         {
             float elapsed = (float)(Clock - number.Started);

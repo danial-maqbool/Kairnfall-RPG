@@ -245,13 +245,37 @@ public partial class GameRoot : Control
         else if (target.Kind == "chest") Send("chest", target.Id);
         else if (target.Kind == "loot") Send("loot", target.Id);
     }
-    private void UseHotbar(int index)
+    private const double AbilityBufferSeconds = .35;
+    private int queuedHotbar = -1;
+    private double queuedAbilityUntil;
+
+    private void UseHotbar(int index) => TryUseHotbar(index, true);
+    private void TryUseHotbar(int index, bool allowQueue)
     {
-        if (!GameplayInputAllowed || actionBusy || index < 0 || index >= hotbar.Length || string.IsNullOrEmpty(hotbar[index])) return;
+        if (!GameplayInputAllowed || index < 0 || index >= hotbar.Length || string.IsNullOrEmpty(hotbar[index])) return;
         var snapshot = Snapshot!;
         var ability = Data.Ability(hotbar[index]);
+        double readyIn = ExperienceRules.AbilityReadyIn(snapshot.Self, ability, snapshot.Time);
         string problem = ExperienceRules.AbilityProblem(snapshot.Self, ability, Data, snapshot.Time);
-        if (problem != "") { Notify(problem); return; }
+        if (problem != "")
+        {
+            if (allowQueue && readyIn > 0 && readyIn <= AbilityBufferSeconds)
+            {
+                queuedHotbar = index; queuedAbilityUntil = Time.GetTicksMsec() / 1000.0 + AbilityBufferSeconds + .12;
+                Notify("Queued " + ability.Name + ".");
+                return;
+            }
+            Notify(problem); return;
+        }
+        if (actionBusy)
+        {
+            if (allowQueue)
+            {
+                queuedHotbar = index; queuedAbilityUntil = Time.GetTicksMsec() / 1000.0 + AbilityBufferSeconds;
+            }
+            return;
+        }
+        queuedHotbar = -1;
         var point = World.ScreenToWorld(GetGlobalMousePosition());
         string targetId = selectedTargetKind is "creature" or "player" ? selectedTarget : "";
         if (ability.Kind is "heal" or "shield" or "buff" or "stealth" or "summon" or "purge")
@@ -271,6 +295,20 @@ public partial class GameRoot : Control
                 point = snapshot.Self.Position.Add(snapshot.Self.Facing.Scale(Math.Max(0, ability.Range - .1)));
         }
         _ = SendAsync(new GameCommand { Kind = "cast", Item = ability.Id, Target = targetId, X = point.X, Y = point.Y }, true);
+    }
+
+    private void TickAbilityBuffer()
+    {
+        if (queuedHotbar < 0 || Snapshot is not { } snapshot) return;
+        double now = Time.GetTicksMsec() / 1000.0;
+        if (!GameplayInputAllowed || now > queuedAbilityUntil)
+        {
+            queuedHotbar = -1; return;
+        }
+        var ability = Data.Ability(hotbar[queuedHotbar]);
+        if (!actionBusy && ExperienceRules.AbilityReadyIn(snapshot.Self, ability, snapshot.Time) <= .02
+            && ExperienceRules.AbilityProblem(snapshot.Self, ability, Data, snapshot.Time) == "")
+            TryUseHotbar(queuedHotbar, false);
     }
     private void SetInitialHotbar()
     {

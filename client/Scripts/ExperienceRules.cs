@@ -145,6 +145,9 @@ public static class ExperienceRules
     public static int AbilityRequirement(Character self, AbilityDef ability)
         => ability.Requirement + (ability.Class != "" && ability.Class != self.Class ? 20 : 0);
 
+    public static double AbilityReadyIn(Character self, AbilityDef ability, double serverTime)
+        => Math.Max(0, Math.Max(self.Cooldowns.GetValueOrDefault("ability:" + ability.Id), self.Cooldowns.GetValueOrDefault("global_ability")) - serverTime);
+
     public static string AbilityProblem(Character self, AbilityDef ability, Catalog data, double serverTime)
     {
         if (self.Health <= 0) return "Respawn before using an ability.";

@@ -259,6 +259,7 @@ public sealed partial class RealmEngine
             p.Mana=Math.Min(stats.Mana,p.Mana+dt*manaRegen);
             if(State.Time-p.LastCombat>8) p.Health=Math.Min(stats.Health,p.Health+dt*(1.5+stats.Bonus("health_regen")));
             p.Health=Math.Min(p.Health,stats.Health); p.Mana=Math.Min(p.Mana,stats.Mana);
+            ClassCombatRules.Tick(p,dt,State.Time);
             p.Statuses.RemoveAll(x=>x.Until<=State.Time);
             string chunk=$"{p.Zone}:{(int)p.Position.X/16}:{(int)p.Position.Y/16}";
             if(p.Discoveries.Add(chunk)) { Progression.Train(p,"exploration",10,Math.Clamp(zone.Level,1,100),Data); EconomicDirty=true; }

@@ -280,6 +280,10 @@ public sealed class Character
     public double Health { get; set; } = 100;
     public double Mana { get; set; } = 60;
     public double Stamina { get; set; } = 100;
+    // Server-authoritative 0-100 identity resource. Missing fields in historical saves safely default to zero.
+    public double ClassResource { get; set; }
+    // Spellblade uses this to remember the last successful martial/magical form; other classes keep it empty.
+    public string ClassState { get; set; } = "";
     public long Gold { get; set; } = 40;
     public Dictionary<string,long> SkillXp { get; set; } = [];
     // Zero defaults preserve historical levels. New credit rates affect future training only.
