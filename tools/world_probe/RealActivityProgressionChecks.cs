@@ -515,7 +515,7 @@ internal static class RealActivityProgressionChecks
             target = AddHostile(realm, p, TargetDefinition(data, Math.Max(1, ability.Requirement)), aim);
             targetHealth = target.Health;
         }
-        else if (target is not null) aim = target.Position;
+        else if (ability.Kind != "taunt" && target is not null) aim = target.Position;
 
         long xpBefore = p.SkillXp.GetValueOrDefault(ability.Skill);
         long totalBefore = Progression.Total(p);
