@@ -3,9 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'tools/apply_combat_class_identity.py'
-      - 'tools/refine_combat_class_identity.py'
-      - '.github/workflows/combat-class-identity-apply.yml'
+      - '.ci/combat-class-identity-run.txt'
 permissions:
   contents: write
 concurrency:
@@ -43,8 +41,7 @@ jobs:
           set -o pipefail
           dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee combat-class-world.log
       - name: Require class identity acceptance groups
-        run: |
-          grep -F 'CLASS COMBAT IDENTITY: 7 groups passed' combat-class-world.log
+        run: grep -F 'CLASS COMBAT IDENTITY: 7 groups passed' combat-class-world.log
       - name: Rebuild and structurally validate deterministic game assets
         run: |
           python3 tools/build_game_assets.py
@@ -52,10 +49,9 @@ jobs:
           python3 tools/validate_game_assets.py
       - name: Verify clean patch formatting
         run: git diff --check
-      - name: Publish verified feature and remove temporary tooling
+      - name: Publish verified combat source
         run: |
-          rm tools/apply_combat_class_identity.py tools/refine_combat_class_identity.py .github/workflows/combat-class-identity-apply.yml
-          git add -A
+          git add src client content_src docs tools/world_probe
           git diff --cached --stat
           test -n "$(git diff --cached --name-only)"
           git config user.name 'github-actions[bot]'
