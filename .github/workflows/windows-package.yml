@@ -1,0 +1,155 @@
+name: Windows package acceptance
+on:
+  push:
+    branches: [main, 'team/acceptance-10-windows-package']
+    paths:
+      - 'client/**'
+      - 'src/**'
+      - 'content/**'
+      - 'content_src/**'
+      - 'tools/package_probe/**'
+      - 'tools/build_content.py'
+      - 'tools/build_game_assets.py'
+      - 'tools/complete_skill_icons.py'
+      - 'tools/get_godot.py'
+      - '.github/workflows/windows-package.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-package-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  clean-windows-package:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate content assets and verified export toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/windows-package,build/client,build/server,build/probe | Out-Null
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py 2>&1 | Tee-Object artifacts/windows-package/content.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/build_game_assets.py 2>&1 | Tee-Object artifacts/windows-package/assets.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/complete_skill_icons.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build client/Kairnfall.Client.csproj -c Debug 2>&1 | Tee-Object artifacts/windows-package/client-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/get_godot.py --os windows --with-templates 2>&1 | Tee-Object artifacts/windows-package/godot.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Export client and publish server plus reconnect probe
+        shell: pwsh
+        run: |
+          & $env:GODOT_BIN --headless --editor --path client --import 2>&1 | Tee-Object artifacts/windows-package/import.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $env:GODOT_BIN --headless --path client --export-release 'Windows Desktop' ../build/client/Kairnfall.exe 2>&1 | Tee-Object artifacts/windows-package/export.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet publish src/Kairnfall.Server/Kairnfall.Server.csproj -c Release -r win-x64 --self-contained false -o build/server 2>&1 | Tee-Object artifacts/windows-package/server-publish.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet publish tools/package_probe/Kairnfall.PackageProbe.csproj -c Release -r win-x64 --self-contained false -o build/probe 2>&1 | Tee-Object artifacts/windows-package/probe-publish.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path build/client/Kairnfall.exe)) { throw 'Exported Kairnfall.exe is missing.' }
+          if (-not (Test-Path build/server/Kairnfall.Server.exe)) { throw 'Published Kairnfall.Server.exe is missing.' }
+          if (-not (Test-Path build/probe/Kairnfall.PackageProbe.exe)) { throw 'Published package probe is missing.' }
+      - name: Create package manifests and archives
+        shell: pwsh
+        run: |
+          function Write-Manifest($root,$path) {
+            $lines = Get-ChildItem $root -File -Recurse | Sort-Object FullName | ForEach-Object {
+              $relative = [IO.Path]::GetRelativePath((Resolve-Path $root),$_.FullName).Replace('\','/')
+              $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $relative"
+            }
+            Set-Content -Path $path -Value $lines -Encoding utf8NoBOM
+          }
+          Write-Manifest build/client artifacts/windows-package/client-files.sha256
+          Write-Manifest build/server artifacts/windows-package/server-files.sha256
+          Compress-Archive -Path build/client/* -DestinationPath artifacts/windows-package/Kairnfall-Windows-Client.zip -Force
+          Compress-Archive -Path build/server/* -DestinationPath artifacts/windows-package/Kairnfall-Windows-Server.zip -Force
+          $archives = 'Kairnfall-Windows-Client.zip','Kairnfall-Windows-Server.zip'
+          $archives | ForEach-Object { "{0}  {1}" -f (Get-FileHash "artifacts/windows-package/$_" -Algorithm SHA256).Hash.ToLowerInvariant(),$_ } | Set-Content artifacts/windows-package/SHA256SUMS.txt -Encoding utf8NoBOM
+      - name: Extract into a clean path with spaces
+        shell: pwsh
+        run: |
+          $fresh = Join-Path $env:RUNNER_TEMP 'Kairnfall Fresh Package'
+          Remove-Item $fresh -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force "$fresh/client","$fresh/server","$fresh/probe" | Out-Null
+          Expand-Archive artifacts/windows-package/Kairnfall-Windows-Client.zip "$fresh/client"
+          Expand-Archive artifacts/windows-package/Kairnfall-Windows-Server.zip "$fresh/server"
+          Copy-Item build/probe/* "$fresh/probe" -Recurse
+          if (Get-ChildItem $fresh -Recurse -Include *.cs,*.csproj,project.godot) { throw 'Source/project files leaked into the clean runtime package.' }
+          "fresh_path=$fresh" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Start isolated PostgreSQL for packaged restart test
+        shell: pwsh
+        run: |
+          $pgBin = Get-ChildItem 'C:\Program Files\PostgreSQL' -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | ForEach-Object { Join-Path $_.FullName 'bin' } | Where-Object { Test-Path (Join-Path $_ 'initdb.exe') } | Select-Object -First 1
+          if (-not $pgBin) {
+            choco install postgresql17 -y --no-progress --params "'/Password:kairnfall-ci-only'"
+            $pgBin = Get-ChildItem 'C:\Program Files\PostgreSQL' -Directory | Sort-Object Name -Descending | ForEach-Object { Join-Path $_.FullName 'bin' } | Where-Object { Test-Path (Join-Path $_ 'initdb.exe') } | Select-Object -First 1
+          }
+          if (-not $pgBin) { throw 'PostgreSQL binaries are unavailable on the Windows runner.' }
+          $cluster = Join-Path $env:RUNNER_TEMP 'kairnfall-package-pg'
+          Remove-Item $cluster -Recurse -Force -ErrorAction SilentlyContinue
+          & (Join-Path $pgBin 'initdb.exe') -D $cluster -U postgres -A trust --encoding=UTF8 2>&1 | Tee-Object artifacts/windows-package/postgres-init.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & (Join-Path $pgBin 'pg_ctl.exe') -D $cluster -l (Join-Path $env:RUNNER_TEMP 'kairnfall-package-postgres.log') -o '-p 55439 -h 127.0.0.1' start
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & (Join-Path $pgBin 'createdb.exe') -h 127.0.0.1 -p 55439 -U postgres kairnfall_package_test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "pg_bin=$pgBin" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "pg_cluster=$cluster" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Launch package outside source tree and verify restart reconnect
+        shell: pwsh
+        run: |
+          $env:KAIRNFALL_DB='Host=127.0.0.1;Port=55439;Database=kairnfall_package_test;Username=postgres'
+          $env:KAIRNFALL_ALLOW_LOCAL_HTTP='1'
+          $env:ASPNETCORE_ENVIRONMENT='Testing'
+          $env:ASPNETCORE_URLS='http://127.0.0.1:5091'
+          $state = Join-Path $env:RUNNER_TEMP 'package-probe-state.json'
+          function Start-PackagedServer {
+            $process = Start-Process -FilePath "$env:fresh_path/server/Kairnfall.Server.exe" -WorkingDirectory "$env:fresh_path/server" -RedirectStandardOutput 'artifacts/windows-package/server-runtime.out.log' -RedirectStandardError 'artifacts/windows-package/server-runtime.err.log' -PassThru
+            for ($n=0;$n -lt 80;$n++) {
+              try { $response=Invoke-WebRequest 'http://127.0.0.1:5091/health' -UseBasicParsing -TimeoutSec 2; if($response.StatusCode -eq 200){ return $process } } catch {}
+              Start-Sleep -Milliseconds 500
+            }
+            throw 'Packaged server did not become healthy.'
+          }
+          $server=Start-PackagedServer
+          Push-Location "$env:fresh_path/probe"
+          & .\Kairnfall.PackageProbe.exe create http://127.0.0.1:5091 $state 2>&1 | Tee-Object "$env:GITHUB_WORKSPACE/artifacts/windows-package/probe-create.log"
+          if ($LASTEXITCODE -ne 0) { Pop-Location; exit $LASTEXITCODE }
+          Pop-Location
+          Stop-Process -Id $server.Id -Force; $server.WaitForExit()
+          Start-Sleep -Seconds 1
+          $server=Start-PackagedServer
+          Push-Location "$env:fresh_path/probe"
+          & .\Kairnfall.PackageProbe.exe reconnect http://127.0.0.1:5091 $state 2>&1 | Tee-Object "$env:GITHUB_WORKSPACE/artifacts/windows-package/probe-reconnect.log"
+          if ($LASTEXITCODE -ne 0) { Pop-Location; exit $LASTEXITCODE }
+          Pop-Location
+          $client=Start-Process -FilePath "$env:fresh_path/client/Kairnfall.exe" -ArgumentList '--headless' -WorkingDirectory "$env:fresh_path/client" -PassThru
+          Start-Sleep -Seconds 8
+          if ($client.HasExited -and $client.ExitCode -ne 0) { throw "Exported client exited with code $($client.ExitCode)." }
+          if (-not $client.HasExited) { Stop-Process -Id $client.Id -Force }
+          Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+          & (Join-Path $env:pg_bin 'pg_ctl.exe') -D $env:pg_cluster stop -m fast
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          'WINDOWS_PACKAGE_ACCEPTANCE: client and server extracted into a fresh path with spaces; client launched outside source; packaged server restart and reconnect persistence passed.' | Tee-Object artifacts/windows-package/acceptance.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-package-${{ github.sha }}
+          path: artifacts/windows-package/
+          retention-days: 14
+          if-no-files-found: error
