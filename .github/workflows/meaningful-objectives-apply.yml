@@ -27,6 +27,19 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/apply_meaningful_objectives_update.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tools/world_probe/WorldQuestAuditChecks.cs')
+          text=p.read_text(encoding='utf-8')
+          old='''var knownActions=new HashSet<string>(["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant"],StringComparer.Ordinal);'''
+          new='''var knownActions=new HashSet<string>(["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant","survey"],StringComparer.Ordinal);'''
+          if old not in text: raise SystemExit('world quest action allow-list anchor missing')
+          text=text.replace(old,new,1)
+          old='''                        "plant" => objective.Target=="wheat"||data.Items.Any(i=>i.Id==objective.Target||i.Id==objective.Target+"_seed"),\n                        _ => false'''
+          new='''                        "plant" => objective.Target=="wheat"||data.Items.Any(i=>i.Id==objective.Target||i.Id==objective.Target+"_seed"),\n                        "survey" => data.Zones.SelectMany(z=>z.Buildings.Select(b=>(Zone:z,Building:b))).Count(x=>x.Building.Id==objective.Target&&JourneyProgression.IsLandmark(x.Zone,x.Building)&&WorldMap.Fits(x.Zone,JourneyProgression.LandmarkPoint(x.Building)))==1,\n                        _ => false'''
+          if old not in text: raise SystemExit('world quest action resolver anchor missing')
+          p.write_text(text.replace(old,new,1),encoding='utf-8')
+          PY
           python3 tools/build_content.py
       - name: Verify content, server, objectives, and client compile
         shell: bash
