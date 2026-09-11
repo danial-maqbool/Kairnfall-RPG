@@ -1,0 +1,90 @@
+name: Verify and apply walk-through transitions
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/apply_walk_transitions.py'
+      - '.github/workflows/walk-transitions-apply.yml'
+permissions:
+  contents: write
+concurrency:
+  group: walk-transitions-apply
+  cancel-in-progress: false
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KAIRNFALL_TEST_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_DB_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install deterministic art dependencies
+        run: python3 -m pip install -r tools/requirements-art.txt
+      - name: Apply walk-through transition candidate
+        run: python3 tools/apply_walk_transitions.py
+      - name: Generate deterministic content
+        run: python3 tools/build_content.py
+      - name: Compile complete solution and client
+        run: dotnet build Kairnfall.slnx -c Release
+      - name: Run core and gameplay regression suites
+        run: |
+          dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release
+      - name: Run authoritative world and walk-transition acceptance
+        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee walk-transitions-world.log
+      - name: Require walk-transition acceptance groups
+        run: grep -F 'WALK TRANSITIONS: 6 groups passed' walk-transitions-world.log
+      - name: Run PostgreSQL and real-network integration suite
+        run: dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release
+      - name: Run isolated save-conflict tests
+        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database
+      - name: Build and validate deterministic entrance sprites
+        run: |
+          python3 tools/build_game_assets.py
+          python3 tools/complete_skill_icons.py
+          python3 tools/validate_game_assets.py | tee walk-transitions-assets.log
+          for key in entrance_road entrance_door entrance_gate entrance_cave entrance_tunnel entrance_lift entrance_portal entrance_stairs; do
+            test -s "client/Assets/props/${key}.png"
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest=json.loads(Path('client/Assets/manifest.json').read_text())
+          keys={entry['key'] for entry in manifest['assets']}
+          expected={f'props/{name}' for name in ['entrance_road','entrance_door','entrance_gate','entrance_cave','entrance_tunnel','entrance_lift','entrance_portal','entrance_stairs']}
+          missing=sorted(expected-keys)
+          if missing: raise SystemExit('Missing entrance assets: '+', '.join(missing))
+          print('ENTRANCE ASSETS:',len(expected),'typed sprites present in deterministic manifest.')
+          PY
+      - name: Verify clean patch formatting
+        run: git diff --check
+      - name: Publish verified feature and remove temporary tooling
+        run: |
+          rm tools/apply_walk_transitions.py .github/workflows/walk-transitions-apply.yml
+          git add -A
+          git diff --cached --stat
+          test -n "$(git diff --cached --name-only)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: make map transitions walk-through'
+          git push origin HEAD:main
