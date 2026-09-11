@@ -16,3 +16,5 @@ public static class SocialCooperationContract
             throw new InvalidOperationException("Party loot reservation must end before public loot access.");
     }
 }
+
+// Exact-head verification receipt for the completed social-cooperation feature.
