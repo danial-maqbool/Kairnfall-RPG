@@ -6,6 +6,8 @@ Task 11 updates the current-facing documentation to match the live mainline afte
 
 Implementation baseline audited before documentation-only commits: `defec56aadf5bc01289b4c7ec8c0e422b918624f`.
 
+The Task 11 changes are documentation-only; they do not alter gameplay, server behavior, assets, saves, protocol contracts or accepted scope.
+
 ## Files consolidated
 
 - `docs/handoff/VERIFICATION.md`
@@ -14,6 +16,7 @@ Implementation baseline audited before documentation-only commits: `defec56aadf5
 - `docs/handoff/HANDOFF.md`
 - `docs/SESSION_STATUS.md`
 - `docs/CONTENT_MATRIX.md`
+- `docs/handoff/LOCAL_AGENT_PROMPT.md`
 
 ## Corrections made
 
@@ -27,7 +30,8 @@ The current-facing documentation no longer treats old September 7–9 limitation
 - sustained reference-load infrastructure is absent;
 - Windows 125%/150% display/input automation is absent;
 - a clean Windows package/restart/reconnect/checksum gate is absent;
-- audio files have no technical quality audit.
+- audio files have no technical quality audit;
+- local continuation should recreate historical task branches.
 
 Those statements remain valid only inside dated historical records at the revisions where they were written.
 
@@ -67,3 +71,5 @@ Other Task 4–10 results are summarized in the updated `VERIFICATION.md` and `Q
 ## Ongoing documentation rule
 
 Use `docs/handoff/VERIFICATION.md`, `docs/QA_MATRIX.md`, and `docs/FINAL_AUDIT.md` as the current status authority. Dated handoff files are historical evidence and should not override them.
+
+Keep the repository on the single authoritative `main` branch unless the owner explicitly changes that policy.
