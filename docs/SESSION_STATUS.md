@@ -1,72 +1,69 @@
 # Implementation status
 
-This repository is not a finished game or a playable Windows release.
+Current status as of 2026-09-11.
 
-## Verified backend evidence
+Implementation baseline audited before the documentation-only Task 11 consolidation: `defec56aadf5bc01289b4c7ec8c0e422b918624f` on `main`.
 
-The latest inspected repair run is `34106654485`, job `101693115055`.
-It tested the source committed as `fdfe81a16390c3d7cc3bcfe6495b3fc044a70916`.
-The Ubuntu server build succeeded with zero compiler warnings and zero errors.
-All 86 checks passed: 29 existing core checks, 34 new gameplay/input checks, 18 real-network/PostgreSQL integration checks, and 5 new database conflict checks.
-See `docs/reviews/REPAIR_AUDIT.md` for the run, artifact, individual scope, and limitations.
+## Current state
 
-The network suite connects three clients. It verifies registration, account ownership, whisper privacy, trades, runes, parties, gathering, crafting, quest rewards, city travel, banking, auctions, writer locking, forced restart recovery, and logout revocation.
-It does not establish 100-player capacity or finished client presentation.
+The repository now contains the implemented Godot client, server, deterministic content/art pipeline, automated progression/world/economy/audio/multiplayer/load/Windows/package acceptance gates, and the current documentation set.
 
-The generated catalog contains 530 item templates and 132 ability definitions.
-Counts describe data records. They do not prove presentation, balance, content uniqueness, or complete gameplay.
+Repository-side work is complete for Tasks 2–10. Task 11 is the documentation consolidation. Task 1 is implemented but its final hands-on Windows XP/HUD gameplay pass is intentionally deferred to the owner.
 
-## Repairs completed in the continuation batch
+The project is **not yet release-approved** because several acceptance decisions require human observation or owner hardware. This is different from saying those systems are unimplemented.
 
-- Delayed attacks retain the originating skill through weapon changes and save serialization.
-- Shield block requires a usable equipped shield. Quivers pair with bows and crossbows. Invalid hand pairings fail validation.
-- Spears and halberds use melee reach instead of projectile behavior.
-- Cross-region offensive projectile targets are rejected.
-- Null command fields return a rule failure. Character names are checked after trimming.
-- Expired world events remove their owned objects and attacks. Restores do not repeat an already processed event cycle.
-- Revisioned database updates reject an unexpectedly missing snapshot row.
+## Verified automated evidence
 
-## Build configuration
+- Task 2: 60/60 authoritative skill activity routes; 8/8 class kits; 120 abilities; persistence and network/database coverage. Final CI run `34550409865` on `d2eb494ff9f3dacc4e3e7fecab811ab7883ddc7a` passed.
+- Task 3: final baseline `defec56aadf5bc01289b4c7ec8c0e422b918624f`; build run `34555269188`, visual matrix `34555269207`, and exact visual review `34555269185` passed.
+- Task 4: 109 zone-anchor and 166 quest-anchor checks pass.
+- Task 5: economy/balance correctness audit passes.
+- Task 6: all 22 runtime WAV files pass technical audio analysis.
+- Task 7: two-process graphical multiplayer and retained protocol/restart coverage pass; graphical acceptance run `34534712045`.
+- Task 8: staged 4/8/16-client reference load gate records tick, snapshot, DB, RSS and CPU metrics.
+- Task 9: native Windows keyboard/mouse and 125%/150% scale emulation pass at 1280×720 and 1920×1080 for key UI surfaces.
+- Task 10: Windows CI export, clean-directory launch, restart/reconnect and SHA-256 package manifest gate pass.
 
-`Kairnfall.slnx` lists the existing backend and test projects.
-The nonexistent client-project entry was removed; the client remains to be implemented.
-Run `./Test-Kairnfall.ps1` to generate content, build the solution, and run both core suites.
-Database tests require a disposable PostgreSQL database, `KAIRNFALL_TEST_DB`, and `KAIRNFALL_ALLOW_DB_TESTS=1` before `./Test-Kairnfall.ps1 -WithDatabase`.
-Never run database tests against production player data.
-CI requires all four suites on Linux and adds a separate Windows core job.
-Inspect that job's result before claiming Windows verification.
+## Current visual/content state
 
-## Incomplete release requirements
+- 12 shipped refined player base variants are reproducible from checked-in source.
+- 13 visible equipment slots are covered by isolated action/direction review sheets.
+- 100 normal creatures, 25 elites and 20 bosses are covered across idle/walk/attack/cast/hit/death and four directions.
+- Boss review evidence preserves the full 128×128 pose area.
+- Refined Atelier player source/output parity is enforced by read-only CI.
+- Generated client assets are integrated through the normal deterministic asset pipeline rather than a permanent write-to-main publisher.
 
-- No tested playable Godot Windows client has been delivered.
-- No complete sprite set has passed visual inspection.
-- No Windows release, final release tag, or production deployment has been verified.
-- No 100-player load test has been verified.
-- Audio, final UI, world presentation, content uniqueness, balance, and the complete acceptance playthrough remain incomplete or unverified.
+Automated rendering and structural checks do not grant independent artistic approval.
 
-Sprites must depict recognizable real-object structure, materials, and anatomy in pixel art.
-A color variant is not a distinct species. Animation layers require native-resolution and in-engine review.
+## Current release blockers
 
-## Remaining code review findings
+The remaining blockers are acceptance tasks that require human or owner-environment validation:
 
-1. Some skills need additional actionable progression before level 100 is reachable.
-2. Low-level dungeon populations need level-aware encounter selection beyond the world-event fix.
-3. Repeated regional quest templates do not satisfy genuinely distinct side-quest requirements.
-4. Boss attack definitions must drive distinct implemented encounter behavior.
-5. Resource and creature placement needs regional coverage beyond the central spawn area.
-6. Pet dismissal, structure dismantling, guild role management, and corpse ownership need complete behavior and tests.
-7. Disconnect behavior needs adversarial review for combat escape and reward abuse.
-8. Whole-realm cloning and full snapshot persistence per command need profiling and likely transaction batching before a 100-player claim.
+1. Task 1 Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence.
+2. Normal-play feel for the 60 skills and eight classes.
+3. Independent artwork approval.
+4. Full ordinary-account world/quest traversal.
+5. Sustained economy/balance feel.
+6. Audio listening approval.
+7. A production-scale load target if a specific player-capacity claim will be made.
+8. Physical Windows monitor/DPI/input review.
+9. Owner-machine clean package extraction/launch if required for release sign-off.
 
-## Agent connection and execution
+## Release status
 
-The user connected Zeiko and selected the team name Kairnfall-RPG.
-The connector returned zero accessible agents in this session.
-Its exposed actions provide customer-support agent operations, not coding-team dispatch or repository workspaces.
-This does not prove the user's team is absent from the Zeiko website.
-No independent coding agents were started through that interface.
-Code review here was sequential. GitHub Actions provided executable tests, not independent AI reviewers.
+**NOT APPROVED — human acceptance remains.**
 
-The local execution environment still returned errors in this session.
-Confirmed executable results come from inspected GitHub Actions logs.
-Keep work on development branches until the remaining release gates pass.
+Do not claim that there is no client, no Windows package path, no load test, or no progression audit; those were historical September 7–9 conditions and are no longer current.
+
+Do not claim a public persistent production realm is deployed unless one is actually running and verified.
+
+## Current documentation authority
+
+For current status use, in order:
+
+1. `docs/handoff/VERIFICATION.md`
+2. `docs/QA_MATRIX.md`
+3. `docs/FINAL_AUDIT.md`
+4. this file
+
+Dated handoff/review files retain historical evidence at their original revisions and should not override the current status above.
