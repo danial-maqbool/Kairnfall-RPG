@@ -57,7 +57,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git rm .github/workflows/journey-pacing-apply.yml tools/apply_journey_pacing_update.py
-          git add src/Kairnfall.Core/Mechanics.cs src/Kairnfall.Core/RealmEconomy.cs client/Scripts/Maps.cs client/Scripts/HuntingGuidePanel.cs client/Scripts/GameRoot.Hud.cs tools/world_probe/JourneyPacingChecks.cs tools/world_probe/Program.cs content/catalog.json client/Data/catalog.json
+          git add -A
           git commit -m 'feat: add guided level-gated journey progression'
           git pull --rebase origin main
           git push origin HEAD:main
