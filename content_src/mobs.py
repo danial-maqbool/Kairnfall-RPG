@@ -151,6 +151,13 @@ BOSSES = [
 
 ELEMENTS={'volcanic':'Fire','glacier':'Frost','tundra':'Frost','swamp':'Poison','wetlands':'Poison','ancient_forest':'Nature','fungal':'Nature','crystal':'Arcane','ruins':'Physical','arcane_anomaly':'Arcane','wasteland':'Shadow'}
 
+ATTACK_PROFILES={
+ 'aggressive':['strike','lunge'],'territorial':['strike','slam'],'guard':['brace','slam'],'berserker':['strike','frenzy'],
+ 'pack_hunter':['lunge','strike'],'ambusher':['ambush','lunge'],'ranged_kiter':['projectile'],'caster':['projectile','circle'],
+ 'healer':['projectile','root'],'summoner':['summon','projectile'],'passive':['strike'],'fleeing':['strike']
+}
+ELITE_TRAITS=['elite_bulwark','elite_frenzy','elite_vampiric','elite_tempest','elite_skirmisher']
+
 
 def make_creature(ident,name,family,level,ai,anatomy,biome,boss=False,elite=False,lore='',attacks=None):
     element=ELEMENTS.get(biome,'Physical')
@@ -171,7 +178,7 @@ def make_creature(ident,name,family,level,ai,anatomy,biome,boss=False,elite=Fals
     resist={element:0.3} if element!='Physical' else {}
     opposite={'Fire':'Frost','Frost':'Fire','Nature':'Fire','Poison':'Radiant','Shadow':'Radiant','Arcane':'Physical'}.get(element)
     if opposite: resist[opposite]=-0.2
-    return dict(id=ident,name=name,family=family,level=level,ai='boss' if boss else ai,anatomy=anatomy,biome=biome,sprite='mobs/'+ident+'.png',boss=boss,elite=elite,health=health,power=damage,armor=armor,speed=speed,range=reach,aggro=7 if boss else 5,element=element,resistances=resist,gold=(8+level*5) if boss else 2+level*2,xp=30+level*8,attacks=attacks or [ai],drops=list(dict.fromkeys(drops)),lore=lore or name+' inhabits the '+biome.replace('_',' ')+'. Its body structure and behavior determine how it fights.')
+    return dict(id=ident,name=name,family=family,level=level,ai='boss' if boss else ai,anatomy=anatomy,biome=biome,sprite='mobs/'+ident+'.png',boss=boss,elite=elite,health=health,power=damage,armor=armor,speed=speed,range=reach,aggro=7 if boss else 5,element=element,resistances=resist,gold=(8+level*5) if boss else 2+level*2,xp=30+level*8,attacks=attacks or ATTACK_PROFILES.get(ai,['strike']),drops=list(dict.fromkeys(drops)),lore=lore or name+' inhabits the '+biome.replace('_',' ')+'. Its body structure and behavior determine how it fights.')
 
 
 def build(data):
@@ -180,7 +187,7 @@ def build(data):
             data['mobs'].append(make_creature(ident,name,family,level,ai,anatomy,biome))
     originals=list(data['mobs'])
     for i,mob in enumerate(originals[::4][:25]):
-        elite=deepcopy(mob); elite['id']='rare_'+mob['id']; elite['name']=['Scarred','Ancient','Crested','Battle-worn','Runemarked'][i%5]+' '+mob['name']; elite['elite']=True; elite['health']*=2; elite['power']*=1.25; elite['gold']*=2; elite['xp']*=2; elite['sprite']='mobs/'+elite['id']+'.png'; elite['anatomy']+='; additional scars, trophies, or structural markings identify a rare variant'; elite['drops'].append('rune_precision_'+str(min(5,1+mob['level']//25))); data['mobs'].append(elite)
+        elite=deepcopy(mob); elite['id']='rare_'+mob['id']; elite['name']=['Scarred','Ancient','Crested','Battle-worn','Runemarked'][i%5]+' '+mob['name']; elite['elite']=True; elite['health']*=2; elite['power']*=1.25; elite['gold']*=2; elite['xp']*=2; elite['sprite']='mobs/'+elite['id']+'.png'; elite['anatomy']+='; additional scars, trophies, or structural markings identify a rare variant'; elite['drops'].append('rune_precision_'+str(min(5,1+mob['level']//25))); elite['attacks']=list(elite['attacks'])+[ELITE_TRAITS[i%len(ELITE_TRAITS)]]; data['mobs'].append(elite)
     for ident,name,family,level,biome,attacks,lore in BOSSES:
         base=next((x for x in originals if x['family']==family),originals[0])
         anatomy=base['anatomy']+'; enlarged articulated form with unique battle damage, armor, and landmark-scale silhouette'

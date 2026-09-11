@@ -87,6 +87,6 @@ public sealed partial class RealmEngine
             plan.Goal = WorldMap.Move(Data.Zone(mob.Zone), mob.Position, delta);
             plan.NextDecision = State.Time + 4;
         }
-        if (mob.Position.Distance(plan.Goal) > .12) MoveCreature(mob, plan.Goal, dt, definition.Speed * 1.15);
+        if (mob.Position.Distance(plan.Goal) > .12) MoveCreature(mob, plan.Goal, dt, definition.Speed * 1.15 * EnemyCombatRules.MoveSpeedMultiplier(definition));
     }
 }

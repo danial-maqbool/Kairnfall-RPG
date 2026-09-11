@@ -327,6 +327,8 @@ public sealed class Creature
     public List<StatusEffect> Statuses { get; set; } = [];
     public int Generation { get; set; }
     public int Phase { get; set; }
+    // Defaults to zero for historical saves; used only to rotate deterministic enemy attacks.
+    public int AttackStep { get; set; }
 }
 public sealed class WorldNode
 {

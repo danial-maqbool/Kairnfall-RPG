@@ -144,6 +144,8 @@ public sealed partial class RealmEngine
         int attunement=Items.EquippedElementPoints(p,element,Data);
         double matchup=CombatMath.ElementMultiplier(element,def.Element,attunement,0);
         double damage=CombatMath.Damage(raw*(1+bonus+empower)*matchup,element==Element.Physical?def.Armor:def.Armor*0.2,def.Resistances.GetValueOrDefault(element));
+        damage*=EnemyCombatRules.IncomingDamageMultiplier(def);
+        damage*=1-Math.Clamp(CombatMath.StatusPower(mob.Statuses,"fortify",State.Time),0,.5);
         if(element==Element.Lightning&&WorldTime.Weather(Data.Zone(p.Zone),State.Time) is "rain" or "storm") damage*=1.15;
         if(mob.Statuses.Any(x=>x.Kind=="vulnerable"&&x.Until>State.Time)) damage*=1.15;
         damage=Math.Min(mob.Health,Math.Max(0,damage)); mob.Health-=damage;
@@ -226,6 +228,7 @@ public sealed partial class RealmEngine
             if(shield.Power<=0) p.Statuses.Remove(shield);
         }
         p.Health=Math.Max(0,p.Health-damage); p.LastCombat=State.Time; p.Statuses.RemoveAll(x=>x.Kind is "meditate" or "stealth");
+        if(damage>0&&EnemyCombatRules.EliteTrait(def)=="elite_vampiric") mob.Health=Math.Min(def.Health,mob.Health+damage*.3);
         string armorSkill="light_armor";
         if(p.Equipment.TryGetValue("chest",out var armorId))
         {
@@ -256,6 +259,59 @@ public sealed partial class RealmEngine
         if(t.Shape=="ring") return distance>=t.Radius*0.55;
         return false;
     }
+    private void SummonEnemyAdds(Creature mob,MobDef definition,Character target)
+    {
+        int cap=definition.Boss?3:2;
+        int alive=State.Creatures.Values.Count(x=>x.Id.StartsWith(mob.Id+"/add/",StringComparison.Ordinal)&&x.Health>0);
+        if(alive>=cap)return;
+        var addDef=Data.Mobs.Where(x=>!x.Boss&&!x.Elite&&x.Biome==definition.Biome&&x.Level<=definition.Level&&x.Ai!="passive")
+            .OrderByDescending(x=>x.Level).ThenBy(x=>x.Id,StringComparer.Ordinal).FirstOrDefault()
+            ??Data.Mobs.Where(x=>!x.Boss&&!x.Elite&&x.Level<=definition.Level).OrderByDescending(x=>x.Level).First();
+        int count=definition.Boss?Math.Min(2,cap-alive):1;
+        for(int n=0;n<count;n++)
+        {
+            string id=mob.Id+"/add/"+Guid.NewGuid().ToString("N");
+            var pos=WorldMap.FindFree(Data.Zone(mob.Zone),new(mob.Position.X+1+n,mob.Position.Y+1));
+            var add=new Creature{Id=id,Template=addDef.Id,Zone=mob.Zone,Position=pos,Home=pos,Health=addDef.Health,Target=target.Id};
+            add.Threat[target.Id]=1;State.Creatures[id]=add;
+        }
+    }
+
+    private void QueueEnemyAttack(Creature mob,MobDef definition,Character target,string attack)
+    {
+        double power=definition.Power*EnemyCombatRules.PowerMultiplier(definition,mob);
+        var facing=mob.Position.Direction(target.Position);if(facing.Distance(new(0,0))>.01)mob.Facing=facing;
+        void Telegraph(string shape,Point position,double radius,double multiplier,double delay,Element? element=null)
+            =>State.Telegraphs.Add(new(){Zone=mob.Zone,Source=mob.Id,Position=position,Direction=mob.Facing,Shape=shape,Skill=attack,Element=element??definition.Element,Radius=radius,Power=power*multiplier,Resolves=State.Time+delay});
+        switch(attack)
+        {
+            case "strike": HitPlayer(target,mob,power,definition.Element); break;
+            case "frenzy": HitPlayer(target,mob,power*1.35,definition.Element); break;
+            case "brace": ApplyStatus(mob.Statuses,"fortify",Element.Physical,3,.3,mob.Id); break;
+            case "projectile": Telegraph("projectile",target.Position,1.0,1,.6); break;
+            case "lunge": Telegraph("line",mob.Position,Math.Clamp(mob.Position.Distance(target.Position)+.5,2.5,4.5),1.15,.5); break;
+            case "ambush": Telegraph("line",mob.Position,Math.Clamp(mob.Position.Distance(target.Position)+.5,2.5,4.5),1.25,.45); break;
+            case "slam": Telegraph("circle",mob.Position,2.3,1.25,.7); break;
+            case "circle": Telegraph("circle",target.Position,1.8,1.1,.75); break;
+            case "cone": Telegraph("cone",mob.Position,definition.Boss?5.5:3.5,1.35,definition.Boss?1.0:.7); break;
+            case "line": Telegraph("line",mob.Position,definition.Boss?8:4.5,1.4,definition.Boss?1.0:.7); break;
+            case "ring": Telegraph("ring",mob.Position,4.5,1.45,1.05); break;
+            case "stomp": Telegraph("circle",mob.Position,2.8,1.55,.85); break;
+            case "charge": Telegraph("line",mob.Position,Math.Clamp(mob.Position.Distance(target.Position)+1,4,8),1.55,.9); break;
+            case "interruptible": Telegraph("circle",target.Position,2.4,2.0,1.6); break;
+            case "root": Telegraph("circle",target.Position,1.8,1.0,.8,Element.Nature); break;
+            case "poison_field":
+                for(int n=0;n<3;n++) State.Telegraphs.Add(new(){Zone=mob.Zone,Source=mob.Id,Position=target.Position,Direction=mob.Facing,Shape="circle",Skill=attack,Element=Element.Poison,Radius=2.2,Power=power*.55,Resolves=State.Time+.7+n});
+                break;
+            case "field":
+                for(int n=0;n<3;n++) State.Telegraphs.Add(new(){Zone=mob.Zone,Source=mob.Id,Position=target.Position,Direction=mob.Facing,Shape="circle",Skill=attack,Element=definition.Element,Radius=2.3,Power=power*.6,Resolves=State.Time+.7+n});
+                break;
+            case "tempest": Telegraph("circle",target.Position,2.1,1.15,.8,Element.Lightning); break;
+            case "summon": SummonEnemyAdds(mob,definition,target); break;
+            default: HitPlayer(target,mob,power,definition.Element); break;
+        }
+    }
+
     private void ResolveTelegraphs()
     {
         foreach(var t in State.Telegraphs.Where(x=>x.Resolves<=State.Time).ToList())
@@ -271,7 +327,16 @@ public sealed partial class RealmEngine
             {
                 foreach(var id in Active.ToList())
                 {
-                    var p=Player(id); if(p.Zone==t.Zone&&p.Health>0&&InTelegraph(t,p.Position)&&WorldMap.LineOfSight(Data.Zone(t.Zone),t.Position,p.Position)) HitPlayer(p,attacker,t.Power,t.Element);
+                    var p=Player(id);
+                    if(p.Zone!=t.Zone||p.Health<=0||!InTelegraph(t,p.Position)||!WorldMap.LineOfSight(Data.Zone(t.Zone),t.Position,p.Position)) continue;
+                    double before=p.Health;HitPlayer(p,attacker,t.Power,t.Element);
+                    if(p.Health<before&&t.Skill=="root") ApplyStatus(p.Statuses,"root",Element.Nature,1.6,1,attacker.Id);
+                    if(p.Health<before&&t.Skill=="ambush") ApplyStatus(p.Statuses,"bleed",Element.Physical,4,Math.Max(1,t.Power*.05),attacker.Id);
+                }
+                if(t.Skill=="charge")
+                {
+                    var delta=t.Direction.Scale(Math.Min(4.5,t.Radius*.7));
+                    attacker.Position=WorldMap.Move(Data.Zone(attacker.Zone),attacker.Position,delta);attacker.Facing=t.Direction;
                 }
             }
         }
@@ -289,7 +354,7 @@ public sealed partial class RealmEngine
             var def=Data.Mob(mob.Template); var zone=Data.Zone(mob.Zone);
             if(mob.Health<=0)
             {
-                if(mob.Owner==""&&mob.RespawnAt<=State.Time&&CanHuntRespawn(mob,live)) { mob.Health=def.Health; mob.Position=mob.Home; mob.Phase=0; mob.Threat.Clear(); mob.Statuses.Clear(); }
+                if(mob.Owner==""&&mob.RespawnAt<=State.Time&&CanHuntRespawn(mob,live)) { mob.Health=def.Health; mob.Position=mob.Home; mob.Phase=0; mob.AttackStep=0; mob.Threat.Clear(); mob.Statuses.Clear(); }
                 continue;
             }
             mob.Statuses.RemoveAll(x=>x.Until<=State.Time);
@@ -314,34 +379,25 @@ public sealed partial class RealmEngine
                 if(!huntMembership.TryGetValue(mob.Id,out var homePatch)||!huntMembership.TryGetValue(ally.Id,out var allyPatch)||homePatch.Id==allyPatch.Id) ally.Threat.TryAdd(target.Id,1);
             if(CombatMath.StatusPower(mob.Statuses,"stun",State.Time)>0) continue;
             double distance=mob.Position.Distance(target.Position);
-            bool fleeing=def.Ai=="fleeing"||def.Ai=="passive"||(def.Ai=="ranged_kiter"&&distance<3);
-            if(fleeing&&mob.Health<def.Health*0.5) RetreatCreature(mob,target,def,dt);
-            else if(distance>def.Range||!WorldMap.LineOfSight(zone,mob.Position,target.Position)) MoveCreature(mob,target.Position,dt,def.Speed);
+            bool closeKiter=def.Ai=="ranged_kiter"&&distance<Math.Max(3.0,def.Range*.65);
+            bool woundedFlee=def.Ai is "fleeing" or "passive"&&mob.Health<def.Health*.5;
+            bool eliteSkirmish=EnemyCombatRules.EliteTrait(def)=="elite_skirmisher"&&distance<2.6;
+            if(closeKiter||woundedFlee||eliteSkirmish) RetreatCreature(mob,target,def,dt);
+            else if(distance>def.Range||!WorldMap.LineOfSight(zone,mob.Position,target.Position)) MoveCreature(mob,target.Position,dt,def.Speed*EnemyCombatRules.MoveSpeedMultiplier(def));
             if(def.Boss)
             {
                 int phase=mob.Health<def.Health*0.3?2:mob.Health<def.Health*0.65?1:0;
                 if(phase>mob.Phase) { mob.Phase=phase; mob.NextAttack=Math.Min(mob.NextAttack,State.Time+0.5); }
             }
             if(State.Time<mob.NextAttack||distance>Math.Max(def.Range,def.Boss?9:def.Range)||!WorldMap.LineOfSight(zone,mob.Position,target.Position)) continue;
-            mob.Facing=mob.Position.Direction(target.Position); mob.NextAttack=State.Time+(def.Boss?2.8-mob.Phase*0.3:1.8);
+            mob.Facing=mob.Position.Direction(target.Position); mob.NextAttack=State.Time+EnemyCombatRules.AttackInterval(def,mob);
             if(def.Ai=="healer")
             {
                 var ally=byZone[mob.Zone].Where(x=>x.Owner==""&&x.Health>0&&x.Position.Distance(mob.Position)<6).OrderBy(x=>x.Health/Data.Mob(x.Template).Health).FirstOrDefault();
                 if(ally is not null&&ally.Health<Data.Mob(ally.Template).Health*0.8) { ally.Health=Math.Min(Data.Mob(ally.Template).Health,ally.Health+def.Power*2); continue; }
             }
-            if(def.Ai=="summoner"&&State.Creatures.Values.Count(x=>x.Id.StartsWith(mob.Id+"/add/",StringComparison.Ordinal)&&x.Health>0)<2)
-            {
-                var addDef=Data.Mobs.Where(x=>!x.Boss&&!x.Elite&&x.Level<=def.Level).OrderBy(x=>x.Health).First();
-                string id=mob.Id+"/add/"+Guid.NewGuid().ToString("N"); var pos=WorldMap.FindFree(zone,new(mob.Position.X+1,mob.Position.Y));
-                State.Creatures[id]=new(){Id=id,Template=addDef.Id,Zone=mob.Zone,Position=pos,Home=pos,Health=addDef.Health,Target=target.Id};
-            }
-            if(def.Boss||def.Range>2||def.Ai is "caster" or "ambusher")
-            {
-                string shape=def.Boss?(mob.Phase==2?"ring":mob.Phase==1?"cone":"circle"):def.Range>2?"projectile":"line";
-                Point origin=shape is "ring" or "cone"?mob.Position:target.Position;
-                State.Telegraphs.Add(new(){Zone=mob.Zone,Source=mob.Id,Position=origin,Direction=mob.Facing,Shape=shape,Element=def.Element,Radius=def.Boss?3.5+mob.Phase:1.2,Power=def.Power*(def.Boss?1.8:1),Resolves=State.Time+(def.Boss?1.1:0.65)});
-            }
-            else HitPlayer(target,mob,def.Power*(def.Ai=="berserker"&&mob.Health<def.Health*0.4?1.6:1),def.Element);
+            string attack=def.Boss?EnemyCombatRules.NextBossAttack(def,mob):EnemyCombatRules.NextStandardAttack(def,mob);
+            QueueEnemyAttack(mob,def,target,attack);
         }
     }
     private void MoveCreature(Creature mob,Point goal,double dt,double speed)

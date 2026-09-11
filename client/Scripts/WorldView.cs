@@ -434,12 +434,19 @@ public partial class WorldView : Control
             DrawColoredPolygon(points.ToArray(), new Color(color, color.A * .4f));
             DrawArc(center, radius, angle - .6f, angle + .6f, 24, color, 1.5f);
         }
+        else if (effect.Shape == "ring")
+        {
+            DrawArc(center, radius, 0, MathF.Tau, 48, color, 2);
+            DrawArc(center, radius * .55f, 0, MathF.Tau, 48, color, 2);
+        }
         else
         {
             DrawCircle(center, radius, new Color(color, color.A * .16f));
             DrawArc(center, radius, 0, MathF.Tau, 48, color, 1.5f);
             DrawArc(center, radius * .86f, 0, MathF.Tau, 48, new Color(color, color.A * .5f), 1);
         }
+        if (EnemyCombatRules.IsKnownAttack(effect.Skill) && Snapshot?.Creatures.Any(x => x.Id == effect.Source) == true)
+            Text(center + new Vector2(0, -radius - 5), EnemyCombatRules.AttackLabel(effect.Skill), color, 9);
     }
     private void DrawStatus(Vector2 feet, StatusEffect status)
     {

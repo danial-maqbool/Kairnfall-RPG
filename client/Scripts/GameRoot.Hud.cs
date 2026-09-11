@@ -216,7 +216,9 @@ public partial class GameRoot
             double practice = ChallengeProgression.SkillPractice(overallLevel, definition.Level);
             double credit = ChallengeProgression.EnemyCredit(overallLevel, definition.Level) * ChallengeProgression.OverallRate(overallLevel);
             targetDetail.Text += $"\n{ChallengeProgression.ChallengeName(overallLevel, definition.Level)} · {practice:P0} practice · {credit:P1} overall credit";
-            targetDetail.TooltipText = "Practice scales the base combat skill award before skill mastery and affinity. Overall credit applies to the awarded practice, not the base reward. Twenty-level weaker enemies grant little progress.";
+            targetDetail.Text += "\n" + EnemyCombatRules.TacticLabel(definition);
+            if(definition.Boss) targetDetail.Text += " · Phase " + (target.Phase+1) + "/3 · " + string.Join(" / ",EnemyCombatRules.AvailableBossAttacks(definition,target.Phase).Select(EnemyCombatRules.AttackLabel));
+            targetDetail.TooltipText = "Practice scales the base combat skill award before skill mastery and affinity. Enemy tactic and boss attack cues describe authoritative server behavior; move out of telegraphs and interrupt long casts when possible.";
             var effects = target.Statuses.Where(x => x.Until > snap.Time).Select(x => Ui.Words(x.Kind)).Distinct().Take(3).ToArray();
             if (effects.Length > 0) targetDetail.Text += "\n" + string.Join(" · ", effects);
         }
