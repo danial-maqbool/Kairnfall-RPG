@@ -1,63 +1,58 @@
 # QA acceptance matrix
 
-## Item and merchant QA — 2026-09-09
+Current consolidated status as of 2026-09-11.
 
-[The integrated commerce checkpoint](handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md) records independent signed stat rows, locked/banked comparisons, offhand losses, red blockers, compact centered layouts, integer quantities, exact partial/full-stack gold, stale-snapshot guards and reconnect persistence. Native tests cover both 1280 by 720 and 1920 by 1080. Full and graphical workflows passed. Tests preserve production stack limits, server authority and all older assertions. Independent image review, human playtesting and Windows DPI are not implied.
+This matrix defines required acceptance gates and their present state. Automated passes are not substitutes for human-only review. Consult `handoff/VERIFICATION.md` for the current evidence record and `FINAL_AUDIT.md` for release status.
 
-## Current journey acceptance — 2026-09-09
+| Area | Required check | Current status | Evidence / remaining work |
+| --- | --- | --- | --- |
+| Source / repository | Single authoritative mainline, required source present, generated assets reproducible. | **PASS** | Repository work is consolidated on `main`; current implementation baseline before docs-only cleanup is `defec56aadf5bc01289b4c7ec8c0e422b918624f`. |
+| Backend | Core, gameplay, security, world, PostgreSQL/network and save-conflict suites. | **PASS** | Build and verify run `34555269188` passed Linux and Windows core on the Task 3 final baseline. |
+| XP / HUD | Character XP from skill XP; Character XP and Skill XP visible in Vitals; real activity progression. | **IMPLEMENTED / HUMAN CHECK PENDING** | Automated live-progression coverage exists. Owner Windows gameplay pass remains intentionally deferred. |
+| Progression | All 60 skills train through authoritative activities; XP, levels, unlocks, Character XP and persistence. | **PASS** | 60/60 real-activity audit passed; Task 2 final CI `34550409865`. |
+| Classes | Eight classes retain distinct kits, affinities, equipment and abilities. | **PASS** | All 8 kits / 120 abilities are exercised through real effect handlers; subjective identity/feel remains human. |
+| Native UI | Signals, lifecycle, input routing, controls and repeated page recreation. | **PASS** | Retained client/native contracts and current core CI are green. |
+| Character art | Body variants and all visible equipment layers across actions/directions. | **PASS STRUCTURAL/GRAPHICAL; HUMAN ART APPROVAL PENDING** | 12 shipped body variants and 13 visible equipment slots are covered; isolated layer sheets, source parity and native Godot presentation pass. |
+| Creature art | Normal species, elites and bosses across actions/directions. | **PASS STRUCTURAL/GRAPHICAL; HUMAN ART APPROVAL PENDING** | 100 normal creatures, 25 elites and 20 bosses are covered; boss-safe 128×128 evidence and native Godot presentation pass. |
+| World | Cities, services, layers, objectives, resources and boss routes are represented and reachable by authored graph checks. | **PASS AUTOMATED; HUMAN WALKTHROUGH PENDING** | 109 zone-anchor checks pass. Full ordinary-account traversal remains human acceptance. |
+| Quests | Objective anchors and quest routing/content references are valid. | **PASS AUTOMATED; HUMAN WALKTHROUGH PENDING** | 166 quest-anchor checks pass. Full objective/resource/boss-arena play remains human. |
+| Economy | Crafting, price spreads, tiers, rarity, sinks and boss-drop design avoid clear pathologies. | **PASS AUTOMATED; HUMAN BALANCE PENDING** | Authored balance audit passes; sustained pacing/feel still requires play. |
+| Audio | Runtime files are valid and technically clean. | **PASS TECHNICAL; LISTENING PENDING** | All 22 WAV assets pass format/duration/peak/RMS/DC/clipping/loop-boundary checks. |
+| Multiplayer | Multiple graphical clients share state, chat and movement; protocol suites cover party/trade/loot/reconnect/restart. | **PASS** | Graphical multiplayer run `34534712045` passed; retained protocol suites remain green. |
+| Load / performance | Increasing concurrency records server/database/resource metrics. | **PASS REFERENCE TARGET** | 4/8/16-client staged load probe records tick/snapshot latency, DB commits, RSS and CPU. This is not a production-capacity claim. |
+| Windows display/input | Native Windows keyboard/mouse and 125%/150% scale coverage at supported resolutions. | **PASS AUTOMATED; PHYSICAL REVIEW PENDING** | HUD, XP bars, inventory/equipment, crafting, minimap and map are covered at 1280×720 and 1920×1080 with scale emulation. |
+| Windows package | Export client/server, launch from clean path, restart/reconnect, checksums. | **PASS CI; OWNER-MACHINE CHECK OPTIONAL/PENDING** | Windows CI exports with pinned Godot .NET/tool templates, launches outside source, restarts/reconnects and produces SHA-256 manifests. |
+| Documentation | Verification, audit, handoff and status docs match current mainline. | **PASS — Task 11** | Consolidated on 2026-09-11; historical dated files remain historical evidence. |
+| Release | All applicable automated and human gates accepted against an exact package/revision. | **NOT APPROVED** | Human acceptance gates listed below remain. |
 
-[The current checkpoint](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md) records passing exact-source full and graphical workflows, including 118 Python tests, 1,002 native controls, 85 live client/server checks and 197 native presentation checks. New coverage includes exact population multipliers, reachable separated patches, saved-pet/boss preservation, respawn exclusion, early use gates, Q dash, target cycling, shared-capacity inventory sections, coherent Atelier import and native pixel sizes. All original native routing assertions are retained and run at explicit supported physical window dimensions. Automatic regression and rendering passed. Independent art, human playtest, Windows DPI, agent-team review, load and release gates are not automatically approved.
+## Human acceptance still required for release approval
 
-## Equipment and crafting QA — 2026-09-09
+- Task 1 owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence.
+- Normal-play feel for skills/classes.
+- Independent artistic approval at native/in-engine scale.
+- Full ordinary-account world/quest walkthrough.
+- Sustained economy/balance feel.
+- Audio listening approval.
+- Production-scale load/hardware target if a specific capacity will be advertised.
+- Physical Windows DPI/input review.
+- Owner-machine clean package extraction/launch if required for the release process.
 
-Current equipment results are in the [exact-source checkpoint](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md). Every grade has skill-boundary and authoritative crafting coverage. Native tests cover guide selection, pinned actions, ingredient errors, bounded recipe pages, snapshot stability and scene cleanup. Server tests reject blocked or foreign workstations without state changes. Graphical renders cover 1280 by 720 and 1920 by 1080. Independent image review and Windows 125%/150% scaling remain open. Historical results below remain scoped to their stated revisions.
+## Current visual evidence
 
-Current exact-source results: [action presentation checkpoint](handoff/ACTION_PRESENTATION_2026-09-08.md).
-Full run `34258153781` and graphical run `34258153880` passed for source `dd3900bd1dcdb3baa3a7860bcdd7a306e47fa159`.
-Results include 33/34/13/18/5 backend/database checks, five security probes, five migration groups,
-seven furnishing checks, 94 Python tests, 51 native player checks, 601 native control checks,
-83 live client/server checks, and 126 graphical fixture checks.
-New coverage includes real WorldView timing, native objective clicks, ability-panel reattachment,
-style resource reuse, icon geometry, and species-specific action phases.
-Graphically rendered is not independently visually approved. Windows DPI, human playtesting,
-audio listening, measured performance, and extracted packages remain unapproved.
+Final Task 3 baseline: `defec56aadf5bc01289b4c7ec8c0e422b918624f`.
 
-Previous Windows evidence: [September 8 visual repair](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md).
-Bootstrap, 103 backend/database checks, 74 Python tests, native signals/input,
-102 visual-fixture checks, 83 isolated live checks and inspected graphical smoke
-passed. Visual approval is incomplete. DPI, full manual gameplay, audio, load
-and extracted Windows packages remain unapproved.
+- Build and verify: `34555269188` — passed.
+- Visual acceptance matrix: `34555269207` — passed.
+- Review exact visual candidate: `34555269185` — passed.
+- Refined Atelier player source/asset parity is enforced read-only.
+- Automated review includes readable per-creature sheets, isolated equipment-slot sheets and native Godot presentation captures.
 
-Historical evidence: [September 7 Windows acceptance](handoff/LOCAL_ACCEPTANCE_2026-09-07.md),
-source `90143df`. Backend/database 99, security probes 5, save-migration groups 5,
-Python tests 35, native
-signals/input, structural assets, and focused world paths passed. Graphical smoke
-and selected mouse flows passed; art approval failed. Full bootstrap timed out on
-export templates. Keyboard/scaling, full gameplay, audio, sustained load, and
-extracted packages remain open. The matrix below still defines mandatory gates.
+## Review rules
 
-This matrix defines required checks. Consult handoff/VERIFICATION.md for actual results.
-Pending rows are not passed by document creation.
-
-| Area | Required check | Evidence |
-| --- | --- | --- |
-| Source handoff | Fresh clone, required files, dependency pins, scripts, generated references. | CI plus local bootstrap log. |
-| Local data safety | Distinct dev/test databases, no save deletion, password preservation, port conflicts. | Contract tests plus real local integration. |
-| Backend | Core, review, security, network/PostgreSQL, save conflicts. | Native outputs and exact commit. |
-| Native UI | Captured/node/plain-object/async callbacks, GC, reparent, repeated pages. | Godot SignalContract result. |
-| Graphical startup | Real client login/world plus fresh world/inventory/skills/map captures. | Non-headless run and inspected screenshots. |
-| Normal play | All 26 accepted clean-account steps without reward cheats. | Reproducible walkthrough/recording. |
-| World | Graph and actual tile connectivity to cities/services/layers/objectives. | Automated routes plus in-game checks. |
-| Progression | All 60 skills, class identity, unlocks, costs, overall level, persistence. | Per-skill and per-class records. |
-| Economy | Craft chains, shops, bank, auction, trade/replay/races, gold sinks. | Invariants and balance outputs. |
-| Combat | All ability kinds, status/element outcomes, equipment constraints, bosses. | Regressions and live encounters. |
-| Art | Full species/boss review, equipment animation, cities, UI, telegraphs. | Named reviewed files and captures. |
-| Audio | Actual playback, region changes, loops, clipping, volume, effects. | Listening review and defects. |
-| Multiplayer | Independent clients, private data, shared state, reconnect, restart. | Real protocol traces with secrets removed. |
-| Load | Sustained concurrency and resource measurements on known hardware. | Duration, count, tick/frame/DB metrics. |
-| Windows package | Export, complete files, extract/run, space-containing path, restart. | Clean-directory execution and checksums. |
-| Release | All accepted scope gates, no unresolved blockers, truthful docs. | FINAL_AUDIT and tested tag. |
-
-Review TODO/FIXME/PLACEHOLDER/TEMP/MOCK/STUB occurrences individually.
-Mocks in isolated tests can be valid. Runtime placeholders in required gameplay are unresolved work.
-Do not delete failing tests, hide engine errors, or use allow-failure flags to pass acceptance.
+- A catalog record is not proof that a mechanic works.
+- A structural image check is not artistic approval.
+- Emulated DPI is not a physical-monitor review.
+- A fixed CI concurrency probe is not production-capacity proof.
+- Technical WAV analysis is not listening approval.
+- Do not delete failing tests, suppress engine errors, weaken production validation, or lower accepted scope to obtain green results.
+- Historical September 7–9 files retain their original revision boundaries and must not override the current status above.
