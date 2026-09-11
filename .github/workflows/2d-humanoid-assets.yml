@@ -1,0 +1,144 @@
+name: 2D humanoid asset sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'atelier/forge/illustrated_body.py'
+      - 'atelier/forge/authored_body.py'
+      - 'atelier/forge/__init__.py'
+      - 'atelier/forge/folk.py'
+      - 'tools/art/render_2d_humanoid.py'
+      - 'atelier/tests/test_refined_body_batch01.py'
+      - '.github/workflows/2d-humanoid-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 2d-humanoid-main
+  cancel-in-progress: true
+
+jobs:
+  render-and-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebase onto current main
+        shell: bash
+        run: git pull --rebase origin main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install 2D render dependencies
+        shell: bash
+        run: python -m pip install Pillow==12.0.0
+      - name: Render pure 2D humanoid masters and review sheets
+        shell: bash
+        run: |
+          rm -rf atelier/authored/humanoid atelier/authored/humanoid_preview
+          python tools/art/render_2d_humanoid.py \
+            --output atelier/authored/humanoid \
+            --preview atelier/authored/humanoid_preview
+      - name: Validate authored 2D batch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          import hashlib
+
+          for root, pattern, expected in (
+              (Path('atelier/authored/humanoid'), 'body_*.png', 12),
+              (Path('atelier/authored/humanoid_preview'), 'character_*.png', 12),
+          ):
+              files = sorted(root.glob(pattern))
+              if len(files) != expected:
+                  raise SystemExit(f'Expected {expected} sheets in {root}, found {len(files)}')
+              for path in files:
+                  with Image.open(path) as image:
+                      if image.mode != 'RGBA' or image.size != (512, 1536):
+                          raise SystemExit(f'Bad 2D sheet contract: {path} {image.mode} {image.size}')
+                      unique = set()
+                      for row in range(24):
+                          for col in range(8):
+                              frame = image.crop((col*64, row*64, (col+1)*64, (row+1)*64))
+                              alpha = frame.getchannel('A')
+                              if alpha.getbbox() is None:
+                                  raise SystemExit(f'Blank 2D frame: {path} row={row} col={col}')
+                              opaque = sum(1 for value in alpha.getdata() if value >= 128)
+                              if opaque < 90:
+                                  raise SystemExit(f'Under-defined 2D frame: {path} row={row} col={col} pixels={opaque}')
+                              unique.add(hashlib.sha256(frame.tobytes()).digest())
+                      if len(unique) <= 100:
+                          raise SystemExit(f'Insufficient 2D animation variation: {path} {len(unique)}')
+          print('Validated 12 pure-2D bodies and 12 complete-character review sheets.')
+          PY
+      - name: Regenerate Atelier people assets from 2D masters
+        shell: bash
+        run: |
+          python atelier/build.py --only people --jobs 1
+          python -m unittest atelier.tests.test_refined_body_batch01 -v
+      - name: Guard unrelated people layers
+        shell: bash
+        run: |
+          if ! git diff --quiet -- atelier/Assets/people \
+            ':(exclude)atelier/Assets/people/body_*.png' \
+            ':(exclude)atelier/Assets/people/hair_*.png'; then
+            echo '2D humanoid pass changed unrelated people layers.' >&2
+            git diff --stat -- atelier/Assets/people
+            exit 1
+          fi
+      - name: Validate generated game sheets
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          import hashlib
+
+          body_files = sorted(Path('atelier/Assets/people').glob('body_*.png'))
+          hair_files = sorted(Path('atelier/Assets/people').glob('hair_*.png'))
+          if len(body_files) != 12:
+              raise SystemExit(f'Expected 12 body sheets, found {len(body_files)}')
+          if len(hair_files) != 48:
+              raise SystemExit(f'Expected 48 hair sheets, found {len(hair_files)}')
+          for path in body_files + hair_files:
+              with Image.open(path) as image:
+                  if image.mode != 'RGBA' or image.size != (512, 1536):
+                      raise SystemExit(f'Bad game sheet contract: {path} {image.mode} {image.size}')
+                  hashes = set()
+                  for row in range(24):
+                      for col in range(8):
+                          frame = image.crop((col*64, row*64, (col+1)*64, (row+1)*64))
+                          if frame.getchannel('A').getbbox() is None:
+                              raise SystemExit(f'Blank generated frame: {path} row={row} col={col}')
+                          hashes.add(hashlib.sha256(frame.tobytes()).digest())
+                  if len(hashes) <= 80:
+                      raise SystemExit(f'Insufficient animation variation: {path} {len(hashes)}')
+          print('Validated generated 2D humanoid and hair sheets.')
+          PY
+          git diff --check
+      - name: Commit authored 2D masters and generated batch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            atelier/authored/humanoid/body_*.png \
+            atelier/authored/humanoid_preview/character_*.png \
+            atelier/Assets/people/body_*.png \
+            atelier/Assets/people/hair_*.png \
+            atelier/Assets/manifest.json
+          if git diff --cached --quiet; then
+            echo '2D humanoid assets already match the repository.'
+            exit 0
+          fi
+          git commit -m 'art: publish pure 2D humanoid sprite batch'
+          git pull --rebase origin main
+          git push origin HEAD:main
