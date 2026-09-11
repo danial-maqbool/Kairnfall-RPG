@@ -1,0 +1,72 @@
+name: Verify and apply social cooperation
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/apply_social_cooperation.py'
+      - '.github/workflows/social-cooperation-apply.yml'
+permissions:
+  contents: write
+concurrency:
+  group: social-cooperation-apply
+  cancel-in-progress: false
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_DB: kairnfall_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KAIRNFALL_TEST_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test
+      KAIRNFALL_ALLOW_DB_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Apply social-cooperation candidate
+        run: python3 tools/apply_social_cooperation.py
+      - name: Regenerate deterministic content
+        run: python3 tools/build_content.py
+      - name: Compile complete solution and Godot client
+        run: |
+          dotnet build Kairnfall.slnx -c Release
+          dotnet build client/Kairnfall.Client.csproj -c Release
+      - name: Run core and malformed-input regressions
+        run: |
+          dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release
+      - name: Run complete world and social-cooperation acceptance
+        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee social-cooperation.log
+      - name: Require all social-cooperation acceptance groups
+        run: grep -F 'SOCIAL COOPERATION: 7 groups passed' social-cooperation.log
+      - name: Run PostgreSQL and real-network integration
+        run: dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release
+      - name: Run isolated PostgreSQL save-conflict tests
+        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database
+      - name: Verify clean patch formatting
+        run: git diff --check
+      - name: Publish verified feature and remove temporary tooling
+        run: |
+          rm tools/apply_social_cooperation.py .github/workflows/social-cooperation-apply.yml
+          git add -A
+          git diff --cached --stat
+          test -n "$(git diff --cached --name-only)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: strengthen MMO social cooperation'
+          git push origin HEAD:main
