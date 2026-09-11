@@ -523,7 +523,7 @@ internal static class RealActivityProgressionChecks
         double characterBefore = Progression.PlayerLevelValue(p);
         double healthBefore = p.Health; Point positionBefore = p.Position;
         int statusesBefore = p.Statuses.Count; string petBefore = p.Pet;
-        var result = Act(realm, p, "cast", target: ability.Kind == "dash" ? "" : target?.Id ?? "", item: ability.Id, x: aim.X, y: aim.Y);
+        var result = Act(realm, p, "cast", target: ability.Kind is "dash" or "taunt" ? "" : target?.Id ?? "", item: ability.Id, x: aim.X, y: aim.Y);
         RequireOk(result, classId + "/" + ability.Id);
         Tick(realm, 12);
 
