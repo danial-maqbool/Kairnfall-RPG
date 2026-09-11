@@ -41,7 +41,8 @@ jobs:
           set -o pipefail
           dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee combat-class-world.log
       - name: Require class identity acceptance groups
-        run: grep -F 'CLASS COMBAT IDENTITY: 7 groups passed' combat-class-world.log
+        run: |
+          grep -F 'CLASS COMBAT IDENTITY: 7 groups passed' combat-class-world.log
       - name: Rebuild and structurally validate deterministic game assets
         run: |
           python3 tools/build_game_assets.py
