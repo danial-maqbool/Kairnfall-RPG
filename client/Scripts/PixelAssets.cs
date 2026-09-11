@@ -58,6 +58,7 @@ public sealed class PixelAssets
         canvas.DrawTextureRectRegion(texture, new Rect2(feet - SpritePoseRules.Anchor((int)size), new Vector2(size, size)), source, tint ?? Colors.White);
     }
 
+    // Runtime avatars always use the deterministic layered body, hair, and equipment pipeline.
     public void DrawPerson(CanvasItem canvas, Appearance appearance, IReadOnlyDictionary<string, string> equipment, Vector2 feet, int state, int direction, int frame)
     {
         foreach (string layer in SpritePoseRules.Layers(direction))
