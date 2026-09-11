@@ -1,6 +1,6 @@
 # Economy and crafting feel
 
-Status: implemented as Area 6 economy/crafting work.
+Status: implemented and repository-verified as Area 6 economy/crafting work.
 
 The economy pass keeps the existing item IDs, combat statistics, skill gates and crafting professions, but makes the value loop easier to read and harder to exploit.
 
@@ -13,3 +13,9 @@ The economy pass keeps the existing item IDs, combat statistics, skill gates and
 - The Crafting guide now shows material value, output base value, baseline merchant resale, the next rarity gate and a reclaim preview so players can make informed production choices.
 
 `EconomyCraftingFeelChecks` audits progression recipe value, common vendor-crafting arbitrage, exact specialist sale quotes, scalable service sinks, authoritative/replay-safe reclaiming and unchanged rarity gate ordering in the normal world-probe suite.
+
+## Automated evidence
+
+Feature commit `cf35708e306c65bb8c984fcec5ddcd01a66c7328` was published only after focused workflow run `34607419224` completed successfully. The focused gate built the solution and client with zero warnings/errors, passed all six economy/crafting groups, audited 1,071 progression equipment recipes and 264 fully vendor-supplied craft loops, and passed 55,639/55,639 deterministic asset checks. Observed service references were 5 gold for early rest, 43 for the late-progression fixture, and 58/63 gold for the sampled near/far waystone routes.
+
+This evidence establishes repository-side mechanics and numeric guardrails. Sustained human market feel, perceived material scarcity and long-session gold pacing remain playtest judgments rather than CI claims.
