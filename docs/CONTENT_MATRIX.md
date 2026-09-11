@@ -1,58 +1,67 @@
 # Content acceptance matrix
 
-## Item presentation and merchant access — 2026-09-09
+Current consolidated status as of 2026-09-11.
 
-[The current commerce pass](handoff/ITEM_COMMERCE_VERIFIED_2026-09-09.md) adds no item templates or world regions. It makes existing item comparisons and merchant stack sales visible and tested. The prior targeting/balance extension remains integrated; older population counts below describe their named historical checkpoints. Current formulas and distribution are documented in [Challenge balance](CHALLENGE_BALANCE.md).
+This file tracks content breadth separately from human quality approval. Counts and automated paths establish coverage; they do not by themselves establish artistic quality, subjective balance, or a complete human playthrough.
 
-## Current hunting and underground coverage — 2026-09-09
+## Current verified content coverage
 
-The integrated world seeds 4,682 creatures across 109 regions. Ordinary species use 30x/20x/15x/10x/5x level-banded spawn counts in separated reachable patches. Interiors and service cores remain protected; bosses and elites are not multiplied. Wayfarer's Burrows and Silkroot Den add reciprocal beginner dungeon routes and reuse real existing bosses. The latter also connects to the Dawnreach Deepway. Over-level ordinary beginner dungeon slots are corrected with owned-pet and boss-state preservation. Current equipment-template and recipe counts remain 1,354 and 1,286. [Details](HUNTING_AND_JOURNEY.md) and [verification](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md). Older count statements below are scoped to their original revisions.
+| Content | Accepted target | Current repository evidence | Human acceptance remainder |
+| --- | ---: | --- | --- |
+| Classes | 8 | 8/8 class kits are audited; all 120 class abilities execute through real effect handlers. | Subjective class identity/feel. |
+| Trainable skills | 60 | 60/60 skills execute through real authoritative activity routes with XP, level transition, Character XP contribution, unlock and persistence checks. | Normal-play pacing/feel. |
+| Player abilities | 120 | All 120 class abilities are exercised by the Task 2 authoritative audit. | Human combat feel/readability. |
+| Item templates | >=450 | Current equipment expansion retains 1,354 item templates and 1,286 recipes from the integrated gear progression. | Economy/art usefulness through normal play. |
+| Equipment tracks | 100+ weapons / 100+ armor | 21 skill tiers, 51 families and 1,071 tracked equipment entries remain integrated; 13 visible equipment slots have isolated action/direction review evidence. | Independent visual approval and sustained balance feel. |
+| Normal species | 100 | 100/100 normal creatures have action/direction structural and rendered review coverage. | Independent anatomy/art approval. |
+| Elites | 25 | 25/25 elites have action/direction structural and rendered review coverage. | Independent encounter/art approval. |
+| Bosses | 20 | 20/20 bosses have full action/direction review coverage with 128×128 boss-safe evidence. | Human encounter/art approval. |
+| World regions / zone anchors | 109 audited | 109 zone-anchor checks pass, including authored connectivity and service/objective destinations used by the world audit. | Full ordinary-account traversal. |
+| Quests / objective anchors | 166 audited | 166 quest-anchor checks pass. | Full objective/resource/boss-arena walkthrough and narrative-quality review. |
+| Map layers | 4 required | The authored world graph retains Surface, Deepways, Umbral Depths and Aether Rift connections in automated route coverage. | Human traversal of every required layer/link. |
+| Runtime audio | 22 WAV assets | All 22 pass technical format/duration/peak/RMS/DC/clipping/loop-boundary analysis. | Listening approval. |
+| Player base variants | 12 shipped | Refined Atelier source regenerates the 12 checked-in base-body sheets exactly; all variants/actions are included in visual review evidence. | Independent artistic approval. |
 
-## Equipment coverage — 2026-09-09
+## Progression and class evidence
 
-[Complete gear tracks](EQUIPMENT_PROGRESSION.md): 21 skill tiers, 51 families and 1,071 tracked entries. Generated totals are 1,354 item templates and 1,286 recipes. All original 530 templates and 463 recipes are retained unchanged. Each new track has server-tested equip/craft behavior and reachable supplies. These counts do not prove artwork, economy pacing or full-world completion. [Acceptance evidence](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md).
+Task 2 final authoritative audit verifies all 60 skills through real server activity routes and all eight class kits / 120 abilities through real effect handlers. Final Task 2 CI run `34550409865` passed on `d2eb494ff9f3dacc4e3e7fecab811ab7883ddc7a`.
 
-Latest bounded repair: [action presentation and native UI](handoff/ACTION_PRESENTATION_2026-09-08.md).
-No classes, quests, items, zones, rewards, or creature records were added in this pass.
-Spider/quartz-spider and turtle/tortoise attack/hit presentation changed. Short action playback,
-ability-browser lifecycle, hotbar framing, and objective feedback were repaired.
-Status: implemented, automatically tested, and graphically rendered. Individual artwork
-acceptance, the complete roster review, and full manual gameplay remain open.
+Catalog descriptions are not used as proof of implementation.
 
-### Previous Windows checkpoint
+## Character and creature evidence
 
-The [September 8 visual checkpoint](handoff/LOCAL_VISUAL_REVIEW_2026-09-08.md)
-changes presentation and existing NPC positions without increasing scope or
-content counts. Current path probes cover 107 zones and 1,013 destinations.
-Eight common creatures and eight equipment families have sampled native render
-evidence; this is not acceptance of every species, boss, ability or item.
-The counts and failures in the September 7 paragraph below are historical.
+Task 3 final baseline `defec56aadf5bc01289b4c7ec8c0e422b918624f` passed:
 
-The [2026-09-07 Windows record](handoff/LOCAL_ACCEPTANCE_2026-09-07.md) reports
-source `922d429`: generated records include 530 items, 132 abilities, 103 zones,
-170 NPCs, and 166 quests. These remain records, not accepted finished content.
-World checks passed for 949 spawn/door/NPC/exit/arrival destinations across 103 zones;
-resource, quest-objective, and boss-arena paths still require coverage.
-Actual creature review failed anatomy/direction/boss-distinction requirements.
+- Build and verify run `34555269188`.
+- Visual acceptance matrix run `34555269207`.
+- Exact visual review run `34555269185`.
 
-Counts below are minimum acceptance targets from the user's specification, not verified finished content.
-Regenerate the current catalog and record its counts and hash in each test report.
+The final visual evidence covers idle/walk/attack/cast/hit/death in all four directions, readable per-creature sheets, isolated per-equipment-slot sheets, all 12 shipped player base variants, and native Godot presentation captures.
 
-| Content | Target | Required evidence beyond a count |
-| --- | ---: | --- |
-| Classes | 8 | Distinct mechanics, progression, equipment affinity, and playable kit. |
-| Trainable skills | 60 | Valid action, XP, effect, unlock, interface, persistence. |
-| Player abilities | 120 | Distinct functional effects and valid targeting/cost/cooldown. |
-| Item templates | 450 | Acquisition, stats, art, usable category, requirements. |
-| Weapons / armor | 100 / 100 | Useful family/slot/material variation and aligned equipped appearance. |
-| Normal species / elites / bosses | 100 / 25 / 20 | Distinct anatomy, behavior, placement, encounters, drops. |
-| Major cities | 5 | Different cities, complete services, roads, NPCs, quests, visuals. |
-| Smaller settlements | 10 | Reachable and useful locations, not renamed empty maps. |
-| Biomes / major dungeons | 15 / 20 | Different environments, connected routes, encounters, objectives. |
-| Named NPCs | 150 | Role, dialogue, location, interactions, purpose. |
-| Main / side / repeatable quests | 25 / 100 / 30 | Accessible objective chains and valid nonduplicated rewards. |
-| Map layers | 4 | Surface, Deepways, Umbral Depths, Aether Rift with physical links. |
+Automated rendering does not grant independent artwork approval.
 
-For each row, track source count, implemented behavior, automated tests, graphical review,
-normal-play evidence, unresolved defects, and reviewed commit separately.
-Do not copy historical catalog totals from another branch. Do not declare content complete from IDs alone.
+## World and quest evidence
+
+The automated audit covers 109 zone anchors and 166 quest anchors. It distinguishes dynamically created resources (for example skinning/carcass state) from static seeded resource nodes rather than failing valid dynamic gameplay.
+
+This closes the repository-side route/reference audit. The full ordinary-account world and quest walkthrough remains a human acceptance gate.
+
+## Equipment and economy evidence
+
+The complete equipment progression remains integrated: 21 skill tiers, 51 families and 1,071 tracked entries, with 1,354 item templates and 1,286 recipes from the current equipment expansion. Authoritative equip/craft behavior, workstation boundaries and the economy correctness audit are automated.
+
+Sustained economic pacing remains human balance work.
+
+## Acceptance interpretation
+
+The following historical statements are no longer current: that the complete creature roster lacks automated review, that 60 skills lack authoritative action evidence, that resource/quest/boss routes have no coverage, or that Windows/package/load/multiplayer infrastructure is absent. Those statements remain only in dated historical checkpoints at their original revisions.
+
+Current human-only content acceptance still includes:
+
+- full normal-play progression/class feel;
+- independent character/equipment/creature artwork approval;
+- full world/quest/resource/boss traversal;
+- sustained economy/balance feel;
+- audio listening review.
+
+Use `handoff/VERIFICATION.md` and `QA_MATRIX.md` for the current gate status. Do not declare a public release from counts alone.
