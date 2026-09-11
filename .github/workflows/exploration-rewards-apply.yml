@@ -31,38 +31,29 @@ jobs:
           from pathlib import Path
           p=Path('tools/world_probe/ExplorationRewardChecks.cs')
           text=p.read_text(encoding='utf-8')
-          text=text.replace('var landmark=ExplorationRewards.Landmarks(zone)[0];p.Position=JourneyProgression.LandmarkPoint(landmark);\n            var revisit=realm.Execute(p.Id,new GameCommand{Kind="inspect",Target=landmark.Id,Sequence=p.LastAction+1});',
-                            'var firstLandmark=ExplorationRewards.Landmarks(zone)[0];p.Position=JourneyProgression.LandmarkPoint(firstLandmark);\n            var revisit=realm.Execute(p.Id,new GameCommand{Kind="inspect",Target=firstLandmark.Id,Sequence=p.LastAction+1});')
-          old='''        Test("charting counts real terrain sectors rather than landmark metadata",()=>
-        {
-            var zone=regions[0];var realm=new RealmEngine(data);var p=realm.CreateCharacter("exploration-chart","Chart Tester","vanguard",new());p.Zone=zone.Id;p.Position=zone.Spawn;
-            foreach(var landmark in ExplorationRewards.Landmarks(zone))p.Discoveries.Add(ExplorationRewards.LandmarkKey(zone,landmark));
-            Items.Add(p.Inventory,Items.Create(data,"parchment"),data);Items.Add(p.Inventory,Items.Create(data,"ink"),data);
-            var rejected=realm.Execute(p.Id,new GameCommand{Kind="chart",Sequence=p.LastAction+1});Need(!rejected.Ok,"Landmark metadata falsely satisfied map-sector charting.");
-            for(int i=0;i<ExplorationRewards.RequiredChartSectors;i++)p.Discoveries.Add($"{zone.Id}:{i}:0");
-            var accepted=realm.Execute(p.Id,new GameCommand{Kind="chart",Sequence=p.LastAction+1});Need(accepted.Ok&&ExplorationRewards.Charted(p,zone),"Real sector discoveries did not permit charting: "+accepted.Message);
-        });'''
-          new='''        Test("charting counts real terrain sectors rather than landmark metadata",()=>
-        {
-            var zone=regions[0];
-            {
-                var realm=new RealmEngine(data);var p=realm.CreateCharacter("exploration-chart-reject","Chart Reject","vanguard",new());p.Zone=zone.Id;p.Position=zone.Spawn;
-                foreach(var marker in ExplorationRewards.Landmarks(zone))p.Discoveries.Add(ExplorationRewards.LandmarkKey(zone,marker));
-                Items.Add(p.Inventory,Items.Create(data,"parchment"),data);Items.Add(p.Inventory,Items.Create(data,"ink"),data);
-                var rejected=realm.Execute(p.Id,new GameCommand{Kind="chart",Sequence=p.LastAction+1});Need(!rejected.Ok,"Landmark metadata falsely satisfied map-sector charting.");
-            }
-            {
-                var realm=new RealmEngine(data);var p=realm.CreateCharacter("exploration-chart-accept","Chart Accept","vanguard",new());p.Zone=zone.Id;p.Position=zone.Spawn;
-                foreach(var marker in ExplorationRewards.Landmarks(zone))p.Discoveries.Add(ExplorationRewards.LandmarkKey(zone,marker));
-                for(int i=0;i<ExplorationRewards.RequiredChartSectors;i++)p.Discoveries.Add($"{zone.Id}:{i}:0");
-                Items.Add(p.Inventory,Items.Create(data,"parchment"),data);Items.Add(p.Inventory,Items.Create(data,"ink"),data);
-                var accepted=realm.Execute(p.Id,new GameCommand{Kind="chart",Sequence=p.LastAction+1});var authoritative=realm.Player(p.Id);
-                Need(accepted.Ok&&ExplorationRewards.Charted(authoritative,zone),"Real sector discoveries did not permit charting: "+accepted.Message);
-            }
-        });'''
-          if old not in text:
-              raise SystemExit('chart regression block not found')
-          text=text.replace(old,new,1)
+          text=text.replace('var landmark=ExplorationRewards.Landmarks(zone)[0];p.Position=JourneyProgression.LandmarkPoint(landmark);\n            var revisit=realm.Execute(p.Id,new GameCommand{Kind="inspect",Target=landmark.Id,Sequence=p.LastAction+1});','var firstLandmark=ExplorationRewards.Landmarks(zone)[0];p.Position=JourneyProgression.LandmarkPoint(firstLandmark);\n            var revisit=realm.Execute(p.Id,new GameCommand{Kind="inspect",Target=firstLandmark.Id,Sequence=p.LastAction+1});')
+          start=text.index('        Test("charting counts real terrain sectors rather than landmark metadata",()=>')
+          end=text.index('\n\n        Test("first hidden-cache opening records a permanent regional objective and bonus",()=>',start)
+          lines=[
+              '        Test("charting counts real terrain sectors rather than landmark metadata",()=>',
+              '        {',
+              '            var zone=regions[0];',
+              '            {',
+              '                var realm=new RealmEngine(data);var p=realm.CreateCharacter("exploration-chart-reject","Chart Reject","vanguard",new());p.Zone=zone.Id;p.Position=zone.Spawn;',
+              '                foreach(var marker in ExplorationRewards.Landmarks(zone))p.Discoveries.Add(ExplorationRewards.LandmarkKey(zone,marker));',
+              '                Items.Add(p.Inventory,Items.Create(data,"parchment"),data);Items.Add(p.Inventory,Items.Create(data,"ink"),data);',
+              '                var rejected=realm.Execute(p.Id,new GameCommand{Kind="chart",Sequence=p.LastAction+1});Need(!rejected.Ok,"Landmark metadata falsely satisfied map-sector charting.");',
+              '            }',
+              '            {',
+              '                var realm=new RealmEngine(data);var p=realm.CreateCharacter("exploration-chart-accept","Chart Accept","vanguard",new());p.Zone=zone.Id;p.Position=zone.Spawn;',
+              '                foreach(var marker in ExplorationRewards.Landmarks(zone))p.Discoveries.Add(ExplorationRewards.LandmarkKey(zone,marker));',
+              '                for(int i=0;i<ExplorationRewards.RequiredChartSectors;i++)p.Discoveries.Add($"{zone.Id}:{i}:0");',
+              '                Items.Add(p.Inventory,Items.Create(data,"parchment"),data);Items.Add(p.Inventory,Items.Create(data,"ink"),data);',
+              '                var accepted=realm.Execute(p.Id,new GameCommand{Kind="chart",Sequence=p.LastAction+1});var authoritative=realm.Player(p.Id);',
+              '                Need(accepted.Ok&&ExplorationRewards.Charted(authoritative,zone),"Real sector discoveries did not permit charting: "+accepted.Message);',
+              '            }',
+              '        });']
+          text=text[:start]+'\n'.join(lines)+text[end:]
           p.write_text(text,encoding='utf-8')
           PY
           python3 tools/build_content.py
