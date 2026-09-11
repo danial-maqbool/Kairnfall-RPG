@@ -53,7 +53,8 @@ jobs:
       - name: Run authoritative world and walk-transition acceptance
         run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee walk-transitions-world.log
       - name: Require walk-transition acceptance groups
-        run: grep -F 'WALK TRANSITIONS: 6 groups passed' walk-transitions-world.log
+        run: |
+          grep -F 'WALK TRANSITIONS: 6 groups passed' walk-transitions-world.log
       - name: Run PostgreSQL and real-network integration suite
         run: dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release
       - name: Run isolated save-conflict tests
