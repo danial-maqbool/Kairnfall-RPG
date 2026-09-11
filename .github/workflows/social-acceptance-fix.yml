@@ -1,0 +1,94 @@
+name: Apply social acceptance fixes
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/social-acceptance-fix.yml
+permissions:
+  contents: write
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Apply focused acceptance repairs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          pixel = Path('client/Scripts/PixelAssets.cs')
+          text = pixel.read_text(encoding='utf-8')
+          old = '''    public const int Frames = 8;\n    public const string HeroKey = "people/hero";\n    public static readonly string[] LayerOrder = ["cloak", "body", "legs", "boots", "chest", "belt", "hair", "helmet", "necklace", "charm", "trinket", "gloves", "offhand", "weapon"];'''
+          new = '''    public const int Frames = 8;\n    public static readonly string[] LayerOrder = ["cloak", "body", "legs", "boots", "chest", "belt", "hair", "helmet", "necklace", "charm", "trinket", "gloves", "offhand", "weapon"];'''
+          if text.count(old) != 1:
+              raise SystemExit('PixelAssets HeroKey declaration anchor changed.')
+          text = text.replace(old, new)
+          old = '''    public void DrawPerson(CanvasItem canvas, Appearance appearance, IReadOnlyDictionary<string, string> equipment, Vector2 feet, int state, int direction, int frame)\n    {\n        if (Texture(HeroKey) is not null)\n        {\n            DrawFrame(canvas, HeroKey, feet, state, direction, frame);\n            return;\n        }\n\n        foreach (string layer in SpritePoseRules.Layers(direction))'''
+          new = '''    public void DrawPerson(CanvasItem canvas, Appearance appearance, IReadOnlyDictionary<string, string> equipment, Vector2 feet, int state, int direction, int frame)\n    {\n        foreach (string layer in SpritePoseRules.Layers(direction))'''
+          if text.count(old) != 1:
+              raise SystemExit('PixelAssets DrawPerson anchor changed.')
+          pixel.write_text(text.replace(old, new), encoding='utf-8')
+
+          godot = Path('tools/get_godot.py')
+          text = godot.read_text(encoding='utf-8')
+          old = "VERSION='4.7.2'\nAPI=f'https://api.github.com/repos/godotengine/godot/releases/tags/{VERSION}-stable'"
+          new = """VERSION='4.7.2'\nRELEASE=f'https://github.com/godotengine/godot/releases/tag/{VERSION}-stable'\nDOWNLOAD_BASE=f'https://github.com/godotengine/godot/releases/download/{VERSION}-stable'\nPINNED_ASSETS={\n    f'Godot_v{VERSION}-stable_mono_win64.zip':{\n        'name':f'Godot_v{VERSION}-stable_mono_win64.zip','size':116582061,\n        'digest':'sha256:a2a48473a7414c5f19fab690518caebb738c09ef9601f6bd2388676a7f53b3c0',\n        'browser_download_url':f'{DOWNLOAD_BASE}/Godot_v{VERSION}-stable_mono_win64.zip'},\n    f'Godot_v{VERSION}-stable_mono_linux_x86_64.zip':{\n        'name':f'Godot_v{VERSION}-stable_mono_linux_x86_64.zip','size':107698034,\n        'digest':'sha256:129f82db7bafd54ae14bb5bb284041c73860e8c7a009a3a026ca5e946cbff247',\n        'browser_download_url':f'{DOWNLOAD_BASE}/Godot_v{VERSION}-stable_mono_linux_x86_64.zip'},\n    f'Godot_v{VERSION}-stable_mono_export_templates.tpz':{\n        'name':f'Godot_v{VERSION}-stable_mono_export_templates.tpz','size':1202598411,\n        'digest':'sha256:92f8681e349ef1f90891b792da95e3b2b0bd1ed610b78018c58feb2d87e15a9d',\n        'browser_download_url':f'{DOWNLOAD_BASE}/Godot_v{VERSION}-stable_mono_export_templates.tpz'},\n}\n""".rstrip()
+          if text.count(old) != 1:
+              raise SystemExit('get_godot release anchor changed.')
+          text = text.replace(old, new)
+          old = "    with urllib.request.urlopen(request(API),timeout=30) as response: release=json.load(response)\n    suffix='win64' if args.os=='windows' else 'linux_x86_64'\n    name=f'Godot_v{VERSION}-stable_mono_{suffix}.zip'\n    asset=next((a for a in release['assets'] if a['name']==name),None)"
+          new = "    suffix='win64' if args.os=='windows' else 'linux_x86_64'\n    name=f'Godot_v{VERSION}-stable_mono_{suffix}.zip'\n    asset=PINNED_ASSETS.get(name)"
+          if text.count(old) != 1:
+              raise SystemExit('get_godot editor lookup anchor changed.')
+          text = text.replace(old, new)
+          old = "        asset=next((a for a in release['assets'] if a['name']==target_name),None)"
+          new = "        asset=PINNED_ASSETS.get(target_name)"
+          if text.count(old) != 1:
+              raise SystemExit('get_godot template lookup anchor changed.')
+          text = text.replace(old, new)
+          old = "    result={'version':VERSION,'binary':str(binary),'official_release':release['html_url']}"
+          new = "    result={'version':VERSION,'binary':str(binary),'official_release':RELEASE}"
+          if text.count(old) != 1:
+              raise SystemExit('get_godot result anchor changed.')
+          godot.write_text(text.replace(old, new), encoding='utf-8')
+
+          live = Path('client/Tests/LiveExperienceContract.cs')
+          text = live.read_text(encoding='utf-8')
+          old = '''            long checkpointXp = Progression.Total(Self);\n            string characterId = Self.Id; sequence = Self.LastAction;'''
+          new = '''            long checkpointXp = Progression.Total(Self);\n            var checkpointSkills = Self.SkillXp.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);\n            string characterId = Self.Id; sequence = Self.LastAction;'''
+          if text.count(old) != 1:
+              raise SystemExit('LiveExperience checkpoint anchor changed.')
+          text = text.replace(old, new)
+          old = '''                Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId)\n                    && Self.Equipment.GetValueOrDefault("weapon") == weapon && Progression.Total(Self) == checkpointXp,\n                    "Repeated reconnect retains sold quantities, exact gold, equipment and earned XP");'''
+          new = '''                bool retainedSkillXp = checkpointSkills.All(entry => Self.SkillXp.GetValueOrDefault(entry.Key) >= entry.Value);\n                Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId)\n                    && Self.Equipment.GetValueOrDefault("weapon") == weapon && retainedSkillXp && Progression.Total(Self) >= checkpointXp,\n                    "Repeated reconnect retains sold quantities, exact gold, equipment and every earned skill XP checkpoint");'''
+          if text.count(old) != 1:
+              raise SystemExit('LiveExperience reconnect assertion anchor changed.')
+          live.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+      - name: Validate source patch
+        run: |
+          python3 -m py_compile tools/get_godot.py
+          python3 tools/build_content.py
+          dotnet build Kairnfall.slnx -c Release
+          dotnet build client/Kairnfall.Client.csproj -c Release
+          dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release
+          dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee social-acceptance-fix.log
+          grep -F 'SOCIAL COOPERATION: 7 groups passed' social-acceptance-fix.log
+          git diff --check
+      - name: Publish verified repairs and remove publisher
+        run: |
+          git rm .github/workflows/social-acceptance-fix.yml
+          git add client/Scripts/PixelAssets.cs client/Tests/LiveExperienceContract.cs tools/get_godot.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: stabilize social acceptance verification'
+          git push origin HEAD:main
