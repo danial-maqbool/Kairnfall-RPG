@@ -13,3 +13,7 @@ The 20 surface wilderness regions now share one coherent exploration loop rather
 There are 20 deterministic `exploration_unique` keepsakes, one per surface wilderness region. They are trophy/treasure items rather than combat gear, so exploration rewards do not create mandatory power creep. If the backpack is full, the keepsake goes to the bank; if both are full, mastery remains claimable by inspecting a waymark after freeing a slot.
 
 The Hunt guide and Atlas show exploration progress, clue state and the named mastery prize without exposing hidden-cache coordinates. Server-side discovery, cache visibility, first-open bonuses, chart validation and one-time reward issuance are covered by `ExplorationRewardChecks` in the normal world-probe suite.
+
+## Verification
+
+Focused publish gate `34602826408` passed on 2026-09-11. `ExplorationRewardChecks` passed all 5 groups across all 20 surface wilderness regions, the client and solution compiled with 0 warnings/errors, and deterministic asset validation passed 55,639/55,639 checks with 3,191 generated image files. Human exploration feel and visual preference remain separate playtest judgments.
