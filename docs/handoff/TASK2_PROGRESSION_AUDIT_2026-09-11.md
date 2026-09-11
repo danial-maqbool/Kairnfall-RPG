@@ -26,6 +26,10 @@ All eight accepted classes are checked for their authored role/passive metadata,
 
 The first CI execution exposed a fixture error in the three self-centered taunt abilities: the audit supplied a hostile target position to zero-range taunts. The permanent fixture now keeps both the target identifier and cast location on the caster while retaining a nearby hostile to prove the taunt/guard effect. This corrects the test harness and does not change gameplay rules or lower an acceptance threshold.
 
+## Verified automated result
+
+Build and verify run `34549335990` passed on source `3ecae2846d1d531b1720e2b91eb305169c9557c3`. The authoritative activity audit recorded all 60 skills and all eight classes with 68 groups passed and zero failures. The same run also passed core regressions, gameplay/malformed-input regressions, world/save checks, PostgreSQL real-network integration (18/18), save-conflict checks (5/5), and the Windows core job. The later `47fd5cd5b23fce0bfdef5365d9704da978e4948c` cleanup changes only three nullability annotations in this audit fixture and removes its one-shot cleanup workflow; no runtime behavior or acceptance threshold changes.
+
 ## Evidence boundary
 
 This automated audit is deliberately stronger than catalog counting, but it is not the human normal-play acceptance requested by the QA matrix. Human review is still required for class feel/identity in sustained play, pacing, subjective usefulness, and physical Windows input. Those claims must not be inferred from this record.
