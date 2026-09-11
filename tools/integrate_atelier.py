@@ -1,10 +1,8 @@
-"""Integrate checked-in Atelier art and the Ultimate 2D source pack.
+"""Integrate the checked-in Atelier catalog art without changing gameplay records.
 
-Read-only sources: atelier/Assets and atelier/UltimateAssets. Derived output:
-client/Assets. Gameplay/catalog IDs are never changed. The regular Atelier
-cohort remains the structural fallback; the Ultimate pack is applied last and
-therefore becomes the visible game art wherever a compatible authored master
-exists.
+Read-only source: atelier/Assets. Derived output: client/Assets. The independent
+Atelier gear/gear_worn ladder is NOT a second catalog and is never copied here.
+People, worn equipment and NPCs switch as one complete rig cohort.
 """
 from __future__ import annotations
 from collections import Counter
@@ -15,8 +13,6 @@ import re
 import shutil
 import tempfile
 from PIL import Image
-
-from integrate_ultimate_pack import integrate_ultimate
 
 GROUPS=frozenset({'people','equipment','npcs','mobs','items','abilities','terrain','props','buildings','resources','chests','structures'})
 RIG=frozenset({'people','equipment','npcs'})
@@ -84,6 +80,7 @@ def integrate(library:Path,output:Path,keys:list[str])->dict:
     if output==library or library.is_relative_to(output) or output.is_relative_to(library):
         raise ValueError('Atelier source and generated output must be separate directories')
     selected,skipped=plan(library,output,keys)
+    # Validate the entire cohort first. No corrupt or incompatible member is copied.
     with tempfile.TemporaryDirectory(prefix='.atelier-stage-',dir=output.parent) as stage_name:
         stage=Path(stage_name)
         for key,source,digest in selected:
@@ -97,15 +94,7 @@ def integrate(library:Path,output:Path,keys:list[str])->dict:
             'integrated':len(selected),'groups':counts,'skipped':skipped,'rig':'complete Atelier people/equipment/NPC cohort',
             'catalog_ids_changed':False,'independent_gear_ladder_imported':False,'visual_approval':'not_granted_by_integrity_checks',
             'assets':[{'key':key,'sha256':digest} for key,_,digest in selected]}
-
-    ultimate_root=library.parent/'UltimateAssets'
-    if (ultimate_root/'manifest.json').is_file():
-        report['ultimate_pack']=integrate_ultimate(ultimate_root,output,keys)
-    else:
-        report['ultimate_pack']={'overridden':0,'extra_sprite_keys':0,'reason':'atelier/UltimateAssets not generated'}
-
     (output/'atelier-integration.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     (output/'ATELIER_CREDITS.txt').write_text((library/'CREDITS.txt').read_text(encoding='utf-8'),encoding='utf-8')
-    print('ATELIER INTEGRATION:',len(selected),'catalog assets;',counts,'; fallback:',len(skipped),
-          '; ultimate:',report['ultimate_pack'].get('overridden',0),flush=True)
+    print('ATELIER INTEGRATION:',len(selected),'catalog assets;',counts,'; fallback:',len(skipped),flush=True)
     return report

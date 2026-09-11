@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Complete catalog skill references, preferring the Ultimate 2D icon pack."""
+"""Complete catalog skill references using existing object and ability artwork."""
 from __future__ import annotations
 
 import hashlib
 import json
 from pathlib import Path
 import sys
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -33,15 +32,6 @@ OBJECTS = {
     'construction': 'structure_campfire'
 }
 
-ULTIMATE_SKILL_ALIASES = {
-    'evasion':'defense','endurance':'survival','meditation':'prayer','slayer':'swordsmanship',
-    'foraging':'herbalism','skinning':'hunting','excavation':'mining','prospecting':'mining',
-    'treasure_hunting':'exploration','woodworking':'crafting','fletching':'archery',
-    'leatherworking':'tailoring','enchanting':'magic','runecrafting':'magic','jewelcrafting':'crafting',
-    'carpentry':'construction','scribing':'magic','tinkering':'crafting','lockpicking':'stealth',
-    'bartering':'trading','cartography':'exploration','animal_handling':'riding'
-}
-
 
 def select_source(skill: dict, catalog: dict) -> tuple[str, dict]:
     ident = skill['id']
@@ -62,26 +52,6 @@ def select_source(skill: dict, catalog: dict) -> tuple[str, dict]:
     raise ValueError(f'No object or ability icon is defined for skill {ident}.')
 
 
-def ultimate_icon(skill: dict) -> Image.Image | None:
-    root = ROOT / 'atelier/UltimateAssets/skills/icons'
-    if not root.is_dir(): return None
-    ident = skill['id']
-    name = ident if (root / (ident + '.png')).is_file() else ULTIMATE_SKILL_ALIASES.get(ident)
-    if name is None:
-        text = (ident + ' ' + str(skill.get('name','')) + ' ' + str(skill.get('category',''))).lower()
-        rules = [
-            ('sword','swordsmanship'),('arch','archery'),('defen','defense'),('combat','defense'),('magic','magic'),
-            ('prayer','prayer'),('holy','prayer'),('stealth','stealth'),('mine','mining'),('ore','mining'),
-            ('wood','woodcutting'),('fish','fishing'),('farm','farming'),('herb','herbalism'),('hunt','hunting'),
-            ('smith','smithing'),('cook','cooking'),('tailor','tailoring'),('alchem','alchemy'),('craft','crafting'),
-            ('build','construction'),('construct','construction'),('trade','trading'),('lead','leadership'),
-            ('surviv','survival'),('rid','riding'),('sail','sailing'),('explor','exploration')]
-        name = next((target for token,target in rules if token in text), 'crafting')
-    path = root / (name + '.png')
-    if not path.is_file(): return None
-    with Image.open(path) as image: return image.convert('RGBA').copy()
-
-
 def main() -> None:
     assets = ROOT / 'client/Assets'
     catalog = json.loads((ROOT / 'content/catalog.json').read_text(encoding='utf-8'))
@@ -90,13 +60,8 @@ def main() -> None:
     entries = [entry for entry in manifest['assets'] if not entry['key'].startswith('skills/')]
     sources = []
     for skill in catalog['skills']:
-        image = ultimate_icon(skill)
-        if image is not None:
-            kind, source_id = 'ultimate', skill['id']
-        else:
-            kind, source = select_source(skill, catalog)
-            image = ability_icon(source) if kind == 'ability' else item_icon(source)
-            source_id = source['id']
+        kind, source = select_source(skill, catalog)
+        image = ability_icon(source) if kind == 'ability' else item_icon(source)
         if image.mode != 'RGBA' or image.size != (32, 32) or image.getchannel('A').getbbox() is None:
             raise ValueError('Invalid skill icon: ' + skill['id'])
         key = 'skills/' + skill['id']
@@ -104,7 +69,7 @@ def main() -> None:
         save(image, path)
         entries.append({'key': key, 'width': 32, 'height': 32,
                         'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'animated': False})
-        sources.append({'skill': skill['id'], 'source_kind': kind, 'source_id': source_id})
+        sources.append({'skill': skill['id'], 'source_kind': kind, 'source_id': source['id']})
     manifest['assets'] = sorted(entries, key=lambda entry: entry['key'])
     manifest['skill_icon_sources'] = sources
     temporary = manifest_path.with_suffix('.json.tmp')
@@ -115,8 +80,7 @@ def main() -> None:
     data.update(png_files=len(entries), skill_icons=len(sources), artistic_review='not_approved')
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
-    ultimate_count=sum(1 for source in sources if source['source_kind']=='ultimate')
-    print(f'SKILL_ICONS: {len(sources)} catalog references generated; {ultimate_count} use Ultimate pack art.')
+    print(f'SKILL_ICONS: {len(sources)} catalog references generated and recorded. Visual review remains required.')
 
 
 if __name__ == '__main__':
