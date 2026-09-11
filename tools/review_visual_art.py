@@ -32,10 +32,14 @@ def main():
     from art.common import STATES
     data=json.loads(args.catalog.read_text(encoding='utf-8'))
     records=[]
-    coverage={'normal_mobs':0,'elites':0,'bosses':0,'mob_action_direction_frames':0,'visible_equipment_slots':0,'equipment_action_direction_frames':0}
+    coverage={'normal_mobs':0,'elites':0,'bosses':0,'mob_action_direction_frames':0,
+        'individual_creature_sheets':0,'visible_equipment_slots':0,'equipment_action_direction_frames':0,
+        'individual_equipment_sheets':0}
+    direction_names=('S','W','E','N')
     def save(image,name):
-        path=output/(name+'.png'); image.save(path,optimize=True)
-        records.append({'file':path.name,'width':image.width,'height':image.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+        path=output/(name+'.png'); path.parent.mkdir(parents=True,exist_ok=True); image.save(path,optimize=True)
+        records.append({'file':path.relative_to(output).as_posix(),'width':image.width,'height':image.height,
+            'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
     def contact(entries,name,columns=6,cell=(144,156),scale=2):
         image=Image.new('RGBA',(columns*cell[0],max(1,math.ceil(len(entries)/columns))*cell[1]),'#24262b'); draw=ImageDraw.Draw(image)
         for i,(label,tile) in enumerate(entries):
@@ -64,10 +68,16 @@ def main():
     def mob_action_matrix(mobs,name):
         entries=[]
         for mob in mobs:
+            creature_entries=[]
             for state in STATES:
                 n=representative_frame(state)
                 for direction in range(4):
-                    entries.append((f'{mob["id"]} {state} {direction}',creature_frame(mob,state,n,direction)))
+                    tile=creature_frame(mob,state,n,direction)
+                    short=f'{state} {direction_names[direction]}'
+                    entries.append((f'{mob["id"]} {short}',tile))
+                    creature_entries.append((short,tile))
+            contact(creature_entries,f'creatures/{mob["id"]}',columns=4,cell=(112,92),scale=1)
+            coverage['individual_creature_sheets']+=1
         contact(entries,name,columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
         coverage['mob_action_direction_frames']+=len(entries)
 
@@ -79,7 +89,7 @@ def main():
     coverage['visible_equipment_slots']=len(visible_slots)
 
     contact([(f'body {b} skin {skin}',body_frame(b,skin,'idle',0,0)) for b in range(2) for skin in range(6)],'player-bodies')
-    contact([(f'body {b} {state} {direction}',body_frame(b,2,state,representative_frame(state),direction))
+    contact([(f'body {b} {state} {direction_names[direction]}',body_frame(b,2,state,representative_frame(state),direction))
         for b in range(2) for state in STATES for direction in range(4)],'player-body-actions',columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
 
     layer_entries=[]
@@ -92,10 +102,16 @@ def main():
         if slot!='offhand':
             shield=next((candidate for candidate in equipment if candidate['slot']=='offhand' and 'shield' in candidate.get('tags',[])),None)
             if shield is not None: gear['offhand']=shield
+        slot_entries=[]
         for state in STATES:
             n=representative_frame(state)
             for direction in range(4):
-                layer_entries.append((f'{slot} {state} {direction}',person(0,state,n,direction,gear)))
+                tile=person(0,state,n,direction,gear)
+                short=f'{state} {direction_names[direction]}'
+                layer_entries.append((f'{slot} {short}',tile))
+                slot_entries.append((short,tile))
+        contact(slot_entries,f'equipment-layers/{slot}',columns=4,cell=(112,92),scale=1)
+        coverage['individual_equipment_sheets']+=1
     coverage['equipment_action_direction_frames']=len(layer_entries)
     contact(layer_entries,'equipment-all-layers',columns=max(4,len(STATES)*4),cell=(72,84),scale=1)
 
@@ -106,7 +122,7 @@ def main():
         entries=[]
         for state in STATES:
             for d in range(4):
-                for n in range(8): entries.append((f'{state} {d} / {n}',person(0,state,n,d,gear)))
+                for n in range(8): entries.append((f'{state} {direction_names[d]} / {n}',person(0,state,n,d,gear)))
         contact(entries,'equipment-'+family,columns=8,cell=(136,151))
 
     normal=[m for m in data['mobs'] if not m['boss'] and not m.get('elite')]
@@ -122,7 +138,7 @@ def main():
 
     for ident in ('field_rat','wild_hare','pine_wolf','polar_bear','sea_turtle','wood_spider'):
         mob=next(m for m in data['mobs'] if m['id']==ident)
-        contact([(f'{state} {d} / {n}',creature_frame(mob,state,n,d)) for state in STATES for d in range(4) for n in range(8)],'animation-'+ident,8,(136,151))
+        contact([(f'{state} {direction_names[d]} / {n}',creature_frame(mob,state,n,d)) for state in STATES for d in range(4) for n in range(8)],'animation-'+ident,8,(136,151))
     contact([(item['name'],icon(item)) for item in data['items']],'item-icons',columns=10,cell=(104,96),scale=2)
     contact([(role,npc_frame(role,'idle',0,0)) for role in sorted({npc['role'] for npc in data['npcs']})],'npc-roles')
     contact([(name,prop(name)) for name in PROPS],'environment',columns=5,cell=(168,166),scale=1)
@@ -140,11 +156,11 @@ def main():
                 gear['weapon']=lookup[ident]
                 for direction in range(4):
                     for state,number in (('idle',0),('walk',3),('attack',3),('cast',3),('hit',2),('death',7)):
-                        entries.append((family.split('/')[-1]+' '+state+' '+str(direction),person(0,state,number,direction,gear)))
+                        entries.append((family.split('/')[-1]+' '+state+' '+direction_names[direction],person(0,state,number,direction,gear)))
             contact(entries,f'equipment-grade-{tier["level"]:03d}',columns=12,cell=(100,92),scale=1)
     revision=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
     (output/'review-manifest.json').write_text(json.dumps({'source_revision':revision,'evidence_kind':'source-rendered contact sheets; not gameplay','visual_approval':'not_reviewed','coverage':coverage,'files':records},indent=2)+'\n',encoding='utf-8')
-    print(f'VISUAL_REVIEW: {len(records)} source contact sheets; {coverage["normal_mobs"]} normal mobs, {coverage["elites"]} elites and {coverage["bosses"]} bosses covered across actions/directions; {coverage["visible_equipment_slots"]} visible equipment slots covered; visual approval not inferred.')
+    print(f'VISUAL_REVIEW: {len(records)} source contact sheets; {coverage["normal_mobs"]} normal mobs, {coverage["elites"]} elites and {coverage["bosses"]} bosses covered across actions/directions; {coverage["individual_creature_sheets"]} readable creature sheets; {coverage["visible_equipment_slots"]} visible equipment slots and {coverage["individual_equipment_sheets"]} readable layer sheets covered; visual approval not inferred.')
 
 
 if __name__=='__main__': main()
