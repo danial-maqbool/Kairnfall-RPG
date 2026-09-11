@@ -17,7 +17,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: blender-humanoid-main
+  group: blender-humanoid-workbench-main
   cancel-in-progress: true
 
 jobs:
