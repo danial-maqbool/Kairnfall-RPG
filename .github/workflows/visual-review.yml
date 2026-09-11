@@ -1,8 +1,15 @@
 name: Review exact visual candidate
 on:
   push:
-    branches: [main, 'team/acceptance-03-visual-matrix']
-    paths: ['.ci/experience-candidate.json', '.github/workflows/visual-review.yml', 'tools/review_visual_art.py', 'tools/art/**', 'content_src/**']
+    branches: [main]
+    paths:
+      - '.github/workflows/visual-review.yml'
+      - 'tools/review_visual_art.py'
+      - 'tools/visual_acceptance_preflight.py'
+      - 'tools/art/**'
+      - 'atelier/**'
+      - 'content_src/**'
+      - 'client/Tests/VisualPresentationContract.*'
 permissions:
   contents: read
 concurrency:
@@ -25,12 +32,8 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, os, re
-          from pathlib import Path
-          if os.environ.get('GITHUB_REF_NAME') == 'main':
-              value=json.loads(Path('.ci/experience-candidate.json').read_text())['sha']
-          else:
-              value=os.environ['GITHUB_SHA']
+          import os, re
+          value=os.environ['GITHUB_SHA']
           if not re.fullmatch('[0-9a-f]{40}',value): raise SystemExit('Invalid candidate revision')
           with open(os.environ['GITHUB_OUTPUT'],'a') as out: out.write('candidate='+value+'\n')
           PY
@@ -60,6 +63,7 @@ jobs:
           python -m unittest discover -s tests/handoff -p 'test_visual*.py' -v 2>&1 | tee artifacts/experience/visual/logs/art-tests.log
           python tools/build_game_assets.py 2>&1 | tee artifacts/experience/visual/logs/assets.log
           python tools/complete_skill_icons.py
+          python tools/visual_acceptance_preflight.py 2>&1 | tee artifacts/experience/visual/logs/structural.log
           python tools/validate_game_assets.py 2>&1 | tee artifacts/experience/visual/logs/validation.log
           python tools/get_godot.py --os linux
       - name: Render original and revised source sheets
@@ -111,7 +115,7 @@ jobs:
           import base64, hashlib, json, os, re, urllib.request
           from pathlib import Path
           root=Path('evidence')
-          for name in ('build.log','art-tests.log','assets.log','validation.log','native-visual.log'):
+          for name in ('build.log','art-tests.log','assets.log','structural.log','validation.log','native-visual.log'):
               for path in root.rglob(name):
                   lines=path.read_text(encoding='utf-8',errors='replace').splitlines()
                   print('\n=== '+name+' ===\n'+'\n'.join(lines[-65:])[-14000:])
