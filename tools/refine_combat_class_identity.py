@@ -30,4 +30,20 @@ replace_once('src/Kairnfall.Core/ClassCombatRules.cs',
 ''',
 '''                string family = SpellbladeFamily(skill,element);
 ''')
-print('Spellblade weave classification refined.')
+
+# The class-identity candidate originally strengthened permanent CI by adding a
+# second explicit client build. The normal repository CI already reaches the
+# client through its retained Windows/client gates, and the dedicated publisher
+# compiles it directly. Revert this workflow-only edit so the publication commit
+# contains gameplay/client/test/docs source only and does not require workflow
+# mutation permissions from the Actions token.
+replace_once('.github/workflows/ci.yml',
+'''      - name: Compile every implemented project and the Godot client
+        run: |
+          dotnet build Kairnfall.slnx -c Release | tee artifacts/logs/build.log
+          dotnet build client/Kairnfall.Client.csproj -c Release | tee artifacts/logs/client-build.log
+''',
+'''      - name: Compile every implemented project
+        run: dotnet build Kairnfall.slnx -c Release | tee artifacts/logs/build.log
+''')
+print('Spellblade weave classification refined; permanent CI workflow preserved.')
