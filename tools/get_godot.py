@@ -13,7 +13,22 @@ import urllib.request
 import zipfile
 
 VERSION='4.7.2'
-API=f'https://api.github.com/repos/godotengine/godot/releases/tags/{VERSION}-stable'
+RELEASE=f'https://github.com/godotengine/godot/releases/tag/{VERSION}-stable'
+DOWNLOAD_BASE=f'https://github.com/godotengine/godot/releases/download/{VERSION}-stable'
+PINNED_ASSETS={
+    f'Godot_v{VERSION}-stable_mono_win64.zip':{
+        'name':f'Godot_v{VERSION}-stable_mono_win64.zip','size':116582061,
+        'digest':'sha256:a2a48473a7414c5f19fab690518caebb738c09ef9601f6bd2388676a7f53b3c0',
+        'browser_download_url':f'{DOWNLOAD_BASE}/Godot_v{VERSION}-stable_mono_win64.zip'},
+    f'Godot_v{VERSION}-stable_mono_linux_x86_64.zip':{
+        'name':f'Godot_v{VERSION}-stable_mono_linux_x86_64.zip','size':107698034,
+        'digest':'sha256:129f82db7bafd54ae14bb5bb284041c73860e8c7a009a3a026ca5e946cbff247',
+        'browser_download_url':f'{DOWNLOAD_BASE}/Godot_v{VERSION}-stable_mono_linux_x86_64.zip'},
+    f'Godot_v{VERSION}-stable_mono_export_templates.tpz':{
+        'name':f'Godot_v{VERSION}-stable_mono_export_templates.tpz','size':1202598411,
+        'digest':'sha256:92f8681e349ef1f90891b792da95e3b2b0bd1ed610b78018c58feb2d87e15a9d',
+        'browser_download_url':f'{DOWNLOAD_BASE}/Godot_v{VERSION}-stable_mono_export_templates.tpz'},
+}
 
 def request(url):
     return urllib.request.Request(url,headers={'User-Agent':'Kairnfall-Toolchain/1','Accept':'application/vnd.github+json' if 'api.github.com' in url else '*/*'})
@@ -101,10 +116,9 @@ def extract(path, target):
 def main():
     parser=argparse.ArgumentParser(); parser.add_argument('--os',choices=['windows','linux'],default='windows' if platform.system()=='Windows' else 'linux'); parser.add_argument('--directory',type=Path,default=Path('.tools')); parser.add_argument('--with-templates',action='store_true')
     args=parser.parse_args(); folder=args.directory.resolve(); folder.mkdir(parents=True,exist_ok=True)
-    with urllib.request.urlopen(request(API),timeout=30) as response: release=json.load(response)
     suffix='win64' if args.os=='windows' else 'linux_x86_64'
     name=f'Godot_v{VERSION}-stable_mono_{suffix}.zip'
-    asset=next((a for a in release['assets'] if a['name']==name),None)
+    asset=PINNED_ASSETS.get(name)
     if asset is None: raise RuntimeError('The pinned official editor archive is unavailable: '+name)
     archive=download(asset,folder); editor=folder/'godot'; extract(archive,editor)
     candidates=sorted(editor.rglob('*_console.exe')) if args.os=='windows' else sorted(p for p in editor.rglob('Godot*') if p.is_file() and p.name.endswith('.x86_64'))
@@ -113,7 +127,7 @@ def main():
     if args.os=='linux': binary.chmod(binary.stat().st_mode|0o111)
     if args.with_templates:
         target_name=f'Godot_v{VERSION}-stable_mono_export_templates.tpz'
-        asset=next((a for a in release['assets'] if a['name']==target_name),None)
+        asset=PINNED_ASSETS.get(target_name)
         if asset is None: raise RuntimeError('The pinned .NET export templates are unavailable.')
         templates=download(asset,folder); temporary=folder/'export-template-source'; extract(templates,temporary)
         version_files=list(temporary.rglob('version.txt'))
@@ -123,7 +137,7 @@ def main():
         data=Path(os.environ['APPDATA'])/'Godot' if args.os=='windows' else Path(os.environ.get('XDG_DATA_HOME',Path.home()/'.local/share'))/'godot'
         dest=data/'export_templates'/version; shutil.copytree(manifest.parent,dest,dirs_exist_ok=True)
         print('Installed verified templates:',dest,flush=True)
-    result={'version':VERSION,'binary':str(binary),'official_release':release['html_url']}
+    result={'version':VERSION,'binary':str(binary),'official_release':RELEASE}
     (folder/'godot.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
     if os.environ.get('GITHUB_ENV'):
         with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as handle: handle.write('GODOT_BIN='+str(binary)+'\n')

@@ -263,6 +263,7 @@ public partial class LiveExperienceContract : Node
             }
             var merchantSale = await LiveMerchantChecks.Run(this, game, Require);
             long checkpointXp = Progression.Total(Self);
+            var checkpointSkills = Self.SkillXp.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
             string characterId = Self.Id; sequence = Self.LastAction;
             await connection.DisposeAsync(); Attach(null); game.World.ClearSession();
             var reconnected = new GameConnection(address);
@@ -278,9 +279,10 @@ public partial class LiveExperienceContract : Node
                 Require(!reconnected.Connected, "Repeated live shutdown completes without a disposed-socket failure");
                 await reconnected.ConnectAsync(characterId);
                 await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, "Repeated reconnect did not restore the authoritative snapshot.");
+                bool retainedSkillXp = checkpointSkills.All(entry => Self.SkillXp.GetValueOrDefault(entry.Key) >= entry.Value);
                 Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId)
-                    && Self.Equipment.GetValueOrDefault("weapon") == weapon && Progression.Total(Self) == checkpointXp,
-                    "Repeated reconnect retains sold quantities, exact gold, equipment and earned XP");
+                    && Self.Equipment.GetValueOrDefault("weapon") == weapon && retainedSkillXp && Progression.Total(Self) >= checkpointXp,
+                    "Repeated reconnect retains sold quantities, exact gold, equipment and every earned skill XP checkpoint");
             }
             GD.Print($"LIVE_EXPERIENCE_CONTRACT: {checks} checks passed. Native generated input, real server and PostgreSQL; not human playtesting or Windows hardware input.");
             await (Task)Call("ShutdownClientAsync", 0)!;

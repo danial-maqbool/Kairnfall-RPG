@@ -12,7 +12,6 @@ public sealed class PixelAssets
     private readonly HashSet<string> missing = [];
     public IReadOnlyCollection<string> Missing => missing;
     public const int Frames = 8;
-    public const string HeroKey = "people/hero";
     public static readonly string[] LayerOrder = ["cloak", "body", "legs", "boots", "chest", "belt", "hair", "helmet", "necklace", "charm", "trinket", "gloves", "offhand", "weapon"];
 
     public Texture2D? Texture(string key)
@@ -61,12 +60,6 @@ public sealed class PixelAssets
 
     public void DrawPerson(CanvasItem canvas, Appearance appearance, IReadOnlyDictionary<string, string> equipment, Vector2 feet, int state, int direction, int frame)
     {
-        if (Texture(HeroKey) is not null)
-        {
-            DrawFrame(canvas, HeroKey, feet, state, direction, frame);
-            return;
-        }
-
         foreach (string layer in SpritePoseRules.Layers(direction))
         {
             string? key = layer switch
