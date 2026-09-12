@@ -37,12 +37,12 @@ jobs:
           python tools/task5_apply.py
       - name: Generate deterministic content
         run: python tools/build_content.py
-      - name: Replace and generate expanded runtime audio
+      - name: Generate full deterministic assets and audit expanded runtime audio
         shell: bash
         run: |
           set -euo pipefail
           rm -f client/Assets/audio/*.wav
-          python tools/build_game_assets.py --audio-only
+          python tools/build_game_assets.py
           python tools/audio_quality_audit.py
           python tools/validate_game_assets.py
       - name: Prove expanded audio determinism
