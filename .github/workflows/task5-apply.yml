@@ -36,6 +36,12 @@ jobs:
           anchor='starter.Resources.Count>=6'
           if text.count(anchor)!=1: raise SystemExit('task5 starter resource count anchor changed')
           text=text.replace(anchor,'starter.Resources.Length>=6',1)
+          anchor='WorldTime.Weather(zone, snap.Time) + \\"\\n\\" + zone.Lore'
+          if text.count(anchor)!=1: raise SystemExit('task5 HUD lore newline anchor changed')
+          text=text.replace(anchor,'WorldTime.Weather(zone, snap.Time) + \\"\\\\n\\" + zone.Lore',1)
+          anchor='FirstHourExperience.Steps.Count}\\n{firstHour.Name}'
+          if text.count(anchor)!=1: raise SystemExit('task5 path newline anchor changed')
+          text=text.replace(anchor,'FirstHourExperience.Steps.Count}\\\\n{firstHour.Name}',1)
           path.write_text(text,encoding='utf-8')
           PY
           python tools/task5_apply.py
