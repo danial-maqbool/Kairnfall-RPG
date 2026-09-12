@@ -26,7 +26,7 @@ internal static class PersistenceReliabilityChecks
         (RealmEngine Realm,Character Player) Fixture(string suffix="")
         {
             var realm=new RealmEngine(data);
-            var player=realm.CreateCharacter("persist-account"+suffix,"Persist Hero"+suffix,"vanguard",new());
+            var player=realm.CreateCharacter("persist-account"+suffix,"P"+suffix,"vanguard",new());
             realm.Active.Add(player.Id);
             return (realm,player);
         }
@@ -133,7 +133,7 @@ internal static class PersistenceReliabilityChecks
         {
             var realm=new RealmEngine(data); var seller=realm.CreateCharacter("auction-s","Persist Seller","vanguard",new()); var buyer=realm.CreateCharacter("auction-b","Persist Buyer","vanguard",new()); realm.Active.Add(seller.Id); realm.Active.Add(buyer.Id);
             var auctioneer=data.Npcs.First(n=>n.Role=="auctioneer"); seller.Zone=buyer.Zone=auctioneer.Zone; seller.Position=buyer.Position=auctioneer.Position; buyer.Gold=1000;
-            var sale=Items.Create(data,"healing_potion",1); Items.Add(seller.Inventory,sale,data); string itemId=sale.Id;
+            var unique=data.Items.First(i=>i.StackMax==1&&i.Type!="quest"&&i.Value>0); var sale=Items.Create(data,unique.Id,1); seller.Inventory.Add(sale); string itemId=sale.Id;
             var list=Command(realm,seller,"auction_list",item:itemId,amount:1,target:"25"); var listed=realm.Execute(seller.Id,list); Need(listed.Ok,"Auction list rejected: "+listed.Message);
             var auction=realm.State.Auctions.Values.Single(x=>x.Item.Id==itemId); var buy=Command(realm,buyer,"auction_buy",target:auction.Id); var bought=realm.Execute(buyer.Id,buy); Need(bought.Ok,"Auction buy rejected: "+bought.Message);
             long sellerGold=seller.Gold; realm.Disconnect(buyer.Id); var restarted=Restart(realm); var replay=restarted.Execute(buyer.Id,buy); Need(replay.Ok,"Auction replay lost persisted receipt.");
