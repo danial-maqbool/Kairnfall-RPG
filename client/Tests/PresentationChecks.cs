@@ -83,5 +83,61 @@ internal static class PresentationChecks
             check(text.Visible == (i == 0 ? !initial : initial), "Native objective toggle changes its content visibility");
             check(toggle.Text == (text.Visible ? "−" : "+"), "Objective toggle symbol follows its actual state");
         }
+
+        // Task #9: exercise the real combat-readability integration without claiming subjective feel.
+        var original = world.Snapshot;
+        var realm = new RealmEngine(game.Data);
+        var self = realm.CreateCharacter("combat-presentation", "Combat Presentation", "vanguard", new());
+        self.Position = position; self.Zone = "wayfarers_rest"; self.Stamina = 100;
+        self.Statuses.Add(new StatusEffect { Kind = "stun", Until = 30, Source = "fixture" });
+        var eliteDef = game.Data.Mobs.First(x => x.Elite);
+        var elite = new Creature
+        {
+            Id = "combat-readability-elite", Template = eliteDef.Id, Zone = self.Zone,
+            Position = new Point(position.X + 1, position.Y), Home = position, Health = eliteDef.Health,
+            Statuses = [new StatusEffect { Kind = "root", Until = 30, Source = self.Id }]
+        };
+        string allyId = "combat-readability-ally";
+        var party = new SocialGroup { Id = "combat-readability-party", Leader = self.Id, Members = [self.Id, allyId] };
+        self.Party = party.Id;
+        var snap = new Snapshot
+        {
+            Self = self, Time = 20, Party = party, Creatures = [elite],
+            Players = [new PublicPlayer { Id = allyId, Name = "Downed Ally", Position = new Point(position.X, position.Y + 1), Health = 0, MaxHealth = 100 }],
+            Telegraphs = [new Telegraph { Id = "combat-cast", Source = elite.Id, Zone = self.Zone, Position = self.Position, Skill = "interruptible", Shape = "circle", Radius = 2, Resolves = 21.4 }]
+        };
+        world.Accept(new TransportPacket { Snapshot = snap });
+        typeof(GameRoot).GetField("selectedTargetKind", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(game, "creature");
+        typeof(GameRoot).GetField("selectedTarget", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(game, elite.Id);
+        world.TargetId = elite.Id;
+        typeof(GameRoot).GetMethod("UpdateMobControls", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(game, null);
+        await Frame();
+        var overlay = (CombatReadabilityOverlay)typeof(GameRoot).GetField("combatReadability", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(game)!;
+        check(overlay.VisibleTelegraphCount == 1, "Native combat overlay reads the authoritative enemy cast telegraph");
+        check(overlay.VisibleStatusCount == 2, "Native combat overlay exposes self and target crowd-control state");
+        check(overlay.RevivePromptVisible, "Native combat overlay exposes a nearby eligible party revive");
+        var attack = (Button)typeof(GameRoot).GetField("basicAttackButton", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(game)!;
+        self.Cooldowns["attack"] = 21.2;
+        world.Accept(new TransportPacket { Snapshot = snap });
+        typeof(GameRoot).GetMethod("UpdateMobControls", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(game, null);
+        check(attack.Text.Contains("1.2s", StringComparison.Ordinal), "Basic attack control renders authoritative cooldown time");
+        check(attack.TooltipText.Contains("tile reach", StringComparison.Ordinal), "Basic attack control exposes weapon reach");
+
+        var interrupted = Wire.Copy(snap); interrupted.Time = 20.2; interrupted.Telegraphs.Clear(); interrupted.Creatures[0].Health -= 5;
+        world.Accept(new TransportPacket { Snapshot = interrupted });
+        typeof(GameRoot).GetMethod("UpdateMobControls", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(game, null);
+        check(overlay.PrimaryCue == "INTERRUPTED", "Early disappearance of a live enemy cast produces explicit interrupt confirmation");
+
+        var dead = Wire.Copy(interrupted); dead.Time = 20.3; dead.Creatures[0].Health = 0;
+        world.Accept(new TransportPacket { Snapshot = dead });
+        typeof(GameRoot).GetMethod("UpdateMobControls", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(game, null);
+        check((string)typeof(GameRoot).GetField("selectedTarget", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(game)! == ""
+            && (string)typeof(GameRoot).GetField("selectedTargetKind", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(game)! == ""
+            && world.TargetId == "", "Dead combat targets are removed from every client selection surface");
+
+        if (original is not null) world.Accept(new TransportPacket { Snapshot = original });
+        typeof(GameRoot).GetField("selectedTarget", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(game, "");
+        typeof(GameRoot).GetField("selectedTargetKind", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(game, "");
+        world.TargetId = "";
     }
 }
