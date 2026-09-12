@@ -119,8 +119,15 @@ public partial class GameRoot
         left.AddChild(Ui.Label("All sections share the same 64 backpack slots. Bank capacity is separate.", 12, Ui.Muted, true));
         left.AddChild(Ui.Label("Select to inspect · Double-click to equip · Right-click for actions", 12, Ui.Muted, true));
         var inspector = Ui.Column(body, true); inspector.CustomMinimumSize = new Vector2(300, 0);
-        // The primary action stays outside the scrolling statistics panel.
+        // The primary action stays outside the scrolling statistics panel and remains
+        // the same native control while authoritative snapshots update its state.
         var primary = Ui.Column(inspector); primary.Name = "EquipmentActionBar";
+        string primaryItemId = "";
+        var primaryAction = Ui.Button("", () => { if (primaryItemId != "") ToggleEquipment(primaryItemId); });
+        primaryAction.Name = "PrimaryEquipmentAction";
+        primaryAction.CustomMinimumSize = new Vector2(0, 44); primaryAction.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        primaryAction.Visible = false; primary.AddChild(primaryAction);
+        var primaryProblem = Ui.Label("", 13, Ui.Danger, true); primaryProblem.Visible = false; primary.AddChild(primaryProblem);
         var rightScroll = Ui.Scroll(inspector, new Vector2(300, 200));
         var details = Ui.Column(rightScroll);
         string slotLayout = "";
@@ -129,7 +136,7 @@ public partial class GameRoot
         {
             if (Snapshot is not { } snap) return;
             var self = snap.Self;
-            Ui.Clear(details); Ui.Clear(primary);
+            Ui.Clear(details);
             var source = bank && selectedBag == "bank" ? self.Bank : self.Inventory;
             summary.Text = $"Backpack {self.Inventory.Count}/{Items.InventoryCapacity} · Bank {self.Bank.Count}/{Items.BankCapacity} · {self.Gold:N0} gold"
                 + (bank && !NearRole("banker") ? " · Visit a banker to transfer items." : "");
@@ -179,11 +186,27 @@ public partial class GameRoot
             var selected = source.FirstOrDefault(x => x.Id == selectedItem);
             if (selected is null)
             {
+                primaryItemId = ""; primaryAction.Visible = false; primaryProblem.Visible = false;
                 details.AddChild(Ui.Label("Select an item", 23, Ui.Gold));
                 details.AddChild(Ui.Label("Equipment actions appear above the item details. Drag a rune onto equipment to fill an empty socket.", 16, Ui.Muted, true));
                 return;
             }
-            BuildEquipmentAction(primary, selected, selectedBag);
+            bool showPrimary = selectedBag == "inventory" && Data.Item(selected.Template).Slot != "";
+            if (showPrimary)
+            {
+                primaryItemId = selected.Id;
+                bool equipped = Items.Equipped(self, selected.Id);
+                string problem = ExperienceRules.EquipmentProblem(self, selected, Data);
+                primaryAction.Text = equipped ? "UNEQUIP" : "EQUIP";
+                primaryAction.Disabled = problem != "";
+                primaryAction.TooltipText = problem == "" ? "Double-click for the same action. Right-click for item actions." : problem;
+                primaryAction.Visible = true;
+                primaryProblem.Text = problem; primaryProblem.Visible = problem != "";
+            }
+            else
+            {
+                primaryItemId = ""; primaryAction.Visible = false; primaryProblem.Visible = false;
+            }
             DrawItemDetails(details, selected, bank);
         }
         refreshPage = Render; search.TextChanged += _ => Render(); view.ItemSelected += _ => Render(); Render();
