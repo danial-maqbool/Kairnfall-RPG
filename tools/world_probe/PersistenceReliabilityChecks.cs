@@ -19,6 +19,7 @@ internal static class PersistenceReliabilityChecks
             var save=JsonSerializer.Deserialize<RealmSave>(json,Wire.Json)??throw new InvalidOperationException("Save roundtrip returned null.");
             var restarted=new RealmEngine(data,save.State){Loot=save.Loot};
             restarted.RecoverLegacyLootPositions();
+            restarted.ResetTransientConnectionState();
             PersistenceIntegrity.RequireValid(restarted);
             return restarted;
         }
@@ -33,6 +34,7 @@ internal static class PersistenceReliabilityChecks
             =>new(){Kind=kind,Target=target,Item=item,Amount=amount,Arg=arg,Sequence=player.LastAction+1,RequestId=Guid.NewGuid().ToString("N")};
         void ReplayAfterRestart(RealmEngine realm,string playerId,GameCommand command,string label)
         {
+            realm.Disconnect(playerId);
             var restarted=Restart(realm); var before=Json(new RealmSave{State=restarted.State,Loot=restarted.Loot});
             var replay=restarted.Execute(playerId,command);
             Need(replay.Ok,label+" replay lost its persisted success receipt.");
@@ -61,15 +63,30 @@ internal static class PersistenceReliabilityChecks
             Need(loaded.Health==p.Health&&loaded.Cooldowns["fixture"]==p.Cooldowns["fixture"]&&loaded.Statuses.Any(x=>x.Kind=="poison"),"Combat timers changed across restart.");
         });
 
+        Test("inventory equipment quest skill level gold and cooldown identity survive restart",()=>
+        {
+            var (realm,p)=Fixture("Character");
+            p.Gold=777; p.SkillXp["mining"]=Progression.Threshold(3)+17; p.Cooldowns["fixture"]=realm.State.Time+42;
+            var quest=data.Quests.First(q=>q.Objectives.Count>0); p.Quests[quest.Id]=new(){Counts=Enumerable.Repeat(1,quest.Objectives.Count).ToList()};
+            var completed=data.Quests.First(q=>q.Id!=quest.Id); p.CompletedQuests.Add(completed.Id);
+            string inventory=Json(p.Inventory); string equipment=Json(p.Equipment); string quests=Json(p.Quests); string completedQuests=Json(p.CompletedQuests);
+            string skills=Json(p.SkillXp); int overall=Progression.PlayerLevel(p); long gold=p.Gold; string cooldowns=Json(p.Cooldowns);
+            realm.Disconnect(p.Id); var restarted=Restart(realm); var loaded=restarted.Player(p.Id);
+            Need(Json(loaded.Inventory)==inventory&&Json(loaded.Equipment)==equipment,"Restart changed inventory or equipment identity.");
+            Need(Json(loaded.Quests)==quests&&Json(loaded.CompletedQuests)==completedQuests,"Restart changed quest progress.");
+            Need(Json(loaded.SkillXp)==skills&&Progression.PlayerLevel(loaded)==overall,"Restart changed skill XP or overall level.");
+            Need(loaded.Gold==gold&&Json(loaded.Cooldowns)==cooldowns,"Restart changed gold or cooldowns.");
+        });
+
         Test("loot ownership item identity and collection replay survive restart",()=>
         {
             var (realm,p)=Fixture("Loot");
             var item=Items.Create(data,"healing_potion",2); string itemId=item.Id;
             var pile=new LootPile{Id="persist-loot",Zone=p.Zone,Position=p.Position,Owner=p.Id,Gold=17,Items=[item],PublicAt=realm.State.Time+60,Expires=realm.State.Time+180}; realm.Loot[pile.Id]=pile;
             var restarted=Restart(realm); Need(restarted.Loot[pile.Id].Owner==p.Id&&restarted.Loot[pile.Id].Items.Single().Id==itemId,"Restart changed loot ownership or item identity.");
-            var loaded=restarted.Player(p.Id); var command=Command(restarted,loaded,"loot",target:pile.Id); var result=restarted.Execute(loaded.Id,command); Need(result.Ok,result.Message);
+            var loaded=restarted.Player(p.Id); restarted.Active.Add(loaded.Id); var command=Command(restarted,loaded,"loot",target:pile.Id); var result=restarted.Execute(loaded.Id,command); Need(result.Ok,result.Message);
             long gold=loaded.Gold; int quantity=Items.Count(loaded,"healing_potion");
-            var again=Restart(restarted); var replay=again.Execute(loaded.Id,command); Need(replay.Ok,"Loot acknowledgement replay was lost.");
+            restarted.Disconnect(loaded.Id); var again=Restart(restarted); var replay=again.Execute(loaded.Id,command); Need(replay.Ok,"Loot acknowledgement replay was lost.");
             Need(again.Player(loaded.Id).Gold==gold&&Items.Count(again.Player(loaded.Id),"healing_potion")==quantity&&!again.Loot.ContainsKey(pile.Id),"Loot replay duplicated rewards.");
         });
 
@@ -81,7 +98,7 @@ internal static class PersistenceReliabilityChecks
             p.SkillXp[hand.Skill]=Progression.Threshold(hand.Requirement);
             var craft=Command(realm,p,"craft",item:hand.Id); var crafted=realm.Execute(p.Id,craft); Need(crafted.Ok,"Fixture craft rejected: "+crafted.Message); ReplayAfterRestart(realm,p.Id,craft,"Craft");
 
-            var restarted=Restart(realm); var buyer=restarted.Player(p.Id); var merchant=data.Npcs.First(n=>n.Stock.Contains("healing_potion")); buyer.Zone=merchant.Zone; buyer.Position=merchant.Position; buyer.Gold=Math.Max(buyer.Gold,500);
+            var restarted=Restart(realm); var buyer=restarted.Player(p.Id); restarted.Active.Add(buyer.Id); var merchant=data.Npcs.First(n=>n.Stock.Contains("healing_potion")); buyer.Zone=merchant.Zone; buyer.Position=merchant.Position; buyer.Gold=Math.Max(buyer.Gold,500);
             var buy=Command(restarted,buyer,"buy",target:merchant.Id,item:"healing_potion"); var bought=restarted.Execute(buyer.Id,buy); Need(bought.Ok,"Fixture merchant buy rejected: "+bought.Message); ReplayAfterRestart(restarted,buyer.Id,buy,"Merchant");
         });
 
@@ -98,6 +115,20 @@ internal static class PersistenceReliabilityChecks
             var restarted=Restart(realm); var loaded=restarted.Player(a.Id); Need(loaded.Party==party.Id&&loaded.Guild==guild.Id&&restarted.State.Parties[party.Id].Members.Contains(a.Id)&&restarted.State.Guilds[guild.Id].Members.Contains(a.Id),"Disconnect/restart lost party or guild membership.");
         });
 
+        Test("crash restart clears socket-bound LFG ready trade and aggro state only",()=>
+        {
+            var realm=new RealmEngine(data); var a=realm.CreateCharacter("stale-a","Stale A","vanguard",new()); var b=realm.CreateCharacter("stale-b","Stale B","vanguard",new());
+            var party=new SocialGroup{Name="Restart Party",Leader=a.Id,Members=[a.Id,b.Id],Roles=new(){{a.Id,"leader"},{b.Id,"member"}},ReadyCheckEnds=100,ReadyMembers=[a.Id]}; realm.State.Parties[party.Id]=party; a.Party=party.Id; b.Party=party.Id;
+            a.LfgActivity="boss"; a.LfgRole="tank"; a.LfgSince=5;
+            var trade=new Trade{A=new(){Character=a.Id},B=new(){Character=b.Id},Expires=100}; realm.State.Trades[trade.Id]=trade;
+            var creature=realm.State.Creatures.Values.First(); creature.Target=a.Id; creature.Threat[a.Id]=50;
+            var restarted=Restart(realm); var loaded=restarted.Player(a.Id); var loadedParty=restarted.State.Parties[party.Id]; var loadedCreature=restarted.State.Creatures[creature.Id];
+            Need(restarted.State.Trades.Count==0&&loaded.LfgActivity==""&&loaded.LfgRole==""&&loaded.LfgSince==0,"Restart retained stale trade or LFG connection state.");
+            Need(loadedParty.ReadyCheckEnds==0&&loadedParty.ReadyMembers.Count==0,"Restart retained a ready check with no connected members.");
+            Need(loaded.Party==party.Id&&loadedParty.Members.SetEquals([a.Id,b.Id]),"Restart removed durable party membership.");
+            Need(loadedCreature.Target==""&&loadedCreature.Threat.Count==0,"Restart retained stale creature aggro against disconnected players.");
+        });
+
         Test("auction escrow and purchase replay preserve unique item identity and gold",()=>
         {
             var realm=new RealmEngine(data); var seller=realm.CreateCharacter("auction-s","Persist Seller","vanguard",new()); var buyer=realm.CreateCharacter("auction-b","Persist Buyer","vanguard",new()); realm.Active.Add(seller.Id); realm.Active.Add(buyer.Id);
@@ -105,7 +136,7 @@ internal static class PersistenceReliabilityChecks
             var sale=Items.Create(data,"healing_potion",1); Items.Add(seller.Inventory,sale,data); string itemId=sale.Id;
             var list=Command(realm,seller,"auction_list",item:itemId,amount:1,target:"25"); var listed=realm.Execute(seller.Id,list); Need(listed.Ok,"Auction list rejected: "+listed.Message);
             var auction=realm.State.Auctions.Values.Single(x=>x.Item.Id==itemId); var buy=Command(realm,buyer,"auction_buy",target:auction.Id); var bought=realm.Execute(buyer.Id,buy); Need(bought.Ok,"Auction buy rejected: "+bought.Message);
-            long sellerGold=seller.Gold; var restarted=Restart(realm); var replay=restarted.Execute(buyer.Id,buy); Need(replay.Ok,"Auction replay lost persisted receipt.");
+            long sellerGold=seller.Gold; realm.Disconnect(buyer.Id); var restarted=Restart(realm); var replay=restarted.Execute(buyer.Id,buy); Need(replay.Ok,"Auction replay lost persisted receipt.");
             Need(restarted.Player(seller.Id).Gold==sellerGold&&restarted.Player(buyer.Id).Inventory.Count(x=>x.Id==itemId)==1&&!restarted.State.Auctions.ContainsKey(auction.Id),"Auction replay duplicated gold or item identity.");
         });
 
@@ -125,7 +156,7 @@ internal static class PersistenceReliabilityChecks
             var pet=realm.State.Creatures.Values.First(c=>c.Owner==""&&c.Health>0); pet.Owner=p.Id; pet.Target=""; pet.Threat.Clear(); p.Pet=pet.Id;
             var worldEvent=new WorldEvent{Id="persist-event",Name="Restart Event",Zone=p.Zone,Position=p.Position,Kind="rift",Started=120,StageStarted=122,StageEnds=150,Ends=180,Goal=10,Progress=3,LastTick=123}; worldEvent.Contributions[p.Id]=2; realm.State.Events.Add(worldEvent);
             var drop=new LootPile{Id="persist-drop",Zone=p.Zone,Position=p.Position,Owner=p.Id,Items=[Items.Create(data,"healing_potion")],Gold=3,PublicAt=150,Expires=300}; realm.Loot[drop.Id]=drop;
-            var restarted=Restart(realm); var loaded=restarted.Player(p.Id);
+            realm.Disconnect(p.Id); var restarted=Restart(realm); var loaded=restarted.Player(p.Id);
             Need(restarted.State.Time==123.5&&loaded.Cooldowns["dash"]==140&&loaded.Statuses.Single(x=>x.Kind=="slow").Until==130,"Timed character state changed on restart.");
             Need(loaded.Pet==pet.Id&&restarted.State.Creatures[pet.Id].Owner==loaded.Id,"Pet identity/ownership changed on restart.");
             Need(restarted.State.Events.Count(x=>x.Id==worldEvent.Id)==1&&restarted.State.Events.Single(x=>x.Id==worldEvent.Id).Progress==3,"World event duplicated or reset on restart.");
@@ -148,6 +179,6 @@ internal static class PersistenceReliabilityChecks
             Reject(r=>{var p=r.Player(r.State.Characters.Keys.First());p.Pet="missing-pet";},"pet pointer");
         });
 
-        Console.WriteLine($"PERSISTENCE RELIABILITY: {passed}/9 groups passed; failures {failures.Count}. Covers disconnect/reconnect, restart, replay, timed state, ownership, social state, transitions, pets, events and corruption. Human multiplayer feel remains separate.");
+        Console.WriteLine($"PERSISTENCE RELIABILITY: {passed}/11 groups passed; failures {failures.Count}. Covers disconnect/reconnect, restart, replay, complete character state, timed state, ownership, social state, transitions, pets, events and corruption. Human multiplayer feel remains separate.");
     }
 }
