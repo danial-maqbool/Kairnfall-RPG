@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm tools/task5_apply.py .github/workflows/task5-apply.yml
+          git rm -f tools/task5_apply.py .github/workflows/task5-apply.yml
           git add -A
           git diff --cached --check
           git commit -m 'feat: polish first-hour presentation and audio'
