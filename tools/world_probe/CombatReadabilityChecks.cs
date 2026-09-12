@@ -71,9 +71,10 @@ internal static class CombatReadabilityChecks
             var observer=realm.CreateCharacter("readability-boss-phase","Boss Observer","vanguard",new());observer.Zone=boss.Zone;observer.Position=WorldMap.FindFree(zone,new(boss.Home.X+1,boss.Home.Y));observer.Health=100000;realm.Active.Add(observer.Id);
             Need(observer.Position.Distance(boss.Position)<=28,"Boss phase fixture could not place an active nearby player.");
             boss.Threat[observer.Id]=1;boss.Target=observer.Id;
-            boss.Health=definition.Health*.64;boss.NextAttack=double.MaxValue;realm.Tick(.1);
+            void AdvanceAi(){realm.Tick(.1);realm.Tick(.1);}
+            boss.Health=definition.Health*.64;boss.NextAttack=double.MaxValue;AdvanceAi();
             Need(boss.Phase==1&&EnemyCombatRules.AvailableBossAttacks(definition,boss.Phase).Count==2,"Boss did not enter phase two at the authoritative health threshold.");
-            boss.Health=definition.Health*.29;boss.NextAttack=double.MaxValue;realm.Tick(.1);
+            boss.Health=definition.Health*.29;boss.NextAttack=double.MaxValue;AdvanceAi();
             Need(boss.Phase==2&&EnemyCombatRules.AvailableBossAttacks(definition,boss.Phase).Count==3,"Boss did not enter phase three at the authoritative health threshold.");
             Need(CombatReadabilityRules.EnemyBanner(definition,boss).Contains("PHASE 3/3",StringComparison.Ordinal),"Boss phase presentation does not match authoritative phase state.");
         });
