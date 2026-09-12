@@ -8,6 +8,12 @@ public sealed partial class RealmEngine
     /// </summary>
     public void ResetTransientConnectionState()
     {
+        Active.Clear();
+        inputs.Clear();
+        playerTargets.Clear();
+        transitionReady.Clear();
+        OutgoingChat.Clear();
+
         bool changed=State.Trades.Count>0;
         State.Trades.Clear();
         foreach(var player in State.Characters.Values)
