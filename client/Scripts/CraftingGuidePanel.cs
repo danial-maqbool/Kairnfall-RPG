@@ -71,7 +71,7 @@ public partial class CraftingGuidePanel : VBoxContainer
         requirement=Ui.Label("",compactHeight?13:14,Ui.Gold,true); requirement.Name="CraftRequirements"; information.AddChild(requirement);
         ingredientRows=Ui.Column(information);
         readiness=Ui.Label("",compactHeight?13:14,Ui.Danger,true); readiness.Name="CraftReadiness"; inspector.AddChild(readiness);
-        var finish=Ui.Row(inspector);finish.AddChild(Ui.Label("Finish",compactHeight?13:14,Ui.Muted));
+        var finish=Ui.Row(compactHeight?information:inspector);finish.AddChild(Ui.Label("Finish",compactHeight?13:14,Ui.Muted));
         specialization=new OptionButton{Name="CraftSpecialization",SizeFlagsHorizontal=SizeFlags.ExpandFill};finish.AddChild(specialization);
         var actions=Ui.Row(inspector); actions.AddChild(Ui.Label("Batches",compactHeight?13:14,Ui.Muted));
         amount=new SpinBox{Name="CraftBatches",MinValue=1,MaxValue=20,Step=1,Value=1,CustomMinimumSize=new Vector2(105,compactHeight?34:38)}; actions.AddChild(amount);
