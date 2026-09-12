@@ -88,7 +88,7 @@ internal static class MerchantBoundaryUiChecks
                 var amount = Find<LineEdit>("SaleQuantity"); await TypeQuantity(amount, "777");
                 await Frame(); await Frame(); await Frame();
                 var partial = Find<Button>("SellSelectedQuantity"); var all = Find<Button>("SellAllQuantity");
-                long unit = MerchantSales.UnitPrice(ore), gold = self.Gold;
+                long unit = MerchantSales.UnitPrice(self, merchant, stack, data), gold = self.Gold;
                 check(partial.Text.Contains((unit * 777).ToString("N0")) && all.Text.Contains((unit * 999).ToString("N0")), "Both high-value sale buttons retain their full exact totals");
                 check(Fits(partial) && Fits(all) && Fits(amount), "High-value sale actions and quantity remain inside the " + size + " viewport");
                 check(!partial.GetGlobalRect().Intersects(all.GetGlobalRect()), "The two large-total sale actions do not overlap");
