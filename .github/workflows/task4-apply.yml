@@ -22,6 +22,19 @@ jobs:
           python-version: '3.12'
       - name: Apply focused Task 4 integration
         run: python tools/task4_apply.py
+      - name: Fix reforge pool inference
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('src/Kairnfall.Core/BuildDefiningLoot.cs')
+          text=path.read_text(encoding='utf-8')
+          old='string[] pool=(def.Slot=="weapon"?["execute","resource_ready","elemental_attunement"]:["resource_ready","shieldbound","supportive_aegis"])'
+          new='string[] pool=(def.Slot=="weapon"?new[]{"execute","resource_ready","elemental_attunement"}:new[]{"resource_ready","shieldbound","supportive_aegis"})'
+          if text.count(old)!=1:
+              raise SystemExit('reforge pool patch anchor changed')
+          path.write_text(text.replace(old,new,1),encoding='utf-8')
+          PY
       - name: Generate content twice and prove determinism
         shell: bash
         run: |
