@@ -18,6 +18,7 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
     private DateTimeOffset nextSessionCheck = DateTimeOffset.UtcNow.AddSeconds(30);
     public bool Ready => ready;
     private RealmEngine Engine => engine ?? throw new InvalidOperationException("The realm has not started.");
+    private CancellationToken PersistenceToken => lifetime?.ApplicationStopping ?? CancellationToken.None;
 
     public override async Task StartAsync(CancellationToken cancel)
     {
@@ -67,8 +68,9 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
     public async Task<T> WriteAsync<T>(Func<RealmEngine, T> write, CancellationToken cancel)
     {
         await gate.WaitAsync(cancel);
-        try { RequireReady(); var result = write(Engine); await PersistAsync(cancel); return result; }
+        try { RequireReady(); var result = write(Engine); await PersistAsync(PersistenceToken); return result; }
         catch (RuleException) { throw; }
+        catch (OperationCanceledException) when (PersistenceToken.IsCancellationRequested) { throw; }
         catch (Exception error) { FailClosed(error); throw new RuleException("The server could not confirm the operation. Reconnect before retrying."); }
         finally { gate.Release(); }
     }
@@ -155,7 +157,10 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
             }
             finally { gate.Release(); }
 
-            if (generation > 0) await EnsurePersistedAsync(generation, cancel);
+            // Once an authoritative mutation succeeds, its durability belongs to the realm,
+            // not the socket that submitted it. A disconnect may suppress the acknowledgement,
+            // but it must not cancel the checkpoint or stop the entire realm.
+            if (generation > 0) await EnsurePersistedAsync(generation, PersistenceToken);
 
             await gate.WaitAsync(cancel);
             try
@@ -172,6 +177,8 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
             finally { gate.Release(); }
         }
         catch (RuleException error) { peer.Enqueue(new() { Kind = "error", Error = error.Message }); }
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (PersistenceToken.IsCancellationRequested) { }
         catch (Exception error) { FailClosed(error); }
     }
     private void SendSnapshot(Peer peer) => peer.Enqueue(SnapshotPackets.Create(Engine, peer.CharacterId));
@@ -184,17 +191,19 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
     }
     public async Task DetachAsync(Peer peer, CancellationToken cancel)
     {
-        peer.Abort(); await gate.WaitAsync(cancel);
+        var persistenceCancel = PersistenceToken;
+        peer.Abort(); await gate.WaitAsync(persistenceCancel);
         try
         {
             if (peers.TryGetValue(peer.CharacterId, out var current) && ReferenceEquals(current, peer))
             {
                 peers.TryRemove(peer.CharacterId, out _);
                 if (engine is not null) Engine.Disconnect(peer.CharacterId);
-                if (ready) await PersistAsync(cancel);
+                if (ready) await PersistAsync(persistenceCancel);
             }
         }
-        catch (Exception error) when (error is not OperationCanceledException) { FailClosed(error); }
+        catch (OperationCanceledException) when (persistenceCancel.IsCancellationRequested) { }
+        catch (Exception error) { FailClosed(error); }
         finally { gate.Release(); }
     }
     public void RevokeConnections(string fingerprint)
