@@ -90,9 +90,8 @@ def main():
     duplicate_images=[ids for ids in rgb_fingerprints.values() if len(ids)>1]
     check(not duplicate_shapes,'Normal species share exact animation silhouettes. Replace duplicate anatomy before integration.')
     check(not duplicate_images,'Normal species share identical complete animation images. These are not distinct species assets.')
-    audio_names={'music_'+key for key in ['menu','dawnreach','emberhold','thornhollow','frostgate','gloamport','wayfarers_rest','wilderness','dungeon','boss']}
-    audio_names.update('ambient_'+key for key in ['forest','coast','wind','cave'])
-    audio_names.update('effect_'+key for key in ['sword','spell','gather','coins','hammer','equip','drink','ui'])
+    from audio_quality_audit import EXPECTED as AUDIO_EXPECTED
+    audio_names=set(AUDIO_EXPECTED)
     for key in sorted(audio_names):
         path=ASSETS/'audio'/(key+'.wav')
         if not path.is_file(): check(False,'Missing audio: '+key); continue

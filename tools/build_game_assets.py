@@ -65,36 +65,69 @@ def write_wav(path:Path,samples,sample_rate=22050):
 
 
 def audio_pack(root:Path):
-    sr=22050; modes=[(0,2,3,7,10),(0,2,5,7,9),(0,3,5,7,10),(0,2,3,5,7)]
-    names=['menu','dawnreach','emberhold','thornhollow','frostgate','gloamport','wayfarers_rest','wilderness','dungeon','boss']
-    for k,name in enumerate(names):
-        duration=16; count=duration*sr; output=[0.0]*count; mode=modes[k%len(modes)]; root_note=48+k%5
-        step=.25 if name=='boss' else .5
+    sr=22050
+    music=['menu','dawnreach','emberhold','thornhollow','frostgate','gloamport','wayfarers_rest','wilderness','dungeon','boss','combat','interior']
+    ambient=['meadow','forest','ancient_forest','coast','wind','cave','city','forge','harbor','tundra','swamp','interior','ruins','arcane']
+    surfaces=['grass','dirt','stone','wood','water','snow']
+    impacts=['blade','blunt','bow','magic']
+    vocals=['beast','humanoid','undead','construct','spirit','monster']
+    classes=['vanguard','berserker','ranger','rogue','arcanist','warden','templar','spellblade']
+    effects=['gather','coins','hammer','equip','drink','ui','click','error','loot','quest_accept','quest_complete','skill_up','level_up','transition','chest','social','event_start','event_complete','heal','swing']
+    modes=[(0,2,3,7,10),(0,2,5,7,9),(0,3,5,7,10),(0,2,3,5,7)]
+    for k,name in enumerate(music):
+        duration=16;count=duration*sr;output=[0.0]*count;mode=modes[k%len(modes)];root_note=45+k%7;step=.25 if name in {'boss','combat'} else .5
         for note in range(round(duration/step)):
-            tone=mode[(note*3+note//4+k)%len(mode)]+root_note+(12 if note%4 else 0); hz=440*2**((tone-69)/12); start=round(note*step*sr)
-            for t in range(min(round(sr*1.3),count-start)):
-                secs=t/sr; env=min(1,secs/.01)*math.exp(-secs*4)
-                output[start+t]+=.18*env*(math.sin(math.tau*hz*secs)+.3*math.sin(math.tau*hz*2*secs)+.11*math.sin(math.tau*hz*3*secs))
+            tone=mode[(note*3+note//4+k)%len(mode)]+root_note+(12 if note%4==0 else 0);hz=440*2**((tone-69)/12);start=round(note*step*sr)
+            for t in range(min(round(sr*1.25),count-start)):
+                secs=t/sr;env=min(1,secs/.012)*math.exp(-secs*(3.5 if name in {'boss','combat'} else 4.4));pulse=math.sin(math.tau*hz*secs)+.27*math.sin(math.tau*hz*2*secs)+.10*math.sin(math.tau*hz*3.01*secs)
+                output[start+t]+=.16*env*pulse
+        bed=84+7*(k%5)
         for t in range(count):
-            secs=t/sr; fade=min(1,secs/.08,(duration-secs)/.25); output[t]=(output[t]+.025*math.sin(math.tau*110*2**((k%5)/12)*secs))*max(0,fade)
-        write_wav(root/('music_'+name+'.wav'),output)
-    for key in ['forest','coast','wind','cave']:
-        r=random.Random(seed(key)); count=sr*12; last=0; output=[]
+            secs=t/sr;fade=max(0,min(1,secs/.12,(duration-secs)/.28));output[t]=(output[t]+.023*math.sin(math.tau*bed*secs))*fade
+        write_wav(root/f'music_{name}.wav',output)
+    for k,key in enumerate(ambient):
+        r=random.Random(seed('ambient:'+key));duration=12;count=sr*duration;last=0.0;output=[];base=52+11*(k%7)
         for t in range(count):
-            secs=t/sr; last=last*.985+r.uniform(-1,1)*.015; v=last*.7
-            if key=='forest' and secs%2.5<.2: v+=math.sin(math.tau*(1400+200*math.sin(secs*25))*secs)*math.sin((secs%2.5)/.2*math.pi)*.06
-            if key=='coast': v*=1+math.sin(secs*1.5)*.8
-            if key=='cave': v+=.012*math.sin(math.tau*70*secs)
-            output.append(v*max(0,min(1,secs/.15,(12-secs)/.15)))
-        write_wav(root/('ambient_'+key+'.wav'),output)
-    for key,hz in [('sword',240),('spell',650),('gather',130),('coins',1900),('hammer',100),('equip',390),('drink',450),('ui',760)]:
-        r=random.Random(seed(key)); output=[]; duration=.24
+            secs=t/sr;last=last*.986+r.uniform(-1,1)*.014;v=last*.78+.018*math.sin(math.tau*base*secs)
+            if key in {'forest','ancient_forest','meadow'} and secs%2.7<.16:v+=.055*math.sin(math.tau*(1250+k*73)*secs)*math.sin((secs%2.7)/.16*math.pi)
+            if key in {'coast','harbor','swamp'}:v*=.7+.5*math.sin(secs*(1.15+k*.03))**2
+            if key in {'forge'} and secs%1.8<.12:v+=.065*math.sin(math.tau*115*secs)*math.exp(-(secs%1.8)*22)
+            if key in {'arcane'}:v+=.018*math.sin(math.tau*(310+40*math.sin(secs*.7))*secs)
+            fade=max(0,min(1,secs/.18,(duration-secs)/.18));output.append(v*fade)
+        write_wav(root/f'ambient_{key}.wav',output)
+    for surface in surfaces:
+        for variant in range(1,4):
+            key=f'{surface}_{variant}';r=random.Random(seed('step:'+key));duration=.18+.015*variant;output=[];hz=78+variant*11+(35 if surface in {'stone','wood'} else 0)
+            for t in range(round(sr*duration)):
+                secs=t/sr;env=min(1,secs/.004)*math.exp(-secs*(25+variant));noise=r.uniform(-1,1);tone=math.sin(math.tau*hz*secs)
+                texture=.19 if surface in {'dirt','grass','snow'} else .12;output.append((tone*.12+noise*texture)*env)
+            write_wav(root/f'step_{key}.wav',output)
+    for identity in impacts:
+        for variant in range(1,4):
+            key=f'{identity}_{variant}';r=random.Random(seed('impact:'+key));duration=.27;output=[];hz={'blade':430,'blunt':105,'bow':245,'magic':720}[identity]*(1+(variant-2)*.045)
+            for t in range(round(sr*duration)):
+                secs=t/sr;env=min(1,secs/.003)*math.exp(-secs*(17 if identity=='magic' else 24));noise=r.uniform(-1,1)*(.16 if identity!='magic' else .04);tone=math.sin(math.tau*hz*secs)+.22*math.sin(math.tau*hz*2.43*secs)
+                output.append((tone*.16+noise)*env)
+            write_wav(root/f'impact_{key}.wav',output)
+    for family in vocals:
+        for state in ['hurt','death']:
+            key=f'{family}_{state}';r=random.Random(seed('vocal:'+key));duration=.42 if state=='hurt' else .56;output=[];base={'beast':185,'humanoid':145,'undead':95,'construct':110,'spirit':310,'monster':125}[family]
+            for t in range(round(sr*duration)):
+                secs=t/sr;progress=secs/duration;freq=base*(1+(.28 if state=='hurt' else -.30)*progress)+18*math.sin(secs*23);env=min(1,secs/.012)*max(0,1-progress)**1.35
+                output.append((.16*math.sin(math.tau*freq*secs)+.05*math.sin(math.tau*freq*2.1*secs)+r.uniform(-1,1)*.035)*env)
+            write_wav(root/f'vocal_{key}.wav',output)
+    for k,cls in enumerate(classes):
+        duration=.44;output=[];base=310+k*43;r=random.Random(seed('class:'+cls))
         for t in range(round(sr*duration)):
-            secs=t/sr; env=min(1,secs/.006)*math.exp(-secs*24)
-            metal=math.sin(math.tau*hz*secs)+.25*math.sin(math.tau*hz*2.71*secs)
-            noise=r.uniform(-1,1)*(.5 if key in {'sword','hammer','gather'} else .06)
-            output.append((metal*.15+noise*.18)*env)
-        write_wav(root/('effect_'+key+'.wav'),output)
+            secs=t/sr;env=min(1,secs/.006)*math.exp(-secs*7);sweep=base*(1+secs*(.7 if k%2 else .35));output.append((.15*math.sin(math.tau*sweep*secs)+.07*math.sin(math.tau*(base*1.5)*secs)+r.uniform(-1,1)*.025)*env)
+        write_wav(root/f'class_{cls}.wav',output)
+    for k,key in enumerate(effects):
+        r=random.Random(seed('effect:'+key));duration=.24 if key not in {'quest_complete','level_up'} else .42;output=[];hz=160+(k*83)%1200
+        for t in range(round(sr*duration)):
+            secs=t/sr;env=min(1,secs/.006)*math.exp(-secs*(14 if duration>.3 else 23));tone=math.sin(math.tau*hz*secs)+.23*math.sin(math.tau*hz*2.31*secs);noise=r.uniform(-1,1)*(.12 if key in {'gather','hammer','swing'} else .035)
+            output.append((tone*.15+noise)*env)
+        write_wav(root/f'effect_{key}.wav',output)
+    print('ASSETS: synthesized',len(list(root.glob('*.wav'))),'runtime WAV files',flush=True)
 
 
 def preflight(data):
@@ -114,11 +147,13 @@ def preflight(data):
 
 
 def main():
-    parser=argparse.ArgumentParser(); parser.add_argument('--output',default='client/Assets'); args=parser.parse_args()
+    parser=argparse.ArgumentParser(); parser.add_argument('--output',default='client/Assets'); parser.add_argument('--audio-only',action='store_true'); args=parser.parse_args()
     root=(ROOT/args.output).resolve()
     if root!=ROOT/'client/Assets' and not root.is_relative_to(ROOT/'artifacts'):
         raise SystemExit('Asset output must be client/Assets or a directory under artifacts.')
     root.mkdir(parents=True,exist_ok=True)
+    if args.audio_only:
+        audio_pack(root/'audio'); return
     catalog=ROOT/'content/catalog.json'
     if not catalog.is_file(): raise SystemExit('Run python tools/build_content.py first.')
     data=json.loads(catalog.read_text(encoding='utf-8')); generated=[]; sheets=[]

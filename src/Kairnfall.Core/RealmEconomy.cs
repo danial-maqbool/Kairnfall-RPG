@@ -204,6 +204,7 @@ public sealed partial class RealmEngine
         var target=Data.Zone(exit.Target);
         CancelTradesFor(p.Id);inputs.Remove(p.Id);transitionReady[p.Id]=State.Time+0.55;
         p.Zone=target.Id;p.Position=MapTransitionRules.ArrivalPoint(Data,source,exit);
+        FirstHourExperience.ObserveTransition(p,source,target);
         if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Zone=p.Zone;pet.Position=p.Position;pet.Home=p.Position; }
         if(p.Discoveries.Add(p.Zone)) Progression.Train(p,"exploration",100,Math.Clamp(target.Level,1,100),Data);
         Progress(p,"explore",p.Zone);return "Entered "+target.Name+".";
@@ -230,6 +231,7 @@ public sealed partial class RealmEngine
         Need(dest.Kind is "city" or "settlement","Invalid fast-travel destination.");
         Need(dest.Id!=p.Zone,"You are already here."); long price=EconomyServices.TravelPrice(Data,p,source,dest);Items.Spend(p,price);
         CancelTradesFor(p.Id); inputs.Remove(p.Id); p.Zone=dest.Id; p.Position=dest.Spawn;
+        FirstHourExperience.ObserveTransition(p,source,dest);
         if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Zone=p.Zone; pet.Position=p.Position; }
         return $"Arrived at {dest.Name} for {price} gold.";
     }

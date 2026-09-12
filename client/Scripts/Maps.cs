@@ -29,21 +29,27 @@ public partial class MinimapView : Control
             DrawRect(new Rect2(center + new Vector2(x * scale, y * scale), new Vector2(scale + .2f, scale + .2f)), color);
         }
         foreach (var npc in World.Data.Npcs.Where(x => x.Zone == zone.Id && x.Position.Distance(World.Camera) < radius)) Dot(npc.Position, center, scale, Ui.Gold);
-        foreach (var exit in zone.Exits.Where(x => x.Position.Distance(World.Camera) < radius)) Dot(exit.Position, center, scale, new Color("d9d4bb"));
+        foreach (var exit in zone.Exits.Where(x => x.Position.Distance(World.Camera) < radius)) ExitMarker(exit.Position,center,scale,new Color("d9d4bb"));
         if (World.Snapshot is { } snapshot)
         {
             foreach (var worldEvent in snapshot.Events.Where(x => x.Zone == zone.Id)) Dot(worldEvent.Position, center, scale, worldEvent.Status == "failure" ? Ui.Danger : new Color("e0b868"));
             foreach (var player in snapshot.Players) Dot(player.Position, center, scale, new Color("94bddd"));
             foreach (var creature in snapshot.Creatures.Where(x => x.Health > 0 && x.Position.Distance(World.Camera) < radius)) Dot(creature.Position, center, scale, creature.Owner == self?.Id ? Ui.Success : new Color("b06d63"));
         }
+        if(World.Waypoint is { } waypoint&&waypoint.Distance(World.Camera)<radius) Ring(waypoint,center,scale,Ui.Gold,5);
         DrawColoredPolygon([center + new Vector2(0, -5), center + new Vector2(-4, 4), center + new Vector2(4, 4)], Ui.Text);
         DrawString(ThemeDB.FallbackFont, new Vector2(5, 16), "N", HorizontalAlignment.Left, -1, 12, Ui.Gold);
     }
-    private void Dot(Point at, Vector2 center, float scale, Color color)
+    private Vector2 MiniPoint(Point at,Vector2 center,float scale)=>center+new Vector2((float)(at.X-World.Camera.X),(float)(at.Y-World.Camera.Y))*scale;
+    private void Dot(Point at,Vector2 center,float scale,Color color)
     {
-        var position = center + new Vector2((float)(at.X - World.Camera.X), (float)(at.Y - World.Camera.Y)) * scale;
-        if (new Rect2(Vector2.Zero, Size).HasPoint(position)) DrawRect(new Rect2(position - Vector2.One, new Vector2(3, 3)), color);
+        var position=MiniPoint(at,center,scale);if(new Rect2(Vector2.Zero,Size).HasPoint(position))DrawRect(new Rect2(position-Vector2.One,new Vector2(3,3)),color);
     }
+    private void Ring(Point at,Vector2 center,float scale,Color color,float radius=4)
+    {
+        var position=MiniPoint(at,center,scale);if(new Rect2(Vector2.Zero,Size).HasPoint(position))DrawArc(position,radius,0,MathF.Tau,16,color,1.5f);
+    }
+    private void ExitMarker(Point at,Vector2 center,float scale,Color color){Dot(at,center,scale,color);Ring(at,center,scale,color,3.5f);}
 }
 
 public partial class AtlasView : Control
@@ -121,6 +127,8 @@ public partial class GameRoot
             bool locked=playerLevel<entryLevel;
             detail.AddChild(Ui.Label(zone.Name + " · " + Ui.Words(zone.Biome) + $" · Threat {threat} · Entry {entryLevel}+", 19, locked?Ui.Danger:Ui.Gold));
             detail.AddChild(Ui.Label(zone.Lore, 14, Ui.Muted, true));
+            var exits=zone.Exits.Select(x=>Data.Zone(x.Target).Name+" · "+Ui.Words(x.Kind)).Distinct().Take(6).ToArray();
+            if(exits.Length>0)detail.AddChild(Ui.Label("EXITS · "+string.Join("   •   ",exits),12,Ui.Text,true));
             if(ExplorationRewards.Eligible(zone)&&(zone.Id==Snapshot.Self.Zone||Snapshot.Self.Discoveries.Contains(zone.Id)))
             {
                 detail.AddChild(Ui.Label(ExplorationRewards.ProgressSummary(Snapshot.Self,zone),13,Ui.Success,true));

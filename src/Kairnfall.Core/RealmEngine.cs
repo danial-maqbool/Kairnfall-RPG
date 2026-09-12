@@ -142,6 +142,7 @@ public sealed partial class RealmEngine
         {
             if(command.Kind!="respawn") Alive(p);
             string message=Dispatch(p,command);
+            FirstHourExperience.ObserveCommand(p,command);
             InvalidateTradeConsents();
             p.LastAction=command.Sequence;
             var result=Result(true,message);
@@ -261,6 +262,7 @@ public sealed partial class RealmEngine
                     var before=p.Position;
                     double eventMove=WorldEventRules.MovementMultiplier(State,p.Zone,State.Time);
                     p.Position=WorldMap.Move(zone,p.Position,direction.Scale(stats.MoveSpeed*slow*eventMove*dt)); p.Facing=direction;
+                    if(p.Zone=="wayfarers_rest"&&p.Position.Distance(Data.Zone("wayfarers_rest").Spawn)>=1.5) FirstHourExperience.Mark(p,"movement");
                     if(slow>0) TryWalkTransition(p,zone,before,direction);
                     zone=Data.Zone(p.Zone);
                 }
@@ -389,6 +391,7 @@ public sealed partial class RealmEngine
     private void Progress(Character p,string action,string target,int amount=1)
     {
         if(amount<1) return;
+        if(action=="kill"&&Data.Mobs.FirstOrDefault(x=>x.Id==target)?.Elite==true) FirstHourExperience.Mark(p,"miniboss");
         AdvanceGuildProject(p,action,amount);
         foreach(var entry in p.Quests)
         {

@@ -135,6 +135,21 @@ public partial class WorldView : Control
         combatBursts.Add(new CombatBurst(at, color, Clock, 3.4f));
     }
 
+    private static Color PresentationTint(ZoneDef zone)
+    {
+        if(zone.Kind=="interior")return zone.Id switch
+        {
+            "starter_building_0_inside"=>new Color("fff0dc"),"starter_building_1_inside"=>new Color("ffe0c8"),
+            "starter_building_2_inside"=>new Color("eee6d8"),"starter_building_3_inside"=>new Color("f2e5d2"),_=>new Color("f3eadc")
+        };
+        if(zone.Kind=="city")return zone.Id switch
+        {
+            "dawnreach"=>new Color("fff4dc"),"emberhold"=>new Color("ffe0cf"),"thornhollow"=>new Color("e4f0dd"),
+            "frostgate"=>new Color("e2edf2"),"gloamport"=>new Color("dce9e8"),_=>Colors.White
+        };
+        return Colors.White;
+    }
+
     public override void _Process(double delta)
     {
         Clock += delta; sinceSnapshot += delta;
@@ -156,7 +171,7 @@ public partial class WorldView : Control
         if (Clock >= impactUntil) impactStrength = 0;
         double day = WorldTime.DayFraction(RealmTime);
         float darkness = zone.Kind == "interior" ? 0 : zone.Layer != "Surface" ? .1f : (float)Math.Clamp((Math.Cos(day * Math.Tau) - .1) * .23, 0, .22);
-        SelfModulate = Colors.White.Lerp(new Color("61758d"), darkness);
+        SelfModulate = PresentationTint(zone).Lerp(new Color("61758d"), darkness);
         QueueRedraw();
     }
 
@@ -317,6 +332,7 @@ public partial class WorldView : Control
     private static string? Decoration(ZoneDef zone, Terrain terrain, uint hash, int x, int y)
     {
         if (zone.Kind == "interior") return null;
+        if(zone.Id=="wayfarers_rest"&&((x==39&&y==45)||(x==45&&y==39)))return "signpost";
         if (zone.Id == "wayfarers_rest" && Math.Abs(x - zone.Spawn.X) < 22 && Math.Abs(y - zone.Spawn.Y) < 22)
             return terrain == Terrain.Grass ? hash % 19 == 0 ? "grass_tuft" : hash % 67 == 0 ? "flowers" : null : null;
         if (terrain is Terrain.Grass or Terrain.Moss)
@@ -377,7 +393,8 @@ public partial class WorldView : Control
                 var building = (BuildingDef)visual.Value!;
                 var house = Assets.Texture("buildings/" + zone.Id + "/" + building.Id);
                 if (house is not null) DrawTexture(house, new Vector2(building.X * Tile, (building.Y - 2) * Tile));
-                if (ShowNames && visual.At.Distance(Camera) < 5) Nameplate(visual.At, building.Name, Ui.Muted, 11);
+                double labelRange=zone.Id=="wayfarers_rest"?9:zone.Kind=="city"?7:5;
+                if (ShowNames && visual.At.Distance(Camera) < labelRange) Nameplate(visual.At, building.Name, Ui.Muted, 11);
                 break;
             case "npc":
                 var npc = (NpcDef)visual.Value!;
@@ -416,11 +433,12 @@ public partial class WorldView : Control
                 var mob = (Creature)visual.Value!; var def = Data.Mob(mob.Template); var pose = Pose(mob.Id, mob.Position);
                 if (mob.Health > 0) Shadow(feet);
                 Assets.DrawFrame(this, "mobs/" + mob.Template, feet, pose.State, pose.Direction, pose.Frame);
-                if (mob.Health > 0 && (mob.Id == TargetId || mob.Health < def.Health || def.Boss))
+                if (mob.Health > 0 && (mob.Id == TargetId || mob.Health < def.Health || def.Boss || def.Elite))
                 {
-                    float height = def.Boss ? -105 : -57;
-                    HealthBar(feet + new Vector2(-16, height), mob.Health / def.Health, def.Boss ? new Color("ba7b5b") : new Color("a65052"));
-                    Nameplate(mob.Position, def.Name + " · " + def.Level, def.Boss ? Ui.Gold : Ui.Text, height - 5, 9);
+                    float height = def.Boss ? -105 : def.Elite ? -72 : -57;
+                    Color frameColor=def.Boss?new Color("ba7b5b"):def.Elite?new Color("c69b58"):new Color("a65052");
+                    HealthBar(feet + new Vector2(-16, height), mob.Health / def.Health, frameColor);
+                    Nameplate(mob.Position, (def.Elite?"RARE · ":"") + def.Name + " · " + def.Level, def.Boss||def.Elite ? Ui.Gold : Ui.Text, height - 5, 9);
                 }
                 if (mob.Owner != "") Nameplate(mob.Position, "Companion", Ui.Success, 10, 8);
                 break;

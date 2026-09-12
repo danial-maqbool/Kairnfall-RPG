@@ -170,7 +170,9 @@ public partial class GameRoot : Control
             {
                 moveClock = 0; lastInput = input; SendMovement(input);
             }
-            audio?.SetRegion(Data.Zone(self.Zone), Snapshot.Creatures.Any(x => Data.Mob(x.Template).Boss && x.Target == self.Id));
+            bool bossAudio=Snapshot.Creatures.Any(x=>Data.Mob(x.Template).Boss&&x.Target==self.Id);
+            bool combatAudio=Snapshot.Time-self.LastCombat<7;
+            audio?.SetRegion(Data.Zone(self.Zone),bossAudio,combatAudio);
         }
         TickExperience(delta);
         uiClock += delta;
@@ -211,7 +213,7 @@ public partial class GameRoot : Control
                 if (command.Kind == "cast")
                     for (int i = 0; i < hotbar.Length; i++)
                         if (hotbar[i] == command.Item && hotbarButtons[i] is AbilitySlot slot) slot.ShowActivation();
-                audio?.PlayEffect(command.Kind); lastPageStamp = "";
+                audio?.PlayEffect(command.Kind,Snapshot?.Self.Class??""); lastPageStamp = "";
             }
             return result;
         }

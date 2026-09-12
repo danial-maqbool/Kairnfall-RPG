@@ -7,7 +7,7 @@ public partial class GameRoot
 {
     private HudPanel targetFrame = null!, chatFrame = null!;
     private ProgressBar targetHealth = null!;
-    private Label targetDetail = null!, objectiveText = null!, experiencePacing = null!;
+    private Label targetDetail = null!, objectiveText = null!, firstHourText = null!, experiencePacing = null!;
     private VBoxContainer chatBody = null!;
     private Button chatToggle = null!, objectiveToggle = null!;
     private bool chatExpanded = true;
@@ -59,17 +59,18 @@ public partial class GameRoot
         var objectiveHeader = Ui.Row(objectiveColumn);
         var heading = Ui.Label("CURRENT OBJECTIVE", 12, Ui.Gold); heading.SizeFlagsHorizontal = SizeFlags.ExpandFill; objectiveHeader.AddChild(heading);
         objectiveText = Ui.Label("", 14, Ui.Text, true); objectiveText.CustomMinimumSize = new Vector2(264, 0);
+        firstHourText = Ui.Label("", 12, Ui.Gold, true); firstHourText.Name="FirstHourPath"; firstHourText.CustomMinimumSize=new Vector2(264,0);
         bool expanded = settings.GetValue("hud", "objectives", true).AsBool();
-        objectiveText.Visible = expanded;
+        objectiveText.Visible = expanded; firstHourText.Visible=expanded;
         objectiveToggle = Ui.Button(expanded ? "−" : "+", () =>
         {
-            objectiveText.Visible = !objectiveText.Visible;
+            objectiveText.Visible = !objectiveText.Visible; firstHourText.Visible=objectiveText.Visible;
             objectiveToggle.Text = objectiveText.Visible ? "−" : "+";
             settings.SetValue("hud", "objectives", objectiveText.Visible); settings.Save("user://settings.cfg");
         });
         objectiveToggle.Name = "ToggleObjectives"; objectiveToggle.FocusMode = FocusModeEnum.None;
         objectiveToggle.CustomMinimumSize = new Vector2(26, 26); objectiveHeader.AddChild(objectiveToggle);
-        objectiveColumn.AddChild(objectiveText);
+        objectiveColumn.AddChild(objectiveText); objectiveColumn.AddChild(firstHourText);
         var minimapPanel = new HudPanel
         {
             Name = "MinimapPanel", AnchorLeft = 1, AnchorRight = 1,
@@ -202,7 +203,9 @@ public partial class GameRoot
         mana.MaxValue = stats.Mana; mana.Value = self.Mana; manaText.Text = $"Mana  {Math.Ceiling(self.Mana):0} / {stats.Mana:0}";
         stamina.MaxValue = stats.Stamina; stamina.Value = self.Stamina; staminaText.Text = $"Stamina  {Math.Ceiling(self.Stamina):0} / {stats.Stamina:0}";
         var zone = Data.Zone(self.Zone); location.Text = zone.Name;
-        location.TooltipText = zone.Layer + " · " + WorldTime.Weather(zone, snap.Time);
+        location.TooltipText = zone.Layer + " · " + WorldTime.Weather(zone, snap.Time) + "\n" + zone.Lore;
+        var firstHour=FirstHourExperience.Current(Data,self);
+        firstHourText.Text=firstHour is null?"":$"WAYFARER'S PATH · {FirstHourExperience.CompletedCount(Data,self)}/{FirstHourExperience.Steps.Count}\n{firstHour.Name} · {firstHour.Guidance}";
         var target = selectedTargetKind == "creature" ? snap.Creatures.FirstOrDefault(x => x.Id == selectedTarget && x.Health > 0) : null;
         targetFrame.Visible = target is not null;
         if (target is not null)
@@ -246,7 +249,7 @@ public partial class GameRoot
         {
             var quest = Data.Quest(tracked.Key);
             int next = Enumerable.Range(0, quest.Objectives.Count).FirstOrDefault(i => tracked.Value.Counts.ElementAtOrDefault(i) < quest.Objectives[i].Count, -1);
-            string guidance=next<0?"":JourneyProgression.ObjectiveGuidance(Data,quest,quest.Objectives[next]);
+            string guidance=next<0?"":JourneyProgression.ObjectiveGuidance(Data,quest,quest.Objectives[next],self);
             objectiveText.Text = quest.Name + "\n" + (next < 0 ? "Return to " + Data.Npcs.First(x => x.Id == quest.Giver).Name + " to claim the reward."
                 : quest.Objectives[next].Description + "\n" + tracked.Value.Counts.ElementAtOrDefault(next) + " / " + quest.Objectives[next].Count + (guidance==""?"":" · "+guidance));
         }

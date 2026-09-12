@@ -329,7 +329,15 @@ public partial class GameRoot
 
     private void ObservePlayerChanges(Snapshot? previous, Snapshot current)
     {
-        if (previous is null || previous.Self.Id != current.Self.Id) return;
+        if(previous is null)
+        {
+            var first=FirstHourExperience.Current(Data,current.Self);
+            if(first is not null){Notify("WAYFARER'S REST · Follow the Wayfarer's Path beneath your current objective.");audio?.PlayEffect("quest_accept");}
+            return;
+        }
+        if(previous.Self.Id != current.Self.Id) return;
+        if(previous.Self.Zone==current.Self.Zone&&previous.Self.Position.Distance(current.Self.Position)>.12)
+            audio?.PlayFootstep(WorldMap.TileAt(Data.Zone(current.Self.Zone),(int)current.Self.Position.X,(int)current.Self.Position.Y));
         if (current.Self.Health < previous.Self.Health - .5)
         {
             World.CombatImpact(current.Self.Position, 3.2f); audio?.PlayEffect("hurt");
@@ -340,7 +348,7 @@ public partial class GameRoot
             var afterTarget = current.Creatures.FirstOrDefault(x => x.Id == selectedTarget);
             if (beforeTarget is not null && afterTarget is not null && afterTarget.Health < beforeTarget.Health - .5)
             {
-                World.CombatImpact(afterTarget.Position, 2.1f); audio?.PlayEffect("impact");
+                World.CombatImpact(afterTarget.Position, 2.1f); audio?.PlayWeaponImpact(current.Self,Data); audio?.PlayCreature(Data.Mob(afterTarget.Template),afterTarget.Health<=0);
             }
         }
         double beforeResource = double.IsFinite(previous.Self.ClassResource) ? previous.Self.ClassResource : 0;
@@ -362,12 +370,13 @@ public partial class GameRoot
             var beforeEvent = previous.Events.FirstOrDefault(x => x.Id == value.Id);
             if (beforeEvent is null && value.Status == "active")
             {
-                Notify("WORLD EVENT · " + value.Name + " · " + Data.Zone(value.Zone).Name); audio?.PlayEffect("ui");
+                Notify("WORLD EVENT · " + value.Name + " · " + Data.Zone(value.Zone).Name); audio?.PlayEffect("event_start");
                 if (value.Zone == current.Self.Zone) World.ClassBurst(value.Position, new Color("e0b868"));
             }
             else if (beforeEvent is not null && beforeEvent.Status != value.Status)
             {
                 Notify(value.Status == "success" ? "EVENT COMPLETE · " + value.Name : "EVENT FAILED · " + value.Name, value.Status == "failure");
+                audio?.PlayEffect(value.Status=="success"?"event_complete":"error");
                 if (value.Zone == current.Self.Zone) World.ClassBurst(value.Position, value.Status == "success" ? Ui.Success : Ui.Danger);
             }
             else if (beforeEvent is not null && beforeEvent.Stage != value.Stage && value.Status == "active" && value.Zone == current.Self.Zone)
@@ -376,6 +385,7 @@ public partial class GameRoot
         if (previous.Self.Zone != current.Self.Zone)
         {
             route.Clear(); pendingInteraction = null; lastInput = Vector2.Zero; StopCombatInput();
+            var entered=Data.Zone(current.Self.Zone); Notify("ARRIVED · "+entered.Name+" · "+entered.Layer); audio?.PlayEffect("transition");
         }
         var before = previous.Self.Inventory.GroupBy(x => (x.Template, x.Rarity)).ToDictionary(x => x.Key, x => x.Sum(y => y.Quantity));
         double now = Time.GetTicksMsec() / 1000.0;
@@ -392,19 +402,30 @@ public partial class GameRoot
             pickupNotes.Add(new PickupNote(group.Key.Template, group.Key.Rarity, gained, now + 6)); changed = true;
         }
         if (pickupNotes.Count > 20) pickupNotes.RemoveRange(0, pickupNotes.Count - 20);
-        if (changed) RenderPickupFeed();
+        if (changed) { RenderPickupFeed(); audio?.PlayEffect("loot"); }
+        foreach(string completed in current.Self.CompletedQuests.Except(previous.Self.CompletedQuests,StringComparer.Ordinal))
+        {
+            var quest=Data.Quests.FirstOrDefault(x=>x.Id==completed); if(quest is null)continue;
+            Notify("QUEST COMPLETE · "+quest.Name); World.ClassBurst(current.Self.Position,Ui.Gold); audio?.PlayEffect("quest_complete");
+        }
         foreach (var skill in Data.Skills)
         {
             long beforeXp=previous.Self.SkillXp.GetValueOrDefault(skill.Id);
             long currentXp=current.Self.SkillXp.GetValueOrDefault(skill.Id);
             if(currentXp>beforeXp) lastExperienceSkill=skill.Id;
+            int beforeLevel=Progression.SkillLevel(beforeXp),afterLevel=Progression.SkillLevel(currentXp);
+            if(afterLevel>beforeLevel)
+            {
+                Notify("SKILL UP · "+skill.Name+" "+afterLevel); World.ClassBurst(current.Self.Position,Ui.Success); audio?.PlayEffect("skill_up");
+            }
         }
         int overall = Progression.PlayerLevel(current.Self);
         if (overall > Progression.PlayerLevel(previous.Self))
         {
             string key = "overall_" + current.Self.Id;
             bool explained = settings.GetValue("hints", key, false).AsBool();
-            Notify("Overall Level " + overall + (explained ? "" : " — training any skill advances your overall level."));
+            Notify("LEVEL UP · " + overall + (explained ? "" : " · Training any skill advances your character level."));
+            World.ClassBurst(current.Self.Position,Ui.Gold); audio?.PlayEffect("level_up");
             settings.SetValue("hints", key, true); settings.Save("user://settings.cfg");
         }
     }

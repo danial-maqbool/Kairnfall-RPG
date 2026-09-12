@@ -46,7 +46,7 @@ public static class JourneyProgression
     public static Point LandmarkPoint(BuildingDef building)
         =>new(building.X+building.Width/2+.5,building.Y+building.Height-.5);
 
-    public static string ObjectiveGuidance(Catalog data,QuestDef quest,ObjectiveDef objective)
+    public static string ObjectiveGuidance(Catalog data,QuestDef quest,ObjectiveDef objective,Character? player=null)
     {
         ZoneDef? zone=null;string suffix="";
         if(objective.Action=="survey")
@@ -57,16 +57,25 @@ public static class JourneyProgression
                 if(landmark is null)continue;zone=candidate;suffix="Survey "+landmark.Name+" with Interact [E].";break;
             }
         }
-        else if(objective.Action is "explore" or "chart") zone=data.Zones.FirstOrDefault(x=>x.Id==objective.Target);
-        else if(objective.Action=="talk"&&data.Npcs.FirstOrDefault(x=>x.Id==objective.Target) is { } npc) zone=data.Zones.FirstOrDefault(x=>x.Id==npc.Zone);
+        else if(objective.Action is "explore" or "chart") { zone=data.Zones.FirstOrDefault(x=>x.Id==objective.Target); suffix=objective.Action=="chart"?"Explore four map sectors, then use Record regional chart on Map [M].":"Use Map [M] to mark the route."; }
+        else if(objective.Action=="talk"&&data.Npcs.FirstOrDefault(x=>x.Id==objective.Target) is { } npc) { zone=data.Zones.FirstOrDefault(x=>x.Id==npc.Zone); suffix="Look for the gold !/? and use Interact [E]."; }
         else if(objective.Action is "boss" or "kill"&&data.Mobs.FirstOrDefault(x=>x.Id==objective.Target) is { } mob)
-            zone=data.Zones.FirstOrDefault(x=>x.Boss==mob.Id||x.Species.Contains(mob.Id));
+        { zone=data.Zones.FirstOrDefault(x=>x.Boss==mob.Id||x.Species.Contains(mob.Id)); suffix=(mob.Boss?"Boss":"Rare/creature")+" targets show a health bar and tactic cue when selected."; }
         else if(objective.Action=="gather"&&data.Resources.FirstOrDefault(x=>x.Item==objective.Target) is { } resource)
-            zone=data.Zones.FirstOrDefault(x=>x.Resources.Contains(resource.Id));
+        { zone=data.Zones.FirstOrDefault(x=>x.Resources.Contains(resource.Id)); suffix="Select the resource and use Interact [E]; required tools are shown in the action result."; }
         else if(objective.Action=="deliver"&&data.Npcs.FirstOrDefault(x=>x.Id==quest.Giver) is { } giver)
-            zone=data.Zones.FirstOrDefault(x=>x.Id==giver.Zone);
-        if(zone is null)return "";
-        return "Go to "+zone.Name+(suffix==""?".":" · "+suffix);
+        { zone=data.Zones.FirstOrDefault(x=>x.Id==giver.Zone); suffix="Return to the quest giver with the item in your backpack."; }
+        else if(objective.Action=="craft"&&data.Recipes.FirstOrDefault(x=>x.Output==objective.Target) is { } recipe)
+        {
+            var stationNpc=data.Npcs.FirstOrDefault(x=>x.Station==recipe.Station);
+            zone=stationNpc is null?null:data.Zones.FirstOrDefault(x=>x.Id==stationNpc.Zone);
+            suffix="Open Crafting [C] near the "+recipe.Station.Replace('_',' ')+"; the panel shows missing ingredients and skill requirements.";
+        }
+        else if(objective.Action=="socket") return "Open Backpack [I], select the equipped weapon, then insert the starter rune into its open socket.";
+        else if(objective.Action=="plant") return "Use the Farming action on clear surface soil; return when the crop is ready to harvest.";
+        if(zone is null)return suffix;
+        string lead=player?.Zone==zone.Id?"Here in ":"Go to ";
+        return lead+zone.Name+(suffix==""?".":" · "+suffix);
     }
 
     public static JourneyQuestLead? LocalQuest(Catalog data,Character player,double now=0)
