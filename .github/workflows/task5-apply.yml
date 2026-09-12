@@ -1,0 +1,70 @@
+name: Publish Task 5 first-hour presentation
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/task5-apply.yml'
+      - 'tools/task5_apply.py'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic asset dependency
+        run: python -m pip install Pillow==12.0.0
+      - name: Apply focused Task 5 integration
+        run: python tools/task5_apply.py
+      - name: Generate deterministic content
+        run: python tools/build_content.py
+      - name: Replace and generate expanded runtime audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f client/Assets/audio/*.wav
+          python tools/build_game_assets.py --audio-only
+          python tools/audio_quality_audit.py
+          python tools/validate_game_assets.py
+      - name: Prove expanded audio determinism
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf artifacts/task5-audio-one artifacts/task5-audio-two
+          python tools/build_game_assets.py --output artifacts/task5-audio-one --audio-only
+          python tools/build_game_assets.py --output artifacts/task5-audio-two --audio-only
+          diff <(cd artifacts/task5-audio-one/audio && sha256sum *.wav) <(cd artifacts/task5-audio-two/audio && sha256sum *.wav)
+          test "$(find client/Assets/audio -maxdepth 1 -name '*.wav' | wc -l)" -eq 96
+      - name: Compile solution and native client
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build Kairnfall.slnx -c Release
+          dotnet build client/Kairnfall.Client.csproj -c Debug
+      - name: Run core and permanent regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- content/catalog.json
+          dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release -- content/catalog.json
+      - name: Publish verified implementation and remove publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm tools/task5_apply.py .github/workflows/task5-apply.yml
+          git add -A
+          git diff --cached --check
+          git commit -m 'feat: polish first-hour presentation and audio'
+          git push origin HEAD:main
