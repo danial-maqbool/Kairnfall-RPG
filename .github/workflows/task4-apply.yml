@@ -1,0 +1,59 @@
+name: Publish Task 4 build-defining loot
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/task4-apply.yml'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply focused Task 4 integration
+        run: python tools/task4_apply.py
+      - name: Generate content twice and prove determinism
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build_content.py
+          cp content/catalog.json /tmp/catalog-one.json
+          cp client/Data/catalog.json /tmp/client-catalog-one.json
+          python tools/build_content.py
+          cmp /tmp/catalog-one.json content/catalog.json
+          cmp /tmp/client-catalog-one.json client/Data/catalog.json
+          cmp content/catalog.json client/Data/catalog.json
+      - name: Compile solution and client
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build Kairnfall.slnx -c Release
+          dotnet build client/Kairnfall.Client.csproj -c Debug
+      - name: Run core and permanent world regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- content/catalog.json
+          dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release -- content/catalog.json
+      - name: Publish generated catalog and implementation, then remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm tools/task4_apply.py .github/workflows/task4-apply.yml
+          git add -A
+          git diff --cached --check
+          git commit -m 'feat: build-defining loot and crafting choices'
+          git push origin HEAD:main
