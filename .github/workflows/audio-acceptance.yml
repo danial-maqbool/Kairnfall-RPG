@@ -5,6 +5,8 @@ on:
     paths:
       - 'atelier/forge/score.py'
       - 'client/Scripts/ClientAudio.cs'
+      - 'client/Scripts/GameRoot.Experience.cs'
+      - 'client/Assets/audio/**'
       - 'tools/build_game_assets.py'
       - 'tools/audio_quality_audit.py'
       - '.github/workflows/audio-acceptance.yml'
@@ -33,8 +35,8 @@ jobs:
           mkdir -p artifacts/audio
           python -m pip install Pillow==12.0.0
           python tools/build_content.py | tee artifacts/audio/content.log
-          python tools/build_game_assets.py | tee artifacts/audio/assets.log
-      - name: Measure WAV format level clipping and loop boundaries
+          python tools/build_game_assets.py --audio-only | tee artifacts/audio/assets.log
+      - name: Measure WAV coverage format level clipping uniqueness and loop boundaries
         shell: bash
         run: |
           set -euo pipefail
