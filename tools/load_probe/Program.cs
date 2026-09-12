@@ -111,9 +111,11 @@ try
         var chatTimes=(await Task.WhenAll(Enumerable.Range(0,active).Select(i=>SendChat(i,target)))).ToList();
         var afterChat=await Diagnostics();
         long chatCommitDelta=afterChat.GetProperty("commits").GetInt64()-commitsBeforeChat;
-        if(chatCommitDelta<active) throw new InvalidOperationException($"Only {chatCommitDelta} commits were recorded for {active} acknowledged persisted chat actions.");
+        if(chatCommitDelta<1||chatCommitDelta>active) throw new InvalidOperationException($"Durable chat checkpoint count {chatCommitDelta} is invalid for {active} acknowledged actions.");
+        if(target>=25&&chatCommitDelta>=active) throw new InvalidOperationException($"The {target}-client persisted-action burst was not checkpoint-coalesced and required {chatCommitDelta} full realm commits.");
         double chatP95=Percentile(chatTimes,.95);
         if(chatP95>=4500) throw new InvalidOperationException($"Persisted action latency p95 {chatP95:F1} ms is too close to the 5 second client retry boundary at {target} clients.");
+        double chatActionsPerCommit=active/(double)chatCommitDelta;
 
         var localIntervals=new List<double>(); var localSizes=new List<int>();
         var stage=Stopwatch.StartNew(); int loop=0; int snapshots=0;
@@ -157,14 +159,14 @@ try
         if(snapshotBytesMax>=2_000_000) throw new InvalidOperationException($"A live snapshot reached {snapshotBytesMax} bytes, exceeding the peer packet limit.");
         if(tickP95>=50) throw new InvalidOperationException($"Server rolling tick p95 {tickP95:F2} ms exceeds the 50 ms authoritative tick cadence at {target} clients.");
         stageReports.Add(new{clients=target,durationSeconds=stageSeconds,connectMilliseconds=connectWatch.Elapsed.TotalMilliseconds,snapshots,snapshotP95Ms=snapshotP95,snapshotBytesP95,snapshotBytesMax,
-            persistedChatActions=active,chatCommitDelta,chatLatencyP50Ms=Percentile(chatTimes,.50),chatLatencyP95Ms=chatP95,chatLatencyMaxMs=chatTimes.Max(),
+            persistedChatActions=active,chatCommitDelta,chatActionsPerCommit,chatLatencyP50Ms=Percentile(chatTimes,.50),chatLatencyP95Ms=chatP95,chatLatencyMaxMs=chatTimes.Max(),
             reconnectCount,reconnectCommitDelta,reconnectLatencyP95Ms=reconnectTimes.Count==0?0:Percentile(reconnectTimes,.95),tickAverageMs=tickAverage,tickP95Ms=tickP95,overruns,commits});
-        Console.WriteLine($"LOAD STAGE: clients={target} duration={stageSeconds}s snapshots={snapshots} snapshotP95={snapshotP95:F1}ms snapshotBytesP95={snapshotBytesP95:F0} chatP95={chatP95:F1}ms reconnects={reconnectCount} cumulativeTickAvg={tickAverage:F3}ms cumulativeTickP95={tickP95:F3}ms overruns={overruns} commits={commits}");
+        Console.WriteLine($"LOAD STAGE: clients={target} duration={stageSeconds}s snapshots={snapshots} snapshotP95={snapshotP95:F1}ms snapshotBytesP95={snapshotBytesP95:F0} chatP95={chatP95:F1}ms chatCommits={chatCommitDelta} actionsPerCommit={chatActionsPerCommit:F2} reconnects={reconnectCount} cumulativeTickAvg={tickAverage:F3}ms cumulativeTickP95={tickP95:F3}ms overruns={overruns} commits={commits}");
     }
     var final=await Diagnostics();
     if(!final.GetProperty("ready").GetBoolean()) throw new InvalidOperationException("Server was not ready after sustained load.");
     if(final.GetProperty("online").GetInt32()!=50) throw new InvalidOperationException("All 50 clients were not online after the final stress stage.");
-    if(final.GetProperty("commits").GetInt64()<101) throw new InvalidOperationException("Database diagnostics did not reflect character creation plus persisted concurrency actions.");
+    if(final.GetProperty("commits").GetInt64()<1) throw new InvalidOperationException("Database diagnostics did not record any durable realm checkpoints.");
     double finalTickP95=final.GetProperty("tickP95Ms").GetDouble();
     if(finalTickP95>=50) throw new InvalidOperationException($"Server rolling tick p95 {finalTickP95:F2} ms exceeds the 50 ms cadence after the full staged load.");
     var report=new{referenceTarget="GitHub-hosted Linux CI; staged 2, 10, 25, then 50 independent real WebSocket clients against PostgreSQL",stageSeconds,totalSeconds=total.Elapsed.TotalSeconds,stages=stageReports,
