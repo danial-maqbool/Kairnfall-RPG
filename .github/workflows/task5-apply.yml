@@ -36,6 +36,11 @@ jobs:
           anchor='starter.Resources.Count>=6'
           if text.count(anchor)!=1: raise SystemExit('task5 starter resource count anchor changed')
           text=text.replace(anchor,'starter.Resources.Length>=6',1)
+          start="replace_once('.github/workflows/audio-acceptance.yml',"
+          end="\n\nwrite('tools/world_probe/FirstHourPresentationChecks.cs'"
+          a=text.find(start); b=text.find(end,a)
+          if a<0 or b<0: raise SystemExit('task5 audio workflow patch block changed')
+          text=text[:a]+text[b:]
           path.write_text(text,encoding='utf-8')
           PY
           python tools/task5_apply.py
@@ -89,13 +94,13 @@ jobs:
           dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
           dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- content/catalog.json
           dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release -- content/catalog.json
-      - name: Publish verified implementation and remove publisher
+      - name: Publish verified implementation
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm -f tools/task5_apply.py .github/workflows/task5-apply.yml
+          git rm -f tools/task5_apply.py
           git add -A
           git diff --cached --check
           git commit -m 'feat: polish first-hour presentation and audio'
