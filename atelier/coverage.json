@@ -6,7 +6,7 @@
     "equipment": 1006,
     "gear": 616,
     "gear_worn": 616,
-    "items": 1394,
+    "items": 1414,
     "mobs": 145,
     "npcs": 26,
     "people": 60,
@@ -16,7 +16,7 @@
     "structures": 5,
     "terrain": 52
   },
-  "png_files": 4354,
+  "png_files": 4374,
   "animation_sheets": 1853,
   "audio_files": 22,
   "artistic_review": "pending"

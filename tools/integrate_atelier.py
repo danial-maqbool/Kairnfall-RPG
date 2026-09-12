@@ -78,7 +78,10 @@ def plan(library:Path,output:Path,keys:list[str])->tuple[list[tuple[str,Path,str
 
 def install_authored_hero(library:Path,output:Path)->None:
     source=library.parent/'authored/player/hero.png'
-    if not source.is_file():return
+    target=safe_path(output,'people/hero')
+    if not source.is_file():
+        target.unlink(missing_ok=True)
+        return
     with Image.open(source) as image:
         rgba=image.convert('RGBA')
         if rgba.size!=(512,1536) or rgba.getchannel('A').getbbox() is None:
@@ -89,7 +92,7 @@ def install_authored_hero(library:Path,output:Path)->None:
                 if alpha.crop((frame*64,row*64,(frame+1)*64,(row+1)*64)).getbbox() is None:
                     raise ValueError(f'Blank authored hero frame: {row}/{frame}')
     digest=hashlib.sha256(source.read_bytes()).hexdigest()
-    target=safe_path(output,'people/hero');target.parent.mkdir(parents=True,exist_ok=True)
+    target.parent.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(source,target)
     if hashlib.sha256(target.read_bytes()).hexdigest()!=digest:
         raise ValueError('Authored hero bytes changed while copying')

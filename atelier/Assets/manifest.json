@@ -25863,6 +25863,166 @@
       "sha256": "2d78fb05087a5c0fca8f9d1a252abc675c5f98361011a6ad0210e811043f503a"
     },
     {
+      "key": "items/keepsake_ash_crown",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "2b05ed03f0423e3fa0fff1e2622f870f5e1be8b98bb643a7402da7169102f9e6"
+    },
+    {
+      "key": "items/keepsake_basalt_spine",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "39718fe7f0bbb6ead1641ae1374443d47ae06672748f9f7342e5d577c996db3e"
+    },
+    {
+      "key": "items/keepsake_blackfen",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "84b61a45fa6ebbe5acf760afc9db061e1ed37bd5bba40c6950d1023bca76569f"
+    },
+    {
+      "key": "items/keepsake_cinder_fields",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "f0c35775a54f3a349819416a2921830c81162a8fe3a8c21ff57812b9193be24c"
+    },
+    {
+      "key": "items/keepsake_dry_reach",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "3a3d15ec75d94b1aa7b35f8fe38c96361b2286d539de14b87a5ec0575e237942"
+    },
+    {
+      "key": "items/keepsake_ember_marches",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "773eda4c150ef4032edda8b131e6c363a9f3e1919cebf516fdf8d91ddad13782"
+    },
+    {
+      "key": "items/keepsake_glassmere",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "b9bdb29ef5d0d8551fae574001378eb4d70ed74d392772ec6c89ef057ac4472c"
+    },
+    {
+      "key": "items/keepsake_gull_isles",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "10f52713036d27ec1e7de21e0808fd1f21d5e0d849ce49f34eca598c003f200d"
+    },
+    {
+      "key": "items/keepsake_kingsmeadow",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "0094a70bd376def5dd2341c213601e38f203a691e2183cdb4c10ec1a41e33c8c"
+    },
+    {
+      "key": "items/keepsake_mosswater",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "7e8c70c7e67ebbc6b5671e128a409e012be50208757d82927bac64d5762c06a8"
+    },
+    {
+      "key": "items/keepsake_mournground",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "36d64b17d2af2c9f24dda11d7c9dc1baa6bd12267739930060bc2f210c647bc4"
+    },
+    {
+      "key": "items/keepsake_northern_moor",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "10f52713036d27ec1e7de21e0808fd1f21d5e0d849ce49f34eca598c003f200d"
+    },
+    {
+      "key": "items/keepsake_old_boughs",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "77c23e49b70a9c2d5edde0e4912d6757bc171e7b92db1ec0582794daa0c409f3"
+    },
+    {
+      "key": "items/keepsake_pinewatch_reach",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "d367a78d0d6c9a1da85df97c921843775d925fc2dc138ac9c21dbdffe063bb1a"
+    },
+    {
+      "key": "items/keepsake_saltwind",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "726e71293b7f965274e38f3872a0e16bfcac789e7ec7ca0bf44b27d312aac9a9"
+    },
+    {
+      "key": "items/keepsake_silver_run",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "bfd4aecd29bdb664b74ca1dda31d0bbe62dcfd7a5feb37c147083e7579939972"
+    },
+    {
+      "key": "items/keepsake_starfall_scar",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "930cb0404a5ba93a5ec7475a5f7d1c98f2e87dd66ff33961570babbe501ec12f"
+    },
+    {
+      "key": "items/keepsake_stonefall",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "da8d964d999c2e842abd28720970ea1563fcdcba82b12343fcf6d1dbaff94f64"
+    },
+    {
+      "key": "items/keepsake_thistle_woods",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "6c5fbfa94119fdf13404f19da984fcf488ec475c93d0970a4abde579834bca52"
+    },
+    {
+      "key": "items/keepsake_westfarms",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "58a63daa8e74c186b3648143a9ffe5cf358bbfdd18e8c1d45f7ad8f94ba23c71"
+    },
+    {
       "key": "items/linen_cloth",
       "group": "items",
       "width": 32,
