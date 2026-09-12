@@ -180,7 +180,7 @@ public partial class GameRoot
             Data=Data, Assets=Assets, ReadCharacter=()=>Snapshot?.Self, ReadTime=()=>Snapshot?.Time??0,
             AtStation=ClientAtStation, CanSubmit=()=>Online&&!actionBusy,
             InitialRecipe=selectedRecipe, InitialSearch=equipmentRecipeSearch, RecipeSelected=id=>selectedRecipe=id,
-            CraftRequested=(id,batches)=>Send("craft",item:id,amount:batches),
+            CraftRequested=(id,batches,specialization)=>Send("craft",item:id,amount:batches,arg:specialization),
             PlaceRequested=id=> { structureRecipe=id; placement="build"; ClosePage(); Notify("Select clear wilderness within three tiles. Materials are consumed only after the server accepts placement."); },
             PlantRequested=()=> { placement="plant"; structureRecipe=""; ClosePage(); Notify("Select clear soil within two tiles. One wheat seed is required."); }
         };

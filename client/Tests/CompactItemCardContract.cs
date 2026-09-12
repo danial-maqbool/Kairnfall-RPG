@@ -151,6 +151,18 @@ public partial class CompactItemCardContract : Control
                 }
             }
 
+            var signatureDef=data.Items.First(x=>x.Tags.Contains("boss_unique",StringComparer.Ordinal));
+            var signatureItem=Items.Create(data,signatureDef.Id,1,Rarity.Relic);
+            var signatureCard=CompactItemCard.Create(data,null,signatureItem,null,false,false);
+            try
+            {
+                await Layout(signatureCard,new Vector2(8,8));
+                var effects=signatureCard.FindChildren("ItemBuildEffect","Label",true,false).OfType<Label>().ToArray();
+                Need(effects.Any(x=>x.Text.Contains("SIGNATURE EFFECT",StringComparison.Ordinal)),"Full signature item card renders its authored special effect");
+                Need(effects.Any(x=>x.Text.Contains("TARGET FARM",StringComparison.Ordinal)),"Full signature item card renders its boss source");
+            }
+            finally { Release(signatureCard); }
+
             var longData = Wire.Copy(data);
             var longDefinition = longData.Items.First(x => x.Type == "weapon");
             longDefinition.Name = "Tempered Long-Form Expeditionary Arming Sword of the Northern Watch and the Emberward Company";

@@ -35,7 +35,9 @@ public partial class GameRoot
         if (def.Slot == "weapon") text.AppendLine($"Range: {def.Range:0.0} tiles");
         if (def.Slot != "" && itemElement != Element.Physical) text.AppendLine($"Element: {itemElement} · {Items.ElementPoints(item,def)} attunement points");
         foreach (var stat in def.Stats) text.AppendLine($"{stat.Value:+0.0;-0.0;0} {Ui.Words(stat.Key)}");
-        foreach (var affix in item.Affixes) text.AppendLine($"{affix.Value:+0.0;-0.0;0} {Ui.Words(affix.Stat)}");
+        foreach (var affix in item.Affixes)
+            if(BuildDefiningLoot.IsEffectAffix(affix)) text.AppendLine((affix.Name.StartsWith("Crafted:",StringComparison.Ordinal)?"Crafted specialization: ":"Conditional affix: ")+BuildDefiningLoot.EffectDescription(BuildDefiningLoot.EffectId(affix)));
+            else text.AppendLine($"{affix.Value:+0.0;-0.0;0} {Ui.Words(affix.Stat)}");
         foreach (var skill in item.SkillBonuses.OrderBy(x=>x.Key)) text.AppendLine($"+{skill.Value} {Data.Skill(skill.Key).Name} level while equipped");
         if (def.Skill != "") text.AppendLine($"Requires {Data.Skill(def.Skill).Name} {BeginnerProgression.EquipmentRequirement(def)}" + (BeginnerProgression.EquipmentRequirement(def) < def.Requirement ? $" · Grade {def.Requirement}" : ""));
         if (def.Slot != "") text.AppendLine($"Durability: {item.Durability}% · Runes: {item.Runes.Count}/{item.Sockets}");
@@ -225,6 +227,17 @@ public partial class GameRoot
             var runeDef=Data.Item(item.Runes[i].Template);long extraction=EconomyServices.RuneExtractionPrice(runeDef);
             parent.AddChild(Ui.Button("Extract " + runeDef.Name+$" · {extraction:N0} gold",
                 () => Confirm("Extract rune", $"Extraction costs {extraction:N0} gold. The rune is returned intact.", () => Send("unsocket", item.Id, amount: index)), !NearRole("enchanter")||self.Gold<extraction));
+        }
+        if(def.Slot!=""&&item.Affixes.Any(BuildDefiningLoot.CanReforgeAffix))
+        {
+            for(int i=0;i<item.Affixes.Count;i++)
+            {
+                int index=i;if(!BuildDefiningLoot.CanReforgeAffix(item.Affixes[index]))continue;
+                long gold=BuildDefiningLoot.ReforgeGoldCost(item,def);int dust=BuildDefiningLoot.ReforgeDustCost(item,def);
+                bool blocked=Items.Equipped(self,item.Id)||(!NearRole("enchanter")&&!ClientAtStation("rune_table"))||self.Gold<gold||Items.Count(self,"rune_dust")<dust;
+                string affixName=item.Affixes[index].Name;
+                parent.AddChild(Ui.Button($"Reforge {affixName} · {gold:N0} gold + {dust} Rune Dust",()=>Confirm("Reforge affix",$"Replace {affixName}? Every other affix stays locked. Cost: {gold:N0} gold and {dust} Rune Dust.",()=>Send("reforge",item:item.Id,amount:index)),blocked));
+            }
         }
         if(CraftEconomy.Reclaim(Data,item) is { } reclaim)
         {

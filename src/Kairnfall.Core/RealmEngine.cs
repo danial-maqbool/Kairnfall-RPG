@@ -182,10 +182,11 @@ public sealed partial class RealmEngine
             case "sell": return Sell(p,c.Target,c.Item,c.Amount);
             case "deposit": Service(p,"banker"); Items.Add(p.Bank,Items.Take(p.Inventory,c.Item,c.Amount,p),Data,Items.BankCapacity); return "Deposited.";
             case "withdraw": Service(p,"banker"); Items.Add(p.Inventory,Items.Take(p.Bank,c.Item,c.Amount),Data); return "Withdrawn.";
-            case "craft": return Craft(p,c.Item,c.Amount);
+            case "craft": return Craft(p,c.Item,c.Amount,c.Arg);
             case "salvage": return Salvage(p,c.Item);
             case "socket": Items.Socket(p,c.Target,c.Item,Data); Progression.Train(p,"runecrafting",30,Math.Max(1,Progression.Level(p,"runecrafting")),Data); Progress(p,"socket","*"); return "Rune inserted.";
             case "unsocket": return Unsocket(p,c.Target,c.Amount);
+            case "reforge": return Reforge(p,c.Item,c.Amount);
             case "repair": return Repair(p,c.Item);
             case "talk": return Talk(p,c.Target);
             case "inspect": return InspectLandmark(p,c.Target);

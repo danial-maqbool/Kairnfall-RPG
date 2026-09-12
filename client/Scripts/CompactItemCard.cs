@@ -67,7 +67,8 @@ public static class CompactItemCard
         int skillTotal=item.SkillBonuses.Values.Sum();
         Element actualElement=Items.ElementOf(item,def);
         string rolledMeta=(skillTotal>0?$" · +{skillTotal} skill":"")+(actualElement!=Element.Physical?$" · {actualElement}":"");
-        var metadata = Centered(item.Rarity + " · " + Ui.Words(def.Type) + rolledMeta + (self is not null && Items.Equipped(self, item.Id) ? " · Equipped" : ""), metaSize, Ui.Muted);
+        string identity=item.Rarity+(def.Tags.Contains("boss_unique",StringComparer.Ordinal)?" · Signature":def.Tags.Any(x=>x.StartsWith("set:",StringComparison.Ordinal))?" · Set piece":"");
+        var metadata = Centered(identity + " · " + Ui.Words(def.Type) + rolledMeta + (self is not null && Items.Equipped(self, item.Id) ? " · Equipped" : ""), metaSize, Ui.Muted);
         metadata.Name = "ItemMeta";
         box.AddChild(metadata);
 
@@ -149,6 +150,13 @@ public static class CompactItemCard
             var label = Centered(notice, metaSize, Ui.Gold);
             label.Name = "ItemNotice";
             box.AddChild(label);
+        }
+
+        var buildLines=BuildDefiningLoot.TooltipLines(item,def,data,self);
+        foreach(string line in (compact?buildLines.Take(1):buildLines))
+        {
+            var effect=Centered(line,metaSize,Ui.Gold);
+            effect.Name="ItemBuildEffect";box.AddChild(effect);
         }
 
         if (def.Slot != "" || def.Type == "tool")

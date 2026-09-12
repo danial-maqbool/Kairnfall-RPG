@@ -19,7 +19,7 @@ public static class EquipmentComparison
         if (def.Armor != 0) Add("item_armor", def.Armor * quality);
         if (def.Slot == "weapon") { Add("weapon_range", def.Range); Add("attack_interval", def.Speed); }
         foreach (var stat in def.Stats) Add(stat.Key, stat.Value);
-        foreach (var affix in item.Affixes) Add(affix.Stat, affix.Value);
+        foreach (var affix in item.Affixes) if (!BuildDefiningLoot.IsEffectAffix(affix)) Add(affix.Stat, affix.Value);
         foreach (var rune in item.Runes)
             foreach (var stat in data.Item(rune.Template).Stats) Add(stat.Key, stat.Value);
         // A broken item supplies no equipment bonuses in CombatMath. Its repairable

@@ -59,14 +59,14 @@ internal static class CraftingGuideChecks
             var original=panel.ReadCharacter()!; var actor=Wire.Copy(original); actor.Inventory.Clear(); actor.Equipment.Clear(); actor.Cooldowns.Clear();
             actor.Health=100; actor.SkillXp[recipe.Skill]=Progression.Threshold(recipe.Requirement);
             panel.ReadCharacter=()=>actor; panel.CanSubmit=()=>true; panel.AtStation=_=>true;
-            var requests=new List<(string Id,int Batches)>(); panel.CraftRequested=(id,batches)=>requests.Add((id,batches));
+            var requests=new List<(string Id,int Batches,string Specialization)>(); panel.CraftRequested=(id,batches,specialization)=>requests.Add((id,batches,specialization));
             panel.RefreshSnapshot(); await Frame();
             check(primary.Disabled && !panel.TrySubmit(),"Missing ingredients block a native crafting request");
             foreach(var ingredient in recipe.Ingredients) Items.Add(actor.Inventory,Items.Create(data,ingredient.Key,ingredient.Value*2),data);
             panel.RefreshSnapshot(); await Frame();
             check(Find<Button>(panel,"CraftChoice_"+recipe.Id,"Button").GetInstanceId()==identity,"Inventory changes preserve recipe controls and scroll position");
             amount.Value=2; await Frame(); await Click(primary);
-            check(requests.Count==1 && requests[0]==(recipe.Id,2),"Native Craft requests the selected recipe and batch count exactly once");
+            check(requests.Count==1 && requests[0]==(recipe.Id,2,""),"Native Craft requests the selected recipe, batch count, and standard finish exactly once");
             check(actor.Inventory.Sum(i=>i.Quantity)==recipe.Ingredients.Sum(i=>i.Value*2),"The client does not consume materials or grant crafting output");
             panel.AtStation=_=>false; panel.RefreshSnapshot();
             check(primary.Disabled && !panel.TrySubmit(),"Moving away from the station blocks stale crafting actions");

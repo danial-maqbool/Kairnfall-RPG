@@ -137,13 +137,14 @@ public static class CombatMath
             armor+=def.Armor*quality;
             if(def.Slot=="weapon") weapon=def.Power*quality;
             foreach(var stat in def.Stats) Add(stat.Key,stat.Value);
-            foreach(var affix in item.Affixes) Add(affix.Stat,affix.Value);
+            foreach(var affix in item.Affixes) if(!BuildDefiningLoot.IsEffectAffix(affix)) Add(affix.Stat,affix.Value);
             foreach(var rune in item.Runes)
             {
                 var rd=data.Item(rune.Template);
                 foreach(var stat in rd.Stats) Add(stat.Key,stat.Value);
             }
         }
+        BuildDefiningLoot.ApplyDynamicStats(p,data,Add);
         double v=b.GetValueOrDefault("vitality",10),s=b.GetValueOrDefault("strength",10),d=b.GetValueOrDefault("dexterity",10),i=b.GetValueOrDefault("intellect",10),sp=b.GetValueOrDefault("spirit",10),r=b.GetValueOrDefault("resolve",10);
         int level=Progression.PlayerLevel(p);
         return new()
@@ -310,6 +311,7 @@ public static class Items
                 if(item.Affixes.Any(x=>x.Stat==key)) continue;
                 item.Affixes.Add(new(){Name=key.Replace('_',' '),Stat=key,Value=1+Math.Round((def.Requirement/6.0+2)*CombatMath.RandomUnit(),1)});
             }
+            if(BuildDefiningLoot.RollConditionalAffix(def,item.Rarity) is { } special) item.Affixes.Add(special);
         }
         return item;
     }
@@ -403,6 +405,7 @@ public static class Items
             if(!ids.Add(i.Id)||!Guid.TryParseExact(i.Id,"N",out _)) errors.Add("Duplicate or malformed item ID: "+i.Id);
             var def=data.Items.FirstOrDefault(x=>x.Id==i.Template);
             if(def is null||i.Quantity<1||i.Quantity>def.StackMax||i.Sockets<0||i.Sockets>4||i.Runes.Count>i.Sockets||i.Durability<0||i.Durability>100) errors.Add("Invalid item: "+i.Id);
+            if(def is not null) BuildDefiningLoot.ValidateItem(i,def,data,errors);
             if(i.SkillBonuses.Any(x=>data.Skills.All(s=>s.Id!=x.Key)||x.Value<1||x.Value>7)||i.SkillBonuses.Values.Sum()>7) errors.Add("Invalid item skill bonus: "+i.Id);
             if(def is not null&&def.StackMax>1&&(i.SkillBonuses.Count>0||i.Element is not null)) errors.Add("Stackable item has instance equipment modifiers: "+i.Id);
             foreach(var r in i.Runes) if(!ids.Add(r.Id)||data.Items.All(x=>x.Id!=r.Template||x.Type!="rune")) errors.Add("Invalid socketed rune: "+r.Id);

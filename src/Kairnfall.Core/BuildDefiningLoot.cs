@@ -269,7 +269,7 @@ public static class BuildDefiningLoot
         if(!CanReforgeAffix(old)) throw new RuleException("Crafted specialization affixes are fixed; re-craft the item to choose another specialization.");
         if(IsEffectAffix(old))
         {
-            string[] pool=(def.Slot=="weapon"?["execute","resource_ready","elemental_attunement"]:["resource_ready","shieldbound","supportive_aegis"])
+            string[] pool=(def.Slot=="weapon"?new[]{"execute","resource_ready","elemental_attunement"}:new[]{"resource_ready","shieldbound","supportive_aegis"})
                 .Where(x=>x!=EffectId(old)).ToArray();
             string effect=pool[RandomNumberGenerator.GetInt32(pool.Length)];
             item.Affixes[index]=new(){Name=effect switch{"execute"=>"Executioner's","resource_ready"=>"Resonant","elemental_attunement"=>"Attuned","shieldbound"=>"Holdfast",_=>"Aegiswoven"},Stat=EffectPrefix+effect,Value=1};
@@ -324,7 +324,7 @@ public static class BuildDefiningLoot
             }
             else if(string.IsNullOrWhiteSpace(affix.Stat)||affix.Stat.Length>64) errors.Add("Invalid item affix stat: "+item.Id);
         }
-        if(def.Effect!=""&&def.Type is "weapon" or "offhand" or "rune"&& !KnownEffect(def.Effect))
+        if(def.Effect!=""&&(def.Type is "weapon" or "offhand" or "rune")&&!KnownEffect(def.Effect))
             errors.Add("Unknown authored build effect: "+def.Id);
     }
 }

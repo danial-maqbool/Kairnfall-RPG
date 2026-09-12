@@ -51,6 +51,7 @@ public sealed partial class RealmEngine
         bool stealthed=p.Statuses.Any(x=>x.Kind=="stealth"&&x.Until>State.Time);
         bool combatContext=State.Time-p.LastCombat<=10;
         var classBonus=ClassCombatRules.PrepareCast(p,ability,stealthed);
+        Element castElement=BuildDefiningLoot.AbilityElement(p,ability,Data);
         p.Mana-=ability.Mana; p.Stamina-=ability.Stamina;
         double basePower=(ability.Element==Element.Physical?stats.Physical:stats.Spell)*ability.Power;
         basePower*=CombatTrainingCurve.Spell(Progression.Level(p,ability.Skill))*classBonus.PowerMultiplier;
@@ -81,7 +82,7 @@ public sealed partial class RealmEngine
                 Need(recipient.Health<maximum,"The target is at full health.");
                 double healing=Math.Min(maximum-recipient.Health,basePower*stats.Healing);
                 recipient.Health+=healing;
-                if(ability.Duration>0) ApplyStatus(recipient.Statuses,"regeneration",ability.Element,ability.Duration,healing/10,p.Id);
+                if(ability.Duration>0) ApplyStatus(recipient.Statuses,"regeneration",castElement,ability.Duration,healing/10,p.Id);
                 int encounterLevel=SupportTraining.EncounterLevel(recipient,State.Time);
                 if(encounterLevel>0)
                 {
@@ -90,8 +91,8 @@ public sealed partial class RealmEngine
                 }
                 break;
             }
-            case "shield": ApplyStatus(p.Statuses,"shield",ability.Element,ability.Duration,basePower,p.Id); break;
-            case "buff": ApplyStatus(p.Statuses,ability.Status==""?"empower":ability.Status,ability.Element,ability.Duration,Math.Clamp(ability.Power,0.1,1),p.Id); break;
+            case "shield": ApplyStatus(p.Statuses,"shield",castElement,ability.Duration,basePower,p.Id); break;
+            case "buff": ApplyStatus(p.Statuses,ability.Status==""?"empower":ability.Status,castElement,ability.Duration,Math.Clamp(ability.Power,0.1,1),p.Id); break;
             case "stealth": ApplyStatus(p.Statuses,"stealth",Element.Shadow,ability.Duration,1,p.Id); break;
             case "purge":
                 Need(p.Statuses.Any(x=>x.Kind is "poison" or "burn" or "curse" or "root"),"There is no removable harmful effect.");
@@ -102,7 +103,7 @@ public sealed partial class RealmEngine
                 Need(delta.Distance(new(0,0))>0.5,"Select a different position.");
                 var end=WorldMap.Move(zone,p.Position,delta);
                 Need(end.Distance(aim)<0.5,"The movement path is blocked."); p.Position=end;
-                foreach(var m in State.Creatures.Values.Where(x=>x.Zone==p.Zone&&x.Owner==""&&x.Health>0&&x.Position.Distance(end)<=Math.Max(1,ability.Radius)).ToList()) HitCreature(p,m,basePower,ability.Element,ability.Skill);
+                foreach(var m in State.Creatures.Values.Where(x=>x.Zone==p.Zone&&x.Owner==""&&x.Health>0&&x.Position.Distance(end)<=Math.Max(1,ability.Radius)).ToList()) HitCreature(p,m,basePower,castElement,ability.Skill);
                 break;
             }
             case "summon":
@@ -119,25 +120,25 @@ public sealed partial class RealmEngine
                 ApplyStatus(p.Statuses,"guard",Element.Physical,ability.Duration,0.35,p.Id); break;
             case "projectile":
                 Need(selected is not null&&selected.Health>0&&selected.Owner=="","Select a living hostile creature.");
-                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Direction=p.Facing,Shape="projectile",Skill=ability.Skill,Element=ability.Element,Radius=Math.Max(0.8,ability.Radius),Power=basePower,Resolves=State.Time+Math.Clamp(p.Position.Distance(aim)/12,0.1,0.8)}); break;
+                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Direction=p.Facing,Shape="projectile",Skill=ability.Skill,Element=castElement,Radius=Math.Max(0.8,ability.Radius),Power=basePower,Resolves=State.Time+Math.Clamp(p.Position.Distance(aim)/12,0.1,0.8)}); break;
             case "area": case "cone": case "line": case "field":
             {
                 string shape=ability.Kind=="area"?"circle":ability.Kind=="field"?"circle":ability.Kind;
                 Point origin=ability.Kind is "cone" or "line"?p.Position:aim;
-                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=origin,Direction=p.Facing,Shape=shape,Skill=ability.Skill,Element=ability.Element,Radius=ability.Kind is "cone" or "line"?ability.Range:Math.Max(1,ability.Radius),Power=basePower,Resolves=State.Time+0.35});
-                if(ability.Kind=="field") for(int n=1;n<=Math.Min(5,(int)ability.Duration);n++) State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Shape="circle",Skill=ability.Skill,Element=ability.Element,Radius=Math.Max(1,ability.Radius),Power=basePower*0.3,Resolves=State.Time+n});
+                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=origin,Direction=p.Facing,Shape=shape,Skill=ability.Skill,Element=castElement,Radius=ability.Kind is "cone" or "line"?ability.Range:Math.Max(1,ability.Radius),Power=basePower,Resolves=State.Time+0.35});
+                if(ability.Kind=="field") for(int n=1;n<=Math.Min(5,(int)ability.Duration);n++) State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Shape="circle",Skill=ability.Skill,Element=castElement,Radius=Math.Max(1,ability.Radius),Power=basePower*0.3,Resolves=State.Time+n});
                 break;
             }
             case "interrupt":
                 Need(selected is not null&&selected.Health>0&&selected.Owner=="","Select a hostile caster.");
                 Near(p,selected!.Zone,selected.Position,ability.Range);
                 State.Telegraphs.RemoveAll(x=>x.Source==selected.Id); selected.NextAttack=State.Time+2;
-                HitCreature(p,selected,basePower,ability.Element,ability.Skill); break;
+                HitCreature(p,selected,basePower,castElement,ability.Skill); break;
             case "strike": case "drain": case "dot":
                 Need(selected is not null&&selected.Health>0&&selected.Owner=="","Select a hostile creature.");
                 Near(p,selected!.Zone,selected.Position,ability.Range);
-                double damage=HitCreature(p,selected,basePower,ability.Element,ability.Skill);
-                if(ability.Status!="") ApplyStatus(selected.Statuses,ability.Status,ability.Element,ability.Duration,ability.Status is "root" or "stun"?1:Math.Max(1,basePower*0.12),p.Id);
+                double damage=HitCreature(p,selected,basePower,castElement,ability.Skill);
+                if(ability.Status!="") ApplyStatus(selected.Statuses,ability.Status,castElement,ability.Duration,ability.Status is "root" or "stun"?1:Math.Max(1,basePower*0.12),p.Id);
                 if(ability.Kind=="drain") p.Health=Math.Min(stats.Health,p.Health+damage*0.25); break;
             default: throw new RuleException("Unsupported ability kind.");
         }
@@ -165,6 +166,7 @@ public sealed partial class RealmEngine
     {
         if(mob.Health<=0||mob.Owner!="") return 0;
         var def=Data.Mob(mob.Template); var stats=CombatMath.Stats(p,Data);
+        raw*=BuildDefiningLoot.TargetDamageMultiplier(p,mob,def,Data,State.Time);
         raw*=1-Math.Clamp(CombatMath.StatusPower(p.Statuses,"revive_sickness",State.Time),0,.4);
         double bonus=Math.Clamp(stats.Bonus("damage_"+element.ToString().ToLowerInvariant())/100,0,2);
         double empower=Math.Clamp(CombatMath.StatusPower(p.Statuses,"empower",State.Time),0,0.5);

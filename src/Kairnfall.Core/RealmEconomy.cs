@@ -68,11 +68,13 @@ public sealed partial class RealmEngine
             Progression.Train(p,"survival",8,def.Requirement,Data);
         return $"Gathered {quantity} {Data.Item(def.Item).Name}.";
     }
-    private string Craft(Character p,string id,int quantity)
+    private string Craft(Character p,string id,int quantity,string specialization)
     {
         Need(quantity is >0 and <=20,"Craft between 1 and 20 batches.");
         var recipe=Data.Recipe(id);
         Need(Progression.Level(p,recipe.Skill)>=recipe.Requirement,"Requires "+Data.Skill(recipe.Skill).Name+" "+recipe.Requirement+".");
+        string specializationProblem=BuildDefiningLoot.CraftSpecializationProblem(p,recipe,specialization,Data);
+        Need(specializationProblem=="",specializationProblem);
         Need(AtStation(p,recipe.Station),"Use the "+recipe.Station+" station.");
         Ready(p,"craft",ToolRules.CraftRecovery(p,Data,recipe,quantity));
         foreach(var ingredient in recipe.Ingredients)
@@ -86,12 +88,27 @@ public sealed partial class RealmEngine
             for(int n=0;n<outputCount;n++)
             {
                 var rarity=Items.RollCraftRarity(Progression.Level(p,recipe.Skill),recipe.Requirement);
-                Items.Add(p.Inventory,Items.Create(Data,output.Id,1,rarity,p),Data);
+                var crafted=Items.Create(Data,output.Id,1,rarity,p);
+                BuildDefiningLoot.ApplyCraftSpecialization(crafted,p,recipe,specialization,Data);
+                Items.Add(p.Inventory,crafted,Data);
             }
         }
         else Items.Add(p.Inventory,Items.Create(Data,output.Id,outputCount),Data);
         Progression.Train(p,recipe.Skill,Math.Min(100000,recipe.Xp*quantity),recipe.Requirement,Data);
         Progress(p,"craft",output.Id,outputCount); return $"Crafted {outputCount} {output.Name}.";
+    }
+    private string Reforge(Character p,string id,int index)
+    {
+        var item=Items.Owned(p,id);var def=Data.Item(item.Template);
+        Need(def.Slot!=""&&def.StackMax==1,"Only equipment affixes can be reforged.");
+        Need(!Items.Equipped(p,id),"Unequip this item before reforging it.");
+        Need(index>=0&&index<item.Affixes.Count&&BuildDefiningLoot.CanReforgeAffix(item.Affixes[index]),"Choose a reforgeable affix.");
+        Need(NearService(p,"enchanter")||AtStation(p,"rune_table"),"Visit an enchanter or rune table to reforge equipment.");
+        long gold=BuildDefiningLoot.ReforgeGoldCost(item,def);int dust=BuildDefiningLoot.ReforgeDustCost(item,def);
+        Need(Items.Count(p,"rune_dust")>=dust,$"Reforging requires {dust} Rune Dust.");
+        Ready(p,"reforge",0.8);Items.Spend(p,gold);Items.Consume(p,"rune_dust",dust);
+        BuildDefiningLoot.RerollAffix(item,index,def);
+        return $"Reforged one affix for {gold} gold and {dust} Rune Dust. All other affixes remained locked.";
     }
     private string Salvage(Character p,string id)
     {

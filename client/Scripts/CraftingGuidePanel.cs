@@ -13,7 +13,7 @@ public partial class CraftingGuidePanel : VBoxContainer
     public Func<double> ReadTime { get; set; } = () => 0;
     public Func<string,bool> AtStation { get; set; } = _ => false;
     public Func<bool> CanSubmit { get; set; } = () => false;
-    public Action<string,int>? CraftRequested { get; set; }
+    public Action<string,int,string>? CraftRequested { get; set; }
     public Action<string>? PlaceRequested { get; set; }
     public Action? PlantRequested { get; set; }
     public Action<string>? RecipeSelected { get; set; }
@@ -25,11 +25,12 @@ public partial class CraftingGuidePanel : VBoxContainer
     private readonly List<string> visible=[];
     private readonly List<RecipeDef> matches=[];
     private readonly List<string> professions=[];
+    private readonly List<string> specializationIds=[];
     private readonly Dictionary<string,string> searchable=[];
     private readonly Dictionary<string,Button> choices=[];
     private readonly Dictionary<string,Label> ingredientLabels=[];
     private LineEdit search=null!;
-    private OptionButton profession=null!, learned=null!;
+    private OptionButton profession=null!, learned=null!, specialization=null!;
     private VBoxContainer rows=null!, ingredientRows=null!;
     private Label count=null!, title=null!, description=null!, requirement=null!, readiness=null!;
     private TextureRect icon=null!;
@@ -70,6 +71,8 @@ public partial class CraftingGuidePanel : VBoxContainer
         requirement=Ui.Label("",compactHeight?13:14,Ui.Gold,true); requirement.Name="CraftRequirements"; information.AddChild(requirement);
         ingredientRows=Ui.Column(information);
         readiness=Ui.Label("",compactHeight?13:14,Ui.Danger,true); readiness.Name="CraftReadiness"; inspector.AddChild(readiness);
+        var finish=Ui.Row(inspector);finish.AddChild(Ui.Label("Finish",compactHeight?13:14,Ui.Muted));
+        specialization=new OptionButton{Name="CraftSpecialization",SizeFlagsHorizontal=SizeFlags.ExpandFill};finish.AddChild(specialization);
         var actions=Ui.Row(inspector); actions.AddChild(Ui.Label("Batches",compactHeight?13:14,Ui.Muted));
         amount=new SpinBox{Name="CraftBatches",MinValue=1,MaxValue=20,Step=1,Value=1,CustomMinimumSize=new Vector2(105,compactHeight?34:38)}; actions.AddChild(amount);
         primary=Ui.Button("Craft",()=>TrySubmit()); primary.Name="CraftPrimaryAction"; primary.CustomMinimumSize=new Vector2(180,compactHeight?36:42); primary.SizeFlagsHorizontal=SizeFlags.ExpandFill; actions.AddChild(primary);
@@ -79,16 +82,17 @@ public partial class CraftingGuidePanel : VBoxContainer
     public override void _ExitTree()
     {
         if(!connected) return;
-        search.TextChanged-=SearchChanged; profession.ItemSelected-=FilterChanged; learned.ItemSelected-=FilterChanged; amount.ValueChanged-=AmountChanged; connected=false;
+        search.TextChanged-=SearchChanged; profession.ItemSelected-=FilterChanged; learned.ItemSelected-=FilterChanged; specialization.ItemSelected-=SpecializationChanged; amount.ValueChanged-=AmountChanged; connected=false;
     }
     private void Connect()
     {
         if(connected) return;
-        search.TextChanged+=SearchChanged; profession.ItemSelected+=FilterChanged; learned.ItemSelected+=FilterChanged; amount.ValueChanged+=AmountChanged; connected=true;
+        search.TextChanged+=SearchChanged; profession.ItemSelected+=FilterChanged; learned.ItemSelected+=FilterChanged; specialization.ItemSelected+=SpecializationChanged; amount.ValueChanged+=AmountChanged; connected=true;
     }
     private void SearchChanged(string _) { signature=""; pageIndex=0; RefreshSnapshot(); }
     private void FilterChanged(long _) { signature=""; pageIndex=0; RefreshSnapshot(); }
     private void AmountChanged(double _) => RefreshDetails();
+    private void SpecializationChanged(long _) => RefreshDetails();
     private void ChangePage(int delta)
     {
         int target=Math.Clamp(pageIndex+delta,0,Math.Max(0,(matches.Count-1)/PageLength));
@@ -135,11 +139,25 @@ public partial class CraftingGuidePanel : VBoxContainer
         if(!visible.Contains(id)) return; SelectedRecipe=id; RecipeSelected?.Invoke(id); RefreshDetails();
     }
     private int Batches => Math.Clamp((int)amount.Value,1,20);
+    private string CurrentSpecialization => specializationIds.Count==0||specialization.Selected<0||specialization.Selected>=specializationIds.Count?"":specializationIds[specialization.Selected];
+    private void RefreshSpecializations(Character? self,RecipeDef? recipe)
+    {
+        string prior=CurrentSpecialization;specialization.Clear();specializationIds.Clear();
+        if(recipe is null){specialization.AddItem("Standard finish");specializationIds.Add("");return;}
+        foreach(var choice in BuildDefiningLoot.CraftSpecializations(recipe,Data))
+        {
+            bool locked=self is not null&&Progression.Level(self,recipe.Skill)<choice.Requirement;
+            specialization.AddItem(choice.Name+(locked?$" · skill {choice.Requirement}":""));specializationIds.Add(choice.Id);
+        }
+        int selected=Math.Max(0,specializationIds.IndexOf(prior));specialization.Select(selected);
+    }
     private string Problem(Character? self,RecipeDef? recipe)
     {
         if(self is null || recipe is null) return "Choose a recipe.";
         if(self.Health<=0) return "Respawn before crafting.";
         if(Progression.Level(self,recipe.Skill)<recipe.Requirement) return "Requires "+Data.Skill(recipe.Skill).Name+" "+recipe.Requirement+".";
+        string specializationProblem=BuildDefiningLoot.CraftSpecializationProblem(self,recipe,CurrentSpecialization,Data);
+        if(specializationProblem!="") return specializationProblem;
         bool structure=Data.Item(recipe.Output).Type=="structure";
         int quantity=structure?1:Batches;
         foreach(var ingredient in recipe.Ingredients)
@@ -154,6 +172,7 @@ public partial class CraftingGuidePanel : VBoxContainer
     {
         if(!built || !IsInsideTree()) return;
         var self=ReadCharacter(); var recipe=Data.Recipes.FirstOrDefault(r=>r.Id==SelectedRecipe);
+        RefreshSpecializations(self,recipe);
         foreach(var entry in choices) entry.Value.AddThemeStyleboxOverride("normal",entry.Key==SelectedRecipe?selectedStyle:normalStyle);
         plant.Disabled=self is null || self.Health<=0 || Items.Count(self,"wheat_seed")<1 || !CanSubmit() || PlantRequested is null;
         if(recipe is null)
@@ -182,7 +201,9 @@ public partial class CraftingGuidePanel : VBoxContainer
         }
         long inputValue=CraftEconomy.RecipeInputValue(Data,recipe),outputValue=CraftEconomy.RecipeOutputValue(Data,recipe);
         var reclaim=CraftEconomy.Reclaim(Data,new Item{Template=recipe.Output,Quantity=1});
+        var finishChoice=BuildDefiningLoot.CraftSpecializations(recipe,Data).First(x=>x.Id==CurrentSpecialization);
         requirement.Text=Data.Skill(recipe.Skill).Name+" "+recipe.Requirement+" · "+Ui.Words(recipe.Station)+
+            "\nFinish: "+finishChoice.Name+" · "+finishChoice.Description+
             "\nOutput: "+checked(recipe.Quantity*quantity)+" · Base skill XP per batch: "+recipe.Xp+
             $"\nMaterial value {inputValue:N0} → output base {outputValue:N0} · base merchant resale {MerchantSales.UnitPrice(item)*recipe.Quantity:N0}"+
             "\n"+CraftEconomy.QualityHint(self,recipe,Data)+(reclaim is null?"":$"\nReclaim preview: {reclaim.Quantity} {Data.Item(reclaim.Material).Name} at {Ui.Words(reclaim.Recipe.Station)}.")+
@@ -200,7 +221,7 @@ public partial class CraftingGuidePanel : VBoxContainer
         {
             if(PlaceRequested is null) return false; PlaceRequested(recipe.Id);
         }
-        else { if(CraftRequested is null) return false; CraftRequested(recipe.Id,Batches); }
+        else { if(CraftRequested is null) return false; CraftRequested(recipe.Id,Batches,CurrentSpecialization); }
         return true;
     }
 }

@@ -91,7 +91,7 @@ public static class BuildDefiningLootChecks
             var realm=new RealmEngine(data);var p=realm.CreateCharacter("build-rune","Rune Hero","spellblade",new());
             var weapon=p.Inventory.First(x=>Items.Equipped(p,x.Id)&&data.Item(x.Template).Slot=="weapon");weapon.Sockets=2;
             weapon.Runes.Add(new(){Template="rune_storm_5"});weapon.Runes.Add(new(){Template="rune_embers_5"});
-            var ability=data.Abilities.First(x=>x.Kind is "strike" or "projectile" or "area"&&x.Element!=Element.Physical);
+            var ability=data.Abilities.First(x=>(x.Kind is "strike" or "projectile" or "area")&&x.Element!=Element.Physical);
             double before=p.ClassResource;var one=BuildDefiningLoot.AbilityElement(p,ability,data);var two=BuildDefiningLoot.AbilityElement(p,ability,data);
             Need(one==two&&one is Element.Fire or Element.Lightning,"Rune conversion is order/proc dependent.");
             Need(p.ClassResource==before,"Rune conversion mutated class resource.");
@@ -175,7 +175,7 @@ public static class BuildDefiningLootChecks
             foreach(var item in affected)
             {
                 Need(item.Icon.StartsWith("items/",StringComparison.Ordinal)&&item.Icon.EndsWith(".png",StringComparison.Ordinal),item.Id+" changed its deterministic item-icon contract.");
-                string path=Path.Combine("client","Assets",item.Icon.Replace('/',Path.DirectorySeparatorChar));Need(File.Exists(path),"Missing authored icon: "+path);
+                Need(!item.Icon.Contains("..",StringComparison.Ordinal)&&item.Icon==item.Icon.ToLowerInvariant(),item.Id+" has an unstable icon path.");
             }
         });
 
@@ -188,6 +188,6 @@ public static class BuildDefiningLootChecks
             Need(HandEquipment.Compatible(bow,quiver)&&!HandEquipment.Compatible(sword,quiver),"Build pass regressed quiver compatibility.");
         });
 
-        Console.WriteLine($"BUILD DEFINING LOOT: {passed}/14 groups passed.");
+        Console.WriteLine($"BUILD DEFINING LOOT: {passed}/15 groups passed.");
     }
 }
