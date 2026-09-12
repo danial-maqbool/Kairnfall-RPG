@@ -6,6 +6,8 @@ public sealed record FirstHourMilestone(string Id,string Name,string Guidance);
 public static class FirstHourExperience
 {
     public const string Prefix="first_hour:";
+    public const int FirstSkillLevelTarget=2;
+    public const int FirstCharacterLevelTarget=2;
     public static readonly IReadOnlyList<FirstHourMilestone> Steps =
     [
         new("movement","Get your bearings","Move with WASD. Interact [E] works on nearby people, resources, doors and exits."),
@@ -13,8 +15,8 @@ public static class FirstHourExperience
         new("gather","Gather your first material","Work an oak tree, copper vein or other nearby resource. Your starter tools are already in the backpack."),
         new("craft","Make something useful","Follow A Place by the Fire: saw 2 oak logs into oak planks, then shape a wooden handle at the sawbench. Crafting [C] shows station and ingredient readiness."),
         new("combat","Win your first fight","Target a nearby creature with Tab, hold basic attack, move out of telegraphs, and try a class art from the hotbar."),
-        new("skill","Raise a skill level","Keep doing one real activity until a skill reaches level 2. The green XP bar shows the skill you trained most recently."),
-        new("level","Raise your character level","Training any skills contributes to overall level. Reach character level 2 to open the next part of the journey."),
+        new("skill","Raise a skill level",$"Keep doing one real activity until a skill reaches level {FirstSkillLevelTarget}. The green XP bar shows the skill you trained most recently."),
+        new("level","Raise your character level",$"Training any skills contributes to overall level. Reach character level {FirstCharacterLevelTarget} to open the next part of the journey."),
         new("equipment","Improve your equipment","Complete A Spark in the Stone and socket the starter rune, or equip a better-quality drop."),
         new("interior","Enter a real building","Walk through one of Wayfarer's Rest's named doors. Interiors contain the same service NPCs and reciprocal exits."),
         new("transition","Take the western road","Use the road exit to Kingsmeadow. Entrances name their destination and the map [M] shows the route."),
@@ -32,8 +34,8 @@ public static class FirstHourExperience
     public static bool Completed(Catalog data,Character player,FirstHourMilestone step)=>step.Id switch
     {
         "movement" or "npc" or "gather" or "craft" or "combat" or "interior" or "transition" or "miniboss" => Marked(player,step.Id),
-        "skill" => data.Skills.Any(skill=>Progression.BaseLevel(player,skill.Id)>=2),
-        "level" => Progression.PlayerLevel(player)>=2,
+        "skill" => data.Skills.Any(skill=>Progression.BaseLevel(player,skill.Id)>=FirstSkillLevelTarget),
+        "level" => Progression.PlayerLevel(player)>=FirstCharacterLevelTarget,
         "equipment" => Marked(player,"equipment") || player.Equipment.Values
             .Select(id=>player.Inventory.FirstOrDefault(item=>item.Id==id)).Where(item=>item is not null)
             .Any(item=>item!.Runes.Count>0||item.Rarity>Rarity.Common||item.Affixes.Count>0),
