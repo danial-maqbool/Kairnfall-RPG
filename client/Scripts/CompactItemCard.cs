@@ -153,10 +153,13 @@ public static class CompactItemCard
         }
 
         var buildLines=BuildDefiningLoot.TooltipLines(item,def,data,self);
-        foreach(string line in (compact?buildLines.Take(1):buildLines))
+        if(!compact)
         {
-            var effect=Centered(line,metaSize,Ui.Gold);
-            effect.Name="ItemBuildEffect";box.AddChild(effect);
+            foreach(string line in buildLines)
+            {
+                var effect=Centered(line,metaSize,Ui.Gold);
+                effect.Name="ItemBuildEffect";box.AddChild(effect);
+            }
         }
 
         if (def.Slot != "" || def.Type == "tool")
