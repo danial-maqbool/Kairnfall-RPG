@@ -109,7 +109,7 @@ internal static class FirstHourAcceptanceChecks
             var p=new RealmEngine(data).CreateCharacter("task6-social","Social Hero","vanguard",new());
             FirstHourExperience.ObserveCommand(p,new GameCommand{Kind="party_create"});
             Need(FirstHourExperience.Completed(data,p,FirstHourExperience.Steps.Single(x=>x.Id=="social")),"Party action does not satisfy first-hour social exposure.");
-            string panel=File.ReadAllText(Path.Combine(root,"client","Scripts","SocialPanel.cs"));
+            string panel=File.ReadAllText(Path.Combine(root,"client","Scripts","GameRoot.Social.cs"));
             foreach(string token in new[]{"Party","LFG","Friend"})Need(panel.Contains(token,StringComparison.OrdinalIgnoreCase),"Social panel lost "+token+" access.");
         });
 
