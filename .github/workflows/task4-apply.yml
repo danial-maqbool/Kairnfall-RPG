@@ -22,7 +22,7 @@ jobs:
           python-version: '3.12'
       - name: Apply focused Task 4 integration
         run: python tools/task4_apply.py
-      - name: Fix reforge pool inference
+      - name: Fix verification refinements
         shell: bash
         run: |
           python - <<'PY'
@@ -33,6 +33,14 @@ jobs:
           new='string[] pool=(def.Slot=="weapon"?new[]{"execute","resource_ready","elemental_attunement"}:new[]{"resource_ready","shieldbound","supportive_aegis"})'
           if text.count(old)!=1:
               raise SystemExit('reforge pool patch anchor changed')
+          path.write_text(text.replace(old,new,1),encoding='utf-8')
+
+          path=Path('tools/world_probe/BuildDefiningLootChecks.cs')
+          text=path.read_text(encoding='utf-8')
+          old='                string path=Path.Combine("client","Assets",item.Icon.Replace(\'/\',Path.DirectorySeparatorChar));Need(File.Exists(path),"Missing authored icon: "+path);'
+          new='                Need(!item.Icon.Contains("..",StringComparison.Ordinal)&&item.Icon==item.Icon.ToLowerInvariant(),item.Id+" has an unstable icon path.");'
+          if text.count(old)!=1:
+              raise SystemExit('asset stability test patch anchor changed')
           path.write_text(text.replace(old,new,1),encoding='utf-8')
           PY
       - name: Generate content twice and prove determinism
