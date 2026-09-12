@@ -36,18 +36,21 @@ jobs:
           anchor='starter.Resources.Count>=6'
           if text.count(anchor)!=1: raise SystemExit('task5 starter resource count anchor changed')
           text=text.replace(anchor,'starter.Resources.Length>=6',1)
-          anchor='WorldTime.Weather(zone, snap.Time) + \\"\\n\\" + zone.Lore'
-          if text.count(anchor)!=1: raise SystemExit('task5 HUD lore newline anchor changed')
-          text=text.replace(anchor,'WorldTime.Weather(zone, snap.Time) + \\"\\\\n\\" + zone.Lore',1)
-          anchor='FirstHourExperience.Steps.Count}\\n{firstHour.Name}'
-          if text.count(anchor)!=1: raise SystemExit('task5 path newline anchor changed')
-          text=text.replace(anchor,'FirstHourExperience.Steps.Count}\\\\n{firstHour.Name}',1)
           path.write_text(text,encoding='utf-8')
           PY
           python tools/task5_apply.py
           python - <<'PY'
           from pathlib import Path
           import re
+          hud=Path('client/Scripts/GameRoot.Hud.cs'); h=hud.read_text(encoding='utf-8')
+          bad='WorldTime.Weather(zone, snap.Time) + "'+chr(10)+'" + zone.Lore'
+          good='WorldTime.Weather(zone, snap.Time) + "\\n" + zone.Lore'
+          if h.count(bad)!=1: raise SystemExit('generated HUD lore newline repair anchor changed')
+          h=h.replace(bad,good,1)
+          bad='FirstHourExperience.Steps.Count}'+chr(10)+'{firstHour.Name}'
+          good='FirstHourExperience.Steps.Count}\\n{firstHour.Name}'
+          if h.count(bad)!=1: raise SystemExit('generated HUD path newline repair anchor changed')
+          h=h.replace(bad,good,1); hud.write_text(h,encoding='utf-8')
           path=Path('tools/world_probe/FirstHourPresentationChecks.cs'); text=path.read_text(encoding='utf-8')
           pattern=r'        Test\("expanded shipped audio pack is present",\(\)=>\n        \{\n.*?\n        \}\);'
           replacement='        Test("expanded audio acceptance is independently gated",()=>\n        {\n            string workflow=File.ReadAllText(Path.Combine(root,".github","workflows","audio-acceptance.yml"));\n            Need(workflow.Contains("python tools/build_game_assets.py --audio-only"),"Audio acceptance no longer generates the focused runtime pack.");\n            Need(workflow.Contains("python tools/audio_quality_audit.py"),"Audio acceptance no longer runs the permanent quality audit.");\n        });'
