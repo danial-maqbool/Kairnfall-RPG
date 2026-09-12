@@ -1,16 +1,25 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Text.Json;
+using System.Threading.Channels;
 using Kairnfall.Core;
 
 namespace Kairnfall.Server;
 
 public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore accounts, IHostApplicationLifetime lifetime, ILogger<RealmHost> logger) : BackgroundService
 {
+    private sealed record SnapshotFrame(byte[] RealmJson, string[] Active, Peer[] Peers);
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly SemaphoreSlim persistGate = new(1, 1);
     private readonly ConcurrentDictionary<string, Peer> peers = new();
     private readonly Queue<double> tickDurations = new();
+    private readonly Channel<SnapshotFrame> snapshotFrames = Channel.CreateBounded<SnapshotFrame>(new BoundedChannelOptions(1)
+    {
+        SingleReader = true,
+        SingleWriter = true,
+        FullMode = BoundedChannelFullMode.DropOldest
+    });
     private RealmEngine? engine;
     private volatile bool ready;
     private long ticks, overruns, commits, mutationGeneration, persistedGeneration;
@@ -182,6 +191,40 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
         catch (Exception error) { FailClosed(error); }
     }
     private void SendSnapshot(Peer peer) => peer.Enqueue(SnapshotPackets.Create(Engine, peer.CharacterId));
+    private void QueueSnapshotFrame()
+    {
+        // Freeze one consistent authoritative realm image while holding the state lock.
+        // The expensive per-peer visibility/projection work happens on the detached copy.
+        var json = JsonSerializer.SerializeToUtf8Bytes(new RealmSave { State = Engine.State, Loot = Engine.Loot }, Wire.Json);
+        snapshotFrames.Writer.TryWrite(new SnapshotFrame(json, Engine.Active.ToArray(), peers.Values.ToArray()));
+    }
+    private async Task SnapshotLoopAsync(CancellationToken cancel)
+    {
+        try
+        {
+            while (await snapshotFrames.Reader.WaitToReadAsync(cancel))
+            {
+                SnapshotFrame? frame = null;
+                while (snapshotFrames.Reader.TryRead(out var next)) frame = next;
+                if (frame is null) continue;
+                var save = JsonSerializer.Deserialize<RealmSave>(frame.RealmJson, Wire.Json) ?? throw new InvalidDataException("Frozen snapshot state could not be decoded.");
+                foreach (var character in save.State.Characters.Values)
+                {
+                    character.Account = "";
+                    character.Receipts.Clear();
+                }
+                var frozen = new RealmEngine(catalog, save.State) { Loot = save.Loot };
+                foreach (var id in frame.Active) frozen.Active.Add(id);
+                foreach (var peer in frame.Peers)
+                {
+                    if (peer.Closed.IsCancellationRequested || !frozen.State.Characters.ContainsKey(peer.CharacterId)) continue;
+                    peer.Enqueue(SnapshotPackets.CreateFrozen(frozen, peer.CharacterId));
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
+        catch (Exception error) { FailClosed(error); }
+    }
     private void FlushChat()
     {
         foreach (var message in Engine.OutgoingChat)
@@ -217,6 +260,7 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
+        var snapshotTask = SnapshotLoopAsync(stoppingToken);
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
@@ -230,7 +274,7 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
                     // batched to the existing periodic checkpoint so dynamic world updates do
                     // not turn every simulation change into a blocking database transaction.
                     if (Engine.State.Time - lastPeriodicSave >= 5) await PersistAsync(stoppingToken);
-                    FlushChat(); if (ticks % 2 == 0) foreach (var peer in peers.Values) SendSnapshot(peer);
+                    FlushChat(); if (ticks % 2 == 0) QueueSnapshotFrame();
                 }
                 finally { gate.Release(); }
                 double elapsed = watch.Elapsed.TotalMilliseconds;
@@ -247,6 +291,12 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
         catch (Exception error) { FailClosed(error); }
+        finally
+        {
+            snapshotFrames.Writer.TryComplete();
+            try { await snapshotTask; }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+        }
     }
     public object Diagnostics()
     {
