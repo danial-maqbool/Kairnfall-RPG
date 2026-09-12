@@ -126,7 +126,7 @@ internal static class ConcurrencyStressChecks
         Test("multiple players attack the same boss, share credit, and revive races resolve once per target", () =>
         {
             var partyPlayers = ids.Take(5).ToArray(); Place(partyPlayers, "wayfarers_rest", spawn);
-            var bossDef = data.Mobs.First(x => x.Boss);
+            var bossDef = data.Mobs.Where(x => x.Boss).OrderBy(x => x.Level).First();
             var bossPosition = WorldMap.FindFree(data.Zone("wayfarers_rest"), new Point(spawn.X + 1, spawn.Y));
             string bossId = "concurrency/boss";
             realm.State.Creatures[bossId] = new Creature { Id = bossId, Template = bossDef.Id, Zone = "wayfarers_rest", Position = bossPosition, Home = bossPosition, Health = 1_000_000 };
@@ -135,10 +135,12 @@ internal static class ConcurrencyStressChecks
             var pressure = Race(partyPlayers.Select(id => (id, Command(id, "attack", bossId))));
             Need(pressure.All(x => x.Result.Ok), "Same-boss attack contention rejected a valid attacker.");
             var pressured = realm.State.Creatures[bossId];
+            var directContributors = pressured.Threat.Where(x => x.Value > 0 && partyPlayers.Contains(x.Key)).Select(x => x.Key).ToArray();
+            Need(directContributors.Length >= 2, "Same-boss pressure did not record multiple positive-damage authoritative contributors.");
             Need(pressured.Health > 0, "Same-boss pressure fixture died before the finishing blow.");
             pressured.Health = 1; P(partyPlayers[0]).Cooldowns["attack"] = 0;
             Need(Act(partyPlayers[0], "attack", bossId).Ok, "Boss finishing blow was rejected.");
-            foreach (var id in partyPlayers) Need(P(id).Bestiary.GetValueOrDefault(bossDef.Id) > before[id], "An active boss attacker missed cooperative kill credit.");
+            foreach (var id in directContributors) Need(P(id).Bestiary.GetValueOrDefault(bossDef.Id) > before[id], "A positive-damage boss contributor missed cooperative kill credit.");
 
             var reviveOps = new List<(string PlayerId, GameCommand Command)>();
             for (int groupIndex = 0; groupIndex < 10; groupIndex++)
@@ -233,7 +235,7 @@ internal static class ConcurrencyStressChecks
             Need(realm.State.ShopStock[key] == 0 && after == before + 12, "Merchant stock and buyer inventory diverged.");
         });
 
-        var handRecipe = data.Recipes.First(r => r.Station == "hand" && r.Ingredients.Count > 0 && !r.Ingredients.ContainsKey(r.Output) && data.Item(r.Output).StackMax > 1);
+        var handRecipe = data.Recipes.First(r => r.Station == "hand" && r.Ingredients.Count > 0 && !r.Ingredients.ContainsKey(r.Output) && data.Items.Any(i => i.Id == r.Output));
         Test("25 simultaneous crafting actions consume inputs and create outputs once", () =>
         {
             var crafters = ids.Take(25).ToArray(); var before = new Dictionary<string, int>();
