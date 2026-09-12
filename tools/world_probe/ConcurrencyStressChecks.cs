@@ -133,8 +133,10 @@ internal static class ConcurrencyStressChecks
             var before = partyPlayers.ToDictionary(id => id, id => P(id).Bestiary.GetValueOrDefault(bossDef.Id));
             foreach (var id in partyPlayers) P(id).Cooldowns["attack"] = 0;
             var pressure = Race(partyPlayers.Select(id => (id, Command(id, "attack", bossId))));
-            Need(pressure.All(x => x.Result.Ok) && realm.State.Creatures.TryGetValue(bossId, out var pressured) && pressured.Health > 0, "Same-boss attack contention rejected a valid attacker or killed the pressure fixture too early.");
-            pressured!.Health = 1; P(partyPlayers[0]).Cooldowns["attack"] = 0;
+            Need(pressure.All(x => x.Result.Ok), "Same-boss attack contention rejected a valid attacker.");
+            var pressured = realm.State.Creatures[bossId];
+            Need(pressured.Health > 0, "Same-boss pressure fixture died before the finishing blow.");
+            pressured.Health = 1; P(partyPlayers[0]).Cooldowns["attack"] = 0;
             Need(Act(partyPlayers[0], "attack", bossId).Ok, "Boss finishing blow was rejected.");
             foreach (var id in partyPlayers) Need(P(id).Bestiary.GetValueOrDefault(bossDef.Id) > before[id], "An active boss attacker missed cooperative kill credit.");
 
