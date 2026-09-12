@@ -7,6 +7,8 @@ on:
       - 'content_src/**'
       - 'tools/build_content.py'
       - 'tools/load_probe/**'
+      - 'tools/concurrency_probe/**'
+      - 'tools/world_probe/ConcurrencyStressChecks.cs'
       - 'Kairnfall.slnx'
       - '.github/workflows/load-acceptance.yml'
   pull_request:
@@ -42,7 +44,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Generate catalog and build release server and load probe
+      - name: Generate catalog and build release server and stress probes
         shell: bash
         run: |
           set -euo pipefail
@@ -65,7 +67,7 @@ jobs:
           curl --fail --silent http://127.0.0.1:5090/health > artifacts/load/health-start.json
           (while kill -0 "$server" 2>/dev/null; do ps -p "$server" -o rss=,%cpu=,etime= || true; sleep 1; done) > artifacts/load/process-samples.txt &
           echo $! > artifacts/load/sampler.pid
-      - name: Run 4 8 16 client sustained stages
+      - name: Run sustained 2 10 25 50 client multiplayer stages
         shell: bash
         run: |
           set -euo pipefail
