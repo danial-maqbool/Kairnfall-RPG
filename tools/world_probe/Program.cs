@@ -14,7 +14,6 @@ foreach (var zone in catalog.Zones)
                 walls++;
                 if (WorldMap.Walkable(zone, new Point(x + .5, y + .5))) failures.Add($"Walkable masonry {zone.Id}/{building.Id} ({x},{y})");
             }
-    // Flood actual actor-fitting tile centers; graph edges alone cannot prove accessibility.
     var reached = new HashSet<(int X, int Y)>();
     var queue = new Queue<(int X, int Y)>();
     queue.Enqueue(((int)zone.Spawn.X, (int)zone.Spawn.Y));
@@ -100,7 +99,6 @@ SaveTest("Persisted world entity recovery preserves identity, timers, and owners
 });
 SaveTest("Full legacy seeded world survives recovery and roundtrip", () =>
 {
-    // Reconstruct SeedWorld's unchanged placement rules with the historical tile policy.
     var legacyTile = typeof(WorldMap).GetMethod("TileAt", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
         [typeof(ZoneDef), typeof(int), typeof(int), typeof(bool)])!.CreateDelegate<Func<ZoneDef, int, int, bool, Terrain>>();
     bool OldFits(ZoneDef zone, Point point) => new[] { -.24, .24 }.All(dx => new[] { -.24, .24 }.All(dy =>
@@ -177,4 +175,5 @@ MidLateGameContentChecks.Run(catalog,failures);
 ChallengeProgressionChecks.Run(catalog,failures);
 SupportTrainingChecks.Run(catalog,failures);
 ItemCommerceChecks.Run(catalog,failures);
+PersistenceReliabilityChecks.Run(catalog,failures);
 return failures.Count == 0 ? 0 : 1;
