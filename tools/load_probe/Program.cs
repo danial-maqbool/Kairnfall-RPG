@@ -27,7 +27,7 @@ static double Percentile(IEnumerable<double> source,double quantile)
     var sorted=source.Order().ToArray();
     return sorted.Length==0?double.PositiveInfinity:sorted[Math.Min(sorted.Length-1,Math.Max(0,(int)Math.Ceiling(sorted.Length*quantile)-1))];
 }
-static double Percentile(IEnumerable<int> source,double quantile)=>Percentile(source.Select(x=>(double)x),quantile);
+static double PercentileInt(IEnumerable<int> source,double quantile)=>Percentile(source.Select(x=>(double)x),quantile);
 async Task<JsonElement> Diagnostics()
 {
     using var response=await health.GetAsync("health",cancel); response.EnsureSuccessStatusCode();
@@ -149,7 +149,7 @@ try
         long overruns=diag.GetProperty("overruns").GetInt64();
         long commits=diag.GetProperty("commits").GetInt64();
         double snapshotP95=Percentile(localIntervals,.95);
-        double snapshotBytesP95=Percentile(localSizes,.95);
+        double snapshotBytesP95=PercentileInt(localSizes,.95);
         int snapshotBytesMax=localSizes.Count==0?0:localSizes.Max();
         if(online!=target) throw new InvalidOperationException($"Expected {target} online clients, diagnostics reported {online}.");
         if(localIntervals.Count<target) throw new InvalidOperationException($"Only {localIntervals.Count} snapshot intervals were observed for {target} active clients.");
@@ -168,10 +168,10 @@ try
     double finalTickP95=final.GetProperty("tickP95Ms").GetDouble();
     if(finalTickP95>=50) throw new InvalidOperationException($"Server rolling tick p95 {finalTickP95:F2} ms exceeds the 50 ms cadence after the full staged load.");
     var report=new{referenceTarget="GitHub-hosted Linux CI; staged 2, 10, 25, then 50 independent real WebSocket clients against PostgreSQL",stageSeconds,totalSeconds=total.Elapsed.TotalSeconds,stages=stageReports,
-        finalDiagnostics=JsonSerializer.Deserialize<object>(final.GetRawText()),snapshotP95Ms=Percentile(intervals,.95),snapshotBytesP95=Percentile(snapshotSizes,.95),snapshotBytesMax=snapshotSizes.Count==0?0:snapshotSizes.Max(),productionCapacityApproved=false};
+        finalDiagnostics=JsonSerializer.Deserialize<object>(final.GetRawText()),snapshotP95Ms=Percentile(intervals,.95),snapshotBytesP95=PercentileInt(snapshotSizes,.95),snapshotBytesMax=snapshotSizes.Count==0?0:snapshotSizes.Max(),productionCapacityApproved=false};
     Directory.CreateDirectory(Path.GetDirectoryName(output)??".");
     File.WriteAllText(output,JsonSerializer.Serialize(report,new JsonSerializerOptions{WriteIndented=true})+Environment.NewLine);
-    Console.WriteLine($"LOAD_ACCEPTANCE: 2/10/25/50 real clients passed for {stageSeconds}s per stage; snapshot p95 {Percentile(intervals,.95):F1} ms; snapshot bytes p95 {Percentile(snapshotSizes,.95):F0}; final rolling tick p95 {finalTickP95:F1} ms. This is a CI reference target, not a production-player capacity claim.");
+    Console.WriteLine($"LOAD_ACCEPTANCE: 2/10/25/50 real clients passed for {stageSeconds}s per stage; snapshot p95 {Percentile(intervals,.95):F1} ms; snapshot bytes p95 {PercentileInt(snapshotSizes,.95):F0}; final rolling tick p95 {finalTickP95:F1} ms. This is a CI reference target, not a production-player capacity claim.");
 }
 finally
 {
