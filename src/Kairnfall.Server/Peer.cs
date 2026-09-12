@@ -12,7 +12,10 @@ public sealed class Peer(WebSocket socket,AccountSession session,string characte
     public string CharacterId { get; }=characterId;
     public CancellationTokenSource Closed { get; }=new();
     private readonly Channel<byte[]> control=Channel.CreateBounded<byte[]>(new BoundedChannelOptions(64){SingleReader=true,SingleWriter=false,FullMode=BoundedChannelFullMode.Wait});
-    private byte[]? latestSnapshot;
+    // SnapshotPackets.Create is called while RealmHost owns the authoritative state lock and
+    // returns an inspection copy. Keep only that latest immutable packet here; JSON encoding is
+    // network work and belongs in the peer send loop, not on the 50 ms simulation critical path.
+    private TransportPacket? latestSnapshot;
     private long window=Environment.TickCount64;
     private int moveCount;
     private int actionCount;
@@ -25,10 +28,14 @@ public sealed class Peer(WebSocket socket,AccountSession session,string characte
     public void Enqueue(TransportPacket packet)
     {
         if(Closed.IsCancellationRequested) return;
+        if(packet.Kind=="snapshot")
+        {
+            Interlocked.Exchange(ref latestSnapshot,packet);
+            return;
+        }
         var bytes=JsonSerializer.SerializeToUtf8Bytes(packet,Wire.Json);
         if(bytes.Length>2_000_000) { Abort(); return; }
-        if(packet.Kind=="snapshot") Interlocked.Exchange(ref latestSnapshot,bytes);
-        else if(!control.Writer.TryWrite(bytes)) Abort();
+        if(!control.Writer.TryWrite(bytes)) Abort();
     }
     public async Task SendLoopAsync(CancellationToken shutdown)
     {
@@ -40,7 +47,12 @@ public sealed class Peer(WebSocket socket,AccountSession session,string characte
             {
                 while(control.Reader.TryRead(out var packet)) await Socket.SendAsync(packet,WebSocketMessageType.Text,true,linked.Token);
                 var snapshot=Interlocked.Exchange(ref latestSnapshot,null);
-                if(snapshot is not null) await Socket.SendAsync(snapshot,WebSocketMessageType.Text,true,linked.Token);
+                if(snapshot is not null)
+                {
+                    var bytes=JsonSerializer.SerializeToUtf8Bytes(snapshot,Wire.Json);
+                    if(bytes.Length>2_000_000) { Abort(); return; }
+                    await Socket.SendAsync(bytes,WebSocketMessageType.Text,true,linked.Token);
+                }
             }
         }
         catch(OperationCanceledException) { }
