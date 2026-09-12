@@ -1,15 +1,26 @@
 namespace Kairnfall.Core;
 
-/// <summary>Build private inspection data while the realm host holds its state lock.</summary>
+/// <summary>Build private inspection data from authoritative state or a detached frozen realm view.</summary>
 public static class SnapshotPackets
 {
-    public static TransportPacket Create(RealmEngine engine, string characterId)
+    public static TransportPacket Create(RealmEngine engine, string characterId) => CreateCore(engine, characterId, false);
+
+    /// <summary>
+    /// Builds a packet from a detached realm copy whose character accounts and receipts have
+    /// already been redacted. The packet may safely reference that immutable copy directly,
+    /// avoiding JSON deep-copy work for every visible object of every connected peer.
+    /// </summary>
+    public static TransportPacket CreateFrozen(RealmEngine engine, string characterId) => CreateCore(engine, characterId, true);
+
+    private static TransportPacket CreateCore(RealmEngine engine, string characterId, bool frozen)
     {
         var player = engine.Player(characterId);
-        var snapshot = engine.Snapshot(characterId);
+        if (frozen && (player.Account.Length != 0 || player.Receipts.Count != 0))
+            throw new InvalidOperationException("Frozen snapshot state must be detached and redacted before packet construction.");
+        var snapshot = frozen ? FrozenSnapshot(engine, player) : engine.Snapshot(characterId);
         var packet = new TransportPacket
         {
-            Kind = "snapshot", Snapshot = snapshot, Loot = engine.VisibleLoot(characterId),
+            Kind = "snapshot", Snapshot = snapshot, Loot = frozen ? FrozenVisibleLoot(engine, player) : engine.VisibleLoot(characterId),
             Invitations = engine.State.Parties.Values.Where(x => x.Invites.Contains(characterId))
                 .Select(x => new GroupInvitation { Id = x.Id, Name = x.Name, Leader = x.Leader })
                 .Concat(engine.State.Guilds.Values.Where(x => x.Invites.Contains(characterId))
@@ -65,4 +76,33 @@ public static class SnapshotPackets
             if (engine.State.Characters.TryGetValue(id, out var member)) packet.Names[id] = member.Name;
         return packet;
     }
+
+    private static Snapshot FrozenSnapshot(RealmEngine engine, Character player)
+    {
+        double range=player.Statuses.Any(x=>x.Kind=="tracking"&&x.Until>engine.State.Time)?60:30;
+        var snap=new Snapshot{Time=engine.State.Time,Revision=engine.State.Revision,Self=player};
+        foreach(var id in engine.Active)
+        {
+            if(!engine.State.Characters.TryGetValue(id,out var other)||other.Id==player.Id||other.Zone!=player.Zone||other.Position.Distance(player.Position)>range) continue;
+            if(other.Statuses.Any(x=>x.Kind=="stealth"&&x.Until>engine.State.Time)&&other.Position.Distance(player.Position)>2&&!(player.Party!=""&&other.Party==player.Party)) continue;
+            snap.Players.Add(new(){Id=other.Id,Name=other.Name,Class=other.Class,Appearance=other.Appearance,Position=other.Position,Facing=other.Facing,Health=other.Health,MaxHealth=CombatMath.Stats(other,engine.Data).Health,Level=Progression.PlayerLevel(other),Equipment=other.Equipment.ToDictionary(x=>x.Key,x=>Items.Owned(other,x.Value).Template)});
+        }
+        snap.Creatures=engine.State.Creatures.Values.Where(x=>x.Zone==player.Zone&&x.Position.Distance(player.Position)<=range).ToList();
+        snap.Nodes=engine.State.Nodes.Values.Where(x=>x.Zone==player.Zone&&x.Position.Distance(player.Position)<=range).ToList();
+        snap.Chests=engine.State.Chests.Values.Where(x=>x.Zone==player.Zone&&x.Position.Distance(player.Position)<=range&&ExplorationRewards.VisibleChest(player,x,engine.Data)).ToList();
+        snap.Telegraphs=engine.State.Telegraphs.Where(x=>x.Zone==player.Zone&&x.Position.Distance(player.Position)<=range).ToList();
+        snap.Events=engine.State.Events.ToList();
+        snap.Trades=engine.State.Trades.Values.Where(x=>x.A.Character==player.Id||x.B.Character==player.Id).ToList();
+        if(player.Party!="") snap.Party=engine.State.Parties.GetValueOrDefault(player.Party);
+        if(player.Guild!="") snap.Guild=engine.State.Guilds.GetValueOrDefault(player.Guild);
+        bool nearAuctioneer=engine.Data.Npcs.Any(x=>x.Zone==player.Zone&&x.Role=="auctioneer"&&x.Position.Distance(player.Position)<=3&&WorldMap.LineOfSight(engine.Data.Zone(player.Zone),player.Position,x.Position));
+        if(nearAuctioneer) snap.Auctions=engine.State.Auctions.Values.OrderBy(x=>x.Expires).Take(200).ToList();
+        foreach(var npc in engine.Data.Npcs.Where(x=>x.Zone==player.Zone&&x.Position.Distance(player.Position)<6))
+            foreach(var item in npc.Stock) snap.ShopStock[npc.Id+"/"+item]=engine.State.ShopStock.GetValueOrDefault(npc.Id+"/"+item);
+        return snap;
+    }
+
+    private static List<LootPile> FrozenVisibleLoot(RealmEngine engine, Character player) => engine.Loot.Values
+        .Where(x=>double.IsFinite(x.Expires)&&x.Expires>engine.State.Time&&x.Zone==player.Zone&&x.Position.Distance(player.Position)<=30)
+        .ToList();
 }
