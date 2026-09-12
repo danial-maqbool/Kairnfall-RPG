@@ -64,7 +64,10 @@ jobs:
           dotnet build client/Kairnfall.Client.csproj -c Debug | tee artifacts/live-progression/logs/client-build.log
           python tools/build_game_assets.py | tee artifacts/live-progression/logs/assets.log
       - name: Install verified Godot
-        run: python tools/get_godot.py --os linux | tee artifacts/live-progression/logs/godot.log
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/get_godot.py --os linux | tee artifacts/live-progression/logs/godot.log
       - name: Import the client
         shell: bash
         run: |
