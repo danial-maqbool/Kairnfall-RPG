@@ -8,7 +8,9 @@ public static class Progression
     public const int PlayerCap=200;
     public static long Threshold(int level)
     {
-        long n=Math.Clamp(level,1,SkillCap)-1; return 100*n*n+20*n*n*n;
+        int clamped=Math.Clamp(level,1,SkillCap);
+        if(clamped==2) return 90;
+        long n=clamped-1; return 100*n*n+20*n*n*n;
     }
     public static int SkillLevel(long xp)
     {
