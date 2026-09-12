@@ -165,6 +165,7 @@ JourneyPacingChecks.Run(catalog,failures);
 WalkTransitionChecks.Run(catalog,failures);
 MeaningfulObjectiveChecks.Run(catalog,failures);
 CombatVarietyChecks.Run(catalog,failures);
+CombatReadabilityChecks.Run(catalog,failures);
 ClassCombatIdentityChecks.Run(catalog,failures);
 LivingWorldEventChecks.Run(catalog,failures);
 SocialCooperationChecks.Run(catalog,failures);
