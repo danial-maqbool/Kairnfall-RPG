@@ -8,11 +8,12 @@ namespace Kairnfall.Server;
 public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore accounts, IHostApplicationLifetime lifetime, ILogger<RealmHost> logger) : BackgroundService
 {
     private readonly SemaphoreSlim gate = new(1, 1);
+    private readonly SemaphoreSlim persistGate = new(1, 1);
     private readonly ConcurrentDictionary<string, Peer> peers = new();
     private readonly Queue<double> tickDurations = new();
     private RealmEngine? engine;
     private volatile bool ready;
-    private long ticks, overruns, commits;
+    private long ticks, overruns, commits, mutationGeneration, persistedGeneration;
     private double lastPeriodicSave;
     private DateTimeOffset nextSessionCheck = DateTimeOffset.UtcNow.AddSeconds(30);
     public bool Ready => ready;
@@ -75,6 +76,30 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
     {
         ValidatePersistentState(Engine);
         await store.SaveAsync(Engine, cancel); commits++; lastPeriodicSave = Engine.State.Time;
+        Volatile.Write(ref persistedGeneration, Volatile.Read(ref mutationGeneration));
+    }
+    private async Task EnsurePersistedAsync(long generation, CancellationToken cancel)
+    {
+        if (Volatile.Read(ref persistedGeneration) >= generation) return;
+        await persistGate.WaitAsync(cancel);
+        try
+        {
+            if (Volatile.Read(ref persistedGeneration) >= generation) return;
+            // Give simultaneously-arriving commands a tiny window to finish their fast,
+            // authoritative in-memory mutation. The first waiter then checkpoints all
+            // generations reached so far in one full realm snapshot. Every caller still
+            // waits for a durable checkpoint containing its own generation before success
+            // can be acknowledged.
+            await Task.Delay(5, cancel);
+            await gate.WaitAsync(cancel);
+            try
+            {
+                RequireReady();
+                if (Volatile.Read(ref persistedGeneration) < generation) await PersistAsync(cancel);
+            }
+            finally { gate.Release(); }
+        }
+        finally { persistGate.Release(); }
     }
     private void FailClosed(Exception error)
     {
@@ -104,26 +129,50 @@ public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore ac
         if (command.Kind is null || command.Target is null || command.Item is null || command.Arg is null || command.RequestId is null)
         { peer.Enqueue(new() { Kind = "error", Error = "Command fields cannot be null." }); return; }
         if (!peer.AcceptRate(command.Kind)) { peer.Enqueue(new() { Kind = "error", Error = "Too many commands. Reduce the input rate." }); return; }
-        await gate.WaitAsync(cancel);
+        CommandResult? result = null;
+        long generation = 0;
         try
         {
-            RequireReady();
-            if (!peers.TryGetValue(peer.CharacterId, out var current) || !ReferenceEquals(current, peer)) throw new RuleException("This connection is no longer active.");
-            // Check after acquiring the gate: queued commands must not retain
-            // authority across expiry or connection revocation.
-            if (peer.Closed.IsCancellationRequested || peer.Session.Expires <= DateTimeOffset.UtcNow)
+            await gate.WaitAsync(cancel);
+            try
             {
-                peer.Abort();
-                return;
+                RequireReady();
+                if (!peers.TryGetValue(peer.CharacterId, out var current) || !ReferenceEquals(current, peer)) throw new RuleException("This connection is no longer active.");
+                // Check after acquiring the gate: queued commands must not retain
+                // authority across expiry or connection revocation.
+                if (peer.Closed.IsCancellationRequested || peer.Session.Expires <= DateTimeOffset.UtcNow)
+                {
+                    peer.Abort();
+                    return;
+                }
+                result = Engine.Execute(peer.CharacterId, command);
+                if (command.Kind == "move")
+                {
+                    if (!result.Ok) peer.Enqueue(new() { Kind = "result", Result = result });
+                    return;
+                }
+                if (result.Ok) generation = ++mutationGeneration;
             }
-            var result = Engine.Execute(peer.CharacterId, command);
-            if (command.Kind == "move") { if (!result.Ok) peer.Enqueue(new() { Kind = "result", Result = result }); return; }
-            if (result.Ok) await PersistAsync(cancel);
-            peer.Enqueue(new() { Kind = "result", Result = result }); FlushChat(); SendSnapshot(peer);
+            finally { gate.Release(); }
+
+            if (generation > 0) await EnsurePersistedAsync(generation, cancel);
+
+            await gate.WaitAsync(cancel);
+            try
+            {
+                RequireReady();
+                if (peers.TryGetValue(peer.CharacterId, out var current) && ReferenceEquals(current, peer))
+                {
+                    peer.Enqueue(new() { Kind = "result", Result = result });
+                    FlushChat();
+                    SendSnapshot(peer);
+                }
+                else FlushChat();
+            }
+            finally { gate.Release(); }
         }
         catch (RuleException error) { peer.Enqueue(new() { Kind = "error", Error = error.Message }); }
         catch (Exception error) { FailClosed(error); }
-        finally { gate.Release(); }
     }
     private void SendSnapshot(Peer peer) => peer.Enqueue(SnapshotPackets.Create(Engine, peer.CharacterId));
     private void FlushChat()
