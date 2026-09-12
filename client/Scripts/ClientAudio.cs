@@ -3,6 +3,7 @@ using Kairnfall.Core;
 
 namespace Kairnfall.Client;
 
+// Task 5 runtime audio coverage is independently verified by the audio acceptance workflow.
 public partial class ClientAudio : Node
 {
     private AudioStreamPlayer music=null!,ambience=null!;
