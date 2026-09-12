@@ -32,7 +32,11 @@ jobs:
           old="    text=read(rel); count=text.count(old)\n    if count!=1: raise RuntimeError(f'{rel}: expected one anchor, found {count}: {old[:100]!r}')"
           new="    text=read(rel); count=text.count(old)\n    if count==0 and text.count(old.rstrip())==1:\n        old=old.rstrip(); new=new.rstrip(); count=1\n    if count!=1: raise RuntimeError(f'{rel}: expected one anchor, found {count}: {old[:100]!r}')"
           if text.count(old)!=1: raise SystemExit('task5 replace_once patch anchor changed')
-          path.write_text(text.replace(old,new,1),encoding='utf-8')
+          text=text.replace(old,new,1)
+          anchor='starter.Resources.Count>=6'
+          if text.count(anchor)!=1: raise SystemExit('task5 starter resource count anchor changed')
+          text=text.replace(anchor,'starter.Resources.Length>=6',1)
+          path.write_text(text,encoding='utf-8')
           PY
           python tools/task5_apply.py
           python - <<'PY'
