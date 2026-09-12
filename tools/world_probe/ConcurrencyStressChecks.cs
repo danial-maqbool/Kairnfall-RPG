@@ -35,7 +35,6 @@ internal static class ConcurrencyStressChecks
             return player.Id;
         }).ToArray();
         var spawn = data.Zone("wayfarers_rest").Spawn;
-        Character P(int index) => realm.Player(ids[index]);
         Character P(string id) => realm.Player(id);
         GameCommand Command(string playerId, string kind, string target = "", string item = "", int amount = 1, string arg = "")
         {
