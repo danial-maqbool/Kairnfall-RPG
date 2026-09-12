@@ -173,7 +173,15 @@ public static class WorldMap
             foreach(var d in directions)
             {
                 var next=(current.Item1+d.Item1,current.Item2+d.Item2);
-                if(!Walkable(z,new(next.Item1+0.5,next.Item2+0.5))) continue;
+                var currentPoint=new Point(current.Item1+0.5,current.Item2+0.5);
+                var nextPoint=new Point(next.Item1+0.5,next.Item2+0.5);
+                if(!Walkable(z,nextPoint)) continue;
+                // Ordinary click-to-move/navigation must not accidentally choose a route
+                // whose next edge would fire a server-authoritative map transition. Keep
+                // such an edge only when the requested destination is the entrance itself
+                // (or its authored approach), so explicit travel still works.
+                var crossed=MapTransitionRules.TriggeredExit(z,currentPoint,nextPoint,new Point(d.Item1,d.Item2));
+                if(crossed is not null&&destination.Distance(crossed.Position)>MapTransitionRules.ArrivalClearance) continue;
                 double c=cost[current]+1;
                 if(cost.TryGetValue(next,out var old)&&old<=c) continue;
                 cost[next]=c; previous[next]=current;
