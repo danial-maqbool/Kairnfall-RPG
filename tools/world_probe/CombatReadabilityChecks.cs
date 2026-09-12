@@ -23,7 +23,7 @@ internal static class CombatReadabilityChecks
         {
             var realm=new RealmEngine(data);var player=realm.CreateCharacter("readability-projectile","Projectile Tester","ranger",new());
             var weapon=Items.Owned(player,player.Equipment["weapon"]);var weaponDef=data.Item(weapon.Template);
-            Need(weaponDef.Type is "bow" or "crossbow" or "wand" or "tome","Ranger fixture does not use a delayed projectile weapon.");
+            Need(HandEquipment.IsProjectileWeapon(weaponDef),"Ranger fixture does not use an authoritative projectile-tagged weapon.");
             var target=realm.State.Creatures.Values.First(x=>x.Owner==""&&data.Mob(x.Template).Ai!="passive");var zone=data.Zone(target.Zone);
             player.Zone=target.Zone;player.Position=WorldMap.FindFree(zone,new(target.Position.X-Math.Min(2,weaponDef.Range-.2),target.Position.Y));
             if(player.Position.Distance(target.Position)>weaponDef.Range)player.Position=WorldMap.FindFree(zone,new(target.Position.X+1,target.Position.Y));
@@ -66,10 +66,12 @@ internal static class CombatReadabilityChecks
 
         Test("boss phase thresholds immediately expose the expanded attack set",()=>
         {
-            var realm=new RealmEngine(data);var boss=realm.State.Creatures.Values.First(x=>data.Mob(x.Template).Boss);var definition=data.Mob(boss.Template);
-            boss.Health=definition.Health*.64;boss.NextAttack=double.MaxValue;realm.Tick(.1);realm.Tick(.1);
+            var realm=new RealmEngine(data);var boss=realm.State.Creatures.Values.First(x=>data.Mob(x.Template).Boss);var definition=data.Mob(boss.Template);var zone=data.Zone(boss.Zone);
+            var observer=realm.CreateCharacter("readability-boss-phase","Boss Observer","vanguard",new());observer.Zone=boss.Zone;observer.Position=WorldMap.FindFree(zone,new(boss.Position.X+1,boss.Position.Y));observer.Health=100000;realm.Active.Add(observer.Id);
+            Need(observer.Position.Distance(boss.Position)<=28,"Boss phase fixture could not place an active nearby player.");
+            boss.Health=definition.Health*.64;boss.NextAttack=double.MaxValue;realm.Tick(.1);
             Need(boss.Phase==1&&EnemyCombatRules.AvailableBossAttacks(definition,boss.Phase).Count==2,"Boss did not enter phase two at the authoritative health threshold.");
-            boss.Health=definition.Health*.29;boss.NextAttack=double.MaxValue;realm.Tick(.1);realm.Tick(.1);
+            boss.Health=definition.Health*.29;boss.NextAttack=double.MaxValue;realm.Tick(.1);
             Need(boss.Phase==2&&EnemyCombatRules.AvailableBossAttacks(definition,boss.Phase).Count==3,"Boss did not enter phase three at the authoritative health threshold.");
             Need(CombatReadabilityRules.EnemyBanner(definition,boss).Contains("PHASE 3/3",StringComparison.Ordinal),"Boss phase presentation does not match authoritative phase state.");
         });
