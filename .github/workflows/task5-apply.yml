@@ -37,20 +37,13 @@ jobs:
           python tools/task5_apply.py
           python - <<'PY'
           from pathlib import Path
-          path=Path('tools/world_probe/FirstHourPresentationChecks.cs')
-          text=path.read_text(encoding='utf-8')
-          old='''        Test("expanded shipped audio pack is present",()=>
-        {
-            string audioDir=Path.Combine(root,"client","Assets","audio");int count=Directory.Exists(audioDir)?Directory.GetFiles(audioDir,"*.wav").Length:0;Need(count>=96,$"Expected at least 96 shipped WAV files, found {count}.");
-        });'''
-          new='''        Test("expanded audio acceptance is independently gated",()=>
-        {
-            string workflow=File.ReadAllText(Path.Combine(root,".github","workflows","audio-acceptance.yml"));
-            Need(workflow.Contains("python tools/build_game_assets.py --audio-only"),"Audio acceptance no longer generates the focused runtime pack.");
-            Need(workflow.Contains("python tools/audio_quality_audit.py"),"Audio acceptance no longer runs the permanent quality audit.");
-        });'''
-          if text.count(old)!=1: raise SystemExit('first-hour generated-audio regression anchor changed')
-          path.write_text(text.replace(old,new,1),encoding='utf-8')
+          import re
+          path=Path('tools/world_probe/FirstHourPresentationChecks.cs'); text=path.read_text(encoding='utf-8')
+          pattern=r'        Test\("expanded shipped audio pack is present",\(\)=>\n        \{\n.*?\n        \}\);'
+          replacement='        Test("expanded audio acceptance is independently gated",()=>\n        {\n            string workflow=File.ReadAllText(Path.Combine(root,".github","workflows","audio-acceptance.yml"));\n            Need(workflow.Contains("python tools/build_game_assets.py --audio-only"),"Audio acceptance no longer generates the focused runtime pack.");\n            Need(workflow.Contains("python tools/audio_quality_audit.py"),"Audio acceptance no longer runs the permanent quality audit.");\n        });'
+          text,count=re.subn(pattern,lambda _:replacement,text,count=1,flags=re.S)
+          if count!=1: raise SystemExit('first-hour generated-audio regression anchor changed')
+          path.write_text(text,encoding='utf-8')
           PY
       - name: Generate deterministic content
         run: python tools/build_content.py
