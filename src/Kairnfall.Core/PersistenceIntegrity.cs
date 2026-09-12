@@ -16,7 +16,12 @@ public static class PersistenceIntegrity
 
         void Error(string text)=>errors.Add(text);
         bool Finite(double value)=>double.IsFinite(value);
-        bool ValidPoint(string zoneId,Point point)=>zones.TryGetValue(zoneId,out var zone)&&point.Finite&&WorldMap.Fits(zone,point);
+        bool ValidPoint(string zoneId,Point point)
+        {
+            if(!zones.TryGetValue(zoneId,out var zone)||!point.Finite) return false;
+            if(point.X<0||point.Y<0||point.X>zone.Width||point.Y>zone.Height) return false;
+            return WorldMap.Fits(zone,point);
+        }
         void ValidateStatus(StatusEffect effect,string where)
         {
             if(!Finite(effect.Until)||!Finite(effect.Power)) Error("Invalid persisted status timing or power: "+where);
