@@ -120,8 +120,8 @@ jobs:
           shipped=[p for p in paths if p.startswith('client/Assets/items/keepsake_')]
           if unexpected:
               raise SystemExit('Unexpected generated changes: '+', '.join(unexpected))
-          if len(source)!=20 or len(shipped)!=20:
-              raise SystemExit(f'Expected 20 source and 20 shipped keepsake changes, found {len(source)} and {len(shipped)}')
+          if len(source)!=20 or len(shipped)!=0:
+              raise SystemExit(f'Expected 20 authoritative source changes and byte-identical shipped fallback icons, found {len(source)} source and {len(shipped)} shipped changes')
           print('Publishing focused paths:',len(paths))
           PY
           git config user.name 'github-actions[bot]'
