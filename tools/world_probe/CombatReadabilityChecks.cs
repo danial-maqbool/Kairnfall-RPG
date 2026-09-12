@@ -67,8 +67,10 @@ internal static class CombatReadabilityChecks
         Test("boss phase thresholds immediately expose the expanded attack set",()=>
         {
             var realm=new RealmEngine(data);var boss=realm.State.Creatures.Values.First(x=>data.Mob(x.Template).Boss);var definition=data.Mob(boss.Template);var zone=data.Zone(boss.Zone);
-            var observer=realm.CreateCharacter("readability-boss-phase","Boss Observer","vanguard",new());observer.Zone=boss.Zone;observer.Position=WorldMap.FindFree(zone,new(boss.Position.X+1,boss.Position.Y));observer.Health=100000;realm.Active.Add(observer.Id);
+            boss.Position=boss.Home;
+            var observer=realm.CreateCharacter("readability-boss-phase","Boss Observer","vanguard",new());observer.Zone=boss.Zone;observer.Position=WorldMap.FindFree(zone,new(boss.Home.X+1,boss.Home.Y));observer.Health=100000;realm.Active.Add(observer.Id);
             Need(observer.Position.Distance(boss.Position)<=28,"Boss phase fixture could not place an active nearby player.");
+            boss.Threat[observer.Id]=1;boss.Target=observer.Id;
             boss.Health=definition.Health*.64;boss.NextAttack=double.MaxValue;realm.Tick(.1);
             Need(boss.Phase==1&&EnemyCombatRules.AvailableBossAttacks(definition,boss.Phase).Count==2,"Boss did not enter phase two at the authoritative health threshold.");
             boss.Health=definition.Health*.29;boss.NextAttack=double.MaxValue;realm.Tick(.1);
