@@ -134,6 +134,7 @@ internal static class PresentationChecks
         check((string)typeof(GameRoot).GetField("selectedTarget", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(game)! == ""
             && (string)typeof(GameRoot).GetField("selectedTargetKind", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(game)! == ""
             && world.TargetId == "", "Dead combat targets are removed from every client selection surface");
+        check(overlay.VisibleTelegraphCount == 0, "Dead-target cleanup leaves no stale combat telegraph presentation");
 
         if (original is not null) world.Accept(new TransportPacket { Snapshot = original });
         typeof(GameRoot).GetField("selectedTarget", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(game, "");
