@@ -8,4 +8,5 @@
   <Project Path="tools/security_probe/SecurityProbe.csproj" />
   <Project Path="tools/world_probe/world_probe.csproj" />
   <Project Path="tools/load_probe/Kairnfall.LoadProbe.csproj" />
+  <Project Path="tools/concurrency_probe/Kairnfall.ConcurrencyProbe.csproj" />
 </Solution>
