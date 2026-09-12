@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Kairnfall.Core/Kairnfall.Core.csproj" />
+    <ProjectReference Include="../../src/Kairnfall.Server/Kairnfall.Server.csproj" />
     <Compile Include="../world_probe/ConcurrencyStressChecks.cs" Link="ConcurrencyStressChecks.cs" />
   </ItemGroup>
 </Project>
