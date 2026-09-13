@@ -49,7 +49,6 @@ public partial class WindowsScaleContract : Node
         try
         {
             Require(OS.GetName()=="Windows","Contract runs on the Windows engine build");
-            Require(ProjectSettings.GetSetting("display/window/dpi/allow_hidpi").AsBool(),"Windows high-DPI awareness is explicitly enabled");
             var data=PixelAssets.LoadCatalog(); var realm=new RealmEngine(data);
             var self=realm.CreateCharacter("windows-scale","Windows Scale","vanguard",new()); realm.Active.Add(self.Id);
             using(var scene=GD.Load<PackedScene>("res://Main.tscn")) game=scene.Instantiate<GameRoot>();

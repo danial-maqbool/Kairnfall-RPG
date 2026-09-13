@@ -32,6 +32,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Assert Windows DPI and minimum-window settings
+        shell: pwsh
+        run: |
+          $project = Get-Content client/project.godot -Raw
+          foreach ($required in @('window/dpi/allow_hidpi=true', 'window/size/min_width=1024', 'window/size/min_height=720')) {
+            if (-not $project.Contains($required)) { throw "Missing required Windows display setting: $required" }
+          }
       - name: Build deterministic Windows client inputs
         shell: pwsh
         run: |
