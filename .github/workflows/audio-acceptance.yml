@@ -9,6 +9,7 @@ on:
       - 'client/Assets/audio/**'
       - 'tools/build_game_assets.py'
       - 'tools/audio_quality_audit.py'
+      - 'src/release-candidate.trigger'
       - '.github/workflows/audio-acceptance.yml'
   pull_request:
   workflow_dispatch:

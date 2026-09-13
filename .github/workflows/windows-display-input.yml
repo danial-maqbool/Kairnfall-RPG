@@ -10,6 +10,7 @@ on:
       - 'tools/build_game_assets.py'
       - 'tools/complete_skill_icons.py'
       - 'tools/get_godot.py'
+      - 'src/release-candidate.trigger'
       - '.github/workflows/windows-display-input.yml'
   pull_request:
   workflow_dispatch:

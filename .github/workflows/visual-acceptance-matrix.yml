@@ -13,6 +13,7 @@ on:
       - 'tools/review_visual_art.py'
       - 'tools/validate_game_assets.py'
       - 'tools/visual_acceptance_preflight.py'
+      - 'src/release-candidate.trigger'
       - '.github/workflows/visual-acceptance-matrix.yml'
   pull_request:
   workflow_dispatch:
