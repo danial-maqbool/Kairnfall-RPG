@@ -77,9 +77,74 @@ public partial class WindowsScaleContract : Node
             freshScaledLabel.QueueFree();
             Call(game,"Notify","A menu action failed.",true); Call(game,"EnsureAccessibleNotice");
             Require(Field<Label>(game,"notice").Text.StartsWith("Error · ",StringComparison.Ordinal),"Error feedback remains understandable without relying on color alone");
-            Call(game,"ClosePage"); Call(game,"SynchronizeModalUx"); await Frame();
+            Call(game,"ClosePage"); Call(game,"SynchronizeModalUx");
+            Require(!blocker.Visible,"Closing synchronously hides the input blocker before the next physics tick");
+            await Frame();
             Require(backgroundFocus.FocusMode==Control.FocusModeEnum.All&&GetViewport().GuiGetFocusOwner()==backgroundFocus,"Closing a panel restores its previous keyboard focus target");
             Call(game,"ApplyUiTextScale",1d,false); await Frame();
+
+            Call(game,"OpenPage","Inventory");
+            var modal=Field<PanelContainer>(game,"gameWindow");
+            Require(Field<ColorRect>(game,"modalInputBlocker").GetIndex()<modal.GetIndex(),"Modal GUI hit order places the active window above its blocker");
+            await Tap(Key.Tab);
+            Require(GetViewport().GuiGetFocusOwner() is {} tabFocus&&modal.IsAncestorOf(tabFocus),"Tab navigates inside the modal without reaching HUD controls");
+            GetViewport().GuiReleaseFocus(); await Tap(Key.Enter);
+            Require(GetViewport().GuiGetFocusOwner()!=Field<LineEdit>(game,"chatInput"),"Unhandled Enter cannot focus background chat through a modal");
+            Call(game,"ClosePage");
+            backgroundFocus.Disabled=true; backgroundFocus.GrabFocus();
+            Call(game,"OpenPage","Settings"); Call(game,"ClosePage");
+            Require(GetViewport().GuiGetFocusOwner()!=backgroundFocus,"A disabled return target does not regain keyboard focus");
+            backgroundFocus.Disabled=false;
+            Call(game,"OpenPage","Settings");
+            typeof(GameRoot).GetField("awaitingBinding",BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(game,"inventory");
+            await Tap(Key.Enter);
+            Require(Field<string>(game,"awaitingBinding")=="inventory","Reserved Enter is rejected by rebinding before the focused button activates");
+            await Tap(Key.Escape);
+            Require(Field<string>(game,"awaitingBinding")==""&&Field<string>(game,"currentPage")=="Settings","Escape cancels rebinding and retains Settings");
+            Call(game,"ClosePage"); await Frame();
+            foreach(double invalid in new[]{double.NaN,double.PositiveInfinity,double.NegativeInfinity})
+                Require(Ui.ConfigureTextScale(invalid)==1f,"Non-finite text settings fall back to readable defaults");
+            var config=Field<ConfigFile>(game,"settings");
+            config.SetValue("accessibility","text_scale","invalid"); Call(game,"InitializeUiUx");
+            Require(Ui.TextScale==1f,"A malformed persisted text setting loads safely");
+            config.SetValue("accessibility","text_scale",1.15d); Call(game,"InitializeUiUx");
+            Require(Math.Abs(Ui.TextScale-1.15f)<.001f,"A valid saved text setting is restored");
+            Call(game,"ApplyUiTextScale",1d,false);
+            string settingsPath=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"kairnfall-ui-"+Guid.NewGuid()+".cfg");
+            try
+            {
+                config.SetValue("display","fullscreen",true);
+                Require(config.Save(settingsPath)==Error.Ok,"Display and accessibility settings serialize successfully");
+                using var restored=new ConfigFile();
+                Require(restored.Load(settingsPath)==Error.Ok&&restored.GetValue("display","fullscreen").AsBool()
+                    &&Math.Abs(restored.GetValue("accessibility","text_scale").AsDouble()-1.15)<.001,"Settings survive a disk round trip");
+            }
+            finally { System.IO.File.Delete(settingsPath); config.SetValue("display","fullscreen",false); }
+            var savedBindings=Field<Dictionary<string,Key>>(game,"bindings");
+            savedBindings["inventory"]=Key.O; Call(game,"UpdateHud");
+            Require(game.FindChildren("*","Button",true,false).OfType<Button>().Any(button=>button.Text=="Bag [O]"),"HUD key discovery reflects the current binding");
+            savedBindings["inventory"]=Key.I; Call(game,"UpdateHud");
+
+            Call(game,"OpenPage","Inventory"); await Frame();
+            var ownerWindow=Field<PanelContainer>(game,"gameWindow");
+            var ownerSlot=game.FindChildren("*","Control",true,false).OfType<EquipmentItemSlot>().First(slot=>slot.Item is not null&&!slot.IsQueuedForDeletion());
+            ownerSlot.GrabFocus(); Call(game,"ItemContext",ownerSlot.Item!,"inventory",ownerSlot.GetGlobalRect().GetCenter()); await Frame();
+            var context=game.FindChildren("*","Control",true,false).OfType<EquipmentMenu>().Single(menu=>!menu.IsQueuedForDeletion());
+            Require(context.ZIndex>ownerWindow.ZIndex,"Item context actions render above the modal panel");
+            await Tap(Key.Tab);
+            Require(GetViewport().GuiGetFocusOwner() is {} contextFocus&&context.IsAncestorOf(contextFocus),"Context menu keeps Tab inside its action controls");
+            await Tap(Key.Escape);
+            Require(Field<string>(game,"currentPage")=="Inventory"&&GetViewport().GuiGetFocusOwner()==ownerSlot,"Escape closes only the context menu and restores its item focus");
+            Call(game,"ItemContext",ownerSlot.Item!,"inventory",ownerSlot.GetGlobalRect().GetCenter()); await Frame();
+            var currentInventory=game.World.Snapshot!.Self.Inventory;
+            var removed=currentInventory.Single(item=>item.Id==ownerSlot.Item!.Id);
+            currentInventory.Remove(removed); await Frame(); await Frame();
+            Require(!game.FindChildren("*","Control",true,false).OfType<EquipmentMenu>().Any(menu=>menu.Visible),"A removed item dismisses its stale context actions");
+            currentInventory.Add(removed);
+            Call(game,"ItemContext",ownerSlot.Item!,"inventory",ownerSlot.GetGlobalRect().GetCenter()); await Frame();
+            Call(game,"ClosePage");
+            Require(!game.FindChildren("*","Control",true,false).OfType<EquipmentMenu>().Any(menu=>menu.Visible),"Closing the owner immediately dismisses item context blockers");
+            await Frame();
 
             int baseActivations=0;
             var baseSlot=new ItemSlot{Name="KeyboardItemSlot",Item=self.Inventory.First(),Clicked=()=>baseActivations++};
@@ -122,6 +187,24 @@ public partial class WindowsScaleContract : Node
             Call(game,"OpenPage","Settings"); await Frame(); await Frame(); Call(game,"SynchronizeModalUx");
             Require(Contained(Field<PanelContainer>(game,"gameWindow")),"A modal panel remains contained at the supported minimum Windows size");
             Call(game,"ClosePage"); await Frame(); await Frame();
+
+            foreach(double textScale in new[]{.9d,1d,1.15d,1.25d})
+            {
+                Call(game,"ApplyUiTextScale",textScale,false);
+                foreach(string pageName in new[]{"Inventory","Bank","Character","Equipment Guide","Shop","Sell","Skills","Abilities","Quests","Dialogue","Crafting","Social","Trade","Auction","Map","Bestiary","Hunting","Achievements","Settings"})
+                {
+                    Call(game,"OpenPage",pageName); await Frame(); await Frame(); Call(game,"FitOpenPage");
+                    var window=Field<PanelContainer>(game,"gameWindow");
+                    Require(Contained(window),pageName+" fits minimum Windows size at text scale "+textScale);
+                    var closeButton=window.FindChildren("*","Button",true,false).OfType<Button>().First(button=>button.Text.StartsWith("Close",StringComparison.Ordinal));
+                    Require(Contained(closeButton),pageName+" close remains reachable");
+                    var overflow=window.FindChild("PageOverflow",true,false) as ScrollContainer;
+                    Require(overflow is { FollowFocus:true },pageName+" overflow follows keyboard focus to offscreen content");
+                    await Click(closeButton);
+                    Require(Field<string>(game,"currentPage")=="",pageName+" closes via actual mouse input");
+                }
+            }
+            Call(game,"ApplyUiTextScale",1d,false);
 
             GD.Print($"WINDOWS_SCALE_CONTRACT: {checks} checks passed for accessibility, modal focus, keyboard items, and 125%/150% Windows scale emulation. Physical Windows monitor DPI approval is not inferred.");
             await NativeTestLifetime.ReleaseSceneAsync(this,game); connection=null; GetTree().Quit(0);

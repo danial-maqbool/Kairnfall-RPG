@@ -4,6 +4,7 @@ on:
     branches: [main, 'team/**']
     paths: ['src/**', 'tests/Kairnfall.SecurityTests/**', 'tools/security_probe/**', '.github/workflows/transaction-security.yml']
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:

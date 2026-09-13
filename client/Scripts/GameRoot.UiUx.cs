@@ -10,7 +10,6 @@ public partial class GameRoot
     private ColorRect? modalInputBlocker;
     private Control? modalReturnFocus;
     private readonly Dictionary<Control, FocusModeEnum> suspendedBackgroundFocus = [];
-    private Vector2 uxViewportSize;
     private ulong settingsUxWindowId;
     private bool uiUxInitialized;
     private float uiTextScale = 1f;
@@ -26,7 +25,8 @@ public partial class GameRoot
     private void InitializeUiUx()
     {
         uiUxInitialized = true;
-        ApplyUiTextScale(settings.GetValue("accessibility", "text_scale", 1.0).AsDouble(), false);
+        var stored = settings.GetValue("accessibility", "text_scale", 1.0);
+        ApplyUiTextScale(stored.VariantType is Variant.Type.Float or Variant.Type.Int ? stored.AsDouble() : 1d, false);
     }
 
     private void SynchronizeModalUx()
@@ -60,9 +60,10 @@ public partial class GameRoot
             };
             interfaceRoot.AddChild(modalInputBlocker);
             modalInputBlocker.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            // GUI picking follows tree order, not CanvasItem.ZIndex.
+            interfaceRoot.MoveChild(modalInputBlocker, window.GetIndex());
         }
         window.ZIndex = 101;
-        uxViewportSize = Vector2.Zero;
         ApplyScaledFontOverrides(window);
         FocusModalDefault();
     }
@@ -80,7 +81,12 @@ public partial class GameRoot
 
     private void ExitModalUx()
     {
-        if (modalInputBlocker is not null && GodotObject.IsInstanceValid(modalInputBlocker)) modalInputBlocker.QueueFree();
+        bool hadModal = uxTrackedWindow is not null;
+        if (modalInputBlocker is not null && GodotObject.IsInstanceValid(modalInputBlocker))
+        {
+            modalInputBlocker.Hide();
+            modalInputBlocker.QueueFree();
+        }
         modalInputBlocker = null;
         foreach (var entry in suspendedBackgroundFocus)
             if (GodotObject.IsInstanceValid(entry.Key)) entry.Key.FocusMode = entry.Value;
@@ -90,10 +96,9 @@ public partial class GameRoot
         modalReturnFocus = null;
         uxTrackedWindow = null;
         settingsUxWindowId = 0;
-        uxViewportSize = Vector2.Zero;
-        if (restore is not null && GodotObject.IsInstanceValid(restore) && restore.IsVisibleInTree() && restore.FocusMode != FocusModeEnum.None)
+        if (restore is not null && GodotObject.IsInstanceValid(restore) && !restore.IsQueuedForDeletion() && restore.IsVisibleInTree() && restore.FocusMode != FocusModeEnum.None && restore is not BaseButton { Disabled: true })
             restore.GrabFocus();
-        else
+        else if (hadModal)
             GetViewport().GuiReleaseFocus();
     }
 
@@ -112,16 +117,15 @@ public partial class GameRoot
         if (gameWindow is null || !GodotObject.IsInstanceValid(gameWindow)) return;
         Vector2 viewport = Size;
         if (viewport.X <= 0 || viewport.Y <= 0) viewport = GetViewport().GetVisibleRect().Size;
-        if (viewport.X <= 0 || viewport.Y <= 0 || viewport.IsEqualApprox(uxViewportSize)) return;
-        uxViewportSize = viewport;
+        if (viewport.X <= 0 || viewport.Y <= 0) return;
 
         var desired = new Vector2(
             Math.Max(320, Math.Min(1100, viewport.X - 80)),
             Math.Max(300, Math.Min(670, viewport.Y - 140)));
         gameWindow.Size = desired;
         var position = gameWindow.Position;
-        position.X = Math.Clamp(position.X, 0, Math.Max(0, viewport.X - desired.X));
-        position.Y = Math.Clamp(position.Y, 0, Math.Max(0, viewport.Y - desired.Y));
+        position.X = Math.Clamp(position.X, 0, Math.Max(0, viewport.X - gameWindow.Size.X));
+        position.Y = Math.Clamp(position.Y, 0, Math.Max(0, viewport.Y - gameWindow.Size.Y));
         gameWindow.Position = position;
     }
 

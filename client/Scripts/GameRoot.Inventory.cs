@@ -19,7 +19,7 @@ public partial class GameRoot
     private void Confirm(string title, string message, Action action)
     {
         var dialog = new ConfirmationDialog { Title = title, DialogText = message, Theme = Theme, MinSize = new Vector2I(460, 150) };
-        AddChild(dialog);
+        (gameWindow as Node ?? this).AddChild(dialog);
         dialog.Confirmed += () => { action(); dialog.QueueFree(); };
         dialog.Canceled += dialog.QueueFree;
         dialog.PopupCentered();

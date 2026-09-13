@@ -46,6 +46,7 @@ public partial class GameRoot
             if (!Online || Typing) return;
             if (key.PhysicalKeycode == Key.Enter)
             {
+                if (gameWindow is not null) { GetViewport().SetInputAsHandled(); return; }
                 StopCombatInput(); route.Clear(); pendingInteraction = null;
                 ShowChat(true); chatInput.GrabFocus(); GetViewport().SetInputAsHandled(); return;
             }

@@ -32,6 +32,12 @@ public partial class GameRoot
 
     public override void _Input(InputEvent @event)
     {
+        // Rebinding must see reserved keys before the focused button consumes them.
+        if (awaitingBinding != "" && @event is InputEventKey { Pressed: true, Echo: false })
+        {
+            _UnhandledInput(@event);
+            return;
+        }
         // Godot runs GUI focus traversal before _UnhandledInput. Reserve the target
         // key only in active gameplay; never steal Tab from text or an open menu.
         if (@event is InputEventKey { Pressed: true } targetKey && GameplayInputAllowed
@@ -488,6 +494,7 @@ public partial class GameRoot
             ContextValid = () => Online && Snapshot?.Self.Id == ownerId
                 && GodotObject.IsInstanceValid(ownerWindow) && !ownerWindow.IsQueuedForDeletion()
                 && ownerWindow.IsInsideTree() && gameWindow == ownerWindow
+                && (bag == "bank" ? Snapshot.Self.Bank : Snapshot.Self.Inventory).Any(x => x.Id == item.Id)
         };
         if (definition.Slot != "" && bag == "inventory") menu.AddItem(wasEquipped ? "Unequip" : "Equip", 0);
         if (bag == "bank") menu.AddItem("Withdraw", 3, !NearRole("banker"));
@@ -521,6 +528,7 @@ public partial class GameRoot
             else if(choice==5&&CraftEconomy.Reclaim(Data,currentItem) is { } plan)
                 Confirm("Reclaim materials",$"Destroy {Data.Item(currentItem.Template).Name} and recover {plan.Quantity} {Data.Item(plan.Material).Name}?",()=>Send("salvage",item:currentItem.Id));
         };
+        menu.ZIndex = ownerWindow.ZIndex + 1;
         interfaceRoot.AddChild(menu);
         menu.OpenAt(at);
     }

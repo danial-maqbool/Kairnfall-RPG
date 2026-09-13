@@ -59,6 +59,9 @@ public partial class GameRoot : Control
             GetTree().AutoAcceptQuit = false;
             Theme = Ui.BuildTheme();
             settings.Load("user://settings.cfg");
+            var fullscreen = settings.GetValue("display", "fullscreen", false);
+            if (fullscreen.VariantType == Variant.Type.Bool && fullscreen.AsBool())
+                GetWindow().Mode = Window.ModeEnum.Fullscreen;
             InstallBindings();
             Data = PixelAssets.LoadCatalog();
             World = new WorldView { Assets = Assets, Data = Data }; AddChild(World);

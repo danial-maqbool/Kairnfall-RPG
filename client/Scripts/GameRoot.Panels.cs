@@ -8,8 +8,12 @@ public partial class GameRoot
 {
     private void ClosePage()
     {
+        if (interfaceRoot is not null)
+            foreach (var menu in interfaceRoot.FindChildren("*", "Control", true, false).OfType<EquipmentMenu>()) menu.Close();
         refreshPage = null; page = null; currentPage = ""; lastPageStamp = "";
-        if (gameWindow is not null) { gameWindow.QueueFree(); gameWindow = null; }
+        awaitingBinding = "";
+        if (gameWindow is not null) { gameWindow.Hide(); gameWindow.QueueFree(); gameWindow = null; }
+        ExitModalUx();
     }
     private void OpenPage(string name)
     {
@@ -28,7 +32,17 @@ public partial class GameRoot
                 gameWindow.Position = new Vector2(Math.Clamp(position.X, 0, Math.Max(0, Size.X - gameWindow.Size.X)), Math.Clamp(position.Y, 0, Math.Max(0, Size.Y - gameWindow.Size.Y)));
             }
         };
-        contents.AddChild(new HSeparator()); page = Ui.Column(contents, true);
+        contents.AddChild(new HSeparator());
+        // Keep the title and Close reachable when a page's natural minimum size
+        // exceeds the window (large text, DPI scaling, or a narrow viewport).
+        var pageScroll = new ScrollContainer
+        {
+            Name = "PageOverflow", FollowFocus = true,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto
+        };
+        contents.AddChild(pageScroll); page = Ui.Column(pageScroll, true);
         switch (name)
         {
             case "Inventory": BuildInventoryPage(false); break;
@@ -52,6 +66,7 @@ public partial class GameRoot
             case "Settings": BuildSettingsPage(); break;
             default: throw new InvalidOperationException("Unknown client page: " + name);
         }
+        SynchronizeModalUx();
     }
 
     private void BuildSkillsPage()
@@ -224,7 +239,11 @@ public partial class GameRoot
         AddPixelPresentationControls(rows);
         AddToggle(rows, "Weather effects", World.WeatherEnabled, value => { World.WeatherEnabled = value; settings.SetValue("display", "weather", value); });
         AddToggle(rows, "NPC and player names", World.ShowNames, value => { World.ShowNames = value; settings.SetValue("display", "names", value); });
-        AddToggle(rows, "Fullscreen", DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen, value => DisplayServer.WindowSetMode(value ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed));
+        AddToggle(rows, "Fullscreen", GetWindow().Mode is Window.ModeEnum.Fullscreen or Window.ModeEnum.ExclusiveFullscreen, value =>
+        {
+            settings.SetValue("display", "fullscreen", value);
+            GetWindow().Mode = value ? Window.ModeEnum.Fullscreen : Window.ModeEnum.Windowed;
+        });
         var volume = Ui.Row(rows); volume.AddChild(Ui.Label("Music", 15, Ui.Muted));
         var music = new HSlider { MinValue = 0, MaxValue = 1, Step = .05, Value = settings.GetValue("audio", "music", .35).AsDouble(), CustomMinimumSize = new Vector2(260, 26) }; volume.AddChild(music);
         var sounds = Ui.Row(rows); sounds.AddChild(Ui.Label("Effects", 15, Ui.Muted));

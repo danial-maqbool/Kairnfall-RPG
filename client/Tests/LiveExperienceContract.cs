@@ -151,10 +151,14 @@ public partial class LiveExperienceContract : Node
             Field<LineEdit>(game, "chatInput").Text = ""; GetViewport().GuiReleaseFocus();
             await Tap(Key.I); await Delay(.3);
             Require(Field<string>(game, "currentPage") == "Inventory", "Native I opens inventory");
+            // Space activates the newly focused Close button. Release GUI focus to
+            // exercise unhandled gameplay keys while the modal remains open.
+            GetViewport().GuiReleaseFocus();
             still = Self.Position;
             foreach (var key in new[] { Key.D, Key.E, Key.Q, Key.Space, (Key)49 }) await Tap(key);
             await Delay(.35);
             Require(Self.Position.Distance(still) < .05 && Self.LastAction == sequence, "An open menu blocks world movement and combat");
+            Require(Field<string>(game, "currentPage") == "Inventory", "Unhandled gameplay keys leave the modal open");
             string weapon = Self.Equipment["weapon"];
             await Click(ItemControl(weapon)); await Delay(.3);
             Require(EquipmentAction().Text == "UNEQUIP", "Selecting equipped gear exposes a prominent Unequip action");

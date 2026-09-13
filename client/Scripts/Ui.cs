@@ -11,7 +11,7 @@ public static class Ui
     public static float TextScale { get; private set; } = 1f;
     public static float ConfigureTextScale(double value)
     {
-        TextScale = (float)Math.Clamp(value, .9, 1.25);
+        TextScale = double.IsFinite(value) ? (float)Math.Clamp(value, .9, 1.25) : 1f;
         return TextScale;
     }
     public static int ScaledFont(int size) => Math.Max(10, (int)Math.Round(size * TextScale));
@@ -110,7 +110,7 @@ public static class Ui
     }
     public static ScrollContainer Scroll(Node parent, Vector2 minimum)
     {
-        var scroll = new ScrollContainer { CustomMinimumSize = minimum, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new ScrollContainer { CustomMinimumSize = minimum, FollowFocus = true, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         parent.AddChild(scroll); return scroll;
     }
     public static void Clear(Node parent)

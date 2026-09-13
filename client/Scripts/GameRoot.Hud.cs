@@ -138,6 +138,8 @@ public partial class GameRoot
         foreach (var entry in new[] { ("Bag [I]", "Inventory"), ("Gear [C]", "Character"), ("Skills [K]", "Skills"), ("Arts [B]", "Abilities"), ("Quest [J]", "Quests"), ("Hunt [H]", "Hunting"), ("Craft [F]", "Crafting"), ("Social [P]", "Social"), ("Menu", "Settings") })
         {
             var button = Ui.Button(entry.Item1, () => OpenPage(entry.Item2));
+            button.SetMeta("navigation_page", entry.Item2);
+            button.SetMeta("navigation_label", entry.Item1.Split(" [")[0]);
             button.FocusMode = FocusModeEnum.None; button.AddThemeFontSizeOverride("font_size", 12); grid.AddChild(button);
         }
         notice = Ui.Label("", 16, Ui.Text, true);
@@ -176,6 +178,12 @@ public partial class GameRoot
     private void UpdateHud()
     {
         if (hud is null) return;
+        foreach (var button in hud.FindChildren("*", "Button", true, false).OfType<Button>().Where(x => x.HasMeta("navigation_page")))
+        {
+            string action = button.GetMeta("navigation_page").AsString().ToLowerInvariant();
+            button.Text = button.GetMeta("navigation_label").AsString()
+                + (bindings.TryGetValue(action, out var key) ? " [" + key + "]" : "");
+        }
         hud.Visible = Snapshot is not null;
         if (Snapshot is not { } snap) return;
         var self = snap.Self; var stats = CombatMath.Stats(self, Data);

@@ -10,6 +10,8 @@ public partial class EquipmentMenu : Control
     private PanelContainer? panel;
     private Vector2 requestedPosition;
     private bool closing;
+    private Control? returnFocus;
+    private readonly Dictionary<Control, FocusModeEnum> backgroundFocus = [];
 
     public string ItemName { get; set; } = "Item actions";
     public string Subtitle { get; set; } = "";
@@ -30,6 +32,13 @@ public partial class EquipmentMenu : Control
     public override void _Ready()
     {
         Name = "ItemContextMenu";
+        returnFocus = GetViewport().GuiGetFocusOwner();
+        foreach (var control in GetParent().FindChildren("*", "Control", true, false).OfType<Control>())
+        {
+            if (control == this || IsAncestorOf(control) || control.FocusMode == FocusModeEnum.None) continue;
+            backgroundFocus[control] = control.FocusMode;
+            control.FocusMode = FocusModeEnum.None;
+        }
         MouseFilter = MouseFilterEnum.Stop;
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         panel = new PanelContainer
@@ -119,6 +128,13 @@ public partial class EquipmentMenu : Control
         SelectedAction = null;
         ContextValid = null;
         Hide();
+        foreach (var entry in backgroundFocus)
+            if (GodotObject.IsInstanceValid(entry.Key)) entry.Key.FocusMode = entry.Value;
+        backgroundFocus.Clear();
+        if (returnFocus is not null && GodotObject.IsInstanceValid(returnFocus) && !returnFocus.IsQueuedForDeletion()
+            && returnFocus.IsVisibleInTree() && returnFocus.FocusMode != FocusModeEnum.None && returnFocus is not BaseButton { Disabled: true })
+            returnFocus.GrabFocus();
+        returnFocus = null;
         SetProcess(false);
         SetProcessInput(false);
         QueueFree();

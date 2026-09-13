@@ -14,6 +14,7 @@ public partial class GameRoot
 
     private VBoxContainer FrontPage(string title)
     {
+        ClosePage();
         Ui.Clear(frontend); frontend.Visible = true;
         var shade = new ColorRect { Color = new Color(.035f, .055f, .07f, .64f), MouseFilter = MouseFilterEnum.Stop };
         frontend.AddChild(shade); shade.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
