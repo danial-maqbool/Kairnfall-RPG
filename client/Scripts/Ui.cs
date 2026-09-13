@@ -5,8 +5,16 @@ namespace Kairnfall.Client;
 
 public static class Ui
 {
+    public const string BaseFontSizeMeta = "kairnfall_base_font_size";
     public static readonly Color Ink = new("171512"), Panel = new("27231d"), Raised = new("3a3228"), Gold = new("d1b87c"), Text = new("ece4cf"), Muted = new("b2ab99"), Danger = new("e39782"), Success = new("b2cb91");
     public static readonly Color[] RarityColors = [new("c1c5bd"), new("8abd8b"), new("81b0d3"), new("b099d4"), new("dbad69"), new("d5808c"), new("e7d99b")];
+    public static float TextScale { get; private set; } = 1f;
+    public static float ConfigureTextScale(double value)
+    {
+        TextScale = (float)Math.Clamp(value, .9, 1.25);
+        return TextScale;
+    }
+    public static int ScaledFont(int size) => Math.Max(10, (int)Math.Round(size * TextScale));
     public static Color RarityColor(Rarity rarity) => RarityColors[Math.Clamp((int)rarity, 0, RarityColors.Length - 1)];
     public static Color ElementColor(Element element) => element switch
     {
@@ -30,7 +38,7 @@ public static class Ui
 
     public static Theme BuildTheme()
     {
-        var theme = new Theme { DefaultFontSize = 16 };
+        var theme = new Theme { DefaultFontSize = ScaledFont(16) };
         theme.SetColor("font_color", "Label", Text);
         theme.SetColor("font_color", "Button", Text);
         theme.SetColor("font_hover_color", "Button", Colors.White);
@@ -56,7 +64,7 @@ public static class Ui
         theme.SetColor("font_color", "PopupMenu", Text);
         theme.SetStylebox("panel", "TooltipPanel", Box(Ink, Gold));
         theme.SetColor("font_color", "TooltipLabel", Text);
-        theme.SetFontSize("font_size", "TooltipLabel", 15);
+        theme.SetFontSize("font_size", "TooltipLabel", ScaledFont(15));
         theme.SetStylebox("background", "ProgressBar", Box(Ink, new Color("536366"), 0));
         theme.SetStylebox("fill", "ProgressBar", Box(new Color("8b4548"), new Color("ac6761"), 0));
         theme.SetConstant("separation", "VBoxContainer", 8);
@@ -69,7 +77,8 @@ public static class Ui
     public static Label Label(string text, int size = 16, Color? color = null, bool wrap = false)
     {
         var label = new Label { Text = text, MouseFilter = Control.MouseFilterEnum.Ignore };
-        label.AddThemeFontSizeOverride("font_size", size);
+        label.SetMeta(BaseFontSizeMeta, size);
+        label.AddThemeFontSizeOverride("font_size", ScaledFont(size));
         label.AddThemeColorOverride("font_color", color ?? Text);
         if (wrap) { label.AutowrapMode = TextServer.AutowrapMode.WordSmart; label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; }
         return label;
@@ -128,10 +137,18 @@ public partial class ItemSlot : Control
     public bool Selected { get; set; }
     public Action? Clicked { get; set; }
     public Action<string, string>? Dropped { get; set; }
-    public override void _Ready() { CustomMinimumSize = new Vector2(62, 62); MouseDefaultCursorShape = CursorShape.PointingHand; TextureFilter = TextureFilterEnum.Nearest; }
+    public override void _Ready()
+    {
+        CustomMinimumSize = new Vector2(62, 62);
+        MouseDefaultCursorShape = CursorShape.PointingHand;
+        TextureFilter = TextureFilterEnum.Nearest;
+        FocusMode = FocusModeEnum.All;
+        FocusEntered += QueueRedraw;
+        FocusExited += QueueRedraw;
+    }
     public override void _Draw()
     {
-        Color border = Selected ? Ui.Gold : Item is null ? new Color("425359") : Ui.RarityColor(Item.Rarity);
+        Color border = HasFocus() || Selected ? Ui.Gold : Item is null ? new Color("425359") : Ui.RarityColor(Item.Rarity);
         DrawStyleBox(Ui.Box(Ui.Ink, border, 0), new Rect2(Vector2.Zero, Size));
         if (Icon is not null) DrawTextureRect(Icon, PixelPresentation.InventoryIconRect(Size,Icon.GetSize()), false);
         if (ItemElement != Element.Physical)
@@ -150,7 +167,14 @@ public partial class ItemSlot : Control
     }
     public override void _GuiInput(InputEvent @event)
     {
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) { Clicked?.Invoke(); AcceptEvent(); }
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+        {
+            GrabFocus(); Clicked?.Invoke(); AcceptEvent(); return;
+        }
+        if (@event is InputEventKey { Pressed: true, Echo: false } key && key.Keycode is Key.Enter or Key.Space)
+        {
+            Clicked?.Invoke(); AcceptEvent();
+        }
     }
     public override Variant _GetDragData(Vector2 position)
     {

@@ -17,6 +17,7 @@ window/size/min_width=1024
 window/size/min_height=720
 window/stretch/mode="disabled"
 window/size/resizable=true
+window/dpi/allow_hidpi=true
 
 [dotnet]
 project/assembly_name="Kairnfall.Client"

@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Kairnfall.Client.Tests;
 
-/// <summary>Windows content-scale and native input fixture. Physical monitor DPI approval remains separate.</summary>
+/// <summary>Windows content-scale, accessibility, modal-focus, and native input fixture. Physical monitor DPI approval remains separate.</summary>
 public partial class WindowsScaleContract : Node
 {
     private int checks;
@@ -49,6 +49,7 @@ public partial class WindowsScaleContract : Node
         try
         {
             Require(OS.GetName()=="Windows","Contract runs on the Windows engine build");
+            Require(ProjectSettings.GetSetting("display/window/dpi/allow_hidpi").AsBool(),"Windows high-DPI awareness is explicitly enabled");
             var data=PixelAssets.LoadCatalog(); var realm=new RealmEngine(data);
             var self=realm.CreateCharacter("windows-scale","Windows Scale","vanguard",new()); realm.Active.Add(self.Id);
             using(var scene=GD.Load<PackedScene>("res://Main.tscn")) game=scene.Instantiate<GameRoot>();
@@ -57,6 +58,35 @@ public partial class WindowsScaleContract : Node
             // The fixture uses a local authoritative snapshot and no remote server. Mark a loopback
             // transport fixture connected so the real GameRoot input gate follows its in-world path.
             connection=new GameConnection("http://127.0.0.1:1"); AttachConnectedFixture(game,connection);
+
+            var backgroundFocus=new Button{Name="UiUxBackgroundFocus",Text="Background focus fixture",FocusMode=Control.FocusModeEnum.All};
+            Field<Control>(game,"hud").AddChild(backgroundFocus); backgroundFocus.GrabFocus(); await Frame();
+            Call(game,"OpenPage","Settings"); await Frame(); await Frame(); Call(game,"SynchronizeModalUx"); await Frame();
+            var blocker=game.FindChildren("ModalInputBlocker","ColorRect",true,false).Cast<ColorRect>().Single();
+            Require(Contained(blocker),"Modal input blocker covers the visible viewport");
+            Require(backgroundFocus.FocusMode==Control.FocusModeEnum.None,"An open panel removes background HUD controls from keyboard focus traversal");
+            var close=Field<PanelContainer>(game,"gameWindow").FindChildren("*","Button",true,false).OfType<Button>().First(button=>button.Text.StartsWith("Close",StringComparison.Ordinal));
+            Require(GetViewport().GuiGetFocusOwner()==close,"A newly opened panel seeds keyboard focus on its close control");
+            var selector=game.FindChildren("TextScaleSelector","OptionButton",true,false).Cast<OptionButton>().Single();
+            Require(selector.ItemCount==4,"Settings exposes bounded text-size choices");
+            Require(game.FindChildren("*","Label",true,false).OfType<Label>().Any(label=>label.Text.Contains("Shift+Tab",StringComparison.Ordinal)),"Settings explains keyboard panel navigation");
+            Call(game,"ApplyUiTextScale",1.25d,false); await Frame();
+            Require(Math.Abs(Ui.TextScale-1.25f)<.001f,"Text scale applies at 125 percent");
+            Require(Field<Label>(game,"characterTitle").GetThemeFontSize("font_size")==Ui.ScaledFont(17),"Existing HUD text follows the accessibility scale");
+            var freshScaledLabel=Ui.Label("Fresh scaled label",16); game.AddChild(freshScaledLabel); await Frame();
+            Require(freshScaledLabel.GetThemeFontSize("font_size")==Ui.ScaledFont(16),"Newly created panel and tooltip text inherit the active accessibility scale");
+            freshScaledLabel.QueueFree();
+            Call(game,"Notify","A menu action failed.",true); Call(game,"EnsureAccessibleNotice");
+            Require(Field<Label>(game,"notice").Text.StartsWith("Error · ",StringComparison.Ordinal),"Error feedback remains understandable without relying on color alone");
+            Call(game,"ClosePage"); Call(game,"SynchronizeModalUx"); await Frame();
+            Require(backgroundFocus.FocusMode==Control.FocusModeEnum.All&&GetViewport().GuiGetFocusOwner()==backgroundFocus,"Closing a panel restores its previous keyboard focus target");
+            Call(game,"ApplyUiTextScale",1d,false); await Frame();
+
+            int baseActivations=0;
+            var baseSlot=new ItemSlot{Name="KeyboardItemSlot",Item=self.Inventory.First(),Clicked=()=>baseActivations++};
+            game.AddChild(baseSlot); await Frame(); baseSlot.GrabFocus(); await Tap(Key.Space);
+            Require(baseActivations==1,"Generic item slots are keyboard reachable and activate with Space");
+            baseSlot.QueueFree(); await Frame();
 
             foreach(float scale in new[]{1.25f,1.50f})
             foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
@@ -72,6 +102,9 @@ public partial class WindowsScaleContract : Node
                 GetViewport().GuiReleaseFocus(); await Tap(Key.I); Require(Field<string>(game,"currentPage")=="Inventory",label+" physical I opens Inventory");
                 var action=game.FindChildren("PrimaryEquipmentAction","Button",true,false).Cast<Button>().Single();
                 Require(Contained(action)&&action.Size.Y>=40,label+" equipment comparison action remains reachable");
+                var itemSlot=game.FindChildren("*","Control",true,false).OfType<EquipmentItemSlot>().First(slot=>slot.Item is not null&&!slot.IsQueuedForDeletion());
+                int activated=0; itemSlot.Activated=()=>activated++;
+                itemSlot.GrabFocus(); await Tap(Key.Space); Require(activated==1,label+" inventory equipment actions activate with Space from keyboard focus");
                 await Tap(Key.Escape); Require(Field<string>(game,"currentPage")=="",label+" physical Escape closes Inventory");
 
                 Call(game,"OpenPage","Crafting"); await Frame(); await Frame(); await Frame();
@@ -85,8 +118,13 @@ public partial class WindowsScaleContract : Node
                 Require(Contained(Field<PanelContainer>(game,"gameWindow")),label+" world map window fits the viewport");
                 Call(game,"ClosePage"); await Frame(); await Frame();
             }
-            GetWindow().ContentScaleFactor=1;
-            GD.Print($"WINDOWS_SCALE_CONTRACT: {checks} checks passed for 125% and 150% emulation at 1280x720 and 1920x1080. Physical Windows monitor DPI approval is not inferred.");
+
+            GetWindow().ContentScaleFactor=1; GetWindow().Size=new Vector2I(1024,720); GetWindow().ContentScaleSize=new Vector2I(1024,720); await Frame(); await Frame();
+            Call(game,"OpenPage","Settings"); await Frame(); await Frame(); Call(game,"SynchronizeModalUx");
+            Require(Contained(Field<PanelContainer>(game,"gameWindow")),"A modal panel remains contained at the supported minimum Windows size");
+            Call(game,"ClosePage"); await Frame(); await Frame();
+
+            GD.Print($"WINDOWS_SCALE_CONTRACT: {checks} checks passed for accessibility, modal focus, keyboard items, and 125%/150% Windows scale emulation. Physical Windows monitor DPI approval is not inferred.");
             await NativeTestLifetime.ReleaseSceneAsync(this,game); connection=null; GetTree().Quit(0);
         }
         catch(Exception error)

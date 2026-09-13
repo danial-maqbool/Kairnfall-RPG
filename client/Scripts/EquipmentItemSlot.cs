@@ -22,7 +22,8 @@ public partial class EquipmentItemSlot : ItemSlot
 
     public override void _GuiInput(InputEvent input)
     {
-        if (input is InputEventKey { Pressed: true, Echo: false } key && key.PhysicalKeycode == Key.Enter)
+        if (input is InputEventKey { Pressed: true, Echo: false } key
+            && (key.Keycode is Key.Enter or Key.Space || key.PhysicalKeycode is Key.Enter or Key.Space))
         {
             AcceptEvent();
             Activated?.Invoke();
