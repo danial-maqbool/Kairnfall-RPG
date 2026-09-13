@@ -1,6 +1,6 @@
 {
-  "sha": "a8fb3dc23e2825f5834e4ce79916fdd948cb9c2d",
+  "sha": "8d767cadf9713c89ef39c65f144e2bf5624cb32d",
   "base": "2912fa6f9801b035fccace8bff0ba82180bc20e3",
   "mode": "repair",
-  "purpose": "Task 17 acceptance: verify denser minor-settlement quest chains and residents, unchanged overworld footprint, deterministic content generation, optional hidden-cache integration, authoritative quest persistence, and duplicate-reward prevention while retaining backend, security, database, native Godot, and live-client contracts."
+  "purpose": "Task 17 acceptance retry: verify denser minor-settlement quest chains and residents, unchanged overworld footprint, deterministic content generation, optional hidden-cache integration, authoritative quest persistence, duplicate-reward prevention, and corrected retained-test contracts while retaining backend, security, database, native Godot, and live-client coverage."
 }
