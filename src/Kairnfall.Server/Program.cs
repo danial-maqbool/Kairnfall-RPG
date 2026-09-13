@@ -26,6 +26,10 @@ builder.Services.AddRateLimiter(options=>
     options.RejectionStatusCode=StatusCodes.Status429TooManyRequests;
     options.AddPolicy("auth",context=>RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new(){PermitLimit=20,Window=TimeSpan.FromMinutes(1),QueueLimit=0,AutoReplenishment=true}));
     options.AddPolicy("api",context=>RateLimitPartition.GetTokenBucketLimiter(context.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new(){TokenLimit=100,TokensPerPeriod=50,ReplenishmentPeriod=TimeSpan.FromSeconds(1),QueueLimit=0,AutoReplenishment=true}));
+    // Bound unauthenticated WebSocket upgrade/handshake pressure per source without
+    // limiting established play sessions. The reference 50-client + reconnect suite
+    // remains comfortably below this admission budget.
+    options.AddPolicy("connect",context=>RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new(){PermitLimit=120,Window=TimeSpan.FromMinutes(1),QueueLimit=0,AutoReplenishment=true}));
 });
 string connectionString=Environment.GetEnvironmentVariable("KAIRNFALL_DB")??throw new InvalidOperationException("Set KAIRNFALL_DB to a PostgreSQL connection string. Use Run-Kairnfall-Dev.ps1 for local setup.");
 var dataSourceBuilder=new NpgsqlDataSourceBuilder(connectionString);
@@ -157,6 +161,6 @@ app.Map("/play",async(HttpContext context,AccountStore accounts,RealmHost realm)
         }
         socket.Abort();
     }
-});
+}).RequireRateLimiting("connect");
 
 await app.RunAsync();
