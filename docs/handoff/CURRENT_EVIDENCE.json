@@ -1,29 +1,46 @@
 {
   "schema": 1,
   "statusDate": "2026-09-13",
-  "implementationBaseline": "3dce816eade22c93a8dad65eee6964be3e12fd52",
+  "implementationBaseline": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a",
+  "releaseCandidateBaseline": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a",
   "productClientBaseline": "d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f",
+  "releaseCandidateTrigger": "src/release-candidate.trigger",
+  "releaseCandidateWorkflowCount": 12,
   "releaseStatus": "NOT APPROVED — human acceptance remains.",
   "referenceLoadClients": [2, 10, 25, 50],
   "connectionAdmissionPerMinutePerSource": 120,
   "workflows": [
-    { "name": "Build and verify", "runId": 34768386855, "conclusion": "success" },
-    { "name": "Load acceptance", "runId": 34766715225, "conclusion": "success" },
-    { "name": "Transaction security regression", "runId": 34766717227, "conclusion": "success" },
-    { "name": "Transaction integrity on Windows and Linux", "runId": 34766719055, "conclusion": "success" },
-    { "name": "Compile Windows client source", "runId": 34766713586, "conclusion": "success" },
-    { "name": "Live progression breadth", "runId": 34766721059, "conclusion": "success" },
-    { "name": "Graphical multiplayer acceptance", "runId": 34766723424, "conclusion": "success" },
-    { "name": "Windows package acceptance", "runId": 34766725549, "conclusion": "success" }
+    { "name": "Build and verify", "runId": 34769719014, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Load acceptance", "runId": 34769719010, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Transaction security regression", "runId": 34769719021, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Transaction integrity on Windows and Linux", "runId": 34769719029, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Compile Windows client source", "runId": 34769719013, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Live progression breadth", "runId": 34769719053, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Graphical multiplayer acceptance", "runId": 34769719082, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Windows package acceptance", "runId": 34769719040, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" }
   ],
   "task12Workflows": [
-    { "name": "Windows display and input acceptance", "runId": 34766727800, "conclusion": "success" },
-    { "name": "Visual acceptance matrix", "runId": 34766729859, "conclusion": "success" },
-    { "name": "Audio acceptance", "runId": 34766731782, "conclusion": "success" }
+    { "name": "Windows display and input acceptance", "runId": 34769719092, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Visual acceptance matrix", "runId": 34769719027, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Audio acceptance", "runId": 34769719057, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" }
   ],
   "task13Workflows": [
-    { "name": "Task 13 adversarial acceptance", "runId": 34768390034, "conclusion": "success", "headSha": "3dce816eade22c93a8dad65eee6964be3e12fd52" },
-    { "name": "Build and verify", "runId": 34768386855, "conclusion": "success", "headSha": "3dce816eade22c93a8dad65eee6964be3e12fd52" }
+    { "name": "Task 13 adversarial acceptance", "runId": 34769719025, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Build and verify", "runId": 34769719014, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" }
+  ],
+  "task14Workflows": [
+    { "name": "Build and verify", "runId": 34769719014, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Task 13 adversarial acceptance", "runId": 34769719025, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Load acceptance", "runId": 34769719010, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Transaction security regression", "runId": 34769719021, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Transaction integrity on Windows and Linux", "runId": 34769719029, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Compile Windows client source", "runId": 34769719013, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Live progression breadth", "runId": 34769719053, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Graphical multiplayer acceptance", "runId": 34769719082, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Windows package acceptance", "runId": 34769719040, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Windows display and input acceptance", "runId": 34769719092, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Visual acceptance matrix", "runId": 34769719027, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
+    { "name": "Audio acceptance", "runId": 34769719057, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" }
   ],
   "humanOnlyGates": [
     "Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence",

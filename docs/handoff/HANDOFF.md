@@ -2,19 +2,18 @@
 
 Current status as of 2026-09-13.
 
-Use live `main` as the authoritative source line. Current implementation baseline: `3dce816eade22c93a8dad65eee6964be3e12fd52`.
+Use live `main` as the authoritative source line. Current implementation baseline: `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Task 13 is repository-side complete. It adds `tests/IndependentQA`, Windows wiring through `Test-Kairnfall.ps1`, and the permanent `Task 13 adversarial acceptance` workflow. Findings/retests are in `docs/qa/INDEPENDENT_FINDINGS.md`. The work is same-agent adversarial verification, not independent approval. Task 14 was not started.
+Task 14 is repository-side complete. `src/release-candidate.trigger` permanently forces the accepted automated matrix onto one exact source candidate; Windows display/input, visual and audio workflows were extended to watch the sentinel because the remaining accepted workflows already watched `src/**`. See `docs/qa/RELEASE_CANDIDATE_ACCEPTANCE.md`. Task 15 was not started.
 
 **NOT APPROVED — human acceptance remains.**
 
 ## Current technical state
 
-- Exact Task 13 baseline `3dce816eade22c93a8dad65eee6964be3e12fd52`: Task 13 adversarial run `34768390034` and Build/verify run `34768386855` are successful.
-- The Windows Build job executes the new audit and records 10/10 Task 13 scenarios passing.
-- The dedicated Task 13 gate reruns transaction/privacy security, gameplay/malformed-input review, world/persistence/social checks, concurrency, PostgreSQL/network integration and isolated save-conflict checks.
-- Task 13 did not alter production gameplay/client/art/package source. Retained product/client baseline `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f` remains the applicable evidence for load, client, live progression, graphical multiplayer, Windows package, display/input, visual and audio gates. Exact run IDs are in `VERIFICATION.md` and `CURRENT_EVIDENCE.json`.
+All twelve Task 14 technical workflows are successful at `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`: Build and verify, Task 13 adversarial acceptance, load, both transaction gates, Windows client compilation, live progression, graphical multiplayer, Windows package, Windows display/input, visual acceptance and audio acceptance. Exact run IDs are in `VERIFICATION.md` and `CURRENT_EVIDENCE.json`.
+
+The matrix covers Linux/Windows core behavior, adversarial authority, PostgreSQL/network/save conflicts, concurrency, 2/10/25/50-client load, native Godot/client contracts, progression, two-client graphical multiplayer, Windows export/restart/reconnect, display/input, structural/native visual validation and technical audio.
 
 ## Local development
 
@@ -34,6 +33,6 @@ pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1
 
 Owner Windows gameplay/persistence, subjective progression/class/economy feel, independent human QA where required, independent visual/art approval, full ordinary-account traversal, audio listening, physical Windows DPI/hardware-input review, owner-machine package verification where required, and production-scale validation for any advertised capacity remain human gates.
 
-Do not convert automated structural, rendered, emulated, protocol or same-agent adversarial results into those approvals.
+Do not convert automated structural, rendered, emulated, protocol, release-candidate or same-agent adversarial results into those approvals.
 
-`docs/handoff/VERIFICATION.md` is the narrative current evidence authority; `docs/handoff/CURRENT_EVIDENCE.json` is its machine-readable counterpart. `tools/documentation_contract.py` enforces synchronized date, baseline and release boundary.
+`docs/handoff/VERIFICATION.md` is the narrative current evidence authority; `docs/handoff/CURRENT_EVIDENCE.json` is its machine-readable counterpart. `tools/documentation_contract.py` enforces synchronized date, baseline, exact Task 14 workflow set, sentinel and release boundary.

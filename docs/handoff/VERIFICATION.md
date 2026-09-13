@@ -2,46 +2,43 @@
 
 Current consolidated status as of 2026-09-13.
 
-Current implementation baseline: `3dce816eade22c93a8dad65eee6964be3e12fd52` on `main`.
+Current implementation baseline: `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a` on `main`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Task 13 adds a permanent same-agent adversarial acceptance executable/workflow and cross-platform regression coverage. It is not an independent approval. Detailed findings and retests are in `docs/qa/INDEPENDENT_FINDINGS.md`. Task 14 was not started.
+Task 14 adds a permanent release-candidate sentinel that forces the accepted automated matrix onto one exact source revision. Detailed scope and evidence are in `docs/qa/RELEASE_CANDIDATE_ACCEPTANCE.md`. Task 15 was not started.
 
 **NOT APPROVED — human acceptance remains.**
 
-## Exact Task 13 technical evidence
+## Exact Task 14 release-candidate evidence
 
-Both runs below execute the Task 13 technical baseline `3dce816eade22c93a8dad65eee6964be3e12fd52`:
+All twelve technical workflows below succeeded against the same source baseline `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`:
 
-- Task 13 adversarial acceptance — run `34768390034`, success. The new ten-scenario audit plus retained security, gameplay/malformed-input, world, concurrency, PostgreSQL/network and isolated save-conflict checks pass.
-- Build and verify — run `34768386855`, success. Both Linux and Windows jobs pass; Windows runs `Test-Kairnfall.ps1` and reports `TASK13_ADVERSARIAL_RESULTS passed=10 failed=0`.
+- Build and verify — run `34769719014`.
+- Task 13 adversarial acceptance — run `34769719025`.
+- Load acceptance — run `34769719010`.
+- Transaction security regression — run `34769719021`.
+- Transaction integrity on Windows and Linux — run `34769719029`.
+- Compile Windows client source — run `34769719013`.
+- Live progression breadth — run `34769719053`.
+- Graphical multiplayer acceptance — run `34769719082`.
+- Windows package acceptance — run `34769719040`.
+- Windows display and input acceptance — run `34769719092`.
+- Visual acceptance matrix — run `34769719027`.
+- Audio acceptance — run `34769719057`.
 
-## Canonical retained workflow evidence
+Together these runs cover Linux and Windows core builds, malformed input, authoritative adversarial/transaction checks, PostgreSQL/network integration, save conflicts, world/persistence/social behavior, concurrency, native Windows client and Godot contracts, progression, two-client graphical multiplayer, package export/restart/reconnect, 2/10/25/50-client reference load, Windows display/input, structural/native visual evidence and technical audio validation.
 
-The current ledger keeps the newest applicable verified run for each canonical gate. Build is exact Task 13 baseline; product/client/path-filtered gates below are retained from the unchanged product/client baseline `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f` and are not misrepresented as `3dce816` executions:
+## Task 14 mechanism
 
-- Build and verify — run `34768386855` — `3dce816eade22c93a8dad65eee6964be3e12fd52`.
-- Load acceptance — run `34766715225` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
-- Transaction security regression — run `34766717227` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
-- Transaction integrity on Windows and Linux — run `34766719055` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
-- Compile Windows client source — run `34766713586` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
-- Live progression breadth — run `34766721059` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
-- Graphical multiplayer acceptance — run `34766723424` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
-- Windows package acceptance — run `34766725549` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
+`src/release-candidate.trigger` is a permanent schema-1 sentinel. Existing accepted workflows already watched `src/**` except Windows display/input, visual acceptance and audio acceptance; those three workflows now explicitly watch the sentinel. The Task 14 implementation changed acceptance triggering only. It did not weaken tests, change accepted thresholds, or alter gameplay/content/art behavior.
 
-Task 12 retained evidence at `d4d1b4e` also includes Windows display/input `34766727800`, visual matrix `34766729859`, and audio `34766731782`, all successful.
-
-## Evidence boundary
-
-Task 13 changed tests, solution/Windows test wiring and its permanent workflow; it did not change production gameplay/client/art/package source. Retaining successful client/package/art runs at `d4d1b4e` is therefore unchanged-baseline evidence, not a claim that path-filtered workflows ran at the later test-only SHA.
-
-The visual artifact proves structural/render presence for required cohorts but explicitly does not establish artistic quality. Automated/emulated Windows results do not establish physical-monitor/DPI approval.
+The source-candidate documentation run `34769719035` failed closed because `CURRENT_EVIDENCE.json` still named the Task 13 baseline. Its log reports only that baseline mismatch. This is expected evidence sequencing, not a technical candidate failure. The synchronized documentation delivery commit is separately required to pass the contract at its exact head.
 
 ## Human acceptance still required before release approval
 
 1. Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence.
 2. Normal-play progression and class feel.
-3. Independent human adversarial/gameplay acceptance if independence is required.
+3. Independent human adversarial/gameplay acceptance if independent approval is required.
 4. Independent artistic approval at native/in-engine scale.
 5. Full ordinary-account world and quest walkthrough.
 6. Sustained economy and balance feel.
@@ -50,4 +47,4 @@ The visual artifact proves structural/render presence for required cohorts but e
 9. Physical Windows DPI and hardware-input inspection.
 10. Owner-machine clean Windows package extraction and launch if required for release sign-off.
 
-`tools/documentation_contract.py` validates the ledger baseline against the latest non-documentation implementation commit and checks this current-facing status set for synchronized evidence and release boundary.
+Automated structural, graphical, emulated, protocol and same-agent results must not be relabeled as those human approvals.

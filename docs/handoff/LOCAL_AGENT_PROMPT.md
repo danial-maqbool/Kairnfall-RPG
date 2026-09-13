@@ -5,18 +5,18 @@ Current status as of 2026-09-13.
 Repository: `https://github.com/danial-maqbool/Kairnfall-RPG`  
 Branch: single authoritative `main`  
 Stack: Godot 4.7.2 .NET, C#, .NET 10 authoritative server, PostgreSQL  
-Current implementation baseline: `3dce816eade22c93a8dad65eee6964be3e12fd52`  
+Current implementation baseline: `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`  
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`
 
-Task 13 is repository-side complete. `tests/IndependentQA` and the permanent `Task 13 adversarial acceptance` workflow cover forged ownership, invalid quantities, replay, private transaction state, cross-region cleanup, death/respawn, stale social commands, persistence identity and LFG ignore boundaries, while rerunning retained security/world/concurrency/database suites. Windows executes the new audit through `Test-Kairnfall.ps1`. See `docs/qa/INDEPENDENT_FINDINGS.md`.
+Task 14 is repository-side complete. The permanent `src/release-candidate.trigger` makes it possible to run the accepted automation matrix against one exact source SHA, and all twelve technical gates passed at the current candidate baseline. See `docs/qa/RELEASE_CANDIDATE_ACCEPTANCE.md`. Task 15 was not started.
 
-This was same-agent adversarial verification and **must not be described as independent approval**. Task 14 was not started.
+**NOT APPROVED — human acceptance remains.**
 
 ## Current evidence
 
-- Exact Task 13 baseline: adversarial run `34768390034` and Build/verify run `34768386855`, both successful at `3dce816eade22c93a8dad65eee6964be3e12fd52`.
-- Product/client/art/package source was unchanged by Task 13. Applicable retained gates remain verified at `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`; see `VERIFICATION.md` and `CURRENT_EVIDENCE.json` for exact IDs.
-- The visual artifact is structural/render evidence only; artistic approval remains human.
+Exact Task 14 source baseline: `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. `CURRENT_EVIDENCE.json` and `VERIFICATION.md` record the twelve successful exact-SHA run IDs spanning build/adversarial authority, transactions, load, Windows client/package/display, progression, graphical multiplayer, visual acceptance and technical audio.
+
+This is repository-side automation. It must not be described as independent approval, artistic approval, listening approval, physical-hardware approval, production-capacity proof or evidence that a public realm is deployed.
 
 ## Local acceptance work still requiring humans/owner hardware
 
@@ -42,6 +42,4 @@ pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1 -Smoke
 pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1
 ```
 
-`tools/documentation_contract.py` compares `CURRENT_EVIDENCE.json` with the latest non-documentation implementation commit and checks all current-facing status files for synchronized date, baseline and release boundary.
-
-**NOT APPROVED — human acceptance remains.**
+`tools/documentation_contract.py` compares `CURRENT_EVIDENCE.json` with the latest non-documentation implementation commit and validates the Task 14 exact workflow set, sentinel, synchronized date/baseline and release boundary.

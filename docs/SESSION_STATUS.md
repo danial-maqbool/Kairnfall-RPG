@@ -2,18 +2,16 @@
 
 Current status as of 2026-09-13.
 
-Current implementation baseline: `3dce816eade22c93a8dad65eee6964be3e12fd52` on `main`.
+Current implementation baseline: `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a` on `main`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Task 13 is repository-side complete: ten real-engine adversarial scenarios, Windows execution, and a permanent Linux/PostgreSQL acceptance workflow are integrated. The same-agent review is not an independent approval. Full findings are in `docs/qa/INDEPENDENT_FINDINGS.md`. Task 14 was not started.
+Task 14 is repository-side complete: a permanent release-candidate sentinel now drives the accepted automation matrix against one exact source revision. All twelve technical workflows passed at the candidate SHA. See `docs/qa/RELEASE_CANDIDATE_ACCEPTANCE.md`. Task 15 was not started.
 
 ## Current exact technical evidence
 
-- Task 13 adversarial acceptance run `34768390034`: success at `3dce816eade22c93a8dad65eee6964be3e12fd52`.
-- Build and verify run `34768386855`: success at the same SHA on both Linux and Windows.
-- Windows logs record `TASK13_ADVERSARIAL_RESULTS passed=10 failed=0`.
+The exact candidate is `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. Successful Task 14 runs cover Build/verify, Task 13 adversarial testing, load, transaction security/integrity, Windows client, progression, graphical multiplayer, Windows package, Windows display/input, visual acceptance and audio acceptance. Exact run IDs are recorded in `docs/handoff/CURRENT_EVIDENCE.json` and `docs/handoff/VERIFICATION.md`.
 
-Task 13 changed test/evidence infrastructure only. The retained product/client/art/package baseline remains `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`, with successful canonical run IDs recorded in `docs/handoff/CURRENT_EVIDENCE.json` and `docs/handoff/VERIFICATION.md`.
+The reference load gate remains 2, 10, 25 and 50 simultaneous clients with reconnect/resource evidence. It is not a production-capacity claim.
 
 ## Remaining release blockers
 
@@ -22,10 +20,11 @@ The remaining blockers are human or owner-environment decisions: owner Windows g
 ## Documentation authority
 
 1. `docs/handoff/CURRENT_EVIDENCE.json` — machine-readable baseline/workflow evidence.
-2. `docs/handoff/VERIFICATION.md` — narrative evidence and exact run distinctions.
-3. `docs/qa/INDEPENDENT_FINDINGS.md` — Task 13 initial findings, fixes and retests.
-4. `docs/QA_MATRIX.md` — automated/human gate split.
-5. `docs/FINAL_AUDIT.md` — release decision.
+2. `docs/handoff/VERIFICATION.md` — narrative Task 14 exact-run evidence.
+3. `docs/qa/RELEASE_CANDIDATE_ACCEPTANCE.md` — Task 14 mechanism, matrix and evidence boundaries.
+4. `docs/qa/INDEPENDENT_FINDINGS.md` — Task 13 adversarial findings/retests.
+5. `docs/QA_MATRIX.md` — automated/human gate split.
+6. `docs/FINAL_AUDIT.md` — release decision.
 
 **NOT APPROVED — human acceptance remains.**
 
