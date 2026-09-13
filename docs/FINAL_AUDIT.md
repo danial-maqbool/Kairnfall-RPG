@@ -2,64 +2,37 @@
 
 Current status as of 2026-09-13.
 
-Current implementation baseline: `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3` on `main`.
+Current implementation baseline: `3dce816eade22c93a8dad65eee6964be3e12fd52` on `main`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Task 12 adds synchronous modal cleanup and focus restoration, correct mouse/layer ordering, keyboard-following overflow for all existing pages, context-item cleanup, text/display setting resilience and current keybind discovery. See the [Task 12 engineering record](UI_UX_ENGINEERING.md). Task 13 was not started. These are automated engineering results; subjective usability and physical monitor DPI remain human evaluation.
-
-## Executive status
-
-Repository-side implementation and retained automated verification are green at the current technical baseline. Subsequent hardening through the current baseline includes persistence/concurrency coverage, combat-readability validation and the bounded unauthenticated `/play` admission path. The exact integrated workflow matrix is maintained in `handoff/VERIFICATION.md` and `handoff/CURRENT_EVIDENCE.json`.
+Task 13 is repository-side complete: a permanent same-agent adversarial acceptance gate now covers forged ownership, invalid quantities, replay, transaction privacy/cleanup, death/respawn, stale social commands and persistence identity, and reruns the retained security/world/concurrency/database suites. See `docs/qa/INDEPENDENT_FINDINGS.md`. This is not an independent approval. Task 14 was not started.
 
 **NOT APPROVED — human acceptance remains.**
-
-That release status means the remaining gates require human observation, owner hardware or an explicitly approved production-scale target. It does not mean the automated systems are unimplemented.
 
 ## Current automated acceptance summary
 
 | Area | Current repository evidence | Human-only remainder |
 | --- | --- | --- |
-| Backend / authority | Linux and Windows core, malformed input, authoritative concurrency, PostgreSQL/network, save-conflict and transaction-security suites pass. | None for repository correctness; production operations remain a separate deployment decision. |
-| Progression / classes | Retained 60-skill, class-kit, ability and live-progression checks remain green. | Normal-play pacing and class feel. |
+| Backend / authority | Task 13 exact-baseline Linux/Windows build, malformed input, world/concurrency and PostgreSQL/network/save-conflict suites pass. | Production operations remain a deployment decision. |
+| Transactions / privacy | New Task 13 adversarial cases plus retained transaction-security checks pass. | Independent human review only if independent approval is required. |
+| Progression / classes | Retained class/progression/live checks remain green on the unchanged product baseline. | Normal-play pacing and class feel. |
 | World / quests / economy | Retained world, quest and economy correctness audits remain green. | Full ordinary-account traversal and sustained balance feel. |
-| Audio | Runtime audio remains under technical validation. | Listening approval for transitions, loops, effects and perceived volume. |
-| Combat presentation | Native and graphical progression gates retain combat readability, target/telegraph and progression coverage. | Subjective combat feel. |
-| Multiplayer | Two independent graphical clients and retained protocol/restart suites pass. | Optional human multi-client play for additional release confidence. |
-| Load / performance | Exact-baseline 2/10/25/50-client staged load and reconnect acceptance passes with resource measurements. | Production-capacity validation only if a specific capacity will be advertised. |
-| Network admission | `/play` is bounded to 120 admission attempts/minute/source before handshake work; real-network regression reaches HTTP 429 under repeated unauthenticated admission. | Production perimeter/rate policy may be tuned only with deployment-specific evidence. |
-| Windows client | Client compilation/native contracts and graphical progression pass. | Physical monitor/DPI/input review. |
-| Windows package | Clean export, path-with-spaces extraction, launch, server restart/reconnect and SHA-256 manifest gate pass. | Owner-machine extraction/launch if required for final sign-off. |
-| Documentation | Current evidence is centralized and guarded by a permanent drift contract. | Keep the ledger updated whenever implementation evidence changes. |
+| Multiplayer | Retained graphical two-client and protocol/restart checks remain green. | Optional human multi-client play. |
+| Load / performance | Retained 2/10/25/50-client load/reconnect acceptance is green. | Production-capacity validation for any advertised capacity. |
+| Windows | Task 13's new audit passes natively in Build and verify; retained display/input/client/package gates remain green. | Physical monitor/DPI/hardware-input review and owner package check where required. |
+| Art / audio | Retained structural/render and audio technical gates are green. | Artistic and listening approval. |
+| Documentation | Current evidence is centralized and drift-checked on every push. | Keep ledger synchronized after later implementation work. |
 
-## Exact current-baseline evidence
+## Evidence model
 
-The current baseline `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3` passed all eight retained workflows listed in `handoff/VERIFICATION.md`; their run IDs are stored in `handoff/CURRENT_EVIDENCE.json`.
+Exact Task 13 technical evidence is `Task 13 adversarial acceptance` run `34768390034` and `Build and verify` run `34768386855`, both at `3dce816eade22c93a8dad65eee6964be3e12fd52`.
 
-The exact-baseline load gate includes 2, 10, 25 and 50 simultaneous clients. This remains a reference CI workload rather than proof of a public 50-player production deployment or of a higher advertised capacity.
+Task 13 did not alter production gameplay/client/art/package source. Applicable path-filtered product gates therefore retain their verified `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f` results rather than being falsely described as later-SHA runs. Exact IDs are in `handoff/VERIFICATION.md` and `handoff/CURRENT_EVIDENCE.json`.
+
+The reference load gate is evidence for 2, 10, 25 and 50 simultaneous clients; it is not proof of a public production deployment or higher advertised capacity.
 
 ## Manual release gates
 
-A release remains unapproved until the project owner accepts the applicable human gates:
-
-1. Owner Windows XP/HUD gameplay and persistence pass.
-2. Normal-play progression/class feel.
-3. Independent visual/art review.
-4. Full ordinary-account world/quest walkthrough.
-5. Sustained economy/balance review.
-6. Audio listening review.
-7. Production-scale load target if a specific capacity will be advertised.
-8. Physical Windows DPI/hardware-input review.
-9. Owner-machine clean package extraction/launch if required by the release process.
+Release remains unapproved until applicable human gates are accepted: owner Windows gameplay/persistence, normal-play class/progression feel, independent human QA where required, artistic review, ordinary-account world traversal, sustained economy/balance, audio listening, physical Windows hardware/DPI/input, owner package launch where required, and any separately advertised production-scale load target.
 
 Automated structural, graphical, emulated, protocol and CI evidence must not be relabeled as those human approvals.
-
-## Repository and evidence policy
-
-- Work from the live `main`; dated handoff files are historical evidence, not current status.
-- Preserve server authority, persistence integrity and save compatibility.
-- Do not weaken tests, suppress engine errors or lower accepted scope to obtain green results.
-- `docs/handoff/CURRENT_EVIDENCE.json` is the machine-readable current technical ledger.
-- `tools/documentation_contract.py` must pass before current-facing documentation is considered synchronized.
-- Do not claim a public production realm unless one is actually deployed and verified.
-
-See `handoff/VERIFICATION.md` for the current narrative evidence, `QA_MATRIX.md` for gate definitions and `requirements/ACCEPTED_REQUIREMENTS.md` for accepted product scope.

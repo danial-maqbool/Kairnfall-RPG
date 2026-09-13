@@ -2,61 +2,30 @@
 
 Current status as of 2026-09-13.
 
-Current implementation baseline: `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3` on `main`.
+Current implementation baseline: `3dce816eade22c93a8dad65eee6964be3e12fd52` on `main`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Task 12 adds synchronous modal cleanup and focus restoration, correct mouse/layer ordering, keyboard-following overflow for all existing pages, context-item cleanup, text/display setting resilience and current keybind discovery. See the [Task 12 engineering record](UI_UX_ENGINEERING.md). Task 13 was not started. These are automated engineering results; subjective usability and physical monitor DPI remain human evaluation.
+Task 13 is repository-side complete: ten real-engine adversarial scenarios, Windows execution, and a permanent Linux/PostgreSQL acceptance workflow are integrated. The same-agent review is not an independent approval. Full findings are in `docs/qa/INDEPENDENT_FINDINGS.md`. Task 14 was not started.
 
-## Current state
+## Current exact technical evidence
 
-The repository contains the implemented Godot client, authoritative .NET server, PostgreSQL persistence, deterministic content/art pipeline and retained automated progression, world, economy, audio, multiplayer, combat-readability, concurrency/load, Windows and package gates.
+- Task 13 adversarial acceptance run `34768390034`: success at `3dce816eade22c93a8dad65eee6964be3e12fd52`.
+- Build and verify run `34768386855`: success at the same SHA on both Linux and Windows.
+- Windows logs record `TASK13_ADVERSARIAL_RESULTS passed=10 failed=0`.
 
-The current technical baseline also includes the bounded unauthenticated `/play` admission path: 120 admissions per minute per source before handshake work, with a permanent real-network regression proving normal validation remains reachable and repeated unauthenticated pressure reaches HTTP 429.
+Task 13 changed test/evidence infrastructure only. The retained product/client/art/package baseline remains `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`, with successful canonical run IDs recorded in `docs/handoff/CURRENT_EVIDENCE.json` and `docs/handoff/VERIFICATION.md`.
 
-The reference load gate is 2, 10, 25 and 50 simultaneous clients with reconnect behavior and server resource measurements. It is reference CI evidence, not a public production-capacity claim.
+## Remaining release blockers
 
-## Current exact-baseline evidence
-
-All eight current-baseline workflows are successful and recorded in `docs/handoff/CURRENT_EVIDENCE.json`:
-
-- Build and verify.
-- Load acceptance.
-- Transaction security regression.
-- Transaction integrity on Windows and Linux.
-- Compile Windows client source.
-- Live progression breadth.
-- Graphical multiplayer acceptance.
-- Windows package acceptance.
-
-`docs/handoff/VERIFICATION.md` records the exact run IDs and scope of those passes.
-
-## Current release blockers
-
-The remaining blockers are human or owner-environment acceptance decisions:
-
-1. Owner Windows XP/HUD gameplay and reconnect/restart persistence pass.
-2. Normal-play progression/class feel.
-3. Independent artwork approval.
-4. Full ordinary-account world/quest traversal.
-5. Sustained economy/balance feel.
-6. Audio listening approval.
-7. Production-scale load validation if a specific capacity will be advertised.
-8. Physical Windows DPI/hardware-input review.
-9. Owner-machine clean package extraction/launch if required for release sign-off.
+The remaining blockers are human or owner-environment decisions: owner Windows gameplay/persistence, normal-play feel, independent human review where required, artistic approval, ordinary-account world traversal, economy/balance feel, audio listening, physical Windows DPI/input, owner package launch where required, and any separately advertised production-scale load target.
 
 ## Documentation authority
 
-For current status use, in order:
-
-1. `docs/handoff/CURRENT_EVIDENCE.json` for machine-readable baseline/workflow evidence.
-2. `docs/handoff/VERIFICATION.md` for the narrative evidence record.
-3. `docs/QA_MATRIX.md` for acceptance-gate definitions.
-4. `docs/FINAL_AUDIT.md` for the release decision.
-5. this file for continuation context.
-
-Dated handoff/review files remain historical evidence and must not override the current status above. `tools/documentation_contract.py` enforces that the machine ledger matches the latest non-documentation implementation commit and that the current-facing status files stay synchronized.
-
-## Release status
+1. `docs/handoff/CURRENT_EVIDENCE.json` — machine-readable baseline/workflow evidence.
+2. `docs/handoff/VERIFICATION.md` — narrative evidence and exact run distinctions.
+3. `docs/qa/INDEPENDENT_FINDINGS.md` — Task 13 initial findings, fixes and retests.
+4. `docs/QA_MATRIX.md` — automated/human gate split.
+5. `docs/FINAL_AUDIT.md` — release decision.
 
 **NOT APPROVED — human acceptance remains.**
 

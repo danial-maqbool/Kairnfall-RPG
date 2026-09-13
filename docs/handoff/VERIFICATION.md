@@ -2,70 +2,52 @@
 
 Current consolidated status as of 2026-09-13.
 
-Current implementation baseline: `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3` on `main`.
+Current implementation baseline: `3dce816eade22c93a8dad65eee6964be3e12fd52` on `main`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Task 12 adds synchronous modal cleanup and focus restoration, correct mouse/layer ordering, keyboard-following overflow for all existing pages, context-item cleanup, text/display setting resilience and current keybind discovery. See the [Task 12 engineering record](../UI_UX_ENGINEERING.md). Task 13 was not started. These are automated engineering results; subjective usability and physical monitor DPI remain human evaluation.
-
-This file is the current repository-side evidence record. Dated handoff files remain historical evidence at their original revisions. Automated passes are not substitutes for human Windows play, artistic approval, listening approval, physical-monitor/DPI review, subjective balance approval, or production-capacity proof.
-
-## Current repository-side status
-
-The implemented Godot/.NET client, authoritative .NET server, PostgreSQL persistence, deterministic content/art pipeline, progression, world, economy, audio, multiplayer, load, Windows input/display, package, combat-readability, concurrency/persistence and release-boundary hardening remain integrated on `main`.
-
-Earlier technical hardening protects unauthenticated `/play` admission at 120 attempts per minute per source while leaving established sessions under the existing per-peer command controls. A real PostgreSQL/network regression proves normal `/play` validation remains reachable and repeated unauthenticated admission reaches HTTP 429.
-
-The retained reference-load gate now exercises 2, 10, 25 and 50 simultaneous clients, including reconnect behavior and server resource measurements. This is a CI reference target, not a production-capacity claim.
-
-## Exact current-baseline workflow evidence
-
-All of the following passed against `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3`:
-
-- Build and verify — run `34766126870`.
-- Load acceptance — run `34766127780`.
-- Transaction security regression — run `34766129605`.
-- Transaction integrity on Windows and Linux — run `34766131696`.
-- Compile Windows client source — run `34766126897`.
-- Live progression breadth — run `34766126854`.
-- Graphical multiplayer acceptance — run `34766126887`.
-- Windows package acceptance — run `34766126879`.
-
-Together these exact-baseline runs cover Linux/Windows core builds, malformed/gameplay regressions, world/progression audits, authoritative concurrency, PostgreSQL/network integration, save-conflict handling, adversarial transaction checks, native client compilation/contracts, graphical progression, two-client shared-world behavior, clean Windows export/restart/reconnect, and the 2/10/25/50-client load stages.
-
-## Historical task-specific evidence
-
-Earlier task-specific commits and run IDs remain recorded in dated files under `docs/handoff/`. They are still useful for provenance, but the exact current-baseline matrix above is the authority for whether the integrated repository remained green after later hardening.
-
-## Human acceptance still required before release approval
-
-The following remain intentionally human or owner-environment gates:
-
-1. Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence.
-2. Normal-play progression and class feel.
-3. Independent artistic approval at native/in-engine scale.
-4. Full ordinary-account world and quest walkthrough.
-5. Sustained economy and balance feel.
-6. Audio listening approval.
-7. Production-scale load validation if a specific concurrent-player capacity will be advertised.
-8. Physical Windows DPI and hardware-input inspection.
-9. Owner-machine clean Windows package extraction and launch if required for release sign-off.
-
-## Documentation drift contract
-
-`tools/documentation_contract.py` validates `docs/handoff/CURRENT_EVIDENCE.json` against the latest non-documentation implementation commit and checks the current-facing status files for a synchronized evidence date, baseline, workflow ledger and release boundary. `.github/workflows/documentation-contract.yml` runs that contract on every push with full Git history.
-
-Future implementation work must update the current evidence ledger before the documentation contract can pass. Historical dated handoffs are excluded from that rule so their revision-specific statements remain intact.
-
-## Release status
+Task 13 adds a permanent same-agent adversarial acceptance executable/workflow and cross-platform regression coverage. It is not an independent approval. Detailed findings and retests are in `docs/qa/INDEPENDENT_FINDINGS.md`. Task 14 was not started.
 
 **NOT APPROVED — human acceptance remains.**
 
-This is an acceptance decision, not a claim that the repository-side systems above are unimplemented. Do not claim a public production realm is running when only development/CI realms have been verified.
+## Exact Task 13 technical evidence
 
-## Additional Task 12 exact-baseline evidence
+Both runs below execute the Task 13 technical baseline `3dce816eade22c93a8dad65eee6964be3e12fd52`:
 
-- Windows display and input acceptance — [run 34766126861](https://github.com/danial-maqbool/Kairnfall-RPG/actions/runs/34766126861), success at `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3`.
-- Visual acceptance matrix — [run 34766126888](https://github.com/danial-maqbool/Kairnfall-RPG/actions/runs/34766126888), success at `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3`.
-- Audio acceptance — [run 34766133964](https://github.com/danial-maqbool/Kairnfall-RPG/actions/runs/34766133964), success at `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3`.
+- Task 13 adversarial acceptance — run `34768390034`, success. The new ten-scenario audit plus retained security, gameplay/malformed-input, world, concurrency, PostgreSQL/network and isolated save-conflict checks pass.
+- Build and verify — run `34768386855`, success. Both Linux and Windows jobs pass; Windows runs `Test-Kairnfall.ps1` and reports `TASK13_ADVERSARIAL_RESULTS passed=10 failed=0`.
 
-The ledger records implementation-baseline evidence. The documentation-only delivery commit is separately checked by fresh workflows at its own exact SHA; source-baseline runs are not claimed as delivery-head runs. Earlier failures and the retained reconnect-XP diagnostic are described in the Task 12 record.
+## Canonical retained workflow evidence
+
+The current ledger keeps the newest applicable verified run for each canonical gate. Build is exact Task 13 baseline; product/client/path-filtered gates below are retained from the unchanged product/client baseline `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f` and are not misrepresented as `3dce816` executions:
+
+- Build and verify — run `34768386855` — `3dce816eade22c93a8dad65eee6964be3e12fd52`.
+- Load acceptance — run `34766715225` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
+- Transaction security regression — run `34766717227` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
+- Transaction integrity on Windows and Linux — run `34766719055` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
+- Compile Windows client source — run `34766713586` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
+- Live progression breadth — run `34766721059` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
+- Graphical multiplayer acceptance — run `34766723424` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
+- Windows package acceptance — run `34766725549` — `d4d1b4ef409e4eec5cf6bfecfac197c2a764fc2f`.
+
+Task 12 retained evidence at `d4d1b4e` also includes Windows display/input `34766727800`, visual matrix `34766729859`, and audio `34766731782`, all successful.
+
+## Evidence boundary
+
+Task 13 changed tests, solution/Windows test wiring and its permanent workflow; it did not change production gameplay/client/art/package source. Retaining successful client/package/art runs at `d4d1b4e` is therefore unchanged-baseline evidence, not a claim that path-filtered workflows ran at the later test-only SHA.
+
+The visual artifact proves structural/render presence for required cohorts but explicitly does not establish artistic quality. Automated/emulated Windows results do not establish physical-monitor/DPI approval.
+
+## Human acceptance still required before release approval
+
+1. Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence.
+2. Normal-play progression and class feel.
+3. Independent human adversarial/gameplay acceptance if independence is required.
+4. Independent artistic approval at native/in-engine scale.
+5. Full ordinary-account world and quest walkthrough.
+6. Sustained economy and balance feel.
+7. Audio listening approval.
+8. Production-scale load validation if a specific concurrent-player capacity will be advertised.
+9. Physical Windows DPI and hardware-input inspection.
+10. Owner-machine clean Windows package extraction and launch if required for release sign-off.
+
+`tools/documentation_contract.py` validates the ledger baseline against the latest non-documentation implementation commit and checks this current-facing status set for synchronized evidence and release boundary.

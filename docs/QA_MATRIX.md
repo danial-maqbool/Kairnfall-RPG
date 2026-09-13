@@ -2,58 +2,37 @@
 
 Current consolidated status as of 2026-09-13.
 
-Current implementation baseline: `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3`.
+Current implementation baseline: `3dce816eade22c93a8dad65eee6964be3e12fd52`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Task 12 adds synchronous modal cleanup and focus restoration, correct mouse/layer ordering, keyboard-following overflow for all existing pages, context-item cleanup, text/display setting resilience and current keybind discovery. See the [Task 12 engineering record](UI_UX_ENGINEERING.md). Task 13 was not started. These are automated engineering results; subjective usability and physical monitor DPI remain human evaluation.
+Task 13 is repository-side complete through a permanent same-agent adversarial gate; it does not constitute independent human approval. Findings and retests are in `docs/qa/INDEPENDENT_FINDINGS.md`. Task 14 was not started.
 
-This matrix separates repository automation from human-only acceptance. Consult `handoff/VERIFICATION.md` for the current evidence record and `FINAL_AUDIT.md` for the release decision.
-
-| Area | Required check | Current status | Evidence / remaining work |
-| --- | --- | --- | --- |
-| Source / repository | Single authoritative mainline and reproducible source/assets. | **PASS** | `main` baseline is `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3`; current evidence is machine-checked for drift. |
-| Backend | Core, gameplay, malformed-input, PostgreSQL/network and save-conflict suites. | **PASS** | Exact-baseline Build and verify is green. |
-| Security / transactions | Session, ownership, transaction, replay and persistence-integrity checks. | **PASS** | Transaction security plus Windows/Linux transaction-integrity workflows are green. |
-| Network admission | Bound unauthenticated WebSocket admission without limiting established sessions. | **PASS** | `/play` accepts at most 120 admissions/minute/source; real-network regression verifies normal validation then HTTP 429 under pressure. |
-| XP / HUD | Character/skill XP presentation and real activity progression. | **IMPLEMENTED / HUMAN CHECK PENDING** | Live progression automation is green; owner Windows pacing/visibility pass remains human. |
-| Progression / classes | Authoritative skill/class/ability routes and persistence. | **PASS** | Retained progression breadth and core audits remain green. |
-| Native UI | Client compilation, lifecycle, signals and native contracts. | **PASS** | Exact-baseline Windows client source/native contract workflow is green. |
-| Character / creature art | Required actor/equipment presentation coverage. | **PASS STRUCTURAL/GRAPHICAL; HUMAN ART APPROVAL PENDING** | Retained deterministic/native graphical checks remain green; independent artistic approval remains human. |
-| World / quests | Authored topology/objective/reference checks. | **PASS AUTOMATED; HUMAN WALKTHROUGH PENDING** | Retained world/quest audits remain green; full ordinary-account traversal remains human. |
-| Economy | Transaction correctness and authored balance sanity. | **PASS AUTOMATED; HUMAN BALANCE PENDING** | Retained economy/security checks pass; sustained pacing remains subjective. |
-| Audio | Runtime format/quality checks. | **PASS TECHNICAL; LISTENING PENDING** | Technical audio audit remains retained; listening approval remains human. |
-| Combat presentation | Targeting, telegraphs, control/readability and progression interactions. | **PASS AUTOMATED; SUBJECTIVE FEEL PENDING** | Native/graphical progression and retained combat-readability checks are green. |
-| Multiplayer | Shared state, chat, movement, protocol, reconnect/restart. | **PASS** | Exact-baseline graphical multiplayer workflow is green. |
-| Load / performance | Staged concurrency and resource measurements. | **PASS REFERENCE TARGET** | Exact-baseline 2/10/25/50-client load/reconnect gate passes; not a production-capacity claim. |
-| Windows display/input | Native keyboard/mouse and supported scale/resolution coverage. | **PASS AUTOMATED; PHYSICAL REVIEW PENDING** | Retained Windows/native checks are green; physical hardware review remains human. |
-| Windows package | Export, clean-path launch, restart/reconnect, checksums. | **PASS CI; OWNER-MACHINE CHECK OPTIONAL/PENDING** | Exact-baseline Windows package acceptance is green. |
-| Documentation | Current evidence files match the latest non-documentation implementation commit. | **PASS CONTRACT REQUIRED** | `tools/documentation_contract.py` and `CURRENT_EVIDENCE.json` enforce synchronized baseline/evidence on every push. |
-| Release | Applicable automated and human gates accepted against an exact package/revision. | **NOT APPROVED** | Human acceptance gates remain. |
-
-## Exact current-baseline workflow matrix
-
-The eight successful run IDs are recorded in `docs/handoff/CURRENT_EVIDENCE.json` and reproduced in `handoff/VERIFICATION.md`. The current load stages are 2, 10, 25 and 50 clients.
-
-## Human acceptance still required
-
-- Owner Windows XP/HUD gameplay and reconnect/restart persistence pass.
-- Normal-play progression/class feel.
-- Independent artistic approval at native/in-engine scale.
-- Full ordinary-account world/quest walkthrough.
-- Sustained economy/balance feel.
-- Audio listening approval.
-- Production-scale load/hardware target if a specific capacity will be advertised.
-- Physical Windows DPI/hardware-input review.
-- Owner-machine clean package extraction/launch if required for release sign-off.
+| Area | Current status | Evidence / remaining work |
+| --- | --- | --- |
+| Source / repository | **PASS** | `main` implementation baseline is `3dce816eade22c93a8dad65eee6964be3e12fd52`; documentation drift is checked permanently. |
+| Backend / malformed input | **PASS** | Build and verify `34768386855` is green on Linux and Windows. |
+| Task 13 adversarial authority | **PASS AUTOMATED** | Run `34768390034` passes all new scenarios and retained security/world/concurrency/database reruns. This is same-agent evidence, not independent approval. |
+| Security / transactions | **PASS** | Forged ownership, invalid quantities, replay, trade privacy/consent and persistence-integrity coverage pass. |
+| Progression / classes | **PASS AUTOMATED; HUMAN FEEL PENDING** | Retained live progression run `34766721059` is green. |
+| Native UI / Windows display | **PASS AUTOMATED; PHYSICAL REVIEW PENDING** | Retained client `34766713586` and display/input `34766727800` are green at unchanged product baseline `d4d1b4e`. |
+| Art | **PASS STRUCTURAL/GRAPHICAL; HUMAN ART APPROVAL PENDING** | Visual matrix `34766729859` is green; its artifact does not claim artistic approval. |
+| World / quests / economy | **PASS AUTOMATED; HUMAN WALKTHROUGH/BALANCE PENDING** | Task 13 world/security reruns and retained product gates are green. |
+| Audio | **PASS TECHNICAL; LISTENING PENDING** | Retained audio run `34766731782` is green. |
+| Multiplayer | **PASS** | Retained graphical multiplayer run `34766723424` is green. |
+| Load / performance | **PASS REFERENCE TARGET** | Retained load run `34766715225` covers 2/10/25/50 clients; not a production-capacity claim. |
+| Windows package | **PASS CI; OWNER-MACHINE CHECK OPTIONAL/PENDING** | Retained package run `34766725549` is green. |
+| Documentation | **PASS CONTRACT REQUIRED** | `tools/documentation_contract.py` must pass at delivery head. |
+| Release | **NOT APPROVED** | Human acceptance gates remain. |
 
 ## Review rules
 
 - A catalog record is not proof that a mechanic works.
+- Same-agent adversarial testing is not independent approval.
 - Structural/rendered checks are not artistic approval.
 - Emulated DPI is not physical-monitor review.
 - A fixed CI concurrency workload is not production-capacity proof.
-- Technical WAV analysis is not listening approval.
-- Do not delete failing tests, suppress engine errors, weaken production validation or lower accepted scope to obtain green results.
+- Technical audio analysis is not listening approval.
+- Do not delete failing tests, suppress errors, weaken validation or lower accepted scope to obtain green results.
 
 ## Release status
 
