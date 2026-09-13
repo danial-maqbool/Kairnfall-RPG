@@ -1,6 +1,6 @@
 {
-  "sha": "93b4142a07a29bb9dd6ebe81211b105e9bb1e171",
-  "base": "816af1b8fcb972bd26e95ffe778c0297cfd24831",
+  "sha": "a8fb3dc23e2825f5834e4ce79916fdd948cb9c2d",
+  "base": "2912fa6f9801b035fccace8bff0ba82180bc20e3",
   "mode": "repair",
-  "purpose": "Task 1 acceptance: verify the permanent character and last-skill XP HUD with the repaired challenge HUD contract, direct skill-XP contribution to character progression, live authoritative combat XP, reconnect persistence, graphical smoke, and retained server/client contracts."
+  "purpose": "Task 17 acceptance: verify denser minor-settlement quest chains and residents, unchanged overworld footprint, deterministic content generation, optional hidden-cache integration, authoritative quest persistence, and duplicate-reward prevention while retaining backend, security, database, native Godot, and live-client contracts."
 }
