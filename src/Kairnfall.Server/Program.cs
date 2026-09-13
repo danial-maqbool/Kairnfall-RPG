@@ -7,6 +7,7 @@ using Kairnfall.Server;
 using Microsoft.AspNetCore.RateLimiting;
 using Npgsql;
 
+const int PlayAdmissionsPerMinute=120;
 var builder=WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options=>
 {
@@ -29,7 +30,7 @@ builder.Services.AddRateLimiter(options=>
     // Bound unauthenticated WebSocket upgrade/handshake pressure per source without
     // limiting established play sessions. The reference 50-client + reconnect suite
     // remains comfortably below this admission budget.
-    options.AddPolicy("connect",context=>RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new(){PermitLimit=120,Window=TimeSpan.FromMinutes(1),QueueLimit=0,AutoReplenishment=true}));
+    options.AddPolicy("connect",context=>RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new(){PermitLimit=PlayAdmissionsPerMinute,Window=TimeSpan.FromMinutes(1),QueueLimit=0,AutoReplenishment=true}));
 });
 string connectionString=Environment.GetEnvironmentVariable("KAIRNFALL_DB")??throw new InvalidOperationException("Set KAIRNFALL_DB to a PostgreSQL connection string. Use Run-Kairnfall-Dev.ps1 for local setup.");
 var dataSourceBuilder=new NpgsqlDataSourceBuilder(connectionString);
