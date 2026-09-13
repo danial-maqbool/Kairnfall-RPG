@@ -1,37 +1,38 @@
-# Final game audit — release engineering candidate verified, human acceptance pending
+# Final game audit — Task 16 repository preparation complete, human acceptance pending
 
 Current status as of 2026-09-13.
 
-Current implementation baseline: `83a99948c7e96ff1ed568b5090b3138294b8e713` on `main`.
+Current implementation/candidate baseline: `2365a0df98beca178e22c099f0f31cd5adf65e6e`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
-
-Task 15 is repository-side complete: schema compatibility, backup/verify/restore recovery, release packaging and candidate provenance were added and verified without publishing a release/tag. The permanent Task 15 sentinel is `src/release-operations.trigger`. Task 16 was not started.
+Owner acceptance: `docs/qa/TASK16_OWNER_ACCEPTANCE.md`.
 
 **NOT APPROVED — human acceptance remains.**
 
-## Current automated acceptance summary
+## Automated final-candidate audit
 
-| Area | Repository evidence | Human-only remainder |
+| Area | Current repository evidence | Human-only remainder |
 | --- | --- | --- |
-| Backend / authority | Build/verify and Task 13 adversarial gates pass at `83a99948c7e96ff1ed568b5090b3138294b8e713`. | Public production operation remains unproven. |
-| Transactions / privacy | Both transaction workflows plus adversarial acceptance pass at the Task 15 baseline. | Independent human review if independent approval is required. |
-| Database operations / recovery | Release operations run `34772773748` proves checksum backup, fresh-target restore, rollback boundary, single-writer enforcement, future-schema rejection, tamper rejection and restored reconnect in disposable PostgreSQL 18. | Real-environment backup retention, access control, incident drills and production deployment remain operator decisions. |
-| Progression / classes | Live progression run `34772773727` passes after the graceful-disconnect persistence fix. | Normal-play pacing and class feel. |
-| World / quests / economy | Core/adversarial/world/database checks pass at the Task 15 baseline. | Full ordinary-account traversal and sustained balance feel. |
-| Multiplayer | Graphical multiplayer run `34772773744` plus protocol/concurrency checks pass. | Optional human multi-client play. |
-| Load / performance | Run `34772773733` passes the 2/10/25/50-client reference workload. | Production-capacity validation for any advertised capacity. |
-| Windows client | Native client compilation run `34772773709` passes at the Task 15 baseline. | Physical monitor/DPI/hardware-input review remains human. |
-| Windows package | Run `34772773761` proves clean candidate bundle creation/extraction, packaged server restart/reconnect and exported-client launch; manifest remains `publicationReady: false`. | Owner-machine package check where required. |
-| Display / art / audio | Retained Task 14 display, visual and technical-audio evidence remains at `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`; it is not falsely promoted to Task 15 exact-SHA evidence. | Physical display, artistic and listening approval. |
-| Documentation | `CURRENT_EVIDENCE.json` and `tools/documentation_contract.py` distinguish current Task 15 proof from historical retained evidence. | Keep evidence synchronized after future implementation work. |
-| Release | No release/tag created; publication is explicitly disabled. | Human acceptance gates remain. |
+| Backend / authority | Build `34775900161` and Task 13 adversarial `34775900129` pass at the exact Task 16 candidate. | Human adversarial review only if separately required. |
+| Transactions / privacy | Transaction security `34775900154` and Windows/Linux integrity `34775900126` pass. | Human usability/consent observation where applicable. |
+| Database operations / recovery | Release operations `34775900148` passes backup/checksum/fresh restore/rollback, writer/schema/tamper rejection and restored reconnect in disposable PostgreSQL. | Production retention/access/DR policy and deployment remain operator decisions. |
+| Progression | Live progression `34775900143` passes after the Task 16 reconnect-evidence regression fix. | First-hour pacing and class/combat feel. |
+| World / quests / economy | Core/adversarial/database gates pass. | Ordinary-account traversal and subjective balance/economic feel. |
+| Multiplayer | Graphical multiplayer `34775900159` passes with two independent graphical clients plus protocol/restart checks. | Owner two-client usability observations where practical. |
+| Load | Load `34775900163` passes 2/10/25/50 clients. | Production-capacity validation only for a separately advertised capacity. |
+| Windows client | Native compilation/layout run `34775900236` passes. | Physical Windows keyboard/mouse/DPI inspection. |
+| Windows package | `34775900170` passes clean path-with-spaces extraction, packaged restart/reconnect and exported-client launch. Candidate SHA-256 is in `CURRENT_EVIDENCE.json`. | Owner-machine clean package acceptance. |
+| Display / art / audio | Historical Task 14 technical evidence remains pinned to `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. | Physical display, artistic and actual listening approval. |
+| Documentation | Final synchronized head must pass the documentation evidence contract against this baseline. | Human results are added only after the owner reports them. |
+| Release | `publicationReady: false`; no release/tag authorized. | Explicit owner acceptance and separate publication authorization. |
 
-## Release-candidate evidence model
+## Candidate identity
 
-The current Task 15 implementation candidate is `83a99948c7e96ff1ed568b5090b3138294b8e713`. Ten exact-SHA technical workflows succeeded there; exact run IDs are in `docs/handoff/VERIFICATION.md` and `docs/handoff/CURRENT_EVIDENCE.json`.
+The deterministic owner candidate is `Kairnfall-Release-Candidate-2365a0df98be.zip` from workflow run `34775900170`, artifact `10324090750`, with SHA-256 `45e00144c910c0b79daa327c30086bb604896a8a425b9391e57a9340ab61b54e`. It is a CI release-candidate artifact, not a public release.
 
-Task 14's twelve-workflow historical candidate remains `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. Display/input, visual and audio results retained from that candidate keep their original SHA rather than being rewritten as Task 15 results.
+The package manifest and post-CI verification confirm exact source provenance, package/document checksums, actual bundle filenames and the bundled owner-acceptance runbook. Publication remains explicitly false.
 
-The reference load gate covers 2, 10, 25 and 50 simultaneous clients. It is reference CI evidence, not proof of a public production deployment or a higher advertised capacity. The Task 15 recovery drill is likewise disposable-environment recovery evidence, not proof that a production realm, backup schedule or disaster-recovery service is deployed.
+## Historical evidence
 
-Repository-side technical acceptance does not convert the remaining manual gates into passes. A public release remains unapproved until the applicable human/owner-environment decisions are completed against an exact revision/package.
+Task 15 recovery/release-engineering evidence remains pinned to `83a99948c7e96ff1ed568b5090b3138294b8e713`. Task 14 display/input, visual and audio evidence remains pinned to `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. Neither historical set is falsely promoted to Task 16 exact-SHA evidence.
+
+Repository-side technical acceptance does not convert remaining human gates into passes. Do not describe the game as released or approved until the applicable owner checks are actually completed and reported.

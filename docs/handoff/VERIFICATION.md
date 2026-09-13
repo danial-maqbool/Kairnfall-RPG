@@ -2,59 +2,64 @@
 
 Current consolidated status as of 2026-09-13.
 
-Current implementation baseline: `83a99948c7e96ff1ed568b5090b3138294b8e713` on `main`.
+Current Task 16 implementation/candidate baseline: `2365a0df98beca178e22c099f0f31cd5adf65e6e` on `main`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+Owner-machine procedure: `docs/qa/TASK16_OWNER_ACCEPTANCE.md`.
 
-Task 15 is repository-side complete for release engineering and operational recovery. The permanent `src/release-operations.trigger` drives the Task 15 acceptance surface without publishing a release or tag. The accepted technical candidate is `83a99948c7e96ff1ed568b5090b3138294b8e713`. Task 16 was not started.
+Task 16 repository-side preparation is complete at the exact implementation candidate above. Publication and release approval remain blocked until the owner reports the applicable human acceptance results.
 
 **NOT APPROVED — human acceptance remains.**
 
-## Exact Task 15 technical evidence
+## Exact Task 16 automated evidence
 
-All ten Task 15 technical workflows below succeeded against the same implementation baseline `83a99948c7e96ff1ed568b5090b3138294b8e713`:
+All ten required technical workflows succeeded against `2365a0df98beca178e22c099f0f31cd5adf65e6e`:
 
-- Build and verify — run `34772773706`.
-- Task 13 adversarial acceptance — run `34772773717`.
-- Load acceptance — run `34772773733`.
-- Transaction security regression — run `34772773725`.
-- Transaction integrity on Windows and Linux — run `34772773737`.
-- Compile Windows client source — run `34772773709`.
-- Live progression breadth — run `34772773727`.
-- Graphical multiplayer acceptance — run `34772773744`.
-- Windows package acceptance — run `34772773761`.
-- Release operations acceptance — run `34772773748`.
+- Build and verify — run `34775900161` — success.
+- Load acceptance — run `34775900163` — success.
+- Transaction security regression — run `34775900154` — success.
+- Transaction integrity on Windows and Linux — run `34775900126` — success.
+- Compile Windows client source — run `34775900236` — success.
+- Live progression breadth — run `34775900143` — success.
+- Graphical multiplayer acceptance — run `34775900159` — success.
+- Windows package acceptance — run `34775900170` — success.
+- Task 13 adversarial acceptance — run `34775900129` — success.
+- Release operations acceptance — run `34775900148` — success.
 
-Together these runs cover Linux and Windows core builds, malformed input, authoritative adversarial/transaction checks, PostgreSQL/network integration, save conflicts, concurrency, native Windows client compilation, progression, two-client graphical multiplayer, 2/10/25/50-client reference load, clean Windows packaging/start/restart/reconnect, and the Task 15 database recovery/fail-closed drill.
+The 2/10/25/50-client workload remains a reference acceptance target, not a public capacity claim. Recovery checks use disposable PostgreSQL environments and are not a production deployment claim.
 
-## Task 15 operational and package guarantees
+## Deterministic Windows owner-test candidate
 
-`Release operations acceptance` proved, in disposable PostgreSQL 18 databases, that the reusable operations utility can create and verify a checksum-protected backup, restore only into a fresh target, recover the pre-backup realm state, exclude post-backup mutation, reject a second authoritative writer, reject an unsupported future schema history, reject a tampered backup, and reconnect to restored state. The retained CI artifact omits the raw database dump and the drill checks that its disposable database password does not leak into operational logs.
+Windows package run `34775900170` retained Actions artifact `10324090750`, named `windows-package-2365a0df98beca178e22c099f0f31cd5adf65e6e`. Its exact source SHA is the Task 16 baseline.
 
-`Windows package acceptance` proved that the client, server, operations utility and reconnect probe can be published into checksum-manifested archives, combined into a structured release-candidate bundle, extracted from a clean path containing spaces, and exercised through packaged server startup, restart/reconnect persistence and exported-client launch. The structured candidate manifest remains `publicationReady: false`.
+Owner candidate: `Kairnfall-Release-Candidate-2365a0df98be.zip`  
+SHA-256: `45e00144c910c0b79daa327c30086bb604896a8a425b9391e57a9340ab61b54e`
 
-No release or tag was created by Task 15.
+Independent post-CI inspection verified that `RELEASE-CANDIDATE.sha256` matches the candidate ZIP; the bundle contains client/server/operations archives, `SHA256SUMS.txt`, `release-candidate.json`, setup/limitations/audit material and `OWNER_ACCEPTANCE.md`; the manifest records Task 16, exact source SHA, workflow run `34775900170`, exact artifact name, and `publicationReady: false`; the bundled owner-runbook hash matches the manifest; and all three inner archive hashes match both `SHA256SUMS.txt` and the manifest.
 
-## Reconnect persistence regression found and fixed
+Inner archive SHA-256 values:
 
-The first Task 15 candidate (`2653b3bab4c2836f84cdc7584d2668a3f3f8089d`) exposed a real failure in `Live progression breadth` run `34771705676`: defensive skill XP could increase after the client considered disconnect complete because the server had not yet removed the character from the active realm.
+- client: `d1a1ac7447a20baad4e9a2077b082aaf0696272c5cf46846f2ae38924f02d72b`
+- server: `e9dde64dd18cb0de02ea57f6263730ece971f6cb58b11d8bdce9604377bada49`
+- operations: `16e115b3fbc3076b830f89d0e568af0c55c47052784c57489c5bdbc32a85488f`
 
-Commit `83a99948c7e96ff1ed568b5090b3138294b8e713` fixes that persistence boundary with an authenticated graceful-disconnect handshake. A normal `GameConnection.DisconnectAsync()` now waits for authoritative server detach/persist completion before returning, while broken-network shutdown still falls back to the existing abort/detection path. The succeeding exact-head `Live progression breadth` run is `34772773727`; no assertion or threshold was weakened.
+The Actions artifact is retained until `2026-09-27T18:57:35Z` according to GitHub metadata. It is a release candidate, not a public release.
 
-## Retained Task 14 evidence provenance
+## Objective Task 16 defects found and closed
 
-Task 14's complete release-candidate matrix remains historical evidence at `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. In particular, the Windows display/input run `34769719092`, visual acceptance run `34769719027`, and audio acceptance run `34769719057` were not relabeled as Task 15 exact-SHA results. They remain valid retained evidence for the unchanged surfaces they exercised, with their original SHA preserved in `CURRENT_EVIDENCE.json`.
+1. Candidate manifest document names disagreed with the files actually renamed into the outer ZIP (`WINDOWS_SETUP.md`/`CANDIDATE_AUDIT.md` versus `SETUP.md`/`AUDIT.md`). The manifest now records actual bundle names and GitHub Actions producer/run/artifact provenance.
+2. The first Task 16 candidate `441f394a32cc131a7490505312f21ddbf6c898d9` failed `Live progression breadth` run `34775147970`. The exact failure showed `heavy_armor` and `endurance` XP increasing after the checkpoint. Root cause was a test assertion requiring exact skill-XP equality even though already in-flight authoritative hostile attacks can award defensive XP before graceful disconnect acknowledgement. The regression now requires every acknowledged per-skill checkpoint and total XP to be retained or exceeded; exact merchant/equipment persistence assertions remain. Final live progression run `34775900143` passes.
+3. The initial Task 16 outer candidate did not carry the permanent owner runbook. The final bundle includes `OWNER_ACCEPTANCE.md` and hashes it in `release-candidate.json`.
 
-## Human acceptance still required before release approval
+No failing production behavior was hidden, no accepted threshold was reduced, and no manual result was fabricated.
 
-1. Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence.
-2. Normal-play progression and class feel.
-3. Independent human adversarial/gameplay acceptance if independent approval is required.
-4. Independent artistic approval at native/in-engine scale.
-5. Full ordinary-account world and quest walkthrough.
-6. Sustained economy and balance feel.
-7. Audio listening approval.
-8. Production-scale load validation if a specific concurrent-player capacity will be advertised.
-9. Physical Windows DPI and hardware-input inspection.
-10. Owner-machine clean Windows package extraction and launch if required for release sign-off.
+## Historical evidence boundary
 
-Automated structural, graphical, hosted, protocol, recovery and same-agent results must not be relabeled as those human approvals or as proof that a public production realm is deployed.
+Task 15 implementation/recovery evidence remains historical at `83a99948c7e96ff1ed568b5090b3138294b8e713` with its original ten workflow run IDs preserved in `CURRENT_EVIDENCE.json`.
+
+Task 14 display/input, visual and technical-audio evidence remains historical at `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`, including Windows display/input `34769719092`, visual acceptance `34769719027`, and audio acceptance `34769719057`. Task 16 did not change product UI/display/rendering/art/audio/input behavior, so those runs are retained honestly rather than relabeled as Task 16 exact-SHA proof.
+
+## Human acceptance still required
+
+The owner must execute `docs/qa/TASK16_OWNER_ACCEPTANCE.md` against the exact recorded candidate and report observed results. Physical Windows DPI/input, real listening, artistic judgement, normal-play pacing/combat/economy feel, and other subjective/owner-machine observations remain unpassed until reported by the owner.
+
+No GitHub release, release tag, public realm, production credential, DNS/certificate, infrastructure provisioning, or player-capacity advertisement is authorized by repository-side completion.

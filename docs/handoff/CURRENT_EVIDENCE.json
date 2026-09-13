@@ -1,33 +1,32 @@
 {
   "schema": 1,
   "statusDate": "2026-09-13",
-  "implementationBaseline": "83a99948c7e96ff1ed568b5090b3138294b8e713",
-  "releaseCandidateBaseline": "83a99948c7e96ff1ed568b5090b3138294b8e713",
-  "productClientBaseline": "83a99948c7e96ff1ed568b5090b3138294b8e713",
-  "releaseCandidateTrigger": "src/release-operations.trigger",
+  "currentTask": 16,
+  "implementationBaseline": "2365a0df98beca178e22c099f0f31cd5adf65e6e",
+  "releaseCandidateBaseline": "2365a0df98beca178e22c099f0f31cd5adf65e6e",
+  "productClientBaseline": "2365a0df98beca178e22c099f0f31cd5adf65e6e",
+  "releaseCandidateTrigger": "src/final-acceptance.trigger",
   "releaseCandidateWorkflowCount": 10,
+  "task15ReleaseCandidateBaseline": "83a99948c7e96ff1ed568b5090b3138294b8e713",
+  "task15ReleaseCandidateTrigger": "src/release-operations.trigger",
+  "task15ReleaseCandidateWorkflowCount": 10,
   "task14ReleaseCandidateBaseline": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a",
   "task14ReleaseCandidateTrigger": "src/release-candidate.trigger",
   "task14ReleaseCandidateWorkflowCount": 12,
   "releaseStatus": "NOT APPROVED — human acceptance remains.",
   "publicationReady": false,
   "releasePublished": false,
-  "referenceLoadClients": [
-    2,
-    10,
-    25,
-    50
-  ],
+  "referenceLoadClients": [2, 10, 25, 50],
   "connectionAdmissionPerMinutePerSource": 120,
   "workflows": [
-    { "name": "Build and verify", "runId": 34772773706, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
-    { "name": "Load acceptance", "runId": 34772773733, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
-    { "name": "Transaction security regression", "runId": 34772773725, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
-    { "name": "Transaction integrity on Windows and Linux", "runId": 34772773737, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
-    { "name": "Compile Windows client source", "runId": 34772773709, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
-    { "name": "Live progression breadth", "runId": 34772773727, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
-    { "name": "Graphical multiplayer acceptance", "runId": 34772773744, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
-    { "name": "Windows package acceptance", "runId": 34772773761, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" }
+    { "name": "Build and verify", "runId": 34775900161, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Load acceptance", "runId": 34775900163, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Transaction security regression", "runId": 34775900154, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Transaction integrity on Windows and Linux", "runId": 34775900126, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Compile Windows client source", "runId": 34775900236, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Live progression breadth", "runId": 34775900143, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Graphical multiplayer acceptance", "runId": 34775900159, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Windows package acceptance", "runId": 34775900170, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" }
   ],
   "task12Workflows": [
     { "name": "Windows display and input acceptance", "runId": 34769719092, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
@@ -35,8 +34,8 @@
     { "name": "Audio acceptance", "runId": 34769719057, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" }
   ],
   "task13Workflows": [
-    { "name": "Task 13 adversarial acceptance", "runId": 34772773717, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
-    { "name": "Build and verify", "runId": 34772773706, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" }
+    { "name": "Task 13 adversarial acceptance", "runId": 34775900129, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Build and verify", "runId": 34775900161, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" }
   ],
   "task14Workflows": [
     { "name": "Build and verify", "runId": 34769719014, "conclusion": "success", "headSha": "d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a" },
@@ -64,6 +63,39 @@
     { "name": "Task 13 adversarial acceptance", "runId": 34772773717, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" },
     { "name": "Release operations acceptance", "runId": 34772773748, "conclusion": "success", "headSha": "83a99948c7e96ff1ed568b5090b3138294b8e713" }
   ],
+  "task16Workflows": [
+    { "name": "Build and verify", "runId": 34775900161, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Load acceptance", "runId": 34775900163, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Transaction security regression", "runId": 34775900154, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Transaction integrity on Windows and Linux", "runId": 34775900126, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Compile Windows client source", "runId": 34775900236, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Live progression breadth", "runId": 34775900143, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Graphical multiplayer acceptance", "runId": 34775900159, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Windows package acceptance", "runId": 34775900170, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Task 13 adversarial acceptance", "runId": 34775900129, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" },
+    { "name": "Release operations acceptance", "runId": 34775900148, "conclusion": "success", "headSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e" }
+  ],
+  "task16OwnerCandidate": {
+    "workflowRunId": 34775900170,
+    "workflowHeadSha": "2365a0df98beca178e22c099f0f31cd5adf65e6e",
+    "actionsArtifactName": "windows-package-2365a0df98beca178e22c099f0f31cd5adf65e6e",
+    "actionsArtifactId": 10324090750,
+    "actionsArtifactDigest": "sha256:4d5067d18b22218e09def26b08a81f82cf185c931cec47b6526d7a594977be3a",
+    "actionsArtifactExpiresAt": "2026-09-27T18:57:35Z",
+    "candidateFile": "Kairnfall-Release-Candidate-2365a0df98be.zip",
+    "candidateBytes": 125489130,
+    "candidateSha256": "45e00144c910c0b79daa327c30086bb604896a8a425b9391e57a9340ab61b54e",
+    "checksumFile": "RELEASE-CANDIDATE.sha256",
+    "manifestFile": "release-candidate.json",
+    "ownerAcceptanceFile": "OWNER_ACCEPTANCE.md",
+    "publicationReady": false
+  },
+  "supersededTask16Attempt": {
+    "headSha": "441f394a32cc131a7490505312f21ddbf6c898d9",
+    "liveProgressionRunId": 34775147970,
+    "conclusion": "failure",
+    "reason": "Reconnect evidence used exact skill-XP equality even though authoritative defensive XP could legitimately advance between the last pre-disconnect snapshot and disconnect acknowledgement; corrected to require every acknowledged checkpoint to be retained or exceeded."
+  },
   "humanOnlyGates": [
     "Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence",
     "Normal-play progression and class feel",
