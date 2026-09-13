@@ -1,19 +1,56 @@
 {
   "schema": 1,
   "statusDate": "2026-09-13",
-  "implementationBaseline": "b28429037bb9ed96d6ec727cb84345445fed177e",
+  "implementationBaseline": "3c4b6195e23f00fd34ae61e861dc7be2a2dadee3",
   "releaseStatus": "NOT APPROVED — human acceptance remains.",
-  "referenceLoadClients": [2, 10, 25, 50],
+  "referenceLoadClients": [
+    2,
+    10,
+    25,
+    50
+  ],
   "connectionAdmissionPerMinutePerSource": 120,
   "workflows": [
-    {"name": "Build and verify", "runId": 34727191151, "conclusion": "success"},
-    {"name": "Load acceptance", "runId": 34727191167, "conclusion": "success"},
-    {"name": "Transaction security regression", "runId": 34727191125, "conclusion": "success"},
-    {"name": "Transaction integrity on Windows and Linux", "runId": 34727191198, "conclusion": "success"},
-    {"name": "Compile Windows client source", "runId": 34727191182, "conclusion": "success"},
-    {"name": "Live progression breadth", "runId": 34727191137, "conclusion": "success"},
-    {"name": "Graphical multiplayer acceptance", "runId": 34727191138, "conclusion": "success"},
-    {"name": "Windows package acceptance", "runId": 34727191153, "conclusion": "success"}
+    {
+      "name": "Build and verify",
+      "runId": 34766126870,
+      "conclusion": "success"
+    },
+    {
+      "name": "Load acceptance",
+      "runId": 34766127780,
+      "conclusion": "success"
+    },
+    {
+      "name": "Transaction security regression",
+      "runId": 34766129605,
+      "conclusion": "success"
+    },
+    {
+      "name": "Transaction integrity on Windows and Linux",
+      "runId": 34766131696,
+      "conclusion": "success"
+    },
+    {
+      "name": "Compile Windows client source",
+      "runId": 34766126897,
+      "conclusion": "success"
+    },
+    {
+      "name": "Live progression breadth",
+      "runId": 34766126854,
+      "conclusion": "success"
+    },
+    {
+      "name": "Graphical multiplayer acceptance",
+      "runId": 34766126887,
+      "conclusion": "success"
+    },
+    {
+      "name": "Windows package acceptance",
+      "runId": 34766126879,
+      "conclusion": "success"
+    }
   ],
   "humanOnlyGates": [
     "Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence",
@@ -25,5 +62,22 @@
     "Production-scale load validation if a specific capacity will be advertised",
     "Physical Windows DPI and hardware-input inspection",
     "Owner-machine clean Windows package extraction and launch if required for release sign-off"
+  ],
+  "task12Workflows": [
+    {
+      "name": "Windows display and input acceptance",
+      "runId": 34766126861,
+      "conclusion": "success"
+    },
+    {
+      "name": "Visual acceptance matrix",
+      "runId": 34766126888,
+      "conclusion": "success"
+    },
+    {
+      "name": "Audio acceptance",
+      "runId": 34766133964,
+      "conclusion": "success"
+    }
   ]
 }

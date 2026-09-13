@@ -2,8 +2,10 @@
 
 Current status as of 2026-09-13.
 
-Current implementation baseline: `b28429037bb9ed96d6ec727cb84345445fed177e` on `main`.
+Current implementation baseline: `3c4b6195e23f00fd34ae61e861dc7be2a2dadee3` on `main`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+
+Task 12 adds synchronous modal cleanup and focus restoration, correct mouse/layer ordering, keyboard-following overflow for all existing pages, context-item cleanup, text/display setting resilience and current keybind discovery. See the [Task 12 engineering record](UI_UX_ENGINEERING.md). Task 13 was not started. These are automated engineering results; subjective usability and physical monitor DPI remain human evaluation.
 
 ## Current state
 
