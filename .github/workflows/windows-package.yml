@@ -15,6 +15,7 @@ on:
       - 'tools/complete_skill_icons.py'
       - 'tools/get_godot.py'
       - 'docs/release/**'
+      - 'docs/qa/TASK16_OWNER_ACCEPTANCE.md'
       - '.github/workflows/windows-package.yml'
   pull_request:
   workflow_dispatch:
@@ -99,6 +100,7 @@ jobs:
             --setup docs/release/WINDOWS_SETUP.md `
             --limitations docs/release/KNOWN_LIMITATIONS.md `
             --audit docs/release/CANDIDATE_AUDIT.md `
+            --owner-acceptance docs/qa/TASK16_OWNER_ACCEPTANCE.md `
             --evidence docs/handoff/CURRENT_EVIDENCE.json `
             --output artifacts/windows-package/release-candidate.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -108,6 +110,7 @@ jobs:
           Copy-Item docs/release/WINDOWS_SETUP.md "$bundle/SETUP.md"
           Copy-Item docs/release/KNOWN_LIMITATIONS.md "$bundle/KNOWN_LIMITATIONS.md"
           Copy-Item docs/release/CANDIDATE_AUDIT.md "$bundle/AUDIT.md"
+          Copy-Item docs/qa/TASK16_OWNER_ACCEPTANCE.md "$bundle/OWNER_ACCEPTANCE.md"
           $short=$env:GITHUB_SHA.Substring(0,12)
           $candidate="artifacts/windows-package/Kairnfall-Release-Candidate-$short.zip"
           Compress-Archive -Path "$bundle/*" -DestinationPath $candidate -Force
@@ -178,7 +181,7 @@ jobs:
           Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
           & (Join-Path $env:pg_bin 'pg_ctl.exe') -D $env:pg_cluster stop -m fast
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          'WINDOWS_PACKAGE_ACCEPTANCE: client server and operations archives were produced; client/server extracted into a fresh path with spaces; client launched outside source; packaged server restart and reconnect persistence passed; candidate manifest remains non-publishable.' | Tee-Object artifacts/windows-package/acceptance.log
+          'WINDOWS_PACKAGE_ACCEPTANCE: client server and operations archives were produced; client/server extracted into a fresh path with spaces; client launched outside source; packaged server restart and reconnect persistence passed; owner runbook bundled; candidate manifest remains non-publishable.' | Tee-Object artifacts/windows-package/acceptance.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

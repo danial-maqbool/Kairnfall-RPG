@@ -71,6 +71,7 @@ def main() -> int:
     parser.add_argument("--setup", type=Path, required=True)
     parser.add_argument("--limitations", type=Path, required=True)
     parser.add_argument("--audit", type=Path, required=True)
+    parser.add_argument("--owner-acceptance", type=Path, required=True)
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -107,6 +108,7 @@ def main() -> int:
         "setup": entry(args.setup, "SETUP.md"),
         "knownLimitations": entry(args.limitations, "KNOWN_LIMITATIONS.md"),
         "audit": entry(args.audit, "AUDIT.md"),
+        "ownerAcceptance": entry(args.owner_acceptance, "OWNER_ACCEPTANCE.md"),
     }
     manifest = {
         "schema": 1,
@@ -122,6 +124,8 @@ def main() -> int:
         "documents": documents,
         "ownerAcceptance": {
             "repositoryPath": "docs/qa/TASK16_OWNER_ACCEPTANCE.md",
+            "bundleFile": "OWNER_ACCEPTANCE.md",
+            "sha256": documents["ownerAcceptance"]["sha256"],
             "required": True,
             "resultsMayBeRecordedOnlyAfterHumanObservation": True,
         },
@@ -139,7 +143,7 @@ def main() -> int:
     )
     print(
         "RELEASE_MANIFEST_OK: "
-        f"source={manifest['sourceSha']}; task=16; packages={len(packages)}; "
+        f"source={manifest['sourceSha']}; task=16; packages={len(packages)}; documents={len(documents)}; "
         f"producer={manifest['provenance']['producer']}; publicationReady=false"
     )
     return 0
