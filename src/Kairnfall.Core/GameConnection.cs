@@ -185,8 +185,6 @@ public sealed class GameConnection : IAsyncDisposable
                 }
             }
         }
-        // Abort may dispose the socket between the state check and ReceiveAsync.
-        // Only an explicitly cancelled receiver can treat that disposal as shutdown.
         catch (Exception error) when (ExpectedReceiveShutdown(error, cancel)) { }
         catch (Exception error) when (error is WebSocketException or JsonException or RuleException or IOException)
         {
@@ -202,6 +200,13 @@ public sealed class GameConnection : IAsyncDisposable
     }
     public async Task DisconnectAsync()
     {
+        string character=CharacterId;
+        if(connected&&token!=""&&character!="")
+        {
+            using var graceful=new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            try { using var response=await http.PostAsync("api/disconnect/"+Uri.EscapeDataString(character),null,graceful.Token); }
+            catch(Exception error) when(error is HttpRequestException or OperationCanceledException) { }
+        }
         connected = false;
         sessionCancel?.Cancel(); socket?.Abort();
         if (receiver is not null) { try { await receiver; } catch (OperationCanceledException) { } receiver = null; }

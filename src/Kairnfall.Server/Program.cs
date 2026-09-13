@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text.Json;
@@ -43,6 +44,7 @@ builder.Services.AddSingleton(Catalog.Load(catalogPath));
 builder.Services.AddSingleton<RealmHost>();
 builder.Services.AddHostedService(provider=>provider.GetRequiredService<RealmHost>());
 var app=builder.Build();
+var disconnectWaiters=new ConcurrentDictionary<string,TaskCompletionSource<bool>>(StringComparer.Ordinal);
 bool localHttp=Environment.GetEnvironmentVariable("KAIRNFALL_ALLOW_LOCAL_HTTP")=="1"&&(app.Environment.IsDevelopment()||app.Environment.IsEnvironment("Testing"));
 app.Use(async(context,next)=>
 {
@@ -97,6 +99,25 @@ app.MapPost("/api/logout",async(AccountStore accounts,RealmHost realm,HttpContex
     var token=Bearer(context); var fingerprint=AccountStore.Fingerprint(token);
     if(token is null||fingerprint is null) return Results.Unauthorized();
     await accounts.RevokeAsync(token,context.RequestAborted); realm.RevokeConnections(Convert.ToHexString(fingerprint));
+    return Results.NoContent();
+}).RequireRateLimiting("api");
+app.MapPost("/api/disconnect/{character}",async(string character,AccountStore accounts,RealmHost realm,HttpContext context)=>
+{
+    var session=await Session(context,accounts); if(session is null) return Results.Unauthorized();
+    if(!Guid.TryParseExact(character,"N",out _)) throw new RuleException("Invalid character connection identifier.");
+    bool active=await realm.ReadAsync(r=>
+    {
+        var player=r.Player(character);
+        if(player.Account!=session.AccountId) throw new RuleException("This character does not belong to the signed-in account.");
+        return r.Active.Contains(character);
+    },context.RequestAborted);
+    if(!active) return Results.NoContent();
+    var waiter=disconnectWaiters.GetOrAdd(character,_=>new(TaskCreationOptions.RunContinuationsAsynchronously));
+    realm.RevokeConnections(session.TokenFingerprint);
+    using var timeout=CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
+    timeout.CancelAfter(TimeSpan.FromSeconds(10));
+    try { await waiter.Task.WaitAsync(timeout.Token); }
+    finally { disconnectWaiters.TryRemove(character,out _); }
     return Results.NoContent();
 }).RequireRateLimiting("api");
 app.MapGet("/api/characters",async(AccountStore accounts,RealmHost realm,HttpContext context)=>
@@ -158,6 +179,7 @@ app.Map("/play",async(HttpContext context,AccountStore accounts,RealmHost realm)
         {
             using var cleanup=new CancellationTokenSource(TimeSpan.FromSeconds(10));
             try { await realm.DetachAsync(peer,cleanup.Token); } catch(OperationCanceledException) { }
+            if(disconnectWaiters.TryGetValue(peer.CharacterId,out var waiter)) waiter.TrySetResult(true);
             peer.Dispose();
         }
         socket.Abort();
