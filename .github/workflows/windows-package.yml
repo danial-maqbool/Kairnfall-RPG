@@ -8,10 +8,13 @@ on:
       - 'content/**'
       - 'content_src/**'
       - 'tools/package_probe/**'
+      - 'tools/operations/**'
+      - 'tools/release_manifest.py'
       - 'tools/build_content.py'
       - 'tools/build_game_assets.py'
       - 'tools/complete_skill_icons.py'
       - 'tools/get_godot.py'
+      - 'docs/release/**'
       - '.github/workflows/windows-package.yml'
   pull_request:
   workflow_dispatch:
@@ -37,7 +40,7 @@ jobs:
       - name: Generate content assets and verified export toolchain
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force artifacts/windows-package,build/client,build/server,build/probe | Out-Null
+          New-Item -ItemType Directory -Force artifacts/windows-package,build/client,build/server,build/probe,build/operations | Out-Null
           python -m pip install Pillow==12.0.0
           python tools/build_content.py 2>&1 | Tee-Object artifacts/windows-package/content.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -49,7 +52,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/get_godot.py --os windows --with-templates 2>&1 | Tee-Object artifacts/windows-package/godot.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Export client and publish server plus reconnect probe
+      - name: Export client and publish server operations and reconnect probe
         shell: pwsh
         run: |
           & $env:GODOT_BIN --headless --editor --path client --import 2>&1 | Tee-Object artifacts/windows-package/import.log
@@ -60,15 +63,18 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet publish tools/package_probe/Kairnfall.PackageProbe.csproj -c Release -r win-x64 --self-contained false -o build/probe 2>&1 | Tee-Object artifacts/windows-package/probe-publish.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet publish tools/operations/Kairnfall.Operations.csproj -c Release -r win-x64 --self-contained false -o build/operations 2>&1 | Tee-Object artifacts/windows-package/operations-publish.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path build/client/Kairnfall.exe)) { throw 'Exported Kairnfall.exe is missing.' }
           if (-not (Test-Path build/server/Kairnfall.Server.exe)) { throw 'Published Kairnfall.Server.exe is missing.' }
           if (-not (Test-Path build/probe/Kairnfall.PackageProbe.exe)) { throw 'Published package probe is missing.' }
+          if (-not (Test-Path build/operations/Kairnfall.Operations.exe)) { throw 'Published operations utility is missing.' }
       - name: Create package manifests and archives
         shell: pwsh
         run: |
           function Write-Manifest($root,$path) {
             $lines = Get-ChildItem $root -File -Recurse | Sort-Object FullName | ForEach-Object {
-              $relative = [IO.Path]::GetRelativePath((Resolve-Path $root),$_.FullName).Replace('\','/')
+              $relative = [IO.Path]::GetRelativePath((Resolve-Path $root),$_.FullName).Replace('\\','/')
               $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
               "$hash  $relative"
             }
@@ -76,18 +82,45 @@ jobs:
           }
           Write-Manifest build/client artifacts/windows-package/client-files.sha256
           Write-Manifest build/server artifacts/windows-package/server-files.sha256
+          Write-Manifest build/operations artifacts/windows-package/operations-files.sha256
           Compress-Archive -Path build/client/* -DestinationPath artifacts/windows-package/Kairnfall-Windows-Client.zip -Force
           Compress-Archive -Path build/server/* -DestinationPath artifacts/windows-package/Kairnfall-Windows-Server.zip -Force
-          $archives = 'Kairnfall-Windows-Client.zip','Kairnfall-Windows-Server.zip'
+          Compress-Archive -Path build/operations/* -DestinationPath artifacts/windows-package/Kairnfall-Windows-Operations.zip -Force
+          $archives = 'Kairnfall-Windows-Client.zip','Kairnfall-Windows-Server.zip','Kairnfall-Windows-Operations.zip'
           $archives | ForEach-Object { "{0}  {1}" -f (Get-FileHash "artifacts/windows-package/$_" -Algorithm SHA256).Hash.ToLowerInvariant(),$_ } | Set-Content artifacts/windows-package/SHA256SUMS.txt -Encoding utf8NoBOM
+      - name: Build non-publishable release candidate bundle
+        shell: pwsh
+        run: |
+          python tools/release_manifest.py --source-sha $env:GITHUB_SHA `
+            --client artifacts/windows-package/Kairnfall-Windows-Client.zip `
+            --server artifacts/windows-package/Kairnfall-Windows-Server.zip `
+            --operations artifacts/windows-package/Kairnfall-Windows-Operations.zip `
+            --checksums artifacts/windows-package/SHA256SUMS.txt `
+            --setup docs/release/WINDOWS_SETUP.md `
+            --limitations docs/release/KNOWN_LIMITATIONS.md `
+            --audit docs/release/CANDIDATE_AUDIT.md `
+            --evidence docs/handoff/CURRENT_EVIDENCE.json `
+            --output artifacts/windows-package/release-candidate.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $bundle='artifacts/windows-package/release-candidate-bundle'
+          New-Item -ItemType Directory -Force $bundle | Out-Null
+          Copy-Item artifacts/windows-package/Kairnfall-Windows-Client.zip,artifacts/windows-package/Kairnfall-Windows-Server.zip,artifacts/windows-package/Kairnfall-Windows-Operations.zip,artifacts/windows-package/SHA256SUMS.txt,artifacts/windows-package/release-candidate.json $bundle
+          Copy-Item docs/release/WINDOWS_SETUP.md "$bundle/SETUP.md"
+          Copy-Item docs/release/KNOWN_LIMITATIONS.md "$bundle/KNOWN_LIMITATIONS.md"
+          Copy-Item docs/release/CANDIDATE_AUDIT.md "$bundle/AUDIT.md"
+          $short=$env:GITHUB_SHA.Substring(0,12)
+          $candidate="artifacts/windows-package/Kairnfall-Release-Candidate-$short.zip"
+          Compress-Archive -Path "$bundle/*" -DestinationPath $candidate -Force
+          "{0}  {1}" -f (Get-FileHash $candidate -Algorithm SHA256).Hash.ToLowerInvariant(),(Split-Path $candidate -Leaf) | Set-Content artifacts/windows-package/RELEASE-CANDIDATE.sha256 -Encoding utf8NoBOM
       - name: Extract into a clean path with spaces
         shell: pwsh
         run: |
           $fresh = Join-Path $env:RUNNER_TEMP 'Kairnfall Fresh Package'
           Remove-Item $fresh -Recurse -Force -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force "$fresh/client","$fresh/server","$fresh/probe" | Out-Null
+          New-Item -ItemType Directory -Force "$fresh/client","$fresh/server","$fresh/probe","$fresh/operations" | Out-Null
           Expand-Archive artifacts/windows-package/Kairnfall-Windows-Client.zip "$fresh/client"
           Expand-Archive artifacts/windows-package/Kairnfall-Windows-Server.zip "$fresh/server"
+          Expand-Archive artifacts/windows-package/Kairnfall-Windows-Operations.zip "$fresh/operations"
           Copy-Item build/probe/* "$fresh/probe" -Recurse
           if (Get-ChildItem $fresh -Recurse -Include *.cs,*.csproj,project.godot) { throw 'Source/project files leaked into the clean runtime package.' }
           "fresh_path=$fresh" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -145,7 +178,7 @@ jobs:
           Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
           & (Join-Path $env:pg_bin 'pg_ctl.exe') -D $env:pg_cluster stop -m fast
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          'WINDOWS_PACKAGE_ACCEPTANCE: client and server extracted into a fresh path with spaces; client launched outside source; packaged server restart and reconnect persistence passed.' | Tee-Object artifacts/windows-package/acceptance.log
+          'WINDOWS_PACKAGE_ACCEPTANCE: client server and operations archives were produced; client/server extracted into a fresh path with spaces; client launched outside source; packaged server restart and reconnect persistence passed; candidate manifest remains non-publishable.' | Tee-Object artifacts/windows-package/acceptance.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

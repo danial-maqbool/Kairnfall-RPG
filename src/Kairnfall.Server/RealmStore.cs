@@ -8,15 +8,37 @@ namespace Kairnfall.Server;
 
 public sealed class RealmStore(NpgsqlDataSource source) : IAsyncDisposable
 {
+    public const int CurrentSchemaVersion=1;
     private NpgsqlConnection? lease;
     private const long RealmLock=0x4B4149524E46414C;
+    private const long SchemaLock=0x4B4149524E534348;
+
+    public static bool IsSupportedSchemaHistory(IEnumerable<int> versions)
+        => versions.SequenceEqual(Enumerable.Range(1,CurrentSchemaVersion));
+
     public async Task InitializeAsync(CancellationToken cancel)
     {
         await using var connection=await source.OpenConnectionAsync(cancel);
         await using var transaction=await connection.BeginTransactionAsync(cancel);
-        const string schema="""
+        await using(var schemaLock=new NpgsqlCommand("SELECT pg_advisory_xact_lock($1)",connection,transaction))
+        {
+            schemaLock.Parameters.AddWithValue(SchemaLock);
+            await schemaLock.ExecuteNonQueryAsync(cancel);
+        }
+        await using(var versionTable=new NpgsqlCommand("""
             CREATE TABLE IF NOT EXISTS schema_versions (
               version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
+            """,connection,transaction))
+            await versionTable.ExecuteNonQueryAsync(cancel);
+
+        var versions=new List<int>();
+        await using(var versionCommand=new NpgsqlCommand("SELECT version FROM schema_versions ORDER BY version",connection,transaction))
+        await using(var reader=await versionCommand.ExecuteReaderAsync(cancel))
+            while(await reader.ReadAsync(cancel)) versions.Add(reader.GetInt32(0));
+        if(versions.Count>0&&!IsSupportedSchemaHistory(versions))
+            throw new InvalidOperationException($"Unsupported database schema history [{string.Join(',',versions)}]. This server requires versions 1..{CurrentSchemaVersion}; refusing startup without an explicit migration.");
+
+        const string schema="""
             CREATE TABLE IF NOT EXISTS accounts (
               id uuid PRIMARY KEY, username varchar(24) NOT NULL UNIQUE,
               password_hash bytea NOT NULL, password_salt bytea NOT NULL,
