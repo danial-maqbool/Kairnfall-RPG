@@ -5,18 +5,24 @@ Current status as of 2026-09-13.
 Repository: `https://github.com/danial-maqbool/Kairnfall-RPG`  
 Branch: single authoritative `main`  
 Stack: Godot 4.7.2 .NET, C#, .NET 10 authoritative server, PostgreSQL  
-Current implementation baseline: `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`  
+Current implementation baseline: `83a99948c7e96ff1ed568b5090b3138294b8e713`  
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`
 
-Task 14 is repository-side complete. The permanent `src/release-candidate.trigger` makes it possible to run the accepted automation matrix against one exact source SHA, and all twelve technical gates passed at the current candidate baseline. See `docs/qa/RELEASE_CANDIDATE_ACCEPTANCE.md`. Task 15 was not started.
+Task 15 is repository-side complete. The permanent `src/release-operations.trigger` represents release engineering and operational recovery without publishing a release/tag. Ten technical workflows passed at the exact Task 15 implementation baseline. Task 16 was not started.
 
 **NOT APPROVED — human acceptance remains.**
 
 ## Current evidence
 
-Exact Task 14 source baseline: `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. `CURRENT_EVIDENCE.json` and `VERIFICATION.md` record the twelve successful exact-SHA run IDs spanning build/adversarial authority, transactions, load, Windows client/package/display, progression, graphical multiplayer, visual acceptance and technical audio.
+Exact Task 15 implementation baseline: `83a99948c7e96ff1ed568b5090b3138294b8e713`. `CURRENT_EVIDENCE.json` and `VERIFICATION.md` record the ten successful exact-SHA run IDs spanning build/adversarial authority, transactions, load, Windows client/package, progression, graphical multiplayer and release operations.
 
-This is repository-side automation. It must not be described as independent approval, artistic approval, listening approval, physical-hardware approval, production-capacity proof or evidence that a public realm is deployed.
+Release operations prove disposable PostgreSQL backup/verify/fresh-restore, rollback boundary, duplicate-writer and future-schema fail-closed behavior, tamper rejection and restored reconnect. Windows packaging includes a client archive, server archive, operations archive, checksums, setup/limitations/audit material and a structured manifest that remains `publicationReady: false`.
+
+The initial Task 15 candidate exposed a real reconnect-persistence race; `83a99948c7e96ff1ed568b5090b3138294b8e713` adds an authenticated graceful-disconnect acknowledgment so normal client disconnect completion follows authoritative detach/persist. Live progression passed at run `34772773727`.
+
+Task 14 Windows display/input, visual and technical-audio evidence remains pinned to `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. Do not relabel historical evidence as Task 15 exact-SHA proof.
+
+This is repository-side automation. It must not be described as independent approval, artistic approval, listening approval, physical-hardware approval, production-capacity proof, production disaster-recovery proof, or evidence that a public realm is deployed.
 
 ## Local acceptance work still requiring humans/owner hardware
 
@@ -42,4 +48,4 @@ pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1 -Smoke
 pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1
 ```
 
-`tools/documentation_contract.py` compares `CURRENT_EVIDENCE.json` with the latest non-documentation implementation commit and validates the Task 14 exact workflow set, sentinel, synchronized date/baseline and release boundary.
+`tools/documentation_contract.py` compares `CURRENT_EVIDENCE.json` with the latest non-documentation implementation commit, validates the exact Task 15 run set, preserves Task 14 historical evidence provenance, validates both permanent sentinels and preserves the human-acceptance boundary.

@@ -9,7 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "docs" / "handoff" / "CURRENT_EVIDENCE.json"
-RELEASE_CANDIDATE = ROOT / "src" / "release-candidate.trigger"
+TASK14_SENTINEL = ROOT / "src" / "release-candidate.trigger"
+TASK15_SENTINEL = ROOT / "src" / "release-operations.trigger"
 CURRENT_DOCS = [
     ROOT / "docs" / "handoff" / "VERIFICATION.md",
     ROOT / "docs" / "FINAL_AUDIT.md",
@@ -17,6 +18,7 @@ CURRENT_DOCS = [
     ROOT / "docs" / "handoff" / "HANDOFF.md",
     ROOT / "docs" / "SESSION_STATUS.md",
     ROOT / "docs" / "handoff" / "LOCAL_AGENT_PROMPT.md",
+    ROOT / "docs" / "release" / "CANDIDATE_AUDIT.md",
 ]
 EXPECTED_WORKFLOWS = {
     "Build and verify",
@@ -35,11 +37,14 @@ EXPECTED_TASK12_WORKFLOWS = {
 }
 EXPECTED_TASK13_WORKFLOWS = {"Task 13 adversarial acceptance", "Build and verify"}
 EXPECTED_TASK14_WORKFLOWS = EXPECTED_WORKFLOWS | EXPECTED_TASK12_WORKFLOWS | {"Task 13 adversarial acceptance"}
+EXPECTED_TASK15_WORKFLOWS = EXPECTED_WORKFLOWS | {"Task 13 adversarial acceptance", "Release operations acceptance"}
 STALE_MARKERS = (
     "Current status as of 2026-09-11",
     "Current consolidated status as of 2026-09-11",
     "4/8/16-client",
     "Task 14 was not started",
+    "Task 15 was not started",
+    "will record exact Task 15 workflow evidence",
 )
 
 
@@ -71,23 +76,43 @@ def validate_run_set(label: str, items: list[dict], expected: set[str], baseline
     if any(item.get("conclusion") != "success" for item in items):
         fail(f"{label} may contain only successful workflow evidence.")
     if any(item.get("headSha") != baseline for item in items):
-        fail(f"{label} must point every workflow at implementation baseline {baseline}.")
+        fail(f"{label} must point every workflow at evidence baseline {baseline}.")
+
+
+def load_sentinel(path: Path, task: int, release_status: str) -> None:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if value.get("schema") != 1 or value.get("task") != task:
+        fail(f"{path.relative_to(ROOT)} must remain the Task {task} schema-1 sentinel.")
+    if value.get("releaseStatus") != release_status:
+        fail(f"{path.relative_to(ROOT)} changed the human-acceptance boundary.")
 
 
 def main() -> int:
     evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
     if evidence.get("schema") != 1:
         fail("CURRENT_EVIDENCE.json schema must be 1.")
+
     baseline = evidence.get("implementationBaseline", "")
     actual = latest_implementation_commit()
     if baseline != actual:
         fail(f"Current evidence is stale: ledger baseline {baseline!r}, latest implementation {actual!r}.")
+
+    task14_baseline = evidence.get("task14ReleaseCandidateBaseline", "")
+    if len(task14_baseline) != 40:
+        fail("Task 14 historical release-candidate baseline is missing.")
     if evidence.get("releaseCandidateBaseline") != baseline:
-        fail("Task 14 release-candidate baseline must equal the implementation baseline.")
-    if evidence.get("releaseCandidateTrigger") != "src/release-candidate.trigger":
-        fail("Task 14 release-candidate trigger path drifted.")
-    if evidence.get("releaseCandidateWorkflowCount") != len(EXPECTED_TASK14_WORKFLOWS):
-        fail("Task 14 release-candidate workflow count drifted.")
+        fail("Task 15 release-candidate baseline must equal the current implementation baseline.")
+    if evidence.get("productClientBaseline") != baseline:
+        fail("The current packaged-client baseline must equal the Task 15 implementation baseline.")
+    if evidence.get("releaseCandidateTrigger") != "src/release-operations.trigger":
+        fail("Task 15 release-operations trigger path drifted.")
+    if evidence.get("releaseCandidateWorkflowCount") != len(EXPECTED_TASK15_WORKFLOWS):
+        fail("Task 15 release-candidate workflow count drifted.")
+    if evidence.get("task14ReleaseCandidateTrigger") != "src/release-candidate.trigger":
+        fail("Task 14 historical release-candidate trigger path drifted.")
+    if evidence.get("task14ReleaseCandidateWorkflowCount") != len(EXPECTED_TASK14_WORKFLOWS):
+        fail("Task 14 historical workflow count drifted.")
+
     if evidence.get("referenceLoadClients") != [2, 10, 25, 50]:
         fail("Reference load evidence must match the retained 2/10/25/50-client acceptance gate.")
     if evidence.get("connectionAdmissionPerMinutePerSource") != 120:
@@ -96,18 +121,18 @@ def main() -> int:
     release_status = evidence.get("releaseStatus", "")
     if release_status != "NOT APPROVED — human acceptance remains.":
         fail("The machine-readable release status must preserve the human-acceptance boundary.")
+    if evidence.get("publicationReady") is not False or evidence.get("releasePublished") is not False:
+        fail("Task 15 evidence must remain explicitly non-published until human acceptance.")
 
-    validate_run_set("Canonical evidence", evidence.get("workflows", []), EXPECTED_WORKFLOWS, baseline)
-    validate_run_set("Task 12 retained gate evidence", evidence.get("task12Workflows", []), EXPECTED_TASK12_WORKFLOWS, baseline)
-    validate_run_set("Task 13 gate evidence", evidence.get("task13Workflows", []), EXPECTED_TASK13_WORKFLOWS, baseline)
-    task14 = evidence.get("task14Workflows", [])
-    validate_run_set("Task 14 release-candidate evidence", task14, EXPECTED_TASK14_WORKFLOWS, baseline)
+    validate_run_set("Canonical Task 15 evidence", evidence.get("workflows", []), EXPECTED_WORKFLOWS, baseline)
+    validate_run_set("Task 12 retained historical evidence", evidence.get("task12Workflows", []), EXPECTED_TASK12_WORKFLOWS, task14_baseline)
+    validate_run_set("Task 13 current gate evidence", evidence.get("task13Workflows", []), EXPECTED_TASK13_WORKFLOWS, baseline)
+    validate_run_set("Task 14 historical release-candidate evidence", evidence.get("task14Workflows", []), EXPECTED_TASK14_WORKFLOWS, task14_baseline)
+    task15 = evidence.get("task15Workflows", [])
+    validate_run_set("Task 15 release-operations evidence", task15, EXPECTED_TASK15_WORKFLOWS, baseline)
 
-    candidate = json.loads(RELEASE_CANDIDATE.read_text(encoding="utf-8"))
-    if candidate.get("schema") != 1 or candidate.get("task") != 14:
-        fail("src/release-candidate.trigger must remain the Task 14 schema-1 sentinel.")
-    if candidate.get("releaseStatus") != release_status:
-        fail("Release-candidate sentinel changed the human-acceptance boundary.")
+    load_sentinel(TASK14_SENTINEL, 14, release_status)
+    load_sentinel(TASK15_SENTINEL, 15, release_status)
 
     for path in CURRENT_DOCS:
         text = path.read_text(encoding="utf-8")
@@ -124,13 +149,16 @@ def main() -> int:
                 fail(f"{path.relative_to(ROOT)} contains stale current-status marker: {marker}")
 
     verification = CURRENT_DOCS[0].read_text(encoding="utf-8")
-    for item in task14:
+    for item in task15:
         if str(item["runId"]) not in verification:
-            fail(f"VERIFICATION.md is missing Task 14 run {item['runId']} ({item['name']}).")
+            fail(f"VERIFICATION.md is missing Task 15 run {item['runId']} ({item['name']}).")
+    if task14_baseline not in verification:
+        fail("VERIFICATION.md must retain the Task 14 historical baseline for visual/display/audio provenance.")
 
     print(
         f"DOCUMENTATION_CONTRACT: baseline={baseline}; current_docs={len(CURRENT_DOCS)}; "
-        f"task14_workflows={len(task14)}; release=human-acceptance-pending"
+        f"task15_workflows={len(task15)}; retained_task14={len(evidence.get('task14Workflows', []))}; "
+        "release=human-acceptance-pending"
     )
     return 0
 

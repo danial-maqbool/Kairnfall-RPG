@@ -2,37 +2,47 @@
 
 Current consolidated status as of 2026-09-13.
 
-Current implementation baseline: `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a` on `main`.
+Current implementation baseline: `83a99948c7e96ff1ed568b5090b3138294b8e713` on `main`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Task 14 adds a permanent release-candidate sentinel that forces the accepted automated matrix onto one exact source revision. Detailed scope and evidence are in `docs/qa/RELEASE_CANDIDATE_ACCEPTANCE.md`. Task 15 was not started.
+Task 15 is repository-side complete for release engineering and operational recovery. The permanent `src/release-operations.trigger` drives the Task 15 acceptance surface without publishing a release or tag. The accepted technical candidate is `83a99948c7e96ff1ed568b5090b3138294b8e713`. Task 16 was not started.
 
 **NOT APPROVED — human acceptance remains.**
 
-## Exact Task 14 release-candidate evidence
+## Exact Task 15 technical evidence
 
-All twelve technical workflows below succeeded against the same source baseline `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`:
+All ten Task 15 technical workflows below succeeded against the same implementation baseline `83a99948c7e96ff1ed568b5090b3138294b8e713`:
 
-- Build and verify — run `34769719014`.
-- Task 13 adversarial acceptance — run `34769719025`.
-- Load acceptance — run `34769719010`.
-- Transaction security regression — run `34769719021`.
-- Transaction integrity on Windows and Linux — run `34769719029`.
-- Compile Windows client source — run `34769719013`.
-- Live progression breadth — run `34769719053`.
-- Graphical multiplayer acceptance — run `34769719082`.
-- Windows package acceptance — run `34769719040`.
-- Windows display and input acceptance — run `34769719092`.
-- Visual acceptance matrix — run `34769719027`.
-- Audio acceptance — run `34769719057`.
+- Build and verify — run `34772773706`.
+- Task 13 adversarial acceptance — run `34772773717`.
+- Load acceptance — run `34772773733`.
+- Transaction security regression — run `34772773725`.
+- Transaction integrity on Windows and Linux — run `34772773737`.
+- Compile Windows client source — run `34772773709`.
+- Live progression breadth — run `34772773727`.
+- Graphical multiplayer acceptance — run `34772773744`.
+- Windows package acceptance — run `34772773761`.
+- Release operations acceptance — run `34772773748`.
 
-Together these runs cover Linux and Windows core builds, malformed input, authoritative adversarial/transaction checks, PostgreSQL/network integration, save conflicts, world/persistence/social behavior, concurrency, native Windows client and Godot contracts, progression, two-client graphical multiplayer, package export/restart/reconnect, 2/10/25/50-client reference load, Windows display/input, structural/native visual evidence and technical audio validation.
+Together these runs cover Linux and Windows core builds, malformed input, authoritative adversarial/transaction checks, PostgreSQL/network integration, save conflicts, concurrency, native Windows client compilation, progression, two-client graphical multiplayer, 2/10/25/50-client reference load, clean Windows packaging/start/restart/reconnect, and the Task 15 database recovery/fail-closed drill.
 
-## Task 14 mechanism
+## Task 15 operational and package guarantees
 
-`src/release-candidate.trigger` is a permanent schema-1 sentinel. Existing accepted workflows already watched `src/**` except Windows display/input, visual acceptance and audio acceptance; those three workflows now explicitly watch the sentinel. The Task 14 implementation changed acceptance triggering only. It did not weaken tests, change accepted thresholds, or alter gameplay/content/art behavior.
+`Release operations acceptance` proved, in disposable PostgreSQL 18 databases, that the reusable operations utility can create and verify a checksum-protected backup, restore only into a fresh target, recover the pre-backup realm state, exclude post-backup mutation, reject a second authoritative writer, reject an unsupported future schema history, reject a tampered backup, and reconnect to restored state. The retained CI artifact omits the raw database dump and the drill checks that its disposable database password does not leak into operational logs.
 
-The source-candidate documentation run `34769719035` failed closed because `CURRENT_EVIDENCE.json` still named the Task 13 baseline. Its log reports only that baseline mismatch. This is expected evidence sequencing, not a technical candidate failure. The synchronized documentation delivery commit is separately required to pass the contract at its exact head.
+`Windows package acceptance` proved that the client, server, operations utility and reconnect probe can be published into checksum-manifested archives, combined into a structured release-candidate bundle, extracted from a clean path containing spaces, and exercised through packaged server startup, restart/reconnect persistence and exported-client launch. The structured candidate manifest remains `publicationReady: false`.
+
+No release or tag was created by Task 15.
+
+## Reconnect persistence regression found and fixed
+
+The first Task 15 candidate (`2653b3bab4c2836f84cdc7584d2668a3f3f8089d`) exposed a real failure in `Live progression breadth` run `34771705676`: defensive skill XP could increase after the client considered disconnect complete because the server had not yet removed the character from the active realm.
+
+Commit `83a99948c7e96ff1ed568b5090b3138294b8e713` fixes that persistence boundary with an authenticated graceful-disconnect handshake. A normal `GameConnection.DisconnectAsync()` now waits for authoritative server detach/persist completion before returning, while broken-network shutdown still falls back to the existing abort/detection path. The succeeding exact-head `Live progression breadth` run is `34772773727`; no assertion or threshold was weakened.
+
+## Retained Task 14 evidence provenance
+
+Task 14's complete release-candidate matrix remains historical evidence at `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a`. In particular, the Windows display/input run `34769719092`, visual acceptance run `34769719027`, and audio acceptance run `34769719057` were not relabeled as Task 15 exact-SHA results. They remain valid retained evidence for the unchanged surfaces they exercised, with their original SHA preserved in `CURRENT_EVIDENCE.json`.
 
 ## Human acceptance still required before release approval
 
@@ -47,4 +57,4 @@ The source-candidate documentation run `34769719035` failed closed because `CURR
 9. Physical Windows DPI and hardware-input inspection.
 10. Owner-machine clean Windows package extraction and launch if required for release sign-off.
 
-Automated structural, graphical, emulated, protocol and same-agent results must not be relabeled as those human approvals.
+Automated structural, graphical, hosted, protocol, recovery and same-agent results must not be relabeled as those human approvals or as proof that a public production realm is deployed.
