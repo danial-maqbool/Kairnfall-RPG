@@ -1,21 +1,30 @@
 # Kairnfall current source handoff
 
-Current status as of 2026-09-11.
+Current status as of 2026-09-13.
 
-Use the live `main` branch as the only authoritative source line. Historical dated handoff files under this directory preserve earlier failures and repair checkpoints, but they are not the current implementation status.
+Use the live `main` branch as the only authoritative source line. Current implementation baseline: `b28429037bb9ed96d6ec727cb84345445fed177e`.
+Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Implementation baseline audited before the documentation-only Task 11 consolidation: `defec56aadf5bc01289b4c7ec8c0e422b918624f`.
+Historical dated files under `docs/handoff/` preserve earlier failures and repair checkpoints at their original revisions; they are not the current implementation status.
+
+**NOT APPROVED — human acceptance remains.**
 
 ## Current project state
 
-Repository-side implementation and automated acceptance are complete for Tasks 2–10. Task 11 is the documentation consolidation. Task 1 is implemented and its final hands-on Windows XP/HUD gameplay verification is intentionally deferred to the owner.
+The Godot/.NET client, authoritative .NET server, PostgreSQL persistence, deterministic content/art pipeline and retained gameplay/Windows acceptance infrastructure are integrated on `main`.
 
-`docs/handoff/VERIFICATION.md` is the current evidence record.
-`docs/QA_MATRIX.md` defines the current automated/human gate split.
-`docs/FINAL_AUDIT.md` contains the release decision.
-`docs/requirements/ACCEPTED_REQUIREMENTS.md` remains the accepted product scope.
+Current technical evidence includes:
 
-**Release status remains NOT APPROVED because human acceptance gates remain.**
+- Linux and Windows core, gameplay/malformed-input, world/progression and PostgreSQL/network suites.
+- Authoritative concurrency and save-conflict coverage.
+- Adversarial transaction security plus Windows/Linux transaction-integrity runs.
+- Native Windows client compilation/contracts.
+- Graphical progression and two-independent-client shared-world acceptance.
+- Clean Windows package export, extraction in a path with spaces, launch, restart/reconnect and SHA-256 manifests.
+- Staged 2/10/25/50-client load/reconnect acceptance with resource measurements.
+- Per-source unauthenticated `/play` admission bounded to 120/minute before handshake work, with real-network 429 regression coverage.
+
+Exact successful run IDs for the current baseline are in `CURRENT_EVIDENCE.json` and `VERIFICATION.md`.
 
 ## One checkout
 
@@ -28,68 +37,22 @@ git status --short
 git rev-parse HEAD
 ```
 
-For an existing checkout, preserve unrelated local work and then update `main` without force-resetting or deleting saves/settings.
-
-Do not recreate historical `team/*` branches. New work should remain on the single intended `main` line unless the owner explicitly changes that policy.
+For an existing checkout, preserve unrelated local work and update `main` without force-resetting or deleting saves/settings. Do not recreate historical `team/*` branches unless the owner explicitly changes the single-main policy.
 
 ## Canonical source and asset flow
 
 ```text
 content_src/* -> tools/build_content.py -> content/catalog.json
 tools/art/* -> tools/build_game_assets.py -> client/Assets/*
-atelier/Assets + tools/integrate_atelier.py -> checksum-verified humanoid/equipment/NPC cohort in client/Assets
+atelier/Assets + tools/integrate_atelier.py -> checksum-verified humanoid/equipment/NPC cohort
 tools/complete_skill_icons.py -> complete skill icon set
 tools/validate_game_assets.py -> structural/checksum/reference/audio validation
 tools/review_visual_art.py -> review evidence, never artistic approval
 ```
 
-The refined Atelier player renderer is checked in under `atelier/forge/refined_body.py`. Permanent visual verification regenerates the 12 player body sheets and requires source/output parity. The temporary workflow that wrote generated body assets back to `main` has been removed.
-
-## Current verified automated coverage
-
-### Progression and classes
-
-- 60/60 skills are exercised through real authoritative activity routes.
-- Skill XP, level transitions, Character XP contribution, unlock thresholds and persistence are checked.
-- 8/8 class kits and 120 class abilities are exercised through real effect handlers.
-- Task 2 final CI: run `34550409865` on `d2eb494ff9f3dacc4e3e7fecab811ab7883ddc7a`.
-
-### Character and creature visuals
-
-- 12 shipped base player variants.
-- 13 visible equipment slots with isolated review sheets.
-- 100 normal creatures, 25 elites and 20 bosses.
-- Idle/walk/attack/cast/hit/death coverage in four directions.
-- Boss review cells preserve 128×128 poses without clipping.
-- Refined player source/asset parity is enforced.
-- Final Task 3 baseline `defec56aadf5bc01289b4c7ec8c0e422b918624f` passed build run `34555269188`, visual matrix `34555269207`, and exact visual review `34555269185`.
-
-### World and quests
-
-- Automated world audit covers 109 zone-anchor checks.
-- Automated quest audit covers 166 quest-anchor checks.
-- Dynamic resources such as skinned carcasses are classified separately from static seeded nodes.
-
-### Economy and audio
-
-- Economy audit checks authored price spreads, crafting value relationships, tier progression, rarity distribution, gold sinks and boss-drop design.
-- All 22 runtime WAV files pass technical format/duration/peak/RMS/DC/clipping/loop-boundary analysis.
-
-### Multiplayer
-
-- Two separate graphical Godot clients authenticate, enter the shared world, exchange local chat, move using keyboard input and observe peer movement.
-- Retained protocol suites cover party, trade, loot ownership, reconnect and server restart.
-- Graphical multiplayer acceptance run `34534712045` passed.
-
-### Load and Windows
-
-- Reference load gate exercises 4, 8 and 16 active clients in staged windows and records tick/snapshot latency, DB commits, RSS and CPU.
-- Native Windows display/input automation covers keyboard/mouse plus 125%/150% scale emulation at 1280×720 and 1920×1080 for HUD, XP bars, inventory/equipment, crafting, minimap and map.
-- Windows package CI exports with the pinned Godot .NET toolchain/templates, copies client/server to a clean path containing spaces, launches outside the source tree, restarts/reconnects and creates SHA-256 manifests.
-
 ## Local development setup
 
-Install the repository's documented Git, Python, PowerShell, .NET and Docker prerequisites. The project bootstrap uses the verified Godot 4.7.2 .NET toolchain and matching export templates.
+Install the documented Git, Python, PowerShell, .NET and Docker prerequisites. The project uses Godot 4.7.2 .NET and matching export templates.
 
 Typical Windows development flow:
 
@@ -101,28 +64,26 @@ pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1 -Smoke
 pwsh -NoProfile -File .\Run-Kairnfall-Dev.ps1
 ```
 
-Development database and integration-test database remain separate. Preserve `.local/database.json` with its corresponding local Docker volumes. Never run destructive test commands against personal or production player data.
+Development and destructive integration-test databases remain separate. Preserve `.local/database.json` with its matching local Docker volumes. Never point destructive tests at personal or production player data.
 
 ## Human acceptance still pending
 
-The following remain human/owner acceptance rather than missing repository implementation:
-
-1. Task 1 final Windows XP/HUD gameplay pass, including visible progression pacing and reconnect/restart persistence.
-2. Normal-play feel across skills/classes.
+1. Owner Windows XP/HUD gameplay and reconnect/restart persistence pass.
+2. Normal-play progression and class feel.
 3. Independent artistic approval of player/equipment/creature presentation.
 4. Full ordinary-account world/quest/objective/resource/boss traversal.
 5. Sustained economy/balance feel.
 6. Audio listening approval.
-7. Production-scale load target if a specific concurrent-player capacity will be advertised.
-8. Physical Windows monitor DPI/input review.
-9. Owner-machine clean package extraction/launch if required by the release process.
+7. Production-scale load validation if a specific concurrent-player capacity will be advertised.
+8. Physical Windows DPI/hardware-input review.
+9. Owner-machine clean package extraction/launch if required for release sign-off.
 
-Do not convert these to passed solely because their corresponding structural, graphical, emulated, protocol or CI checks are green.
+Do not convert these to passed solely because structural, graphical, emulated, protocol or CI checks are green.
 
-## Evidence policy
+## Evidence and documentation policy
 
-Record exact commit SHA, relevant workflow/run IDs, OS/tool versions, failures, fixes and artifact locations. Keep sensitive credentials, account data, private Windows paths and database contents out of committed evidence.
+`docs/handoff/VERIFICATION.md` is the narrative current evidence authority; `docs/handoff/CURRENT_EVIDENCE.json` is its machine-readable counterpart. `docs/QA_MATRIX.md` defines the automated/human gate split and `docs/FINAL_AUDIT.md` carries the release decision.
 
-Historical September 7–9 handoff documents remain available for provenance. They include statements that were true at their own revisions—such as missing client work, untested DPI/load/package gates, or failed setup downloads—but those statements are superseded for current status by `VERIFICATION.md`, `QA_MATRIX.md`, and `FINAL_AUDIT.md`.
+`tools/documentation_contract.py` compares the evidence baseline with the latest non-documentation implementation commit and checks all current-facing status files for synchronized date, baseline and release boundary. `.github/workflows/documentation-contract.yml` runs it on every push.
 
-When future acceptance changes, update those three current-status files together.
+Future technical work must update the current evidence ledger when the implementation baseline changes. Keep credentials, tokens, private paths, private chat/account data and database contents out of committed evidence.

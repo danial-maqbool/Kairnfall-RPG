@@ -1,0 +1,19 @@
+name: Documentation evidence contract
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  current-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify current evidence matches implementation
+        run: python3 tools/documentation_contract.py

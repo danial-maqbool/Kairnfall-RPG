@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "statusDate": "2026-09-13",
+  "implementationBaseline": "b28429037bb9ed96d6ec727cb84345445fed177e",
+  "releaseStatus": "NOT APPROVED — human acceptance remains.",
+  "referenceLoadClients": [2, 10, 25, 50],
+  "connectionAdmissionPerMinutePerSource": 120,
+  "workflows": [
+    {"name": "Build and verify", "runId": 34727191151, "conclusion": "success"},
+    {"name": "Load acceptance", "runId": 34727191167, "conclusion": "success"},
+    {"name": "Transaction security regression", "runId": 34727191125, "conclusion": "success"},
+    {"name": "Transaction integrity on Windows and Linux", "runId": 34727191198, "conclusion": "success"},
+    {"name": "Compile Windows client source", "runId": 34727191182, "conclusion": "success"},
+    {"name": "Live progression breadth", "runId": 34727191137, "conclusion": "success"},
+    {"name": "Graphical multiplayer acceptance", "runId": 34727191138, "conclusion": "success"},
+    {"name": "Windows package acceptance", "runId": 34727191153, "conclusion": "success"}
+  ],
+  "humanOnlyGates": [
+    "Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence",
+    "Normal-play progression and class feel",
+    "Independent artistic approval at native/in-engine scale",
+    "Full ordinary-account world and quest walkthrough",
+    "Sustained economy and balance feel",
+    "Audio listening approval",
+    "Production-scale load validation if a specific capacity will be advertised",
+    "Physical Windows DPI and hardware-input inspection",
+    "Owner-machine clean Windows package extraction and launch if required for release sign-off"
+  ]
+}
