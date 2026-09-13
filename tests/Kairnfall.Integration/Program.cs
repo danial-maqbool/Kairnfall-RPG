@@ -329,6 +329,18 @@ try
         using var request=new HttpRequestMessage(HttpMethod.Get,"api/characters"); request.Headers.Authorization=new("Bearer",bobSession!.Token);
         using var response=await http.SendAsync(request,cancel); Check(response.StatusCode==HttpStatusCode.Unauthorized,"A revoked token remained usable.");
     });
+    await Test("Unauthenticated play admission is rate limited before handshake work",async()=>
+    {
+        bool admitted=false,limited=false;
+        for(int attempt=0;attempt<140&&!limited;attempt++)
+        {
+            using var response=await http.GetAsync("play",cancel);
+            admitted|=response.StatusCode==HttpStatusCode.BadRequest;
+            limited|=response.StatusCode==HttpStatusCode.TooManyRequests;
+        }
+        Check(admitted,"The play endpoint rejected normal admission before reaching its WebSocket validation.");
+        Check(limited,"Repeated unauthenticated play admission never reached the per-source connection limit.");
+    });
     var diagnostics=await http.GetStringAsync("health",cancel);
     File.WriteAllText("artifacts/test-results/network-diagnostics.json",diagnostics);
 }
