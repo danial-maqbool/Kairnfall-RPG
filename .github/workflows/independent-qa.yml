@@ -1,4 +1,4 @@
-name: Independent adversarial acceptance
+name: Task 13 adversarial acceptance
 on:
   push:
     branches: [main]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: independent-qa-${{ github.ref }}
+  group: task13-adversarial-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   adversarial:
@@ -39,27 +39,27 @@ jobs:
       - name: Generate deterministic content
         run: |
           mkdir -p artifacts/logs artifacts/test-results
-          python3 tools/build_content.py | tee artifacts/logs/independent-content.log
+          python3 tools/build_content.py | tee artifacts/logs/task13-content.log
       - name: Compile audited source and test projects
-        run: dotnet build Kairnfall.slnx -c Release | tee artifacts/logs/independent-build.log
+        run: dotnet build Kairnfall.slnx -c Release | tee artifacts/logs/task13-build.log
       - name: Run Task 13 adversarial acceptance scenarios
-        run: dotnet run --no-build --project tests/IndependentQA/IndependentQA.csproj -c Release -- content/catalog.json | tee artifacts/logs/independent-qa.log
+        run: dotnet run --no-build --project tests/IndependentQA/IndependentQA.csproj -c Release -- content/catalog.json | tee artifacts/logs/task13-adversarial.log
       - name: Re-run transaction consent and privacy security regressions
-        run: dotnet run --no-build --project tests/Kairnfall.SecurityTests/Kairnfall.SecurityTests.csproj -c Release -- content/catalog.json | tee artifacts/logs/independent-security.log
+        run: dotnet run --no-build --project tests/Kairnfall.SecurityTests/Kairnfall.SecurityTests.csproj -c Release -- content/catalog.json | tee artifacts/logs/task13-security.log
       - name: Re-run gameplay and malformed-input review suite
-        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release | tee artifacts/logs/independent-review.log
+        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release | tee artifacts/logs/task13-review.log
       - name: Re-run world reachability, persistence, and social checks
-        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee artifacts/logs/independent-world.log
+        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee artifacts/logs/task13-world.log
       - name: Re-run authoritative concurrency checks
-        run: dotnet run --no-build --project tools/concurrency_probe/Kairnfall.ConcurrencyProbe.csproj -c Release -- content/catalog.json | tee artifacts/logs/independent-concurrency.log
+        run: dotnet run --no-build --project tools/concurrency_probe/Kairnfall.ConcurrencyProbe.csproj -c Release -- content/catalog.json | tee artifacts/logs/task13-concurrency.log
       - name: Re-run PostgreSQL and real-network integration checks
-        run: dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release | tee artifacts/logs/independent-network.log
+        run: dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release | tee artifacts/logs/task13-network.log
       - name: Re-run isolated PostgreSQL save-conflict checks
-        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database | tee artifacts/logs/independent-database.log
+        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database | tee artifacts/logs/task13-database.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: independent-adversarial-evidence-${{ github.sha }}
+          name: task13-adversarial-evidence-${{ github.sha }}
           path: |
             artifacts/test-results/
             artifacts/logs/
