@@ -1,7 +1,11 @@
-# Start the local handoff here
+# Kairnfall handoff
 
-Read [the source handoff](docs/handoff/HANDOFF.md), [local requirements](docs/LOCAL_REQUIREMENTS.md),
-and [the local agent prompt](docs/handoff/LOCAL_AGENT_PROMPT.md).
+Current status as of 2026-09-14. Current Task 17 implementation baseline: `fdb0f1570d2d4519aec66cf091952d6170a6fe68` on the single authoritative `main` branch. Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
-Use `handoff/local-qa`. This checkpoint consolidates source for local testing and repair.
-It is not a completed MMORPG release. Preserve the accepted requirements and all unresolved acceptance gates.
+**NOT APPROVED — human acceptance remains.**
+
+Start with `docs/handoff/HANDOFF.md`, `docs/handoff/VERIFICATION.md`, `docs/SESSION_STATUS.md`, and `docs/TASK17_WORLD_DENSITY.md`.
+
+Task 17 repository implementation is complete at the baseline above and preserves the existing overworld footprint while increasing settlement and quest density. Historical Task 16 evidence remains at `2365a0df98beca178e22c099f0f31cd5adf65e6e`.
+
+After verifying the synchronized Task 17 delivery head, continue Task 18 on `main`; do not create permanent feature branches or relabel historical workflow evidence.
