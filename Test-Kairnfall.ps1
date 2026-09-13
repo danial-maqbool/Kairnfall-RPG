@@ -32,11 +32,12 @@ try {
     Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.Tests/Kairnfall.Tests.csproj', '-c', 'Release', '--', 'content/catalog.json')
     Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj', '-c', 'Release')
     Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.SecurityTests/Kairnfall.SecurityTests.csproj', '-c', 'Release', '--', 'content/catalog.json')
+    Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/IndependentQA/IndependentQA.csproj', '-c', 'Release', '--', 'content/catalog.json')
     Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tools/concurrency_probe/Kairnfall.ConcurrencyProbe.csproj', '-c', 'Release', '--', 'content/catalog.json')
     if ($WithDatabase) {
         Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.Integration/Kairnfall.Integration.csproj', '-c', 'Release')
         Invoke-CheckedNative -File $dotnet.Source -Arguments @('run', '--no-build', '--project', 'tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj', '-c', 'Release', '--', '--database')
     }
-    Write-Host 'Requested test suites passed. JSON reports are in artifacts/test-results. Security and concurrency results are printed to the console.'
+    Write-Host 'Requested test suites passed. JSON reports are in artifacts/test-results. Security, independent QA, and concurrency results are printed to the console.'
 }
 finally { Pop-Location }
