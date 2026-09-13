@@ -20,13 +20,15 @@ public partial class EquipmentItemSlot : ItemSlot
         MouseFilter = MouseFilterEnum.Stop;
     }
 
+    protected override void ActivateFromKeyboard() => Activated?.Invoke();
+
     public override void _GuiInput(InputEvent input)
     {
         if (input is InputEventKey { Pressed: true, Echo: false } key
             && (key.Keycode is Key.Enter or Key.Space || key.PhysicalKeycode is Key.Enter or Key.Space))
         {
             AcceptEvent();
-            Activated?.Invoke();
+            ActivateFromKeyboard();
             return;
         }
         if (input is not InputEventMouseButton mouse) return;

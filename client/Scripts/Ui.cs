@@ -165,16 +165,29 @@ public partial class ItemSlot : Control
             DrawString(ThemeDB.FallbackFont, new Vector2(4, Size.Y - 4), count, HorizontalAlignment.Right, Size.X - 8, 13, Ui.Text);
         }
     }
+    protected virtual void ActivateFromKeyboard() => Clicked?.Invoke();
+    private static bool IsKeyboardActivation(InputEvent @event)
+        => @event is InputEventKey { Pressed: true, Echo: false } key
+            && (key.Keycode is Key.Enter or Key.Space || key.PhysicalKeycode is Key.Enter or Key.Space);
     public override void _GuiInput(InputEvent @event)
     {
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
         {
             GrabFocus(); Clicked?.Invoke(); AcceptEvent(); return;
         }
-        if (@event is InputEventKey { Pressed: true, Echo: false } key && key.Keycode is Key.Enter or Key.Space)
+        if (IsKeyboardActivation(@event))
         {
-            Clicked?.Invoke(); AcceptEvent();
+            ActivateFromKeyboard(); AcceptEvent();
         }
+    }
+    public override void _UnhandledKeyInput(InputEvent @event)
+    {
+        // A focused custom Control should receive activation through _GuiInput. Keep a
+        // focused-only fallback for native/headless keyboard routing before gameplay
+        // _UnhandledInput so Space/Enter never leak into world actions.
+        if (!HasFocus() || !IsKeyboardActivation(@event)) return;
+        ActivateFromKeyboard();
+        GetViewport().SetInputAsHandled();
     }
     public override Variant _GetDragData(Vector2 position)
     {
