@@ -1,7 +1,8 @@
 {
   "schema": 1,
-  "statusDate": "2026-09-13",
+  "statusDate": "2026-09-14",
   "currentTask": 16,
+  "repositorySideTask16Closed": true,
   "implementationBaseline": "2365a0df98beca178e22c099f0f31cd5adf65e6e",
   "releaseCandidateBaseline": "2365a0df98beca178e22c099f0f31cd5adf65e6e",
   "productClientBaseline": "2365a0df98beca178e22c099f0f31cd5adf65e6e",
@@ -16,6 +17,16 @@
   "releaseStatus": "NOT APPROVED — human acceptance remains.",
   "publicationReady": false,
   "releasePublished": false,
+  "ownerDecision": {
+    "date": "2026-09-14",
+    "decision": "ACCEPTED_REPOSITORY_CHANGES",
+    "statement": "Owner accepted the Task 16 repository changes and requested closure of remaining repository-side work.",
+    "manualChecklistResultsProvided": false,
+    "manualChecklistPassesRecorded": 0,
+    "fullReleaseAcceptanceComplete": false,
+    "publicationAuthorized": false,
+    "task17Authorized": false
+  },
   "referenceLoadClients": [2, 10, 25, 50],
   "connectionAdmissionPerMinutePerSource": 120,
   "workflows": [
