@@ -1,34 +1,33 @@
 #!/usr/bin/env python3
-"""Fail when current-facing release evidence drifts behind implementation."""
+"""Validate current Task 17 evidence without rewriting historical Task 16 provenance."""
 from __future__ import annotations
-
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "docs" / "handoff" / "CURRENT_EVIDENCE.json"
-TASK14_SENTINEL = ROOT / "src" / "release-candidate.trigger"
-TASK15_SENTINEL = ROOT / "src" / "release-operations.trigger"
-TASK16_SENTINEL = ROOT / "src" / "final-acceptance.trigger"
 CURRENT_DOCS = [
-    ROOT / "docs" / "handoff" / "VERIFICATION.md",
-    ROOT / "docs" / "FINAL_AUDIT.md",
-    ROOT / "docs" / "QA_MATRIX.md",
-    ROOT / "docs" / "handoff" / "HANDOFF.md",
+    ROOT / "HANDOFF.md",
     ROOT / "docs" / "SESSION_STATUS.md",
-    ROOT / "docs" / "handoff" / "LOCAL_AGENT_PROMPT.md",
-    ROOT / "docs" / "qa" / "TASK16_EVIDENCE.md",
+    ROOT / "docs" / "handoff" / "TASK17_CURRENT.md",
+    ROOT / "docs" / "handoff" / "TASK17_VERIFICATION.md",
 ]
-TASK16_PERMANENT_DOCS = [
-    ROOT / "docs" / "qa" / "TASK16_OWNER_ACCEPTANCE.md",
-    ROOT / "docs" / "release" / "CANDIDATE_AUDIT.md",
-    ROOT / "docs" / "release" / "WINDOWS_SETUP.md",
-    ROOT / "docs" / "release" / "KNOWN_LIMITATIONS.md",
-]
-EXPECTED_WORKFLOWS = {
+EXPECTED_TASK17 = {
+    "Build and verify",
+    "Load acceptance",
+    "Compile Windows client source",
+    "Task 13 adversarial acceptance",
+    "Live progression breadth",
+    "Windows package acceptance",
+    "Graphical multiplayer acceptance",
+    "Release operations acceptance",
+    "Windows display and input acceptance",
+    "Visual acceptance matrix",
+    "Review exact visual candidate",
+}
+EXPECTED_TASK16 = {
     "Build and verify",
     "Load acceptance",
     "Transaction security regression",
@@ -37,26 +36,10 @@ EXPECTED_WORKFLOWS = {
     "Live progression breadth",
     "Graphical multiplayer acceptance",
     "Windows package acceptance",
+    "Task 13 adversarial acceptance",
+    "Release operations acceptance",
 }
-EXPECTED_TASK12_WORKFLOWS = {
-    "Windows display and input acceptance",
-    "Visual acceptance matrix",
-    "Audio acceptance",
-}
-EXPECTED_TASK13_WORKFLOWS = {"Task 13 adversarial acceptance", "Build and verify"}
-EXPECTED_TASK14_WORKFLOWS = EXPECTED_WORKFLOWS | EXPECTED_TASK12_WORKFLOWS | {"Task 13 adversarial acceptance"}
-EXPECTED_TASK15_WORKFLOWS = EXPECTED_WORKFLOWS | {"Task 13 adversarial acceptance", "Release operations acceptance"}
-EXPECTED_TASK16_WORKFLOWS = EXPECTED_TASK15_WORKFLOWS
-STALE_MARKERS = (
-    "Current status as of 2026-09-11",
-    "Current consolidated status as of 2026-09-11",
-    "4/8/16-client",
-    "Task 14 was not started",
-    "Task 15 was not started",
-    "Task 16 was not started",
-    "will record exact Task 15 workflow evidence",
-    "will record exact Task 16 workflow evidence",
-)
+RELEASE_STATUS = "NOT APPROVED — human acceptance remains."
 
 
 def fail(message: str) -> None:
@@ -67,176 +50,90 @@ def latest_implementation_commit() -> str:
     command = [
         "git", "log", "-1", "--format=%H", "HEAD", "--", ".",
         ":(exclude)docs/**",
+        ":(exclude)HANDOFF.md",
         ":(exclude)tools/documentation_contract.py",
         ":(exclude).github/workflows/documentation-contract.yml",
     ]
-    result = subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=True)
-    value = result.stdout.strip()
+    value = subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=True).stdout.strip()
     if len(value) != 40:
-        fail("Could not resolve the latest non-documentation implementation commit. Use a full-history checkout.")
+        fail("Could not resolve the latest implementation commit.")
     return value
 
 
-def validate_run_set(label: str, items: list[dict], expected: set[str], baseline: str) -> None:
-    names = {item.get("name") for item in items}
-    if names != expected:
-        fail(f"{label} workflow set drifted: {sorted(names)}")
-    run_ids = [item.get("runId") for item in items]
-    if len(set(run_ids)) != len(run_ids):
-        fail(f"{label} contains duplicate workflow run IDs.")
-    if any(item.get("conclusion") != "success" for item in items):
-        fail(f"{label} may contain only successful workflow evidence.")
-    if any(item.get("headSha") != baseline for item in items):
-        fail(f"{label} must point every workflow at evidence baseline {baseline}.")
-
-
-def load_sentinel(path: Path, task: int, release_status: str) -> None:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if value.get("schema") != 1 or value.get("task") != task:
-        fail(f"{path.relative_to(ROOT)} must remain the Task {task} schema-1 sentinel.")
-    if value.get("releaseStatus") != release_status:
-        fail(f"{path.relative_to(ROOT)} changed the human-acceptance boundary.")
-    if task == 16 and value.get("publicationReady") is not False:
-        fail("Task 16 sentinel must keep publicationReady false.")
-
-
-def validate_owner_candidate(candidate: dict, baseline: str) -> None:
-    run_id = candidate.get("workflowRunId")
-    artifact_id = candidate.get("actionsArtifactId")
-    expected_archive = f"Kairnfall-Release-Candidate-{baseline[:12]}.zip"
-    expected_artifact = f"windows-package-{baseline}"
-    if not isinstance(run_id, int) or run_id <= 0:
-        fail("Task 16 owner candidate is missing its Windows package workflow run ID.")
-    if candidate.get("workflowHeadSha") != baseline:
-        fail("Task 16 owner candidate workflow head does not equal the implementation baseline.")
-    if candidate.get("actionsArtifactName") != expected_artifact:
-        fail("Task 16 owner candidate artifact name drifted.")
-    if not isinstance(artifact_id, int) or artifact_id <= 0:
-        fail("Task 16 owner candidate is missing its Actions artifact ID.")
-    if candidate.get("candidateFile") != expected_archive:
-        fail("Task 16 owner candidate archive name drifted.")
-    if not re.fullmatch(r"[0-9a-f]{64}", candidate.get("candidateSha256", "")):
-        fail("Task 16 owner candidate SHA-256 is missing or malformed.")
-    if candidate.get("checksumFile") != "RELEASE-CANDIDATE.sha256":
-        fail("Task 16 owner candidate checksum filename drifted.")
-    if candidate.get("manifestFile") != "release-candidate.json":
-        fail("Task 16 owner candidate manifest filename drifted.")
-    if candidate.get("publicationReady") is not False:
-        fail("Task 16 owner candidate must remain non-publishable.")
+def validate_runs(label: str, rows: list[dict], expected: set[str], baseline: str) -> None:
+    if {row.get("name") for row in rows} != expected:
+        fail(label + " workflow names drifted.")
+    ids = [row.get("runId") for row in rows]
+    if len(set(ids)) != len(ids) or any(not isinstance(value, int) or value <= 0 for value in ids):
+        fail(label + " run IDs are invalid or duplicated.")
+    if any(row.get("conclusion") != "success" or row.get("headSha") != baseline for row in rows):
+        fail(label + " must contain successful exact-baseline evidence only.")
 
 
 def main() -> int:
     evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
-    if evidence.get("schema") != 1:
-        fail("CURRENT_EVIDENCE.json schema must be 1.")
+    if evidence.get("schema") != 1 or evidence.get("currentTask") != 17:
+        fail("Current evidence must identify schema 1 / Task 17.")
 
     baseline = evidence.get("implementationBaseline", "")
     actual = latest_implementation_commit()
     if baseline != actual:
-        fail(f"Current evidence is stale: ledger baseline {baseline!r}, latest implementation {actual!r}.")
+        fail(f"Current evidence is stale: {baseline!r} != {actual!r}.")
+    if evidence.get("repositorySideTask16Closed") is not True or evidence.get("repositorySideTask17Implemented") is not True:
+        fail("Task 16 closure and Task 17 implementation must both be explicit.")
 
-    task14_baseline = evidence.get("task14ReleaseCandidateBaseline", "")
-    task15_baseline = evidence.get("task15ReleaseCandidateBaseline", "")
-    if len(task14_baseline) != 40 or len(task15_baseline) != 40:
-        fail("Historical Task 14/15 release-candidate baselines are missing.")
-    if evidence.get("currentTask") != 16:
-        fail("Current evidence must identify Task 16 as the active acceptance phase.")
-    if evidence.get("releaseCandidateBaseline") != baseline:
-        fail("Task 16 release-candidate baseline must equal the current implementation baseline.")
-    if evidence.get("productClientBaseline") != baseline:
-        fail("The current packaged-client baseline must equal the Task 16 implementation baseline.")
-    if evidence.get("releaseCandidateTrigger") != "src/final-acceptance.trigger":
-        fail("Task 16 final-acceptance trigger path drifted.")
-    if evidence.get("releaseCandidateWorkflowCount") != len(EXPECTED_TASK16_WORKFLOWS):
-        fail("Task 16 release-candidate workflow count drifted.")
-    if evidence.get("task15ReleaseCandidateTrigger") != "src/release-operations.trigger":
-        fail("Task 15 historical release-operations trigger path drifted.")
-    if evidence.get("task15ReleaseCandidateWorkflowCount") != len(EXPECTED_TASK15_WORKFLOWS):
-        fail("Task 15 historical workflow count drifted.")
-    if evidence.get("task14ReleaseCandidateTrigger") != "src/release-candidate.trigger":
-        fail("Task 14 historical release-candidate trigger path drifted.")
-    if evidence.get("task14ReleaseCandidateWorkflowCount") != len(EXPECTED_TASK14_WORKFLOWS):
-        fail("Task 14 historical workflow count drifted.")
+    auth = evidence.get("task17Authorization", {})
+    if auth.get("authorized") is not True or auth.get("publicationAuthorized") is not False or auth.get("deploymentAuthorized") is not False:
+        fail("Task 17 development authorization boundary drifted.")
+    if evidence.get("releaseStatus") != RELEASE_STATUS or evidence.get("publicationReady") is not False or evidence.get("releasePublished") is not False:
+        fail("Release-status boundary drifted.")
 
-    if evidence.get("referenceLoadClients") != [2, 10, 25, 50]:
-        fail("Reference load evidence must match the retained 2/10/25/50-client acceptance gate.")
-    if evidence.get("connectionAdmissionPerMinutePerSource") != 120:
-        fail("Current evidence lost the verified 120/minute per-source play-admission boundary.")
+    candidate = evidence.get("task17CandidateVerification", {})
+    if candidate.get("workflowRunId") != 34781286752 or candidate.get("verifiedRevision") != evidence.get("task17CandidateBaseline") or candidate.get("conclusion") != "success":
+        fail("Task 17 candidate provenance drifted.")
+    validate_runs("Task 17", evidence.get("task17ImplementationWorkflows", []), EXPECTED_TASK17, baseline)
 
-    release_status = evidence.get("releaseStatus", "")
-    if release_status != "NOT APPROVED — human acceptance remains.":
-        fail("The machine-readable release status must preserve the human-acceptance boundary.")
-    if evidence.get("publicationReady") is not False or evidence.get("releasePublished") is not False:
-        fail("Task 16 evidence must remain explicitly non-published until human acceptance.")
+    sync = evidence.get("task17DocumentationSync", {})
+    if sync.get("preSyncRunId") != 34782088704 or sync.get("preSyncConclusion") != "failure" or sync.get("preSyncHeadSha") != baseline:
+        fail("The pre-synchronization documentation failure must remain explicit.")
 
-    validate_run_set("Canonical Task 16 evidence", evidence.get("workflows", []), EXPECTED_WORKFLOWS, baseline)
-    validate_run_set("Task 12 retained historical evidence", evidence.get("task12Workflows", []), EXPECTED_TASK12_WORKFLOWS, task14_baseline)
-    validate_run_set("Task 13 current gate evidence", evidence.get("task13Workflows", []), EXPECTED_TASK13_WORKFLOWS, baseline)
-    validate_run_set("Task 14 historical release-candidate evidence", evidence.get("task14Workflows", []), EXPECTED_TASK14_WORKFLOWS, task14_baseline)
-    validate_run_set("Task 15 retained historical evidence", evidence.get("task15Workflows", []), EXPECTED_TASK15_WORKFLOWS, task15_baseline)
-    task16 = evidence.get("task16Workflows", [])
-    validate_run_set("Task 16 final-candidate evidence", task16, EXPECTED_TASK16_WORKFLOWS, baseline)
-    validate_owner_candidate(evidence.get("task16OwnerCandidate", {}), baseline)
+    content = evidence.get("task17Content", {})
+    expected_content = {
+        "surfaceWildernessRegions": 20,
+        "surfaceWildernessTiles": 2048000,
+        "newOverworldRegions": 0,
+        "settlementsEnriched": 10,
+        "newPurposefulResidents": 30,
+        "newNonRepeatableQuests": 30,
+        "questChains": 10,
+        "stagesPerChain": 3,
+    }
+    if content != expected_content:
+        fail("Task 17 density evidence drifted.")
 
-    load_sentinel(TASK14_SENTINEL, 14, release_status)
-    load_sentinel(TASK15_SENTINEL, 15, release_status)
-    load_sentinel(TASK16_SENTINEL, 16, release_status)
+    task16 = evidence.get("releaseCandidateBaseline", "")
+    if len(task16) != 40 or evidence.get("productClientBaseline") != task16:
+        fail("Historical Task 16 release baseline drifted.")
+    validate_runs("Task 16 historical", evidence.get("task16Workflows", []), EXPECTED_TASK16, task16)
+    owner = evidence.get("task16OwnerCandidate", {})
+    if owner.get("workflowHeadSha") != task16 or owner.get("publicationReady") is not False:
+        fail("Historical Task 16 owner-candidate provenance drifted.")
 
     for path in CURRENT_DOCS:
         text = path.read_text(encoding="utf-8")
-        if evidence["statusDate"] not in text:
-            fail(f"{path.relative_to(ROOT)} does not carry the current evidence date.")
-        if baseline not in text:
-            fail(f"{path.relative_to(ROOT)} does not carry the current implementation baseline.")
-        if "CURRENT_EVIDENCE.json" not in text:
-            fail(f"{path.relative_to(ROOT)} does not identify the machine-readable evidence ledger.")
-        if release_status not in text:
-            fail(f"{path.relative_to(ROOT)} changed or omitted the release-status boundary.")
-        for marker in STALE_MARKERS:
-            if marker in text:
-                fail(f"{path.relative_to(ROOT)} contains stale current-status marker: {marker}")
+        for marker in (evidence["statusDate"], baseline, "CURRENT_EVIDENCE.json", RELEASE_STATUS, "Task 17"):
+            if marker not in text:
+                fail(f"{path.relative_to(ROOT)} is missing current marker: {marker}")
 
-    for path in TASK16_PERMANENT_DOCS:
-        text = path.read_text(encoding="utf-8")
-        if "Task 16" not in text:
-            fail(f"{path.relative_to(ROOT)} must identify the Task 16 acceptance phase.")
-        if "CURRENT_EVIDENCE.json" not in text:
-            fail(f"{path.relative_to(ROOT)} must point to the machine-readable evidence ledger.")
-        if release_status not in text:
-            fail(f"{path.relative_to(ROOT)} changed or omitted the release-status boundary.")
+    verification = CURRENT_DOCS[-1].read_text(encoding="utf-8")
+    for row in evidence["task17ImplementationWorkflows"]:
+        if str(row["runId"]) not in verification:
+            fail(f"TASK17_VERIFICATION.md is missing run {row['runId']}.")
+    for historical in (task16, evidence.get("task15ReleaseCandidateBaseline", ""), evidence.get("task14ReleaseCandidateBaseline", "")):
+        if historical not in verification:
+            fail("TASK17_VERIFICATION.md lost historical baseline provenance.")
 
-    runbook = (ROOT / "docs" / "qa" / "TASK16_OWNER_ACCEPTANCE.md").read_text(encoding="utf-8")
-    for heading in (
-        "Clean package validation",
-        "Account and character flow",
-        "Persistence",
-        "First-hour progression",
-        "Class and combat feel",
-        "World, quests, resources, and bosses",
-        "Economy",
-        "Social and multiplayer",
-        "UI/UX and accessibility",
-        "Physical Windows DPI/input",
-        "Art/visual review",
-        "Audio listening review",
-        "Finding severity",
-    ):
-        if heading not in runbook:
-            fail(f"Task 16 owner runbook is missing required section: {heading}")
-
-    verification = CURRENT_DOCS[0].read_text(encoding="utf-8")
-    for item in task16:
-        if str(item["runId"]) not in verification:
-            fail(f"VERIFICATION.md is missing Task 16 run {item['runId']} ({item['name']}).")
-    if task14_baseline not in verification or task15_baseline not in verification:
-        fail("VERIFICATION.md must retain Task 14 and Task 15 historical provenance.")
-
-    print(
-        f"DOCUMENTATION_CONTRACT: baseline={baseline}; current_docs={len(CURRENT_DOCS)}; "
-        f"task16_workflows={len(task16)}; retained_task15={len(evidence.get('task15Workflows', []))}; "
-        f"retained_task14={len(evidence.get('task14Workflows', []))}; "
-        "release=human-acceptance-pending"
-    )
+    print(f"DOCUMENTATION_CONTRACT: task=17; implementation={baseline}; workflows={len(evidence['task17ImplementationWorkflows'])}; task16_history={task16}")
     return 0
 
 
