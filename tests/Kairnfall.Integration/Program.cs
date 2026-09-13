@@ -81,19 +81,25 @@ async Task<CommandResult> Act(GameConnection client,string kind,string target=""
     var result=await client.ActAsync(new(){Kind=kind,Target=target,Item=item,Amount=amount,Arg=arg,X=x,Y=y},cancel);
     Check(result.Ok,kind+": "+result.Message); await State(client,s=>s.Self.LastAction>=result.Sequence); return result;
 }
-async Task Navigate(GameConnection client,Point destination)
+async Task NavigateToInteraction(GameConnection client,Point destination)
 {
     var snapshot=await State(client); string zoneId=snapshot.Self.Zone; var zone=data.Zone(zoneId);
     var route=WorldMap.FindPath(zone,snapshot.Self.Position,destination,zone.Width*zone.Height);
     route.Add(destination); int next=0; var watch=Stopwatch.StartNew();
+    var recentMovement=new Queue<string>();
     while(watch.Elapsed<TimeSpan.FromSeconds(100))
     {
-        snapshot=await State(client); Check(snapshot.Self.Zone==zoneId,$"Navigation crossed an unexpected zone {zoneId} -> {snapshot.Self.Zone} while heading to {destination}.");
+        snapshot=await State(client); Check(snapshot.Self.Zone==zoneId,$"Navigation crossed an unexpected zone {zoneId} -> {snapshot.Self.Zone} while heading to {destination}. Recent route samples: {string.Join("; ",recentMovement)}");
         var position=snapshot.Self.Position;
-        if(position.Distance(destination)<0.7) { await client.MoveAsync(0,0,cancel); return; }
+        if(position.Distance(destination)<=2.15&&WorldMap.LineOfSight(zone,position,destination)) { await client.MoveAsync(0,0,cancel); return; }
+        // Match the real client interaction approach: resource/NPC centers can
+        // coincide with walk-through doors. Stop in visible interaction range
+        // instead of steering onto the trigger before issuing the real command.
         while(next<route.Count-1&&position.Distance(route[next])<0.7) next++;
         var goal=route[Math.Min(next,route.Count-1)]; var direction=position.Direction(goal);
         double scale=Math.Clamp(position.Distance(goal)/0.55,0.25,1);
+        recentMovement.Enqueue($"{position.X:F3},{position.Y:F3} -> waypoint {next} {goal.X:F3},{goal.Y:F3}");
+        if(recentMovement.Count>12) recentMovement.Dequeue();
         await client.MoveAsync(direction.X*scale,direction.Y*scale,cancel);
         await Task.Delay(100,cancel); Pump(client);
     }
@@ -261,14 +267,14 @@ try
     });
     await Test("Movement, resource gathering, crafting, and quest rewards work over the network",async()=>
     {
-        var smith=data.Npc("wayfarers_rest_blacksmith"); await Navigate(alice,smith.Position); await Act(alice,"accept_quest",item:"starter_ore");
+        var smith=data.Npc("wayfarers_rest_blacksmith"); await NavigateToInteraction(alice,smith.Position); await Act(alice,"accept_quest",item:"starter_ore");
         var state=await State(alice);
         var nodes=state.Nodes.Where(x=>x.Template=="copper_vein").OrderBy(x=>x.Id,StringComparer.Ordinal).Take(3).ToList(); Check(nodes.Count==3,"Starter copper nodes are missing.");
         foreach(var node in nodes)
         {
-            await Navigate(alice,node.Position); await Task.Delay(1900,cancel); await Act(alice,"gather",node.Id);
+            await NavigateToInteraction(alice,node.Position); await Task.Delay(1900,cancel); await Act(alice,"gather",node.Id);
         }
-        await Navigate(alice,smith.Position); await Act(alice,"craft",item:"smelt_copper"); await Act(alice,"claim_quest",item:"starter_ore");
+        await NavigateToInteraction(alice,smith.Position); await Act(alice,"craft",item:"smelt_copper"); await Act(alice,"claim_quest",item:"starter_ore");
         state=await State(alice,s=>s.Self.CompletedQuests.Contains("starter_ore"));
         Check(state.Self.SkillXp["mining"]>0&&state.Self.SkillXp["smithing"]>0&&state.Self.Inventory.Any(x=>x.Template=="copper_bar"),"The gather-to-craft progression chain failed.");
     });
@@ -280,7 +286,7 @@ try
     });
     await Test("Bank operations conserve unique item identities",async()=>
     {
-        var banker=data.Npcs.First(x=>x.Zone=="dawnreach"&&x.Role=="banker"); await Navigate(alice,banker.Position);
+        var banker=data.Npcs.First(x=>x.Zone=="dawnreach"&&x.Role=="banker"); await NavigateToInteraction(alice,banker.Position);
         var state=await State(alice); var item=state.Self.Inventory.First(x=>x.Template=="copper_bar");
         await Act(alice,"deposit",item:item.Id);
         state=await State(alice,s=>s.Self.Bank.Any(x=>x.Template=="copper_bar")); var bankItem=state.Self.Bank.First(x=>x.Template=="copper_bar");
@@ -289,7 +295,7 @@ try
     });
     await Test("Auction escrow transfers an item and pays the seller once",async()=>
     {
-        var broker=data.Npcs.First(x=>x.Zone=="dawnreach"&&x.Role=="auctioneer"); await Task.WhenAll(Navigate(alice,broker.Position),Navigate(bob,broker.Position));
+        var broker=data.Npcs.First(x=>x.Zone=="dawnreach"&&x.Role=="auctioneer"); await Task.WhenAll(NavigateToInteraction(alice,broker.Position),NavigateToInteraction(bob,broker.Position));
         var a=await State(alice); var b=await State(bob); long aGold=a.Self.Gold,bGold=b.Self.Gold; string item=a.Self.Inventory.First(x=>x.Template=="copper_bar").Id;
         await Act(alice,"auction_list","10",item);
         a=await State(alice,s=>s.Auctions.Any(x=>x.Seller==aliceCharacter!.Id)); string auction=a.Auctions.First(x=>x.Seller==aliceCharacter!.Id).Id;
