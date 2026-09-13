@@ -275,9 +275,15 @@ public partial class LiveExperienceContract : Node
             await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, "Reconnect did not restore acknowledged state.");
             Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId), "Native merchant sale quantities and exact gold survive reconnect");
             Require(Self.Equipment.GetValueOrDefault("weapon") == weapon, "GUI-equipped item identity survives reconnect");
-            Require(Progression.Total(Self) == checkpointXp, "Acknowledged skill progress survives reconnect"
-                + (Progression.Total(Self) == checkpointXp ? "" : $"; before={checkpointXp}, after={Progression.Total(Self)}; "
-                    + string.Join(", ", checkpointSkills.Keys.Union(Self.SkillXp.Keys).Where(key => checkpointSkills.GetValueOrDefault(key) != Self.SkillXp.GetValueOrDefault(key))
+            // A hostile already in flight can legitimately award defensive XP between the last
+            // pre-disconnect snapshot and the server's disconnect acknowledgement. Reconnect must
+            // never lose any acknowledged skill checkpoint; exact equality would misclassify that
+            // authoritative progress as a persistence failure.
+            bool retainedCheckpointSkillXp = checkpointSkills.All(entry => Self.SkillXp.GetValueOrDefault(entry.Key) >= entry.Value);
+            Require(retainedCheckpointSkillXp && Progression.Total(Self) >= checkpointXp,
+                "Acknowledged skill progress is not lost on reconnect"
+                + (retainedCheckpointSkillXp && Progression.Total(Self) >= checkpointXp ? "" : $"; before={checkpointXp}, after={Progression.Total(Self)}; "
+                    + string.Join(", ", checkpointSkills.Keys.Where(key => Self.SkillXp.GetValueOrDefault(key) < checkpointSkills.GetValueOrDefault(key))
                         .Select(key => $"{key}:{checkpointSkills.GetValueOrDefault(key)}->{Self.SkillXp.GetValueOrDefault(key)}"))));
             Require(!Field<bool>(game, "attackKeyHeld"), "Reconnect does not resume an old held attack");
             for (int cycle = 0; cycle < 3; cycle++)
