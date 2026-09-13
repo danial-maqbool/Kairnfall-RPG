@@ -42,8 +42,12 @@ class GodotDownloadTests(unittest.TestCase):
         self.target = self.folder / self.asset['name']
         self.partial = self.folder / (self.asset['name'] + '.partial')
 
-    def run_download(self, response):
-        with patch.object(downloader.urllib.request, 'urlopen', return_value=response) as opened, contextlib.redirect_stdout(io.StringIO()):
+    def run_download(self, *responses):
+        # Every retry is a new HTTP response object in production. A single closed
+        # BytesIO reused for all attempts tests the mock rather than resumable I/O.
+        with patch.object(downloader.urllib.request, 'urlopen', side_effect=list(responses)) as opened, \
+             patch.object(downloader.time, 'sleep', return_value=None), \
+             contextlib.redirect_stdout(io.StringIO()):
             result = downloader.download(self.asset, self.folder)
         return result, opened.call_args.args[0]
 
@@ -96,20 +100,29 @@ class GodotDownloadTests(unittest.TestCase):
             self.run_download(Response(b'cdef', 206, {'Content-Range': 'bytes 2-5/6', 'Content-Length': '6'}))
         self.assertEqual(self.partial.read_bytes(), b'ab')
 
-    def test_short_response_retains_bytes_without_promotion(self):
-        with self.assertRaisesRegex(RuntimeError, 'incomplete'):
-            self.run_download(Response(b'ab', 200, {'Content-Length': '6'}))
-        self.assertEqual(self.partial.read_bytes(), b'ab')
-        self.assertFalse(self.target.exists())
+    def test_short_response_retries_from_retained_prefix(self):
+        result, request = self.run_download(
+            Response(b'ab', 200, {'Content-Length': '6'}),
+            Response(b'cdef', 206, {'Content-Range': 'bytes 2-5/6', 'Content-Length': '4'}))
+        self.assertEqual(request.get_header('Range'), 'bytes=2-')
+        self.assertEqual(result.read_bytes(), self.body)
+        self.assertFalse(self.partial.exists())
 
-    def test_short_valid_range_can_be_resumed_again(self):
+    def test_short_valid_range_is_resumed_inside_retry_loop(self):
         self.partial.write_bytes(b'ab')
-        with self.assertRaisesRegex(RuntimeError, 'incomplete'):
-            self.run_download(Response(b'cd', 206, {'Content-Range': 'bytes 2-3/6', 'Content-Length': '2'}))
-        self.assertEqual(self.partial.read_bytes(), b'abcd')
-        result, request = self.run_download(Response(b'ef', 206, {'Content-Range': 'bytes 4-5/6'}))
+        result, request = self.run_download(
+            Response(b'cd', 206, {'Content-Range': 'bytes 2-3/6', 'Content-Length': '2'}),
+            Response(b'ef', 206, {'Content-Range': 'bytes 4-5/6', 'Content-Length': '2'}))
         self.assertEqual(request.get_header('Range'), 'bytes=4-')
         self.assertEqual(result.read_bytes(), self.body)
+        self.assertFalse(self.partial.exists())
+
+    def test_retry_exhaustion_retains_partial_without_promotion(self):
+        responses=[Response(b'ab', 200, {'Content-Length': '6'}) for _ in range(downloader.MAX_DOWNLOAD_ATTEMPTS)]
+        with self.assertRaisesRegex(RuntimeError, 'incomplete'):
+            self.run_download(*responses)
+        self.assertEqual(self.partial.read_bytes(), b'ab')
+        self.assertFalse(self.target.exists())
 
     def test_connection_failure_does_not_truncate_partial(self):
         self.partial.write_bytes(b'ab')

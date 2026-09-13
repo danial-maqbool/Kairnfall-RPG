@@ -11,7 +11,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT)); sys.path.insert(0,str(ROOT/'tools'))
-from content_src import skills,items,abilities,mobs,boss_uniques,world,quests,presentation,gear_progression
+from content_src import skills,items,abilities,mobs,boss_uniques,world,exploration_rewards,quests,world_density,presentation,gear_progression
 from art import items as item_art, humanoid
 from art.common import STATES
 spec=importlib.util.spec_from_file_location('equipment_progression_builder',ROOT/'tools/build_content.py')
@@ -21,9 +21,10 @@ builder=importlib.util.module_from_spec(spec); spec.loader.exec_module(builder)
 def original():
     data={key:[] for key in ('skills','classes','items','abilities','recipes','zones','mobs','resources','npcs','quests')}
     # This baseline represents the catalog immediately before gear_progression runs.
-    # Keep later independent extensions, such as boss uniques, in the baseline so
-    # this test only protects identities that the gear extension is responsible for.
-    for module in (skills,items,abilities,mobs,boss_uniques,world,quests,presentation): module.build(data)
+    # Include every independent extension that precedes gear progression in the
+    # canonical builder so this suite measures the gear pass rather than reclassifying
+    # pre-existing exploration or world-density content as gear-progression output.
+    for module in (skills,items,abilities,mobs,boss_uniques,world,exploration_rewards,quests,world_density,presentation): module.build(data)
     return data
 
 
@@ -55,10 +56,21 @@ class EquipmentProgressionTests(unittest.TestCase):
                 self.assertIn(ident,self.recipes)
                 self.assertEqual(item['type'],family.split('/')[0])
 
-    def test_original_saved_templates_recipes_and_starter_loadouts_are_unchanged(self):
-        for ident,item in self.old.items(): self.assertEqual(item,self.lookup[ident],ident)
+    def test_original_saved_identity_progression_and_starter_loadouts_are_unchanged(self):
+        # Gear progression deliberately normalizes recipe ingredients and gold values.
+        # Protect the same saved identity/combat/progression fields that production
+        # validates, while allowing those documented economy fields to rebalance.
+        protected_item_fields=('id','name','type','slot','skill','requirement','power','armor','speed','range','element','stats','tier')
+        for ident,item in self.old.items():
+            current=self.lookup[ident]
+            for field in protected_item_fields:
+                self.assertEqual(item.get(field),current.get(field),ident+'/'+field)
         recipes={r['id']:r for r in self.data['recipes']}
-        for r in self.base['recipes']: self.assertEqual(r,recipes[r['id']],r['id'])
+        protected_recipe_fields=('id','name','skill','station','output','requirement','quantity','xp')
+        for recipe in self.base['recipes']:
+            current=recipes[recipe['id']]
+            for field in protected_recipe_fields:
+                self.assertEqual(recipe.get(field),current.get(field),recipe['id']+'/'+field)
         for key in ('skills','classes','abilities','mobs','resources','quests','zones'):
             self.assertEqual(self.base[key],self.data[key],key)
 
