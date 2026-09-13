@@ -1,6 +1,6 @@
 {
-  "sha": "0763249e1a96848addbd921bf3ae0cd019edbc84",
+  "sha": "db3dd4c3811dd7801b579b03b1b47006a57713e0",
   "base": "1544ab7df4b892b4524909dbfda20bf5ba5637a2",
   "mode": "repair",
-  "purpose": "Task 18 acceptance retry: verify controlled regional rare/champion cadence, six mechanics-bearing champion mini-bosses using existing elite templates and landmarks, unchanged overworld footprint, multiplayer-safe exactly-once rewards, restart-safe cooldown/death/reset behavior, deterministic content generation, and retained backend/security/database/native Godot/live-client contracts. Supersedes candidate c2856c61431ff4b05f950c24450e7e8874a0226e, whose generator validation correctly caught one nonexistent glacier elite ID before compilation."
+  "purpose": "Task 18 acceptance retry: verify controlled regional rare/champion cadence, six mechanics-bearing champion mini-bosses using existing elite templates and landmarks, unchanged overworld footprint, multiplayer-safe exactly-once rewards, restart-safe cooldown/death/reset behavior, deterministic content generation, and retained backend/security/database/native Godot/live-client contracts. Supersedes candidates c2856c61431ff4b05f950c24450e7e8874a0226e (invalid glacier elite ID) and 0763249e1a96848addbd921bf3ae0cd019edbc84 (compile-only key-collection type mismatch)."
 }
