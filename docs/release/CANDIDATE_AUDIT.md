@@ -1,37 +1,34 @@
-# Task 15 release engineering candidate audit
+# Task 16 owner-acceptance candidate audit
 
-Status date: 2026-09-13.
+Task 16 prepares one deterministic Windows owner-test candidate and the final human acceptance procedure without publishing a release.
 
-Current implementation baseline: `83a99948c7e96ff1ed568b5090b3138294b8e713` on `main`.
-Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
-
-Task 15 prepares release engineering and operational recovery without publishing a release. The permanent sentinel is `src/release-operations.trigger`.
+Machine-readable candidate/evidence authority: `docs/handoff/CURRENT_EVIDENCE.json`.
+Owner acceptance procedure: `docs/qa/TASK16_OWNER_ACCEPTANCE.md`.
 
 **NOT APPROVED — human acceptance remains.**
 
-## Exact technical candidate
+## Candidate identity
 
-All ten Task 15 technical workflows succeeded at `83a99948c7e96ff1ed568b5090b3138294b8e713`:
+The exact Task 16 implementation SHA, exact workflow run IDs, Actions artifact ID/name, candidate ZIP filename, and outer SHA-256 are recorded after CI completes in `CURRENT_EVIDENCE.json`. The Windows package manifest additionally records its source SHA and GitHub Actions producer/run/artifact provenance.
 
-- Build and verify — `34772773706`.
-- Task 13 adversarial acceptance — `34772773717`.
-- Load acceptance — `34772773733`.
-- Transaction security regression — `34772773725`.
-- Transaction integrity on Windows and Linux — `34772773737`.
-- Compile Windows client source — `34772773709`.
-- Live progression breadth — `34772773727`.
-- Graphical multiplayer acceptance — `34772773744`.
-- Windows package acceptance — `34772773761`.
-- Release operations acceptance — `34772773748`.
+Do not infer candidate identity from a branch name or an old artifact. Do not substitute a locally rebuilt ZIP for the recorded owner-test artifact.
 
-The candidate adds fail-closed database schema-history validation, a reusable PostgreSQL backup/verify/restore utility, a disposable recovery drill, an operations Windows archive, a structured release-candidate manifest, and setup/limitations documentation. The recovery design restores into a fresh database rather than overwriting an active realm.
+## Automated scope
 
-The recovery drill verifies checksum-protected backup creation, restore of the pre-backup realm, exclusion of post-backup mutation, duplicate-writer rejection, future-schema rejection, tamper rejection, and reconnect after restore. Its retained artifact excludes the raw dump.
+The final Task 16 technical matrix reruns the established build, adversarial authority, load, transaction, Windows client compilation, live progression, graphical multiplayer, Windows packaging, and release-operations gates against the exact Task 16 implementation revision.
 
-The Windows package gate builds checksum-manifested client/server/operations archives plus a combined candidate bundle, extracts it cleanly, runs the packaged server through restart/reconnect persistence, and launches the exported client. The generated manifest remains `publicationReady: false`.
+The Windows package gate produces checksum-manifested client/server/operations archives plus a combined candidate bundle, extracts runtime archives into a clean path containing spaces, runs the packaged server through restart/reconnect persistence, and launches the exported client outside the source tree. `release-candidate.json` remains `publicationReady: false`.
 
-The first candidate at `2653b3bab4c2836f84cdc7584d2668a3f3f8089d` exposed a genuine disconnect/persistence race in live progression run `34771705676`. The final Task 15 implementation baseline `83a99948c7e96ff1ed568b5090b3138294b8e713` adds server-acknowledged graceful disconnect; live progression then succeeded at run `34772773727` without weakening the assertion.
+Task 16 also fixes candidate-document provenance so manifest document filenames correspond to the files actually present in the outer bundle, and records Actions producer/run/artifact identity in the generated manifest.
 
-Task 14 display/input, visual and technical-audio evidence remains historical at `d4c8121bf6a3c8338ec9470d2072d6c98c79fa7a` and is not relabeled as Task 15 exact-SHA proof.
+## Historical evidence boundary
 
-No test threshold, gameplay rule, security control, or human gate is weakened by this work. No release or tag is created by Task 15.
+Task 14 display/input, visual and technical-audio runs remain historical evidence at their original SHA unless those surfaces are changed and genuinely rerun. Task 15 release/recovery evidence likewise remains retained historical provenance after the Task 16 exact candidate supersedes it.
+
+No historical run may be relabeled as exact-SHA Task 16 proof.
+
+## Human boundary
+
+The owner must perform the applicable checks in `docs/qa/TASK16_OWNER_ACCEPTANCE.md`. Repository automation cannot approve subjective pacing/combat feel, artistic quality, audio listening, or physical Windows DPI/input behavior.
+
+Human results are recorded only after they are explicitly supplied by the owner. A technically green candidate does not authorize release/tag creation or deployment.
