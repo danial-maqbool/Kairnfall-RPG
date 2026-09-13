@@ -171,9 +171,8 @@ public partial class ItemSlot : Control
             && (key.Keycode is Key.Enter or Key.Space || key.PhysicalKeycode is Key.Enter or Key.Space);
     public override void _Input(InputEvent @event)
     {
-        // Custom Controls do not always receive synthetic/native key events through
-        // _GuiInput. Consume focused activation here, before gameplay unhandled input,
-        // so Enter/Space has one deterministic accessibility path on Windows.
+        // Custom Controls do not consistently receive native/synthetic key events
+        // through _GuiInput. Own one focused activation path before gameplay input.
         if (!HasFocus() || !IsKeyboardActivation(@event)) return;
         ActivateFromKeyboard();
         GetViewport().SetInputAsHandled();
@@ -182,20 +181,8 @@ public partial class ItemSlot : Control
     {
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
         {
-            GrabFocus(); Clicked?.Invoke(); AcceptEvent(); return;
+            GrabFocus(); Clicked?.Invoke(); AcceptEvent();
         }
-        if (IsKeyboardActivation(@event))
-        {
-            ActivateFromKeyboard(); AcceptEvent();
-        }
-    }
-    public override void _UnhandledKeyInput(InputEvent @event)
-    {
-        // Secondary focused-only fallback for engine routes that bypass both early
-        // input and GUI handling. Handled activation never reaches this stage.
-        if (!HasFocus() || !IsKeyboardActivation(@event)) return;
-        ActivateFromKeyboard();
-        GetViewport().SetInputAsHandled();
     }
     public override Variant _GetDragData(Vector2 position)
     {
