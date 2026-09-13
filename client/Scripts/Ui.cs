@@ -169,6 +169,15 @@ public partial class ItemSlot : Control
     private static bool IsKeyboardActivation(InputEvent @event)
         => @event is InputEventKey { Pressed: true, Echo: false } key
             && (key.Keycode is Key.Enter or Key.Space || key.PhysicalKeycode is Key.Enter or Key.Space);
+    public override void _Input(InputEvent @event)
+    {
+        // Custom Controls do not always receive synthetic/native key events through
+        // _GuiInput. Consume focused activation here, before gameplay unhandled input,
+        // so Enter/Space has one deterministic accessibility path on Windows.
+        if (!HasFocus() || !IsKeyboardActivation(@event)) return;
+        ActivateFromKeyboard();
+        GetViewport().SetInputAsHandled();
+    }
     public override void _GuiInput(InputEvent @event)
     {
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
@@ -182,9 +191,8 @@ public partial class ItemSlot : Control
     }
     public override void _UnhandledKeyInput(InputEvent @event)
     {
-        // A focused custom Control should receive activation through _GuiInput. Keep a
-        // focused-only fallback for native/headless keyboard routing before gameplay
-        // _UnhandledInput so Space/Enter never leak into world actions.
+        // Secondary focused-only fallback for engine routes that bypass both early
+        // input and GUI handling. Handled activation never reaches this stage.
         if (!HasFocus() || !IsKeyboardActivation(@event)) return;
         ActivateFromKeyboard();
         GetViewport().SetInputAsHandled();
