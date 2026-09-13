@@ -4,7 +4,7 @@ Current status as of 2026-09-14. Current Task 17 implementation baseline: `fdb0f
 
 **NOT APPROVED — human acceptance remains.**
 
-Start with `docs/handoff/HANDOFF.md`, `docs/handoff/VERIFICATION.md`, `docs/SESSION_STATUS.md`, and `docs/TASK17_WORLD_DENSITY.md`.
+Start with `docs/handoff/TASK17_CURRENT.md`, `docs/handoff/TASK17_VERIFICATION.md`, and `docs/SESSION_STATUS.md`.
 
 Task 17 repository implementation is complete at the baseline above and preserves the existing overworld footprint while increasing settlement and quest density. Historical Task 16 evidence remains at `2365a0df98beca178e22c099f0f31cd5adf65e6e`.
 
