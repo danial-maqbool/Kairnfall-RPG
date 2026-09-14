@@ -110,3 +110,36 @@ def build(data):
             raise ValueError('Task 19 rare resources require controlled long respawns.')
         if row['efficiency']>15 or row['yield_bonus']>20:
             raise ValueError('Task 19 specialty tool exceeds ToolRules caps.')
+
+
+def finalize_values(data):
+    """Restore Task 19 authored loops after the global progression economy pass.
+
+    Gear progression intentionally normalizes generic equipment/tool materials,
+    recipe inputs, and output values. Regional profession chains are authored
+    cross-profession sinks, so restore only their material identity, exact inputs,
+    and bounded values after all legacy/global authoring passes have finished.
+    """
+    items={item['id']:item for item in data['items']}
+    recipes={recipe['id']:recipe for recipe in data['recipes']}
+    for row in CHAINS:
+        authored={
+            row['gather_item']:max(12,row['process_value']//2),
+            row['processed']:row['process_value'],
+            row['specialty']:row['specialty_value'],
+        }
+        for ident,value in authored.items():
+            if ident not in items: raise ValueError('Task 19 value finalization missing item '+ident)
+            items[ident]['value']=value
+        items[row['specialty']]['material']='regional_specialty'
+        for recipe_id,inputs,output_id in (
+            (row['process_recipe'],row['process_inputs'],row['processed']),
+            (row['specialty_recipe'],row['specialty_inputs'],row['specialty']),
+        ):
+            if recipe_id not in recipes: raise ValueError('Task 19 value finalization missing recipe '+recipe_id)
+            recipe=recipes[recipe_id]
+            recipe['ingredients']=dict(inputs)
+            input_value=sum(items[ident]['value']*quantity for ident,quantity in recipe['ingredients'].items())
+            output_value=items[output_id]['value']*recipe.get('quantity',1)
+            if output_value>input_value:
+                raise ValueError('Task 19 profession chain creates base item value: '+recipe_id)

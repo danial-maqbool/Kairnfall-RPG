@@ -24927,6 +24927,30 @@
       "sha256": "81db824623bc7d3b4669c08f6e4a0823946ac246a0182fb4fea7e9e99c9beb4c"
     },
     {
+      "key": "items/frostsilver_bar",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "8573c93f030bc28a57591bbb5fb9d8c0025af991aef9908081f516e1dbff682f"
+    },
+    {
+      "key": "items/frostsilver_ore",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "acf84f7f3b653a7aa7724d34019eb2124ed67b391829c133b487366ac4b06801"
+    },
+    {
+      "key": "items/frostsilver_pickaxe",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "476a6f9c3c44b79bc1fbec26b8fbd4cea3c4a427b2db5023c1621bf8e76fb789"
+    },
+    {
       "key": "items/froststeel_axe",
       "group": "items",
       "width": 32,
@@ -25535,6 +25559,30 @@
       "sha256": "e625dbe3d8c800159d60007d98c6b1234501d48a9f43ccdb80cf16756287df6b"
     },
     {
+      "key": "items/ghost_reed",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "1679bc4b027036151ee1e57e9b37f391afffb91c49cea32fbb95c55e41b577cc"
+    },
+    {
+      "key": "items/ghost_reed_extract",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "eb19b0d67f7007e125a5e29840637a24af8f75e977b0d95a67356ec1091b8447"
+    },
+    {
+      "key": "items/ghost_reed_sickle",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "8faff52d92b42975197b269492669a7a399e27bd485187b600dff863b3adff89"
+    },
+    {
       "key": "items/glass",
       "group": "items",
       "width": 32,
@@ -25557,6 +25605,22 @@
       "height": 32,
       "animated": false,
       "sha256": "8f88df376acbc4f0683a04a5611155ec20ddff94c3505a234f3cc31db7b2090a"
+    },
+    {
+      "key": "items/heartwood_burl",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "d336c8a4cb4e73326a97c12ae32fe6dd16e3987dc0296e9ac2b6edac9b9d9066"
+    },
+    {
+      "key": "items/heartwood_forester_axe",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "fb56e674946302733d5544d9481ee7efdd4192456dc850e1749d4ef320015a02"
     },
     {
       "key": "items/hempweave_cloth",
@@ -26741,6 +26805,30 @@
       "height": 32,
       "animated": false,
       "sha256": "9716af58e80eb7e42f35d8cda5276da86cf70199d6ac824742d85b1cc93e5c93"
+    },
+    {
+      "key": "items/moonfin",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "b0231b6855a221ed9ef34d020d519381cb5e15559f4d85bfc987c80bd808a4d9"
+    },
+    {
+      "key": "items/moonfin_oil",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "c2f468b4670d29950722119507f84661e71f3983aa3c24f2cd06e26bbcdcc9f2"
+    },
+    {
+      "key": "items/moonfin_rod",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "d619ab5c52334de9ae5078af14c88afa2c7cac69effb149977202781889abf93"
     },
     {
       "key": "items/moonsteel_axe",
@@ -28821,6 +28909,14 @@
       "height": 32,
       "animated": false,
       "sha256": "54ed664079437f56d9018df57416252e7b98d682853c70394df23f19942088e8"
+    },
+    {
+      "key": "items/seasoned_heartwood",
+      "group": "items",
+      "width": 32,
+      "height": 32,
+      "animated": false,
+      "sha256": "776dfd317d741d5c11ced08aee2bf9cbab1d9c7c85d35b22449e82a1e41c5568"
     },
     {
       "key": "items/shovel",

@@ -39,7 +39,7 @@ public sealed class EquipmentTierDef
                 if (parts.Length==3 && parts[0]=="armor") matches &= def.Tags.Contains(parts[1]) && def.Slot==parts[2];
                 else if (parts.Length==2) matches &= parts[0]=="accessory" ? def.Slot==parts[1] : def.Tags.Contains(parts[1]);
                 else matches=false;
-                if (!matches) errors.Add("Wrong equipment tier family or level: " + entry.Key + "/" + entry.Value);
+                if (!matches) errors.Add("Wrong equipment tier family or level: " + entry.Key+"/"+entry.Value);
                 if (!data.Recipes.Any(r=>r.Output==def.Id)) errors.Add("Equipment has no crafting route: " + def.Id);
                 if (!double.IsFinite(def.Power) || !double.IsFinite(def.Armor) || !double.IsFinite(def.Speed)
                     || def.Power<0 || def.Armor<0 || def.Speed<=0 || def.Stats.Any(s=>!double.IsFinite(s.Value)))
@@ -57,10 +57,11 @@ public static class ToolRules
             .Select(i=>data.Item(i.Template))
             .Where(d=>d.Type=="tool" && d.Tags.Contains(tag) && d.Skill==skill
                 && Progression.Level(character,d.Skill)>=BeginnerProgression.EquipmentRequirement(d))
-            .OrderByDescending(d=>d.Requirement).ThenBy(d=>d.Id,StringComparer.Ordinal).FirstOrDefault();
+            .OrderByDescending(Utility).ThenByDescending(d=>d.Requirement).ThenBy(d=>d.Id,StringComparer.Ordinal).FirstOrDefault();
 
     public static double Efficiency(ItemDef? tool) => FiniteBonus(tool,"tool_efficiency",15);
     public static double Yield(ItemDef? tool) => FiniteBonus(tool,"tool_yield",20);
+    private static double Utility(ItemDef? tool)=>Efficiency(tool)+Yield(tool);
     private static double FiniteBonus(ItemDef? tool,string stat,double maximum)
     {
         double value=tool?.Stats.GetValueOrDefault(stat)??0;

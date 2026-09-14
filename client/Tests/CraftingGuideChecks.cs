@@ -19,7 +19,7 @@ internal static class CraftingGuideChecks
         }
         async Task Click(Control node)
         {
-            check(Fits(node),"Crafting action is reachable: "+node.Name); var at=node.GetGlobalRect().GetCenter();
+            check(Fits(node),"Native action is reachable: "+node.Name); var at=node.GetGlobalRect().GetCenter();
             using(var press=new InputEventMouseButton{Position=at,GlobalPosition=at,ButtonIndex=MouseButton.Left,ButtonMask=MouseButtonMask.Left,Pressed=true}) host.GetViewport().PushInput(press,true);
             await Frame();
             using(var release=new InputEventMouseButton{Position=at,GlobalPosition=at,ButtonIndex=MouseButton.Left}) host.GetViewport().PushInput(release,true);
@@ -95,5 +95,20 @@ internal static class CraftingGuideChecks
             Call("ClosePage"); await Frame(); await Frame();
             check(!GodotObject.IsInstanceValid(panel),"The recipe panel releases after repeated native input and reattachment");
         }
+
+        var quest=data.Quests.GroupBy(q=>q.Giver).Where(group=>group.Count()==1).Select(group=>group.Single()).First(q=>q.Objectives.Count>0);
+        var self=game.Snapshot!.Self; bool hadQuest=self.Quests.TryGetValue(quest.Id,out var priorQuest);
+        self.Quests[quest.Id]=new QuestProgress{Counts=Enumerable.Repeat(0,quest.Objectives.Count).ToList()};
+        var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+        typeof(GameRoot).GetField("selectedNpc",flags)!.SetValue(game,quest.Giver);
+        Call("OpenPage","Dialogue"); await Frame(); await Frame(); await Frame();
+        var track=game.FindChildren("*","Button",true,false).OfType<Button>().Single(button=>button.Text=="Track objectives");
+        await Click(track);
+        string currentPage=(string)typeof(GameRoot).GetField("currentPage",flags)!.GetValue(game)!;
+        string selectedQuest=(string)typeof(GameRoot).GetField("selectedQuest",flags)!.GetValue(game)!;
+        check(currentPage=="Quests","Dialogue Track objectives opens the Quest Log");
+        check(selectedQuest==quest.Id,"Dialogue Track objectives preserves the selected quest");
+        Call("ClosePage"); await Frame(); await Frame();
+        if(hadQuest) self.Quests[quest.Id]=priorQuest!; else self.Quests.Remove(quest.Id);
     }
 }
