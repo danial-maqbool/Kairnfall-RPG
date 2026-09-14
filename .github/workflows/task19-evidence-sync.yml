@@ -1,0 +1,293 @@
+name: Temporary Task 19 evidence synchronization
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/task19-evidence-sync.yml'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Synchronize Task 19 evidence and current handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          impl='dbec66155142caa96dd6612eea97a164a050bcd7'
+          trigger='838dde6faffb0bc779eca1d9f504258a5f85bcc6'
+          exact_run=34844649467
+          artifact_id=10347388189
+          artifact_name='player-experience-dbec66155142caa96dd6612eea97a164a050bcd7'
+          artifact_digest='sha256:6ec245e07c024b330ce01d98937b7219d463e7cc6a5e94f30e8e7de2a2b7d172'
+          artifact_expires='2026-09-28T12:54:46Z'
+          detached='bc09a4fd7501751db16641f17cd79f37047b1431'
+          detached_run=34842460308
+          detached_artifact=10346809338
+          detached_digest='sha256:a9d2407f03831e6c49df7e5bb6f4572052f5a60e92b8c0807f5bdb06d315e386'
+          release='NOT APPROVED — human acceptance remains.'
+
+          evidence_path=Path('docs/handoff/CURRENT_EVIDENCE.json')
+          evidence=json.loads(evidence_path.read_text(encoding='utf-8'))
+          historical=Path('docs/handoff/TASK18_EVIDENCE.json')
+          if not historical.exists():
+              historical.write_text(json.dumps(evidence,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+
+          evidence['currentTask']=19
+          evidence['repositorySideTask19Implemented']=True
+          evidence['implementationBaseline']=impl
+          evidence['task19CandidateBaseline']=impl
+          evidence['task19CandidateVerification']={
+              'workflowName':'Verify exact player-experience candidate',
+              'workflowRunId':exact_run,
+              'triggerHeadSha':trigger,
+              'verifiedRevision':impl,
+              'conclusion':'success',
+              'artifactName':artifact_name,
+              'actionsArtifactId':artifact_id,
+              'actionsArtifactDigest':artifact_digest,
+              'actionsArtifactExpiresAt':artifact_expires,
+          }
+          evidence['task19DetachedCandidateVerification']={
+              'candidateSha':detached,
+              'workflowRunId':detached_run,
+              'conclusion':'success',
+              'actionsArtifactId':detached_artifact,
+              'actionsArtifactDigest':detached_digest,
+          }
+          evidence['task19Authorization']={
+              'date':'2026-09-14','authorized':True,
+              'publicationAuthorized':False,'deploymentAuthorized':False,
+          }
+          evidence['task19Content']={
+              'surfaceWildernessRegions':20,
+              'surfaceWildernessTiles':2048000,
+              'newOverworldRegions':0,
+              'regionalProfessionChains':4,
+              'professionRareResources':4,
+              'professionSpecialtyTools':4,
+              'professionSpecialtyRecipes':4,
+          }
+          evidence['task19VerificationStages']=[
+              'exact SHA selection and ancestry',
+              'deterministic content rebuild and source compile',
+              'retained backend, security, world, database and handoff suites',
+              'asset and Godot editor reconstruction',
+              'native Godot contracts',
+              'disposable-realm graphical and native-input exercise',
+              'bounded diagnostics and immutable artifact upload',
+          ]
+          evidence['historicalTask18Evidence']='docs/handoff/TASK18_EVIDENCE.json'
+          evidence['releaseStatus']=release
+          evidence['publicationReady']=False
+          evidence['releasePublished']=False
+          evidence_path.write_text(json.dumps(evidence,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+
+          Path('HANDOFF.md').write_text(f'''# Kairnfall handoff
+
+Current status as of 2026-09-14. Current Task 19 implementation baseline: `{impl}` on the single authoritative `main` branch. Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+
+**{release}**
+
+Start with `docs/handoff/TASK19_CURRENT.md`, `docs/handoff/TASK19_VERIFICATION.md`, and `docs/SESSION_STATUS.md`.
+
+Task 19 repository implementation is complete. Four sparse regional profession chains use the established overworld only, keep controlled 6–10 minute rare-node recovery, restore authored gather → process → specialty-tool inputs after global gear normalization, keep specialty utility bounded, preserve sink economics, and include checked-in Atelier source art. Dialogue “Track objectives” now opens the Quest Log on the selected quest. Exact integrated verification run `{exact_run}` passed against `{impl}` including retained backend/security/world/database contracts, native Godot input, and disposable-realm live exercise.
+
+Historical Task 18 evidence is preserved in `docs/handoff/TASK18_EVIDENCE.json`, `docs/handoff/TASK18_CURRENT.md`, and `docs/handoff/TASK18_VERIFICATION.md`. Task 20 has not been started; do not begin it without explicit approval.
+''',encoding='utf-8')
+
+          Path('docs/SESSION_STATUS.md').write_text(f'''# Implementation status
+
+Current status as of 2026-09-14.
+
+Current Task 19 implementation baseline: `{impl}`.
+Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+
+**{release}**
+
+Task 19 is repository-side implemented and integrated without expanding the overworld. Exact integrated verification run `{exact_run}` passed all stages, including deterministic rebuild/compile, retained authoritative suites, Atelier/editor reconstruction, native Godot contracts, real Dialogue → Quest Log input, disposable-realm graphical/live exercise, artifact upload, and diagnostics. Historical Task 18 evidence remains preserved. Task 20 is not started and requires explicit approval.
+''',encoding='utf-8')
+
+          Path('docs/handoff/TASK19_CURRENT.md').write_text(f'''# Task 19 current state
+
+Current status as of 2026-09-14.
+
+Task 19 implementation baseline: `{impl}` on `main`.
+Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+
+**{release}**
+
+Repository-side Task 19 is complete. The implementation adds four sparse profession chains to existing regions only: Heartwood in The Old Boughs, Ghost Reed in Mosswater Basin, Moonfin in The Gull Isles, and Frostsilver in Glassmere. Rare-node recovery remains within the authored 6–10 minute window. Each chain has a gather resource, processed component, and regional specialty tool with bounded utility; finalization restores its exact authored inputs and value sink after global gear normalization.
+
+The same baseline includes checked-in Atelier source coverage for all 12 new profession item identities and fixes Dialogue “Track objectives” so native input opens `Quests` while retaining the selected quest. Exact integrated verification run `{exact_run}` passed against `{impl}` and produced immutable artifact `{artifact_id}` (`{artifact_digest}`).
+
+Historical Task 18 evidence remains in `docs/handoff/TASK18_EVIDENCE.json` plus the Task 18 current/verification documents. Task 20 has not been started and requires explicit approval.
+''',encoding='utf-8')
+
+          Path('docs/handoff/TASK19_VERIFICATION.md').write_text(f'''# Task 19 verification
+
+Current status as of 2026-09-14.
+
+Task 19 implementation baseline: `{impl}`.
+Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+
+**{release}**
+
+## Immutable exact-SHA proof
+
+- Integrated exact verification: workflow `Verify exact player-experience candidate`, run `{exact_run}`.
+- Trigger/pointer head: `{trigger}`; verified revision: `{impl}`.
+- Result: success across SHA/ancestry selection, deterministic content rebuild and source compile, retained backend/security/world/database/handoff suites, asset/editor reconstruction, native Godot contracts, disposable-realm graphical/native-input/live exercise, artifact upload, and bounded diagnostics.
+- Artifact: `{artifact_name}`, ID `{artifact_id}`, digest `{artifact_digest}`, expiry `{artifact_expires}`.
+- Pre-integration art-complete detached candidate: `{detached}`, run `{detached_run}`, artifact `{detached_artifact}`, digest `{detached_digest}`; full gate success before integration.
+
+## Task 19 contracts proven
+
+- Four sparse regional rare-resource sources in existing geography; zero new overworld regions and unchanged surface footprint.
+- Controlled 6–10 minute rare-node respawn cadence.
+- Exact gather → process → specialty-tool inputs restored after global gear normalization; output base value never exceeds authored input value.
+- Bounded specialty-tool efficiency/yield, exact material consumption/output, failed-operation rollback, duplicate-request replay safety, shared-node contention, restart persistence, and deterministic generation.
+- Checked-in Atelier source art/manifest coverage for all 12 Task 19 profession item identities.
+- Retained Build-Defining Loot specialization gates remain valid.
+- Native real-click Dialogue “Track objectives” opens the Quest Log and preserves the selected quest.
+
+Historical Task 18 provenance remains unchanged in `docs/handoff/TASK18_EVIDENCE.json`, `docs/handoff/TASK18_CURRENT.md`, and `docs/handoff/TASK18_VERIFICATION.md`.
+
+Task 20 is not started. Human/art/scale/performance release gates remain open; repository-side Task 19 completion does not authorize publication or deployment.
+''',encoding='utf-8')
+          PY
+
+          cat > tools/documentation_contract.py <<'PYFILE'
+          #!/usr/bin/env python3
+          """Validate current Task 19 evidence while retaining Task 18 provenance."""
+          from __future__ import annotations
+          import json
+          import subprocess
+          from pathlib import Path
+
+          ROOT=Path(__file__).resolve().parents[1]
+          EVIDENCE=ROOT/'docs'/'handoff'/'CURRENT_EVIDENCE.json'
+          TASK18_EVIDENCE=ROOT/'docs'/'handoff'/'TASK18_EVIDENCE.json'
+          CURRENT_DOCS=[
+              ROOT/'HANDOFF.md',
+              ROOT/'docs'/'SESSION_STATUS.md',
+              ROOT/'docs'/'handoff'/'TASK19_CURRENT.md',
+              ROOT/'docs'/'handoff'/'TASK19_VERIFICATION.md',
+          ]
+          RELEASE_STATUS='NOT APPROVED — human acceptance remains.'
+          TASK19_IMPLEMENTATION='dbec66155142caa96dd6612eea97a164a050bcd7'
+          TASK19_TRIGGER='838dde6faffb0bc779eca1d9f504258a5f85bcc6'
+          TASK19_RUN=34844649467
+          TASK19_ARTIFACT=10347388189
+          TASK19_DIGEST='sha256:6ec245e07c024b330ce01d98937b7219d463e7cc6a5e94f30e8e7de2a2b7d172'
+          TASK19_DETACHED='bc09a4fd7501751db16641f17cd79f37047b1431'
+          TASK19_DETACHED_RUN=34842460308
+          TASK18_IMPLEMENTATION='f0aa878fcde727f73538fda7e7c85a439dd41b49'
+          TASK18_CANDIDATE='d8ad0d28d0ca60aac161064cbd739e20ba00983d'
+          TASK18_RUN=34794421856
+          TASK18_ARTIFACT=10329611278
+          TASK18_DIGEST='sha256:4237c998e88e612ba12bcccb3e55c7cc15c18b2c41171e5fab2b5e0bb13e5c16'
+
+          def fail(message:str)->None:
+              raise RuntimeError(message)
+
+          def latest_implementation_commit()->str:
+              command=[
+                  'git','log','-1','--format=%H','HEAD','--','.',
+                  ':(exclude)docs/**',
+                  ':(exclude)HANDOFF.md',
+                  ':(exclude)tools/documentation_contract.py',
+                  ':(exclude).ci/experience-candidate.json',
+                  ':(exclude).github/workflows/documentation-contract.yml',
+                  ':(exclude).github/workflows/task19-evidence-sync.yml',
+              ]
+              value=subprocess.run(command,cwd=ROOT,check=True,text=True,capture_output=True).stdout.strip()
+              if len(value)!=40: fail('Could not resolve latest implementation commit.')
+              return value
+
+          def main()->int:
+              evidence=json.loads(EVIDENCE.read_text(encoding='utf-8'))
+              if evidence.get('schema')!=1 or evidence.get('currentTask')!=19:
+                  fail('Current evidence must identify schema 1 / Task 19.')
+              baseline=evidence.get('implementationBaseline','')
+              actual=latest_implementation_commit()
+              if baseline!=TASK19_IMPLEMENTATION or baseline!=actual:
+                  fail(f'Current Task 19 baseline is stale: {baseline!r} != {actual!r}.')
+              if evidence.get('repositorySideTask19Implemented') is not True:
+                  fail('Task 19 repository implementation state must be explicit.')
+              auth=evidence.get('task19Authorization',{})
+              if auth.get('authorized') is not True or auth.get('publicationAuthorized') is not False or auth.get('deploymentAuthorized') is not False:
+                  fail('Task 19 authorization boundary drifted.')
+              if evidence.get('releaseStatus')!=RELEASE_STATUS or evidence.get('publicationReady') is not False or evidence.get('releasePublished') is not False:
+                  fail('Release-status boundary drifted.')
+
+              candidate=evidence.get('task19CandidateVerification',{})
+              if evidence.get('task19CandidateBaseline')!=TASK19_IMPLEMENTATION:
+                  fail('Task 19 current candidate baseline drifted.')
+              expected={
+                  'workflowRunId':TASK19_RUN,'triggerHeadSha':TASK19_TRIGGER,
+                  'verifiedRevision':TASK19_IMPLEMENTATION,'conclusion':'success',
+                  'actionsArtifactId':TASK19_ARTIFACT,'actionsArtifactDigest':TASK19_DIGEST,
+              }
+              for key,value in expected.items():
+                  if candidate.get(key)!=value: fail('Task 19 integrated provenance drifted: '+key)
+              detached=evidence.get('task19DetachedCandidateVerification',{})
+              if detached.get('candidateSha')!=TASK19_DETACHED or detached.get('workflowRunId')!=TASK19_DETACHED_RUN or detached.get('conclusion')!='success':
+                  fail('Task 19 detached candidate provenance drifted.')
+
+              expected_content={
+                  'surfaceWildernessRegions':20,'surfaceWildernessTiles':2048000,
+                  'newOverworldRegions':0,'regionalProfessionChains':4,
+                  'professionRareResources':4,'professionSpecialtyTools':4,
+                  'professionSpecialtyRecipes':4,
+              }
+              if evidence.get('task19Content')!=expected_content:
+                  fail('Task 19 profession/content evidence drifted.')
+              if evidence.get('historicalTask18Evidence')!='docs/handoff/TASK18_EVIDENCE.json':
+                  fail('Task 18 historical evidence pointer drifted.')
+
+              historical=json.loads(TASK18_EVIDENCE.read_text(encoding='utf-8'))
+              if historical.get('currentTask')!=18 or historical.get('implementationBaseline')!=TASK18_IMPLEMENTATION:
+                  fail('Historical Task 18 current-evidence snapshot drifted.')
+              old=historical.get('task18CandidateVerification',{})
+              if historical.get('task18CandidateBaseline')!=TASK18_CANDIDATE or old.get('workflowRunId')!=TASK18_RUN or old.get('actionsArtifactId')!=TASK18_ARTIFACT or old.get('actionsArtifactDigest')!=TASK18_DIGEST:
+                  fail('Historical Task 18 candidate provenance drifted.')
+              if historical.get('releaseStatus')!=RELEASE_STATUS:
+                  fail('Historical Task 18 release boundary drifted.')
+
+              for path in CURRENT_DOCS:
+                  text=path.read_text(encoding='utf-8')
+                  for marker in (evidence['statusDate'],TASK19_IMPLEMENTATION,'CURRENT_EVIDENCE.json',RELEASE_STATUS,'Task 19',str(TASK19_RUN)):
+                      if marker not in text: fail(f'{path.relative_to(ROOT)} is missing current marker: {marker}')
+              verification=CURRENT_DOCS[-1].read_text(encoding='utf-8')
+              for marker in (str(TASK19_ARTIFACT),TASK19_DIGEST,TASK19_DETACHED,str(TASK19_DETACHED_RUN),'TASK18_EVIDENCE.json'):
+                  if marker not in verification: fail('TASK19_VERIFICATION.md is missing provenance marker: '+marker)
+              for path in (ROOT/'docs'/'handoff'/'TASK18_CURRENT.md',ROOT/'docs'/'handoff'/'TASK18_VERIFICATION.md'):
+                  if not path.is_file(): fail('Historical Task 18 document missing: '+str(path.relative_to(ROOT)))
+
+              print(f'DOCUMENTATION_CONTRACT: task=19; implementation={baseline}; exact_run={TASK19_RUN}; artifact={TASK19_ARTIFACT}; task18_history={TASK18_IMPLEMENTATION}')
+              return 0
+
+          if __name__=='__main__':
+              try:
+                  raise SystemExit(main())
+              except Exception as error:
+                  print(f'DOCUMENTATION_CONTRACT_FAIL: {error}',file=__import__('sys').stderr)
+                  raise SystemExit(1)
+          PYFILE
+
+          python3 tools/documentation_contract.py
+          git config user.name 'Danial Maqbool'
+          git config user.email 'danial.maqbool48@gmail.com'
+          git add HANDOFF.md docs/SESSION_STATUS.md docs/handoff/CURRENT_EVIDENCE.json docs/handoff/TASK18_EVIDENCE.json docs/handoff/TASK19_CURRENT.md docs/handoff/TASK19_VERIFICATION.md tools/documentation_contract.py
+          git diff --cached --check
+          git commit -m 'Synchronize Task 19 evidence and handoff'
+          git push origin HEAD:main
