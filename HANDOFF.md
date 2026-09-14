@@ -1,11 +1,13 @@
 # Kairnfall handoff
 
-Current status as of 2026-09-14. Current Task 21 implementation baseline: `9e493a02a0b371d3d0d6cd08e283c7d95000d9ce` on the single authoritative `main` branch. Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+Current status as of 2026-09-15. Current Task 22 implementation baseline: `d83aa0f9d09a081cd5ebe7f43fe2e2ed9c34baec` on the single authoritative `main` branch. Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
 **NOT APPROVED — human acceptance remains.**
 
-Start with `docs/handoff/TASK21_CURRENT.md`, `docs/handoff/TASK21_VERIFICATION.md`, and `docs/SESSION_STATUS.md`.
+Start with `docs/handoff/TASK22_CURRENT.md`, `docs/handoff/TASK22_VERIFICATION.md`, and `docs/SESSION_STATUS.md`.
 
-Task 21 repository implementation is complete. Four existing boss dungeons now have eight compact 64×64 pre-boss rooms, with no overworld expansion; boss abandon/leash/death cleanup is authoritative and boss rewards remain exactly-once. All eleven exact-head functional workflows passed at `9e493a02a0b371d3d0d6cd08e283c7d95000d9ce`, including Windows package acceptance run `34880619996` after restoring the required fail-closed human release-gate evidence.
+Task 22 repository implementation is complete. Five established city factions now provide deterministic daily endgame contract boards through existing guild registrars, with three contracts per faction and six reused loop types: elite hunts, gathering, crafting, dungeons, bosses, and public events. Reputation, claims, persistence, rank milestones, replay protection, and rewards are server-authoritative; no new overworld regions or arbitrary factions were added.
 
-Historical Task 20 evidence is preserved in `docs/handoff/TASK20_EVIDENCE.json`; Task 21 evidence is preserved in `docs/handoff/TASK21_EVIDENCE.json`. Publication and deployment remain unauthorized. Task 22 may begin from this verified Task 21 delivery state.
+All ten functional workflows triggered at exact implementation baseline `d83aa0f9d09a081cd5ebe7f43fe2e2ed9c34baec` passed, including Build and verify run `34885269413`, Windows package acceptance run `34885269513`, Compile Windows client source run `34885269419`, and both transaction-security workflows. Historical Task 21 evidence remains preserved in `docs/handoff/TASK21_EVIDENCE.json`.
+
+Publication and deployment remain unauthorized. No release, tag, production deployment, infrastructure publication, DNS change, or credential action was performed.
