@@ -19,7 +19,7 @@ The final Task 16 technical matrix reruns the established build, adversarial aut
 
 The Windows package gate produces checksum-manifested client/server/operations archives plus a combined candidate bundle, extracts runtime archives into a clean path containing spaces, runs the packaged server through restart/reconnect persistence, and launches the exported client outside the source tree. `release-candidate.json` remains `publicationReady: false`.
 
-Task 16 also fixes candidate-document provenance so manifest document filenames correspond to the files actually present in the outer bundle, and records Actions producer/run/artifact identity in the generated manifest.
+Task 16 also fixes candidate-document provenance so manifest document filenames correspond to the files actually present in the outer bundle, and records Actions producer/run/artifact identity in the generated manifest. The machine-readable current evidence must retain a non-empty `humanOnlyGates` list; candidate assembly fails closed if those explicit human release gates are missing.
 
 ## Historical evidence boundary
 
