@@ -94,7 +94,7 @@ public partial class GameRoot
         bool distant = navigation.Position is { } point && point.Distance(self.Position) > 2.5;
         journeyAction.Text = self.Health <= 0 ? "Recovery shown below"
             : journeyObjective.Zone != self.Zone && navigation.Position is null ? "View entry requirements"
-            : distant ? "Walk to objective"
+            : distant || navigation.TargetKind == "exit" ? "Walk to objective"
             : journeyObjective.TargetKind == "equipment" ? "Review upgrade"
             : journeyObjective.TargetKind == "creature" ? "Select target"
             : journeyObjective.TargetKind == "npc" ? "Talk"

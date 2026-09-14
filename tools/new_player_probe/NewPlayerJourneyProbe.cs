@@ -121,13 +121,19 @@ public static class NewPlayerJourneyProbe
                 Need(fixture.Realm.Execute(fixture.Id, movement).Ok, "Normal movement command failed."); fixture.Realm.Tick(.1);
             }
             Need(fixture.Player.Position.Distance(initialPosition) > .1 && FirstHourExperience.Marked(fixture.Player, "movement"), "Actual movement did not retire the movement hint.");
+            Need(fixture.Realm.Execute(fixture.Id, new GameCommand { Kind = "move", X = 0, Y = 0 }).Ok, "Normal movement stop failed.");
             fixture.Npc(data.Quest("main_01").Giver); fixture.Act("talk", data.Quest("main_01").Giver); fixture.Act("accept_quest", item: "main_01");
             var rat = fixture.Realm.State.Creatures.Values.First(x => x.Zone == "wayfarers_rest" && x.Template == "field_rat" && x.Health > 0);
             fixture.Place(rat.Position);
             var firstFight = fixture.Next();
             Need(firstFight.Stage == "combat" && fixture.Realm.State.Creatures[firstFight.TargetId].Template == "field_rat",
                 "The authored starter rat is not discoverable after accepting the opening quest: " + firstFight.Stage + " / " + firstFight.TargetId);
-            for (int strike = 0; rat.Health > 0 && strike < 80; strike++) { fixture.Act("attack", rat.Id); fixture.Advance(2); }
+            for (int strike = 0; rat.Health > 0 && strike < 80; strike++)
+            {
+                // The real starter animal retreats after being wounded. Re-establish
+                // reachable melee proximity rather than disabling its AI or range checks.
+                fixture.Place(rat.Position); fixture.Act("attack", rat.Id); fixture.Advance(2);
+            }
             Need(rat.Health <= 0 && fixture.Player.Bestiary.GetValueOrDefault("field_rat") > 0, "The authoritative first kill did not complete.");
             var loot = fixture.Realm.VisibleLoot(fixture.Id).FirstOrDefault(x => x.Owner == fixture.Id);
             Need(loot is not null, "A real defeated starter foe left no owned loot.");
