@@ -2,9 +2,9 @@
 
 Current status as of 2026-09-14.
 
-Current Task 20 implementation baseline: `5167d6323ac4264250fc4b64072450c0f6d69ead`.
+Current Task 21 implementation baseline: `9e493a02a0b371d3d0d6cd08e283c7d95000d9ce`.
 Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
 **NOT APPROVED — human acceptance remains.**
 
-Task 20 is repository-side implemented without expanding the overworld. Exact candidate `abc141dcaf82420c8289ebd47f8a7942aec6ee04` passed verifier run `34860458864`, and all ten functional implementation-head workflows passed. The world-event director now prevents active/aftermath overlap, prefers occupied eligible regions, uses an absolute contribution floor, preserves reconnect/restart reward safety, and resets aftermath cleanly. Historical Task 19 evidence remains preserved. Publication/deployment remain unauthorized.
+Task 21 is repository-side complete. The existing four boss-dungeon entrances were deepened with eight compact 64×64 rooms without adding overworld regions; the Surface wilderness footprint remains 20 regions / 2,048,000 tiles. Boss abandonment, leash, death cleanup, replay protection, multiplayer contribution, and exactly-once reward behavior are server-authoritative and regression-tested. All eleven functional workflows passed at the exact implementation baseline, including Windows package acceptance run `34880619996`. Historical Task 20 evidence remains preserved. Publication and deployment remain unauthorized.

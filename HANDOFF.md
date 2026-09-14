@@ -1,11 +1,11 @@
 # Kairnfall handoff
 
-Current status as of 2026-09-14. Current Task 20 implementation baseline: `5167d6323ac4264250fc4b64072450c0f6d69ead` on the single authoritative `main` branch. Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+Current status as of 2026-09-14. Current Task 21 implementation baseline: `9e493a02a0b371d3d0d6cd08e283c7d95000d9ce` on the single authoritative `main` branch. Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
 
 **NOT APPROVED — human acceptance remains.**
 
-Start with `docs/handoff/TASK20_CURRENT.md`, `docs/handoff/TASK20_VERIFICATION.md`, and `docs/SESSION_STATUS.md`.
+Start with `docs/handoff/TASK21_CURRENT.md`, `docs/handoff/TASK21_VERIFICATION.md`, and `docs/SESSION_STATUS.md`.
 
-Task 20 repository implementation is complete. The existing eight dynamic-event families now use a hardened authoritative director with overlap/aftermath exclusion, active-player region preference, absolute contribution eligibility with a floor of 4, late-arrival fairness, restart and reconnect-safe rewards, and clean aftermath reset. The overworld footprint is unchanged. Detached candidate `abc141dcaf82420c8289ebd47f8a7942aec6ee04` passed exact verifier run `34860458864`; all ten functional workflows at implementation head `5167d6323ac4264250fc4b64072450c0f6d69ead` also passed.
+Task 21 repository implementation is complete. Four existing boss dungeons now have eight compact 64×64 pre-boss rooms, with no overworld expansion; boss abandon/leash/death cleanup is authoritative and boss rewards remain exactly-once. All eleven exact-head functional workflows passed at `9e493a02a0b371d3d0d6cd08e283c7d95000d9ce`, including Windows package acceptance run `34880619996` after restoring the required fail-closed human release-gate evidence.
 
-Historical Task 19 evidence is preserved in `docs/handoff/TASK19_EVIDENCE.json` and the existing Task 19 handoff documents. Publication and deployment remain unauthorized. Task 21 may begin only from the verified Task 20 delivery head.
+Historical Task 20 evidence is preserved in `docs/handoff/TASK20_EVIDENCE.json`; Task 21 evidence is preserved in `docs/handoff/TASK21_EVIDENCE.json`. Publication and deployment remain unauthorized. Task 22 may begin from this verified Task 21 delivery state.
