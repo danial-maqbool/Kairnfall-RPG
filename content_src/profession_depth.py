@@ -81,7 +81,7 @@ def build(data):
 
         source=row['source']
         b.item(row['gather_item'],row['gather_name'],'wood' if row['skill']=='woodcutting' else 'herb' if row['skill']=='herbalism' else 'ore' if row['skill']=='mining' else 'material',
-               material='rare_resource',requirement=row['requirement'],value=max(12,row['process_value']//2-2),
+               material='rare_resource',requirement=row['requirement'],value=max(12,row['process_value']//2),
                description=f'A scarce regional material gathered in {source}. Process it before specialist crafting.')
         b.item(row['processed'],row['processed_name'],'material',material='rare_resource',requirement=row['process_requirement'],value=row['process_value'],
                description=f'A processed profession component made from material gathered in {source}.')
