@@ -1,4 +1,3 @@
-\
 """Task 21: reusable compact encounter wings attached to existing boss dungeons."""
 
 PLANS = {
