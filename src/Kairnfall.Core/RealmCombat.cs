@@ -205,6 +205,7 @@ public sealed partial class RealmEngine
     {
         var def=Data.Mob(mob.Template); var publicEvent=WorldEventRules.Owner(State,mob.Id); mob.Health=0; mob.RespawnAt=publicEvent is null?State.Time+(def.Boss?300:def.Elite?90:25):double.MaxValue; mob.Generation++;
         mob.Target=""; mob.Statuses.Clear(); State.Telegraphs.RemoveAll(x=>x.Source==mob.Id);
+        if(def.Boss) ClearBossEncounterArtifacts(mob);
         var contributors=mob.Threat.Where(x=>x.Value>0&&State.Characters.ContainsKey(x.Key)).Select(x=>Player(x.Key)).Where(x=>x.Zone==mob.Zone&&x.Position.Distance(mob.Position)<=24&&Active.Contains(x.Id)).ToList();
         if(contributors.Count==0) contributors.Add(killer);
         var recipients=CooperativeKillRecipients(mob,contributors);
@@ -301,6 +302,23 @@ public sealed partial class RealmEngine
         if(t.Shape=="ring") return distance>=t.Radius*0.55;
         return false;
     }
+    private void ClearBossEncounterArtifacts(Creature mob)
+    {
+        string prefix=mob.Id+"/add/";
+        foreach(var id in State.Creatures.Keys.Where(x=>x.StartsWith(prefix,StringComparison.Ordinal)).ToList())
+        {
+            State.Creatures.Remove(id); creatureMotion.Remove(id);
+        }
+        State.Telegraphs.RemoveAll(x=>x.Source==mob.Id||x.Source.StartsWith(prefix,StringComparison.Ordinal));
+        creatureMotion.Remove(mob.Id);
+    }
+    private void ResetBossEncounter(Creature mob,MobDef definition)
+    {
+        ClearBossEncounterArtifacts(mob);
+        mob.Health=definition.Health; mob.Position=mob.Home; mob.Target=""; mob.NextAttack=State.Time+.5;
+        mob.Phase=0; mob.AttackStep=0; mob.Threat.Clear(); mob.Statuses.Clear(); EconomicDirty=true;
+    }
+
     private void SummonEnemyAdds(Creature mob,MobDef definition,Character target)
     {
         int cap=definition.Boss?3:2;
@@ -388,6 +406,14 @@ public sealed partial class RealmEngine
         PruneCreatureMotion();
         var live=Active.Where(State.Characters.ContainsKey).Select(Player).Where(x=>x.Health>0).ToList();
         var zones=live.Select(x=>x.Zone).ToHashSet();
+        foreach(var boss in State.Creatures.Values.Where(x=>x.Owner==""&&x.Health>0&&!zones.Contains(x.Zone)&&Data.Mob(x.Template).Boss).ToList())
+        {
+            var definition=Data.Mob(boss.Template); string prefix=boss.Id+"/add/";
+            bool engaged=boss.Health<definition.Health||boss.Target!=""||boss.Threat.Count>0||boss.Phase>0||boss.AttackStep>0
+                ||State.Telegraphs.Any(x=>x.Source==boss.Id||x.Source.StartsWith(prefix,StringComparison.Ordinal))
+                ||State.Creatures.Keys.Any(x=>x.StartsWith(prefix,StringComparison.Ordinal));
+            if(engaged) ResetBossEncounter(boss,definition);
+        }
         var activeCreatures=State.Creatures.Values.Where(x=>zones.Contains(x.Zone)).ToArray();
         var byZone=activeCreatures.GroupBy(x=>x.Zone).ToDictionary(g=>g.Key,g=>g.ToArray());
         IndexCreatures(activeCreatures);
@@ -402,11 +428,13 @@ public sealed partial class RealmEngine
             mob.Statuses.RemoveAll(x=>x.Until<=State.Time);
             if(mob.Owner!="") { TickCompanion(mob,dt); continue; }
             var nearby=live.Where(x=>x.Zone==mob.Zone&&x.Position.Distance(mob.Position)<=28).ToList();
+            if(def.Boss&&mob.Position.Distance(mob.Home)>25) { ResetBossEncounter(mob,def); continue; }
             if(nearby.Count==0) continue;
             var target=nearby.Where(x=>mob.Threat.ContainsKey(x.Id)).OrderByDescending(x=>mob.Threat.GetValueOrDefault(x.Id)).FirstOrDefault();
             if(target is null&&def.Ai!="passive") target=nearby.Where(x=>x.Position.Distance(mob.Position)<=def.Aggro&&!x.Statuses.Any(s=>s.Kind=="stealth"&&s.Until>State.Time)&&WorldMap.LineOfSight(zone,mob.Position,x.Position)).OrderBy(x=>x.Position.Distance(mob.Position)).FirstOrDefault();
             if(mob.Position.Distance(mob.Home)>25)
             {
+                if(def.Boss) { ResetBossEncounter(mob,def); continue; }
                 mob.Target=""; mob.Threat.Clear(); creatureMotion.Remove(mob.Id); MoveCreature(mob,mob.Home,dt,def.Speed*1.3);
                 mob.Health=Math.Min(def.Health,mob.Health+def.Health*dt/4); continue;
             }

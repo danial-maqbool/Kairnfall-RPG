@@ -8,12 +8,12 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from content_src import skills, items, abilities, mobs, encounter_variety, boss_uniques, world, profession_depth, exploration_rewards, quests, world_density, presentation, gear_progression, build_defining_loot
+from content_src import skills, items, abilities, mobs, encounter_variety, boss_uniques, world, dungeon_depth, profession_depth, exploration_rewards, quests, world_density, presentation, gear_progression, build_defining_loot
 
 
 def build() -> dict:
     data={name:[] for name in ['skills','classes','items','abilities','recipes','zones','mobs','resources','npcs','quests']}
-    for module in [skills,items,abilities,mobs,encounter_variety,boss_uniques,world,profession_depth,exploration_rewards,quests,world_density,presentation,gear_progression,build_defining_loot]: module.build(data)
+    for module in [skills,items,abilities,mobs,encounter_variety,boss_uniques,world,dungeon_depth,profession_depth,exploration_rewards,quests,world_density,presentation,gear_progression,build_defining_loot]: module.build(data)
     profession_depth.finalize_values(data)
     for category,entries in data.items():
         seen=set()
@@ -43,6 +43,7 @@ def main() -> None:
     counts['cities']=sum(z['kind']=='city' for z in data['zones'])
     counts['settlements']=sum(z['kind']=='settlement' for z in data['zones'])
     counts['dungeons']=sum(z['kind']=='dungeon' for z in data['zones'])
+    counts['task21_compact_rooms']=sum(z['id'] in dungeon_depth.ROOM_IDS for z in data['zones'])
     counts['biomes']=len({z['biome'] for z in data['zones']})
     counts['profession_rare_resources']=len(profession_depth.RARE_RESOURCE_IDS)
     counts['profession_specialty_tools']=len(profession_depth.SPECIALTY_TOOL_IDS)
