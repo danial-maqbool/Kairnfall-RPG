@@ -1,6 +1,6 @@
 {
-  "sha": "04c8b2a99bda911341b32a8037facc6ea430432b",
-  "base": "df04b2869d87033d232dc91191056402727f101b",
+  "sha": "ac538e573cc44e80b3dc23c6cc9a1421a39d4133",
+  "base": "55948ed59a85a0c140624373acbb0fad78ea7ba3",
   "mode": "repair",
-  "purpose": "Task 19 acceptance retry after restoring the existing Reconnect try-block brace: verify discovered-only Bestiary encounter readability for existing Task 18 champions and the retained creature roster. Expose rank, readable tactical attacks, authored encounter regions, existing XP/gold/drop cues, and resistances without changing content generation, overworld footprint, spawn cadence, combat balance, loot ownership, or authoritative reward values. Retain backend/security/world/database/native Godot/live-client contracts and prove undiscovered champions remain hidden."
+  "purpose": "Task 19 exact candidate: verify four sparse regional gathering sources in existing geography, controlled 6-10 minute node recovery, gather-process-specialty-tool profession loops, bounded utility-based tool selection, exact material consumption/output, failed-operation rollback, duplicate-request replay safety, shared-node contention, restart persistence, deterministic generation, unchanged overworld footprint, and retained backend/security/database/native Godot/live-client contracts."
 }
