@@ -18,6 +18,17 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Apply Task 22 source changes
         run: python3 tools/task22_apply.py
+      - name: Make rollback fixture use current state references
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('tools/world_probe/Task22EndgameChecks.cs')
+          text=path.read_text(encoding='utf-8')
+          old='''            var accept=Command(p,"endgame_accept",quest.Id);var far=realm.Execute(p.Id,accept);Need(!far.Ok,"Remote faction contract acceptance bypassed registrar proximity.");\n            p.Zone=registrar.Zone;p.Position=registrar.Position;accept=Command(p,"endgame_accept",quest.Id);var accepted=realm.Execute(p.Id,accept);Need(accepted.Ok,accepted.Message);Need(p.Quests.ContainsKey(quest.Id),"Accepted faction contract was not persisted in quest state.");\n            var early=realm.Execute(p.Id,Command(p,"endgame_claim",quest.Id));Need(!early.Ok,"Incomplete faction contract was claimable.");\n            var progress=p.Quests[quest.Id];'''
+          new='''            var accept=Command(p,"endgame_accept",quest.Id);var far=realm.Execute(p.Id,accept);Need(!far.Ok,"Remote faction contract acceptance bypassed registrar proximity.");\n            p=realm.Player(p.Id);p.Zone=registrar.Zone;p.Position=registrar.Position;accept=Command(p,"endgame_accept",quest.Id);var accepted=realm.Execute(p.Id,accept);Need(accepted.Ok,accepted.Message);Need(p.Quests.ContainsKey(quest.Id),"Accepted faction contract was not persisted in quest state.");\n            var early=realm.Execute(p.Id,Command(p,"endgame_claim",quest.Id));Need(!early.Ok,"Incomplete faction contract was claimable.");\n            p=realm.Player(p.Id);var progress=p.Quests[quest.Id];'''
+          if text.count(old)!=1: raise SystemExit('rollback fixture target missing')
+          path.write_text(text.replace(old,new),encoding='utf-8')
+          PY
       - name: Regenerate deterministic catalog
         run: python3 tools/build_content.py
       - name: Compile solution
