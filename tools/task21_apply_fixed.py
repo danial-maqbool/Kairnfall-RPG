@@ -33,7 +33,21 @@ old = "        original_dungeon_arrival = dict(dungeon_exit['arrival'])"
 new = "        original_dungeon_arrival = dict(source_exit['arrival'])"
 if text.count(old) != 1:
     raise RuntimeError('Task 21 dungeon arrival patch anchor drifted.')
-dungeon_depth.write_text(text.replace(old, new, 1), encoding='utf-8')
+text = text.replace(old, new, 1)
+
+# Walk-through transitions are exact reciprocal pairs: the destination arrival
+# of one direction must equal the return trigger position and vice versa.
+coordinate_patches = [
+    ("        source_exit['arrival'] = point(32.5, 58.5)", "        source_exit['arrival'] = point(32.5, 62.5)"),
+    ("        dungeon_exit['arrival'] = point(32.5, 5.5)", "        dungeon_exit['arrival'] = point(32.5, 2.5)"),
+    ("exit_row(threshold_id + '_to_' + gauntlet_id, gauntlet_id, point(32.5, 2.5), point(32.5, 58.5), 'door', 1)", "exit_row(threshold_id + '_to_' + gauntlet_id, gauntlet_id, point(32.5, 2.5), point(32.5, 62.5), 'door', 1)"),
+    ("exit_row(gauntlet_id + '_to_' + threshold_id, threshold_id, point(32.5, 62.5), point(32.5, 5.5), 'door', 1)", "exit_row(gauntlet_id + '_to_' + threshold_id, threshold_id, point(32.5, 62.5), point(32.5, 2.5), 'door', 1)"),
+]
+for before, after in coordinate_patches:
+    if text.count(before) != 1:
+        raise RuntimeError('Task 21 reciprocal coordinate patch anchor drifted: ' + before)
+    text = text.replace(before, after, 1)
+dungeon_depth.write_text(text, encoding='utf-8')
 
 # Bosses must reset even when they have already moved beyond the nearby-player
 # scan. The generic loop used to return on nearby.Count==0 before reaching its
