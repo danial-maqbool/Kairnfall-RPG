@@ -1,21 +1,34 @@
 {
-  "base": "639642e88dc7c2a0d65954aa6d5f8ab3886019d9",
-  "message": "test(onboarding): follow the real retreating starter animal between bounded combat actions",
-  "purpose": "Keep existing animal retreat, damage, reward and range validation intact. Correct the deterministic proximity fixture rather than freezing enemies or granting synthetic kill credit.",
+  "base": "205c3aa8b16d7f48ae4f5e817ddf9a43d88f59e3",
+  "message": "fix(onboarding): retain Task 21 catalog fixtures and expose objective details to pointer users",
+  "purpose": "The complete real journey and world suites now pass. Repair two pre-existing Python fixture assumptions about Task 21: include dungeon_depth in the pre-gear baseline and distinguish authored elite gauntlets from ordinary creature bands. Preserve all protected item, identity, ordinary-level and dungeon composition assertions. Add actual minimum-window UI coverage and hoverable details.",
   "edits": [
     {
-      "path": "tools/new_player_probe/NewPlayerJourneyProbe.cs",
-      "expected_blob": "c88408ab626d1871f944be83b8511cf8a3f02b83",
+      "path": "tests/handoff/test_equipment_progression.py",
+      "expected_blob": "f62cd093b21651f3e137beca0dc3fc8923c9ab9e",
+      "replacements": [{"old": "boss_uniques,world,profession_depth", "new": "boss_uniques,world,dungeon_depth,profession_depth", "count": 2}]
+    },
+    {
+      "path": "tests/handoff/test_hunting_routes.py",
+      "expected_blob": "cc8a12cb2b5db6534f707bbf9fa3c48fd6df6f0e",
       "replacements": [
-        {"old": "fixture.Npc(data.Quest(\"main_01\").Giver); fixture.Act(\"talk\", data.Quest(\"main_01\").Giver);", "new": "Need(fixture.Realm.Execute(fixture.Id, new GameCommand { Kind = \"move\", X = 0, Y = 0 }).Ok, \"Normal movement stop failed.\");\n            fixture.Npc(data.Quest(\"main_01\").Giver); fixture.Act(\"talk\", data.Quest(\"main_01\").Giver);"},
-        {"old": "for (int strike = 0; rat.Health > 0 && strike < 80; strike++) { fixture.Act(\"attack\", rat.Id); fixture.Advance(2); }", "new": "for (int strike = 0; rat.Health > 0 && strike < 80; strike++)\n            {\n                // The real starter animal retreats after being wounded. Re-establish\n                // reachable melee proximity rather than disabling its AI or range checks.\n                fixture.Place(rat.Position); fixture.Act(\"attack\", rat.Id); fixture.Advance(2);\n            }"}
+        {"old": "from content_src import hunting_routes", "new": "from content_src import hunting_routes, dungeon_depth"},
+        {"old": "                self.assertLessEqual(self.mobs[species]['level'],z['level']+8,(z['id'],species))\n                self.assertFalse(self.mobs[species]['boss'])", "new": "                mob=self.mobs[species]\n                self.assertFalse(mob['boss'])\n                if mob['elite']:\n                    # Task 21 intentionally adds one authored elite template to each\n                    # gauntlet; this ordinary-creature contract must not relabel it.\n                    self.assertIn(z['id'],dungeon_depth.ROOM_IDS)\n                    self.assertTrue(z['id'].endswith('_gauntlet'))\n                    self.assertEqual(sum(self.mobs[x]['elite'] for x in z['species']),1)\n                else:\n                    self.assertLessEqual(mob['level'],z['level']+8,(z['id'],species))"}
       ]
     },
     {
       "path": "client/Scripts/GameRoot.NewPlayer.cs",
-      "expected_blob": "4a0e19c0ef2e7d9220b5786506ccbc54bfc3345e",
+      "expected_blob": "da42a179fdc36e292c38c138f9723e154105bc17",
       "replacements": [
-        {"old": ": distant ? \"Walk to objective\"", "new": ": distant || navigation.TargetKind == \"exit\" ? \"Walk to objective\""}
+        {"old": "objectiveText.AddThemeFontSizeOverride(\"font_size\", 13);", "new": "objectiveText.SetMeta(Ui.BaseFontSizeMeta, 13);\n        objectiveText.AddThemeFontSizeOverride(\"font_size\", Ui.ScaledFont(13));\n        objectiveText.MouseFilter = MouseFilterEnum.Pass;\n        firstHourText.MouseFilter = MouseFilterEnum.Pass;"}
+      ]
+    },
+    {
+      "path": "client/Tests/NewPlayerJourneyUiChecks.cs",
+      "expected_blob": "570fe00f113bbe33e986c4d90f56b6e034b87927",
+      "replacements": [
+        {"old": "new[] { new Vector2I(1280, 720), new Vector2I(1920, 1080) }", "new": "new[] { new Vector2I(1024, 720), new Vector2I(1280, 720), new Vector2I(1920, 1080) }"},
+        {"old": "            check(hint.GetMeta(\"guidance_id\").AsString() == \"movement\"", "new": "            check(objective.MouseFilter == Control.MouseFilterEnum.Pass && hint.MouseFilter == Control.MouseFilterEnum.Pass, \"Full guidance details accept tooltip hover at \" + size);\n            check(hint.GetMeta(\"guidance_id\").AsString() == \"movement\""}
       ]
     }
   ]
