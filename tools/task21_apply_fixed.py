@@ -7,6 +7,8 @@ real_dedent = textwrap.dedent
 
 
 def task21_dedent(text: str) -> str:
+    if text.startswith("\\\nusing System;"):
+        return text[2:]
     stripped = text.lstrip()
     csharp_prefixes = (
         'private void ClearBossEncounterArtifacts',
