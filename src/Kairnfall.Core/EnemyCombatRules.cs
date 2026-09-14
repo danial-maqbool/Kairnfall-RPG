@@ -32,7 +32,12 @@ public static class EnemyCombatRules
         var attacks=definition.Attacks.Where(x=>!IsEliteTrait(x)&&IsKnownAttack(x)).ToArray();
         if(attacks.Length==0)attacks=["strike"];
         int step=creature.AttackStep++;
-        if(EliteTrait(definition)=="elite_tempest"&&step%3==2)return "tempest";
+        if(EliteTrait(definition)=="elite_tempest")
+        {
+            int cycle=attacks.Length+1;
+            int position=step%cycle;
+            return position==attacks.Length?"tempest":attacks[position];
+        }
         return attacks[step%attacks.Length];
     }
 

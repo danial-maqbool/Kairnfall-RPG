@@ -11,7 +11,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT)); sys.path.insert(0,str(ROOT/'tools'))
-from content_src import skills,items,abilities,mobs,boss_uniques,world,exploration_rewards,quests,world_density,presentation,gear_progression
+from content_src import skills,items,abilities,mobs,encounter_variety,boss_uniques,world,exploration_rewards,quests,world_density,presentation,gear_progression
 from art import items as item_art, humanoid
 from art.common import STATES
 spec=importlib.util.spec_from_file_location('equipment_progression_builder',ROOT/'tools/build_content.py')
@@ -23,8 +23,9 @@ def original():
     # This baseline represents the catalog immediately before gear_progression runs.
     # Include every independent extension that precedes gear progression in the
     # canonical builder so this suite measures the gear pass rather than reclassifying
-    # pre-existing exploration or world-density content as gear-progression output.
-    for module in (skills,items,abilities,mobs,boss_uniques,world,exploration_rewards,quests,world_density,presentation): module.build(data)
+    # pre-existing exploration, encounter-variety, or world-density content as
+    # gear-progression output.
+    for module in (skills,items,abilities,mobs,encounter_variety,boss_uniques,world,exploration_rewards,quests,world_density,presentation): module.build(data)
     return data
 
 

@@ -4,17 +4,17 @@ public sealed partial class RealmEngine
 {
     private readonly Dictionary<string,HuntPatch> huntMembership = new(StringComparer.Ordinal);
     private readonly Dictionary<string,HuntingPlan> huntPlans = new(StringComparer.Ordinal);
+    private readonly Dictionary<string,int> rareCadenceGeneration = new(StringComparer.Ordinal);
     private Dictionary<(string Zone,int X,int Y),List<Creature>> creatureCells = [];
     private static (string,int,int) CreatureCell(string zone,Point at) => (zone,(int)Math.Floor(at.X/4),(int)Math.Floor(at.Y/4));
 
     private void SeedHuntingWorld()
     {
+        bool pristineRealm=State.HuntingRevision==0&&State.Time==0&&State.Characters.Count==0;
         bool migrate=State.HuntingRevision<HuntingGrounds.Revision;
         bool changed=false;
         if(migrate)
         {
-            // Retire only obsolete scripted dungeon spawn slots. Owned animals,
-            // boss instances, events, characters and loot retain their identities.
             foreach(var mob in State.Creatures.Values.ToArray())
             {
                 if(mob.Owner!="") continue;
@@ -41,11 +41,31 @@ public sealed partial class RealmEngine
                             existing.Position=spawn.Position;
                         changed=true;
                     }
+                    if(pristineRealm&&def.Elite&&def.Id!="rare_hay_golem"&&existing.Generation==0&&existing.Health>0)
+                    {
+                        existing.Home=spawn.Position;existing.Position=spawn.Position;existing.Health=0;
+                        existing.RespawnAt=State.Time+RareEncounterRules.InitialSpawnDelay(zone,def);changed=true;
+                    }
+                    if(def.Elite&&existing.Health<=0)
+                    {
+                        bool shortPending=existing.Generation>0&&existing.RespawnAt>=State.Time&&existing.RespawnAt-State.Time<=RareEncounterRules.LegacyEliteRespawnCeiling;
+                        if(shortPending)
+                        {
+                            existing.RespawnAt=State.Time+RareEncounterRules.RespawnDelay(zone,def,existing.Generation);
+                            changed=true;
+                        }
+                        rareCadenceGeneration[existing.Id]=existing.Generation;
+                    }
                     continue;
                 }
                 bool occupied=State.Characters.Values.Any(p=>p.Zone==zone.Id&&p.Health>0&&p.Position.Distance(spawn.Position)<8);
-                State.Creatures.Add(spawn.Id,new Creature { Id=spawn.Id,Template=spawn.Template,Zone=zone.Id,
-                    Home=spawn.Position,Position=spawn.Position,Health=occupied?0:def.Health,RespawnAt=occupied?State.Time+1:0 });
+                double rareDelay=def.Elite?RareEncounterRules.InitialSpawnDelay(zone,def):0;
+                bool deferred=rareDelay>0;
+                double respawnAt=deferred?State.Time+rareDelay:occupied?State.Time+1:0;
+                var creature=new Creature { Id=spawn.Id,Template=spawn.Template,Zone=zone.Id,
+                    Home=spawn.Position,Position=spawn.Position,Health=occupied||deferred?0:def.Health,RespawnAt=respawnAt };
+                State.Creatures.Add(spawn.Id,creature);
+                if(def.Elite&&creature.Health<=0) rareCadenceGeneration[creature.Id]=creature.Generation;
                 changed=true;
             }
             if(plan.FieldBoss!="")
@@ -60,7 +80,6 @@ public sealed partial class RealmEngine
                     changed=true;
                 }
             }
-            // Reuse the existing hidden cache. Do not create another chest per hunting patch.
             if(migrate && plan.Patches.Count>0 && zone.Kind is "wilderness" or "tunnel"
                 && State.Chests.TryGetValue(zone.Id+"/chest/2",out var cache))
             {
@@ -74,14 +93,24 @@ public sealed partial class RealmEngine
     private bool CanHuntRespawn(Creature mob,IReadOnlyList<Character> live)
     {
         if(!huntMembership.ContainsKey(mob.Id)&&!mob.Id.EndsWith("/field-boss",StringComparison.Ordinal)) return true;
-        double distance=Data.Mob(mob.Template).Boss?12:7;
+        double distance=RareEncounterRules.RespawnClearRadius(Data.Mob(mob.Template));
         return !live.Any(p=>p.Zone==mob.Zone&&p.Position.Distance(mob.Home)<distance)
             && !NearCreatures(mob.Zone,mob.Home).Any(other=>other.Id!=mob.Id&&other.Health>0&&other.Position.Distance(mob.Home)<.8);
     }
     private void IndexCreatures(IEnumerable<Creature> creatures)
     {
+        var current=creatures as Creature[]??creatures.ToArray();
+        foreach(var mob in current)
+        {
+            if(mob.Owner!=""||mob.Health>0||mob.Generation<=0) continue;
+            var def=Data.Mob(mob.Template); if(!def.Elite) continue;
+            if(rareCadenceGeneration.TryGetValue(mob.Id,out int generation)&&generation==mob.Generation) continue;
+            double delay=RareEncounterRules.RespawnDelay(Data.Zone(mob.Zone),def,mob.Generation);
+            mob.RespawnAt=Math.Max(mob.RespawnAt,State.Time+delay);
+            rareCadenceGeneration[mob.Id]=mob.Generation; EconomicDirty=true;
+        }
         creatureCells.Clear();
-        foreach(var mob in creatures.Where(m=>m.Health>0))
+        foreach(var mob in current.Where(m=>m.Health>0))
         {
             var cell=CreatureCell(mob.Zone,mob.Position);
             if(!creatureCells.TryGetValue(cell,out var rows)) creatureCells[cell]=rows=[];
@@ -126,10 +155,11 @@ public sealed partial class RealmEngine
     }
     private bool PatrolHuntingCreature(Creature mob,MobDef definition,double dt)
     {
-        if(!huntMembership.TryGetValue(mob.Id,out var patch)||patch.Pattern!="patrol") return false;
+        if(!huntMembership.TryGetValue(mob.Id,out var patch)||!patch.Pattern.EndsWith("patrol",StringComparison.Ordinal)) return false;
         if(!creatureMotion.TryGetValue(mob.Id,out var plan)||plan.Threat!="")
             creatureMotion[mob.Id]=plan=new CreatureMotionPlan { Goal=mob.Position,NextDecision=State.Time+1 };
-        if(mob.Position.Distance(mob.Home)>7)
+        double leash=definition.Elite?9:7;
+        if(mob.Position.Distance(mob.Home)>leash)
         {
             MoveCreature(mob,mob.Home,dt,definition.Speed*.7); return true;
         }

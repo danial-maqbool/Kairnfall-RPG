@@ -22,7 +22,7 @@ public sealed class HuntingPlan
 
 public static class HuntingGrounds
 {
-    public const int Revision = 3;
+    public const int Revision = 4;
     public const int PackSize = 5;
     private sealed class Cache { public readonly Dictionary<string,(int Stamp,HuntingPlan Plan)> Plans = []; }
     private static readonly ConditionalWeakTable<Catalog,Cache> Caches = new();
@@ -47,12 +47,16 @@ public static class HuntingGrounds
         "arcane_anomaly" => "Rift patrols and spellcasting colonies",
         _ => "Regional hunting grounds"
     };
-    public static string Pattern(MobDef mob) => mob.Ai switch
+    public static string Pattern(MobDef mob)
     {
-        "pack_hunter" => "pack", "guard" or "ranged_kiter" => "patrol",
-        "ambusher" => "ambush", "healer" or "summoner" or "caster" => "colony",
-        "passive" or "fleeing" => "graze", _ => "territory"
-    };
+        if(mob.Elite)return RareEncounterRules.HuntingPattern(mob);
+        return mob.Ai switch
+        {
+            "pack_hunter" => "pack", "guard" or "ranged_kiter" => "patrol",
+            "ambusher" => "ambush", "healer" or "summoner" or "caster" => "colony",
+            "passive" or "fleeing" => "graze", _ => "territory"
+        };
+    }
     public static bool Protected(ZoneDef zone, Point point, Catalog data)
     {
         if (zone.Kind == "interior") return true;
@@ -66,7 +70,6 @@ public static class HuntingGrounds
         if (zone.Kind == "interior") return Array.Empty<string>();
         if (zone.Species.Length > 0) return zone.Species.Distinct(StringComparer.Ordinal).ToArray();
         if (!IsTown(zone)) return Array.Empty<string>();
-        // Formerly empty settlements gain wildlife outside their protected service core.
         var nearby = data.Mobs.Where(m => !m.Boss && !m.Elite && m.Biome == zone.Biome && m.Level <= Math.Max(5,zone.Level+5))
             .OrderBy(m=>m.Level).ThenBy(m=>m.Id,StringComparer.Ordinal).Take(2).Select(m=>m.Id).ToArray();
         return nearby.Length>0 ? nearby : data.Mobs.Where(m=>m.Id is "field_rat" or "wild_hare").Select(m=>m.Id).ToArray();
@@ -74,7 +77,6 @@ public static class HuntingGrounds
     public static HuntingPlan For(Catalog data, ZoneDef zone)
     {
         var cache = Caches.GetOrCreateValue(data);
-        // Tests may change furniture in a copied catalog. Do not reuse stale walkability.
         var stamp = new HashCode(); stamp.Add(zone.Seed); stamp.Add(zone.Width); stamp.Add(zone.Height); stamp.Add(zone.Spawn);
         stamp.Add(zone.Kind); stamp.Add(zone.Biome); stamp.Add(zone.Level); stamp.Add(zone.Boss);
         foreach(var id in zone.Species) stamp.Add(id);
@@ -121,11 +123,15 @@ public static class HuntingGrounds
             double angle=(sequence++*2.399963+zone.Seed*.01)%Math.Tau;
             double radius=IsTown(zone)?29+batch%2*5:zone.Layer=="Surface"?19+batch*8:12+batch*4;
             var desired=new Point(zone.Spawn.X+Math.Cos(angle)*radius,zone.Spawn.Y+Math.Sin(angle)*radius);
-            if(batch>0)
+            if(mob.Elite&&batch==0)
             {
-                // Strata span the reachable floor, not a fixed ring around arrival.
-                // A coprime stride visits every sector before repeating. First patches
-                // remain nearby so the starter journey still has visible activity.
+                var landmarks=zone.Buildings.Select(JourneyProgression.LandmarkPoint).Where(Reach)
+                    .OrderByDescending(point=>point.Distance(zone.Spawn)).ToArray();
+                desired=landmarks.Length>0?landmarks[Math.Abs(WorldMap.Hash(zone.Seed,sequence,mob.Level))%landmarks.Length]
+                    :anchors.OrderByDescending(point=>point.Distance(zone.Spawn)).First();
+            }
+            else if(batch>0)
+            {
                 int sector=(int)(((long)sequence*5+(uint)zone.Seed)%16);
                 double jitter=(WorldMap.Hash(batch,sequence,zone.Seed)%1000)/1000.0-.5;
                 double u=((sector%4)+.5+jitter*.45)/4;
@@ -133,7 +139,6 @@ public static class HuntingGrounds
                 desired=new Point(minX+(maxX-minX)*u,minY+(maxY-minY)*v);
             }
             Point centre=default; List<Point>? positions=null;
-            // Relax centre separation, never actor separation or reachability, in narrow tunnels.
             foreach(double separation in new[]{6.0,3.0,0.0})
             {
                 foreach(var candidate in anchors.Where(p=>centers.All(c=>c.Distance(p)>=separation))
@@ -153,8 +158,9 @@ public static class HuntingGrounds
             if(positions is null) throw new InvalidDataException($"Cannot place {requested} separated hunting creatures in {zone.Id}/{mob.Id}. No density was silently discarded.");
             string patchId=$"{zone.Id}/hunt-site/{mob.Id}/{batch}";
             string pattern=Pattern(mob);
-            string name=mob.Name+" "+(pattern switch {"pack"=>"den","patrol"=>"patrol","ambush"=>"ambush","colony"=>"colony","graze"=>"grounds",_=>"territory"});
-            var patch=new HuntPatch(patchId,name,mob.Id,pattern,centre,requested,5);
+            string name=mob.Elite?RareEncounterRules.RankLabel(mob)+": "+mob.Name
+                :mob.Name+" "+(pattern switch {"pack"=>"den","patrol"=>"patrol","ambush"=>"ambush","colony"=>"colony","graze"=>"grounds",_=>"territory"});
+            var patch=new HuntPatch(patchId,name,mob.Id,pattern,centre,requested,mob.Elite?6:5);
             centers.Add(centre); patches.Add(patch);
             foreach(var point in positions)
             {

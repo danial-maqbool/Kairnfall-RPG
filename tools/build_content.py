@@ -8,19 +8,18 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from content_src import skills, items, abilities, mobs, boss_uniques, world, exploration_rewards, quests, world_density, presentation, gear_progression, build_defining_loot
+from content_src import skills, items, abilities, mobs, encounter_variety, boss_uniques, world, exploration_rewards, quests, world_density, presentation, gear_progression, build_defining_loot
 
 
 def build() -> dict:
     data={name:[] for name in ['skills','classes','items','abilities','recipes','zones','mobs','resources','npcs','quests']}
-    for module in [skills,items,abilities,mobs,boss_uniques,world,exploration_rewards,quests,world_density,presentation,gear_progression,build_defining_loot]: module.build(data)
+    for module in [skills,items,abilities,mobs,encounter_variety,boss_uniques,world,exploration_rewards,quests,world_density,presentation,gear_progression,build_defining_loot]: module.build(data)
     for category,entries in data.items():
         seen=set()
         for entry in entries:
             ident=entry['id']
             if not ident or ident in seen: raise ValueError(f'{category}: duplicate ID {ident}')
             seen.add(ident)
-    # Names are identities, not anonymous NPC numbers.
     names=set()
     for npc in data['npcs']:
         if npc['name'] in names: npc['name']+=' the '+npc['role'].replace('_',' ').title()
@@ -37,6 +36,8 @@ def main() -> None:
     counts={key:len(value) for key,value in data.items()}
     counts['normal_species']=sum(not m['boss'] and not m['elite'] for m in data['mobs'])
     counts['elite_variants']=sum(m['elite'] for m in data['mobs'])
+    counts['champion_elites']=sum(m['id'] in encounter_variety.CHAMPIONS for m in data['mobs'])
+    counts['rare_elites']=counts['elite_variants']-counts['champion_elites']
     counts['bosses']=sum(m['boss'] for m in data['mobs'])
     counts['cities']=sum(z['kind']=='city' for z in data['zones'])
     counts['settlements']=sum(z['kind']=='settlement' for z in data['zones'])
