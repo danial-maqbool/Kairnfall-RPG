@@ -42,6 +42,9 @@ def latest_implementation_commit()->str:
         ':(exclude).ci/experience-candidate.json',
         ':(exclude).github/workflows/documentation-contract.yml',
         ':(exclude).github/workflows/task19-evidence-sync.yml',
+        ':(exclude).github/workflows/task19-refresh-foundry-atelier-atlas.yml',
+        ':(exclude)foundry/Assets/atlas_atelier/**',
+        ':(exclude)foundry/.task19-art-verify-trigger',
     ]
     value=subprocess.run(command,cwd=ROOT,check=True,text=True,capture_output=True).stdout.strip()
     if len(value)!=40:
