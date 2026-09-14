@@ -1,31 +1,21 @@
 {
-  "base": "8f151e1b8ab41777cedf821d78125a92aad783fb",
-  "message": "fix(onboarding): recognize the authored starter rat and require complete journey fixtures",
-  "purpose": "Correct the first real journey failure without changing creature AI, combat balance, rewards, or prerequisites. Keep all existing assertions and make dependent probes explicitly require a completed journey.",
+  "base": "639642e88dc7c2a0d65954aa6d5f8ab3886019d9",
+  "message": "test(onboarding): follow the real retreating starter animal between bounded combat actions",
+  "purpose": "Keep existing animal retreat, damage, reward and range validation intact. Correct the deterministic proximity fixture rather than freezing enemies or granting synthetic kill credit.",
   "edits": [
     {
-      "path": "src/Kairnfall.Core/NewPlayerJourney.cs",
-      "expected_blob": "1a80a59aec31431ed5808e0bc163e4524e32d7e2",
-      "replacements": [
-        {"old": "mob && mob.Ai is not \"passive\" and not \"fleeing\")", "new": "mob && (mob.Id == \"field_rat\" || mob.Ai is not \"passive\" and not \"fleeing\"))"}
-      ]
-    },
-    {
       "path": "tools/new_player_probe/NewPlayerJourneyProbe.cs",
-      "expected_blob": "b77c0f4562960102b57994f7ce0981cd85b1bfe1",
+      "expected_blob": "c88408ab626d1871f944be83b8511cf8a3f02b83",
       "replacements": [
-        {"old": "int passed = 0; var failures = new List<string>(); Fixture? journey = null;", "new": "int passed = 0; var failures = new List<string>(); Fixture? journey = null; bool journeyCompleted = false;"},
-        {"old": "Need(fixture.Next().Stage == \"combat\", \"The first safe fight is not discoverable after accepting the opening quest.\");", "new": "var firstFight = fixture.Next();\n            Need(firstFight.Stage == \"combat\" && fixture.Realm.State.Creatures[firstFight.TargetId].Template == \"field_rat\",\n                \"The authored starter rat is not discoverable after accepting the opening quest: \" + firstFight.Stage + \" / \" + firstFight.TargetId);"},
-        {"old": "Need(Items.Validate(fixture.Realm.State, data).Count == 0, \"The opening journey violated inventory invariants.\");", "new": "Need(Items.Validate(fixture.Realm.State, data).Count == 0, \"The opening journey violated inventory invariants.\");\n            journeyCompleted = true;"},
-        {"old": "Need(journey is not null, \"The real journey must complete before checking earned feedback.\");", "new": "Need(journey is not null && journeyCompleted, \"The real journey must complete before checking earned feedback.\");"},
-        {"old": "Need(journey is not null, \"The real journey must complete before public discovery.\");", "new": "Need(journey is not null && journeyCompleted, \"The real journey must complete before public discovery.\");"}
+        {"old": "fixture.Npc(data.Quest(\"main_01\").Giver); fixture.Act(\"talk\", data.Quest(\"main_01\").Giver);", "new": "Need(fixture.Realm.Execute(fixture.Id, new GameCommand { Kind = \"move\", X = 0, Y = 0 }).Ok, \"Normal movement stop failed.\");\n            fixture.Npc(data.Quest(\"main_01\").Giver); fixture.Act(\"talk\", data.Quest(\"main_01\").Giver);"},
+        {"old": "for (int strike = 0; rat.Health > 0 && strike < 80; strike++) { fixture.Act(\"attack\", rat.Id); fixture.Advance(2); }", "new": "for (int strike = 0; rat.Health > 0 && strike < 80; strike++)\n            {\n                // The real starter animal retreats after being wounded. Re-establish\n                // reachable melee proximity rather than disabling its AI or range checks.\n                fixture.Place(rat.Position); fixture.Act(\"attack\", rat.Id); fixture.Advance(2);\n            }"}
       ]
     },
     {
-      "path": "docs/NEW_PLAYER_JOURNEY.md",
-      "expected_blob": "abf44250ac04185bc134f5f9d1364017918e87e5",
+      "path": "client/Scripts/GameRoot.NewPlayer.cs",
+      "expected_blob": "4a0e19c0ef2e7d9220b5786506ccbc54bfc3345e",
       "replacements": [
-        {"old": "When a living weak hostile is visible", "new": "When an authored starter rat or another suitable weak foe is visible"}
+        {"old": ": distant ? \"Walk to objective\"", "new": ": distant || navigation.TargetKind == \"exit\" ? \"Walk to objective\""}
       ]
     }
   ]
