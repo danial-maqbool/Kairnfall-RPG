@@ -142,7 +142,7 @@ public partial class GameRoot
                 body.AddChild(Ui.Label($"Reward: {quest.Gold} gold" + (quest.Reward != "" ? " · " + Data.Item(quest.Reward).Name : ""), 14, Ui.Success));
                 if (!active) body.AddChild(Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc) || !levelReady));
                 else if (progress!.Complete) body.AddChild(Ui.Button("Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc)));
-                else body.AddChild(Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); }));
+                else body.AddChild(Ui.Button("Track objectives", () => { selectedQuest = quest.Id; refreshPage?.Invoke(); }));
             }
             if (offers.GetChildCount() == 0) offers.AddChild(Ui.Label("No further work is available here at present.", 16, Ui.Muted, true));
         }
@@ -207,12 +207,19 @@ public partial class GameRoot
         if (page is null || Snapshot is null) return;
         page.AddChild(Ui.Label("Defeated creatures are recorded here. Unknown creatures remain undiscovered.", 16, Ui.Muted, true));
         var rows = Ui.Column(Ui.Scroll(page, new Vector2(850, 440)));
-        foreach (var entry in Snapshot.Self.Bestiary.OrderBy(x => Data.Mob(x.Key).Level))
+        foreach (var entry in Snapshot.Self.Bestiary.OrderBy(x => Data.Mob(x.Key).Level).ThenBy(x => Data.Mob(x.Key).Name, StringComparer.Ordinal))
         {
-            var creature = Data.Mob(entry.Key); var card = new PanelContainer(); rows.AddChild(card); var row = Ui.Row(card);
+            var creature = Data.Mob(entry.Key); var knowledge = BestiaryKnowledge.Describe(Data, creature);
+            var card = new PanelContainer(); rows.AddChild(card); var row = Ui.Row(card);
             row.AddChild(Ui.Image(Assets.Frame("mobs/" + creature.Id, 0, 0, 0), 100)); var text = Ui.Column(row);
-            text.AddChild(Ui.Label(creature.Name + " · Level " + creature.Level, 22, creature.Boss ? Ui.Gold : Ui.Text)); text.AddChild(Ui.Label(creature.Lore, 15, Ui.Muted, true));
-            text.AddChild(Ui.Label($"Defeated: {entry.Value} · {Ui.Words(creature.Biome)} · {creature.Element}\n" + string.Join(" · ", creature.Resistances.Select(x => x.Key + " " + (x.Value * 100).ToString("0") + "%")), 14, Ui.Muted, true));
+            Color heading = creature.Boss || BestiaryKnowledge.IsChampion(creature) ? Ui.Gold : creature.Elite ? Ui.Success : Ui.Text;
+            text.AddChild(Ui.Label(creature.Name + " · Level " + creature.Level + " · " + knowledge.Rank, 22, heading));
+            text.AddChild(Ui.Label(creature.Lore, 15, Ui.Muted, true));
+            string resistances = creature.Resistances.Count == 0 ? "None recorded" : string.Join(" · ", creature.Resistances.Select(x => x.Key + " " + (x.Value * 100).ToString("0") + "%"));
+            string attacks = knowledge.Attacks.Length == 0 ? "Basic attack" : string.Join(" · ", knowledge.Attacks);
+            string regions = knowledge.Regions.Length == 0 ? "Uncharted" : string.Join(" · ", knowledge.Regions.Take(3)) + (knowledge.Regions.Length > 3 ? $" · +{knowledge.Regions.Length - 3} more" : "");
+            string drops = knowledge.Drops.Length == 0 ? "No item drops recorded" : string.Join(" · ", knowledge.Drops.Take(4)) + (knowledge.Drops.Length > 4 ? $" · +{knowledge.Drops.Length - 4} more" : "");
+            text.AddChild(Ui.Label($"Defeated: {entry.Value} · {Ui.Words(creature.Biome)} · {creature.Element}\nTactics: {knowledge.Tactic}\nAttacks: {attacks}\nFound in: {regions}\nRewards: {knowledge.Xp} XP · {knowledge.Gold} gold · {drops}\nResistances: {resistances}", 14, Ui.Muted, true));
         }
         if (Snapshot.Self.Bestiary.Count == 0) rows.AddChild(Ui.Label("No creatures recorded yet.", 18, Ui.Gold));
     }

@@ -115,6 +115,7 @@ public partial class PlayerExperienceContract : Node
             using (var scene = GD.Load<PackedScene>("res://Main.tscn")) game = scene.Instantiate<GameRoot>();
             AddChild(game); game.SetProcess(false); await Frame();
             Require(game.World is not null, "The real main scene initializes with experience controls");
+            self.Bestiary["rare_pine_wolf"] = 2;
             var snapshot = new Snapshot { Self = self, Time = 10 };
             game.World.Accept(new TransportPacket { Snapshot = snapshot });
             Field<Control>(game, "frontend").Hide(); GetViewport().GuiReleaseFocus();
@@ -124,6 +125,16 @@ public partial class PlayerExperienceContract : Node
             Require(InputMap.ActionGetEvents("basic_attack").OfType<InputEventKey>().Any(x => x.PhysicalKeycode == Key.Space), "The native input map includes Space attack");
             Call(game, "SetInitialHotbar");
             Require(data.Ability(Field<string[]>(game, "hotbar")[0]).Class == self.Class, "The first live hotbar slot uses the player's class");
+            Call(game, "OpenPage", "Bestiary"); await Frame(); await Frame();
+            string bestiaryText = string.Join("\n", game.FindChildren("*", "Label", true, false).OfType<Label>().Where(x => x.IsVisibleInTree()).Select(x => x.Text));
+            Require(bestiaryText.Contains("Champion Duskfang · Level", StringComparison.Ordinal) && bestiaryText.Contains("· Champion", StringComparison.Ordinal),
+                "Discovered champions identify their encounter rank in the native Bestiary");
+            Require(bestiaryText.Contains("Tactics:", StringComparison.Ordinal) && bestiaryText.Contains("Attacks:", StringComparison.Ordinal) && bestiaryText.Contains("Binding Roots", StringComparison.Ordinal),
+                "Discovered champions expose readable tactical attacks");
+            Require(bestiaryText.Contains("Found in:", StringComparison.Ordinal) && bestiaryText.Contains("Rewards:", StringComparison.Ordinal),
+                "Discovered Bestiary entries expose encounter regions and authoritative reward cues");
+            Require(!bestiaryText.Contains("Champion Cragshot", StringComparison.Ordinal), "Undiscovered champions stay hidden from the Bestiary");
+            Call(game, "ClosePage"); await Frame();
             Call(game, "OpenPage", "Inventory"); await Frame(); await Frame();
             var action = game.FindChildren("PrimaryEquipmentAction", "Button", true, false).Cast<Button>().Single();
             Require(action.IsVisibleInTree() && action.GetGlobalRect().Intersection(GetViewport().GetVisibleRect()).Size.Y >= 40,
