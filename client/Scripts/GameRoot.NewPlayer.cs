@@ -32,7 +32,10 @@ public partial class GameRoot
     private void BuildNewPlayerHud(VBoxContainer objectiveColumn)
     {
         objectiveText.Name = "RecommendedObjective";
-        objectiveText.AddThemeFontSizeOverride("font_size", 13);
+        objectiveText.SetMeta(Ui.BaseFontSizeMeta, 13);
+        objectiveText.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(13));
+        objectiveText.MouseFilter = MouseFilterEnum.Pass;
+        firstHourText.MouseFilter = MouseFilterEnum.Pass;
         objectiveText.MaxLinesVisible = 4;
         firstHourText.MaxLinesVisible = 2;
         journeyActions = Ui.Row(objectiveColumn); journeyActions.Name = "JourneyActions";

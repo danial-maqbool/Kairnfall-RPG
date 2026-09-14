@@ -11,7 +11,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT)); sys.path.insert(0,str(ROOT/'tools'))
-from content_src import skills,items,abilities,mobs,encounter_variety,boss_uniques,world,profession_depth,exploration_rewards,quests,world_density,presentation,gear_progression
+from content_src import skills,items,abilities,mobs,encounter_variety,boss_uniques,world,dungeon_depth,profession_depth,exploration_rewards,quests,world_density,presentation,gear_progression
 from art import items as item_art, humanoid
 from art.common import STATES
 spec=importlib.util.spec_from_file_location('equipment_progression_builder',ROOT/'tools/build_content.py')
@@ -25,7 +25,7 @@ def original():
     # canonical builder so this suite measures the gear pass rather than reclassifying
     # pre-existing profession, exploration, encounter-variety, or world-density content as
     # gear-progression output.
-    for module in (skills,items,abilities,mobs,encounter_variety,boss_uniques,world,profession_depth,exploration_rewards,quests,world_density,presentation): module.build(data)
+    for module in (skills,items,abilities,mobs,encounter_variety,boss_uniques,world,dungeon_depth,profession_depth,exploration_rewards,quests,world_density,presentation): module.build(data)
     return data
 
 

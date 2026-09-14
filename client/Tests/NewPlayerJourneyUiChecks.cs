@@ -16,7 +16,7 @@ internal static class NewPlayerJourneyUiChecks
     {
         var realm = new RealmEngine(data); var player = realm.CreateCharacter("journey-native", "Native Newcomer", "vanguard", new());
         realm.Active.Add(player.Id);
-        foreach (var size in new[] { new Vector2I(1280, 720), new Vector2I(1920, 1080) })
+        foreach (var size in new[] { new Vector2I(1024, 720), new Vector2I(1280, 720), new Vector2I(1920, 1080) })
         {
             owner.GetWindow().Size = size; await Frame(owner); await Frame(owner);
             var snapshot = realm.Snapshot(player.Id); game.World.Accept(new TransportPacket { Snapshot = snapshot });
@@ -27,6 +27,7 @@ internal static class NewPlayerJourneyUiChecks
             check(objective.IsVisibleInTree() && objective.GetMeta("journey_stage").AsString() == "quest_offer", "A fresh native HUD exposes the real first objective at " + size);
             check(objective.TooltipText.Contains(data.Quest("main_01").Name, StringComparison.Ordinal) && objective.TooltipText.Contains(data.Item("sealed_letter").Name, StringComparison.Ordinal),
                 "Objective details preserve the real quest and reward preview at " + size);
+            check(objective.MouseFilter == Control.MouseFilterEnum.Pass && hint.MouseFilter == Control.MouseFilterEnum.Pass, "Full guidance details accept tooltip hover at " + size);
             check(hint.GetMeta("guidance_id").AsString() == "movement" && !hint.Text.Contains('{'), "Movement guidance resolves actual input bindings at " + size);
             check(action.IsVisibleInTree() && !action.GetGlobalRect().Intersects(chat.GetGlobalRect()), "The journey action does not overlap chat at " + size);
             check(objective.GetGlobalRect().End.Y <= chat.GetGlobalRect().Position.Y, "The compact objective stays above chat at " + size);
