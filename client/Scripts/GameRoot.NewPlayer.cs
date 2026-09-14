@@ -17,9 +17,16 @@ public partial class GameRoot
     private readonly HashSet<string> displayedProgression = new(StringComparer.Ordinal);
     private readonly Queue<ProgressionMoment> progressionQueue = new();
     private double progressionUntil;
+    private HudPanel journeyPanel = null!;
+    private VBoxContainer journeyHome = null!;
+    private bool compactJourneyLayout;
+    private bool journeyLayoutReady;
 
     private static string CompactJourneyLine(string text, int length = 36)
-        => text.Length <= length ? text : text[..(length - 1)] + "…";
+    {
+        int limit = Math.Max(18, (int)(length / Ui.TextScale));
+        return text.Length <= limit ? text : text[..(limit - 1)] + "…";
+    }
     private string JourneyKey(string action)
     {
         if (bindings.TryGetValue(action, out var binding)) return binding.ToString();
@@ -31,6 +38,10 @@ public partial class GameRoot
 
     private void BuildNewPlayerHud(VBoxContainer objectiveColumn)
     {
+        journeyPanel = (HudPanel)objectiveColumn.GetParent();
+        journeyHome = (VBoxContainer)journeyPanel.GetParent();
+        var objectiveHeader = objectiveColumn.GetChildren().OfType<HBoxContainer>().First();
+        objectiveHeader.GetChildren().OfType<Label>().First().Text = "NEXT STEP";
         objectiveText.Name = "RecommendedObjective";
         objectiveText.SetMeta(Ui.BaseFontSizeMeta, 13);
         objectiveText.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(13));
@@ -42,16 +53,16 @@ public partial class GameRoot
         journeyAction = Ui.Button("Walk to objective", FollowJourneyObjective);
         journeyAction.Name = "JourneyPrimaryAction"; journeyAction.FocusMode = FocusModeEnum.None;
         journeyAction.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        journeyAction.AddThemeFontSizeOverride("font_size", 12); journeyActions.AddChild(journeyAction);
+        journeyAction.SetMeta(Ui.BaseFontSizeMeta, 12); journeyAction.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(12)); journeyActions.AddChild(journeyAction);
         journeyUnderstood = Ui.Button("Got it", () => AcknowledgeJourney(journeyObjective?.Stage == "public" ? "public" : journeyHint?.Id ?? ""));
         journeyUnderstood.Name = "JourneyHintUnderstood"; journeyUnderstood.FocusMode = FocusModeEnum.None;
-        journeyUnderstood.AddThemeFontSizeOverride("font_size", 12); journeyActions.AddChild(journeyUnderstood);
+        journeyUnderstood.SetMeta(Ui.BaseFontSizeMeta, 12); journeyUnderstood.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(12)); journeyActions.AddChild(journeyUnderstood);
         nearbyTravelers = Ui.Button("Social · shared world", () => OpenPage("Social"));
         nearbyTravelers.Name = "NearbyTravelerAwareness"; nearbyTravelers.FocusMode = FocusModeEnum.None;
-        nearbyTravelers.AnchorLeft = nearbyTravelers.AnchorRight = 1;
-        nearbyTravelers.OffsetLeft = -276; nearbyTravelers.OffsetRight = -16;
-        nearbyTravelers.OffsetTop = 202; nearbyTravelers.OffsetBottom = 230;
-        nearbyTravelers.AddThemeFontSizeOverride("font_size", 12); hud.AddChild(nearbyTravelers);
+        nearbyTravelers.Text = "Social · 0";
+        nearbyTravelers.SetMeta(Ui.BaseFontSizeMeta, 12);
+        nearbyTravelers.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(12));
+        objectiveHeader.AddChild(nearbyTravelers); objectiveHeader.MoveChild(nearbyTravelers, 1);
         progressionBanner = new HudPanel
         {
             Name = "ProgressionFeedback", AnchorLeft = .5f, AnchorRight = .5f,
@@ -62,12 +73,13 @@ public partial class GameRoot
         progressionTitle = Ui.Label("", 16, Ui.Gold, true); progressionTitle.Name = "ProgressionTitle";
         progressionTitle.MaxLinesVisible = 2; progressionTitle.MouseFilter = MouseFilterEnum.Ignore;
         progressionDetail = Ui.Label("", 13, Ui.Text, true); progressionDetail.Name = "ProgressionChanges";
-        progressionDetail.MaxLinesVisible = 3; progressionDetail.MouseFilter = MouseFilterEnum.Ignore;
+        progressionDetail.MaxLinesVisible = 4; progressionDetail.MouseFilter = MouseFilterEnum.Ignore;
         words.AddChild(progressionTitle); words.AddChild(progressionDetail); hud.AddChild(progressionBanner);
     }
 
     private void UpdateNewPlayerHud(Snapshot snapshot)
     {
+        FitJourneyHud();
         var self = snapshot.Self;
         if (journeyCharacter != self.Id)
         {
@@ -85,8 +97,10 @@ public partial class GameRoot
         var navigation = NewPlayerJourney.Navigation(Data, self, journeyObjective);
         objectiveText.SetMeta("journey_stage", journeyObjective.Stage);
         objectiveText.SetMeta("journey_target", journeyObjective.TargetId);
-        objectiveText.Text = string.Join("\n", new[] { journeyObjective.Title, journeyObjective.Objective, navigation.Description, journeyObjective.Reward }
-            .Select(x => CompactJourneyLine(x)));
+        string[] lines = objectiveText.MaxLinesVisible <= 2 ? [journeyObjective.Objective, navigation.Description]
+            : objectiveText.MaxLinesVisible == 3 ? [journeyObjective.Title, journeyObjective.Objective, navigation.Description]
+            : [journeyObjective.Title, journeyObjective.Objective, navigation.Description, journeyObjective.Reward];
+        objectiveText.Text = string.Join("\n", lines.Select(x => CompactJourneyLine(x)));
         objectiveText.TooltipText = journeyObjective.Title + "\n" + journeyObjective.Objective
             + "\nDestination: " + Data.Zone(journeyObjective.Zone).Name + " · " + navigation.Description
             + "\nWhy: " + journeyObjective.Why + "\nWhen finished: " + journeyObjective.Reward;
@@ -111,13 +125,53 @@ public partial class GameRoot
         journeyUnderstood.Text = journeyObjective.Stage == "public" ? "Not now" : "Got it";
         string hintId = journeyObjective.Stage == "public" ? "public" : journeyHint?.Id ?? "";
         journeyUnderstood.Disabled = !Online || self.Health <= 0 || actionBusy || pendingGuidance.Contains(hintId);
-        nearbyTravelers.Text = "Social [" + JourneyKey("social") + "] · " + snapshot.Players.Count + " nearby";
+        nearbyTravelers.Text = "Social · " + snapshot.Players.Count;
         nearbyTravelers.SetMeta("nearby_count", snapshot.Players.Count);
-        nearbyTravelers.TooltipText = "Shared persistent world · " + (snapshot.Players.Count == 0 ? "No other travelers are nearby. Your journey works solo."
+        nearbyTravelers.TooltipText = "Social [" + JourneyKey("social") + "] · Shared persistent world · " + (snapshot.Players.Count == 0 ? "No other travelers are nearby. Your journey works solo."
             : string.Join(" · ", snapshot.Players.OrderBy(x => x.Position.Distance(self.Position)).Take(3)
                 .Select(x => x.Name + " · Lv " + x.Level + " " + Data.Class(x.Class).Name
                     + (snapshot.Party?.Members.Contains(x.Id) == true ? " · Party" : ""))))
             + "\nOpen nearby players, parties, friends and LFG. Chat is optional; grouping is never required for this journey.";
+        FitJourneyHud();
+    }
+
+    // Reuse the existing card and containers; no duplicate tutorial panel or UI
+    // framework. Short logical viewports place the card below the minimap instead
+    // of letting the vitals/objective column collide with chat and the hotbar.
+    private void FitJourneyHud()
+    {
+        if (journeyPanel is null || hud.Size.Y <= 0) return;
+        bool compact = hud.Size.Y < 760 * Ui.TextScale;
+        if (!journeyLayoutReady || compactJourneyLayout != compact)
+        {
+            compactJourneyLayout = compact; journeyLayoutReady = true;
+            Node parent = compact ? hud : journeyHome;
+            if (journeyPanel.GetParent() != parent) journeyPanel.Reparent(parent, false);
+            journeyPanel.SetAnchorsAndOffsetsPreset(compact ? LayoutPreset.TopRight : LayoutPreset.TopLeft);
+        }
+        bool shortView = compact && hud.Size.Y < 600;
+        objectiveText.MaxLinesVisible = shortView ? (Ui.TextScale > 1.1f ? 2 : 3) : 4;
+        firstHourText.MaxLinesVisible = shortView ? 1 : 2;
+        if (compact)
+        {
+            float minimapBottom = (hud.FindChild("MinimapPanel", true, false) as Control)?.GetRect().End.Y ?? 194;
+            journeyPanel.AnchorLeft = journeyPanel.AnchorRight = 1;
+            journeyPanel.OffsetLeft = -306; journeyPanel.OffsetRight = -16;
+            journeyPanel.OffsetTop = Math.Max(202, minimapBottom + 8);
+            journeyPanel.Size = new Vector2(290, journeyPanel.GetCombinedMinimumSize().Y);
+        }
+        if (publicEventText is not null)
+        {
+            float top = compact ? journeyPanel.GetRect().End.Y + 8 : 202;
+            publicEventText.OffsetTop = top; publicEventText.OffsetBottom = top + 60;
+            publicEventText.Visible = top + 60 < hud.Size.Y - 96;
+            if (pickupFeed is not null)
+            {
+                pickupFeed.OffsetTop = top + 72;
+                pickupFeed.Visible = top + 152 < hud.Size.Y - 96;
+            }
+        }
+        journeyPanel.SetMeta("journey_compact_layout", compact);
     }
 
     private async void AcknowledgeJourney(string id)
@@ -171,6 +225,7 @@ public partial class GameRoot
     }
     private void TickJourneyFeedback()
     {
+        FitJourneyHud();
         if (progressionBanner is null) return;
         double now = Time.GetTicksMsec() / 1000.0;
         if (now >= progressionUntil)
@@ -182,6 +237,12 @@ public partial class GameRoot
             progressionBanner.SetMeta("progression_kind", moment.Kind);
             progressionUntil = now + 6;
         }
+        float left = journeyHome.GetGlobalRect().End.X + 12;
+        float right = hud.Size.X - 306 - 12;
+        float width = Math.Clamp(right - left, 160, 460);
+        progressionBanner.AnchorLeft = progressionBanner.AnchorRight = 0;
+        progressionBanner.OffsetLeft = (left + right - width) / 2;
+        progressionBanner.OffsetRight = progressionBanner.OffsetLeft + width;
         float top = targetFrame.Visible ? Math.Max(204, targetFrame.GetRect().End.Y + 10) : 158;
         progressionBanner.OffsetTop = Math.Min(top, Math.Max(204, hud.Size.Y - 380));
         progressionBanner.Visible = Snapshot is not null && !frontend.Visible;

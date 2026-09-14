@@ -16,11 +16,19 @@ internal static class NewPlayerJourneyUiChecks
     {
         var realm = new RealmEngine(data); var player = realm.CreateCharacter("journey-native", "Native Newcomer", "vanguard", new());
         realm.Active.Add(player.Id);
+        foreach (float scale in new[] { 1f, 1.25f, 1.5f })
+        foreach (double textScale in new[] { 1d, 1.25d })
         foreach (var size in new[] { new Vector2I(1024, 720), new Vector2I(1280, 720), new Vector2I(1920, 1080) })
         {
-            owner.GetWindow().Size = size; await Frame(owner); await Frame(owner);
+            // The existing minimum-size contract uses 1024x720 at native scale.
+            // Higher DPI follows the repository's supported 1280/1920 matrix.
+            if (size.X == 1024 && scale != 1) continue;
+            owner.GetWindow().Size = size; owner.GetWindow().ContentScaleSize = size; owner.GetWindow().ContentScaleFactor = scale;
+            Call(game, "ApplyUiTextScale", textScale, false);
+            await Frame(owner); await Frame(owner);
             var snapshot = realm.Snapshot(player.Id); game.World.Accept(new TransportPacket { Snapshot = snapshot });
             Call(game, "UpdateHud"); await Frame(owner); await Frame(owner);
+            Call(game, "FitJourneyHud"); Call(game, "UpdateHud"); await Frame(owner); await Frame(owner);
             var objective = Field<Label>(game, "objectiveText"); var hint = Field<Label>(game, "firstHourText");
             var action = Field<Button>(game, "journeyAction"); var social = Field<Button>(game, "nearbyTravelers");
             var chat = Field<HudPanel>(game, "chatFrame");
@@ -30,10 +38,19 @@ internal static class NewPlayerJourneyUiChecks
             check(objective.MouseFilter == Control.MouseFilterEnum.Pass && hint.MouseFilter == Control.MouseFilterEnum.Pass, "Full guidance details accept tooltip hover at " + size);
             check(hint.GetMeta("guidance_id").AsString() == "movement" && !hint.Text.Contains('{'), "Movement guidance resolves actual input bindings at " + size);
             check(action.IsVisibleInTree() && !action.GetGlobalRect().Intersects(chat.GetGlobalRect()), "The journey action does not overlap chat at " + size);
-            check(objective.GetGlobalRect().End.Y <= chat.GetGlobalRect().Position.Y, "The compact objective stays above chat at " + size);
+            var card = Field<HudPanel>(game, "journeyPanel");
+            var viewport = owner.GetViewport().GetVisibleRect();
+            var minimap = game.FindChildren("MinimapPanel", "Control", true, false).OfType<Control>().Single();
+            GD.Print($"NEW_PLAYER_LAYOUT: {size} dpi={scale} text={textScale} viewport={viewport} objective={card.GetGlobalRect()} chat={chat.GetGlobalRect()}");
+            check(!card.GetGlobalRect().Intersects(chat.GetGlobalRect()), "The objective card avoids chat at " + size + " / " + scale + " / " + textScale);
+            check(viewport.Encloses(card.GetGlobalRect()) && viewport.Encloses(action.GetGlobalRect()), "The objective and its action remain fully contained at " + size + " / " + scale + " / " + textScale);
+            check(!card.GetGlobalRect().Intersects(minimap.GetGlobalRect()), "The objective card avoids the minimap at " + size);
+            check(Field<Button[]>(game, "hotbarButtons").All(button => !card.GetGlobalRect().Intersects(button.GetGlobalRect())), "The objective card avoids the hotbar at " + size);
             check(social.GetMeta("nearby_count").AsInt32() == 0 && social.IsVisibleInTree(), "Multiplayer discovery remains visible on an empty server at " + size);
             check(owner.GetViewport().GetVisibleRect().Encloses(social.GetGlobalRect()), "Nearby-player discovery remains inside the supported viewport at " + size);
         }
+        owner.GetWindow().Size = new Vector2I(1920, 1080); owner.GetWindow().ContentScaleSize = new Vector2I(1920, 1080); owner.GetWindow().ContentScaleFactor = 1;
+        Call(game, "ApplyUiTextScale", 1d, false); await Frame(owner); await Frame(owner);
         player.CompletedQuests.Add("main_01"); player.Zone = "kingsmeadow"; player.Position = data.Zone(player.Zone).Spawn;
         var active = realm.Snapshot(player.Id);
         active.Events.Add(new WorldEvent { Id = "native-introduction", Kind = "treasure_surge", Name = WorldEventRules.Name("treasure_surge"),
@@ -41,7 +58,8 @@ internal static class NewPlayerJourneyUiChecks
         game.World.Accept(new TransportPacket { Snapshot = active }); Call(game, "UpdateHud"); Call(game, "UpdatePublicEventHud");
         await Frame(owner); await Frame(owner);
         var activity = Field<Label>(game, "publicEventText");
-        check(activity.Text != "" && !activity.GetGlobalRect().Intersects(Field<Label>(game, "location").GetGlobalRect()),
+        Call(game, "FitJourneyHud"); await Frame(owner);
+        check(activity.IsVisibleInTree() && activity.Text != "" && !activity.GetGlobalRect().Intersects(Field<Label>(game, "location").GetGlobalRect()),
             "Public activity does not overlap the location heading");
         check(Field<Button>(game, "journeyUnderstood").Visible && Field<Label>(game, "objectiveText").GetMeta("journey_stage").AsString() == "public",
             "The optional event has a visible return-to-journey action");
