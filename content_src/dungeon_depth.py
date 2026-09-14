@@ -26,6 +26,7 @@ def exit_row(ident, target, position, arrival, kind='door', requirement=1):
 
 def build(data):
     zones = data['zones']
+    starting_zone_count = len(zones)
     by_id = {z['id']: z for z in zones}
     mobs = {m['id']: m for m in data['mobs']}
     if ROOM_IDS & set(by_id):
@@ -81,3 +82,6 @@ def build(data):
         zones.extend([threshold, gauntlet])
         by_id[threshold_id] = threshold
         by_id[gauntlet_id] = gauntlet
+
+    if len(zones) != starting_zone_count + len(ROOM_IDS) or not ROOM_IDS.issubset(by_id):
+        raise ValueError(f'Task 21 must install exactly {len(ROOM_IDS)} compact dungeon rooms.')
