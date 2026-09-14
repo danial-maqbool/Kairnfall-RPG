@@ -131,9 +131,9 @@ public partial class GameRoot
         var objective = NewPlayerJourney.Recommend(Data, snapshot, World.Loot);
         var navigation = NewPlayerJourney.Navigation(Data, snapshot.Self, objective);
         if (objective.Zone != snapshot.Self.Zone && navigation.Position is null) { OpenPage("Map"); return; }
-        if (navigation.Position is { } point && point.Distance(snapshot.Self.Position) > 2.5)
+        if (navigation.Position is { } point && (point.Distance(snapshot.Self.Position) > 2.5 || navigation.TargetKind == "exit"))
         {
-            SelectTarget(navigation.TargetKind, navigation.TargetId); WalkTo(point); return;
+            SelectTarget(navigation.TargetKind, navigation.TargetId); World.Waypoint = point; WalkTo(point); return;
         }
         if (objective.TargetKind == "creature") { SelectTarget("creature", objective.TargetId); return; }
         if (objective.TargetKind is "npc" or "loot" or "chest" or "node")

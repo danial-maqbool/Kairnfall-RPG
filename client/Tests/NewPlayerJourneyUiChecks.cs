@@ -40,7 +40,7 @@ internal static class NewPlayerJourneyUiChecks
         game.World.Accept(new TransportPacket { Snapshot = active }); Call(game, "UpdateHud"); Call(game, "UpdatePublicEventHud");
         await Frame(owner); await Frame(owner);
         var activity = Field<Label>(game, "publicEventText");
-        check(activity.Text != "" && !activity.GetGlobalRect().Intersects(Field<Label>(game, "locationText").GetGlobalRect()),
+        check(activity.Text != "" && !activity.GetGlobalRect().Intersects(Field<Label>(game, "location").GetGlobalRect()),
             "Public activity does not overlap the location heading");
         check(Field<Button>(game, "journeyUnderstood").Visible && Field<Label>(game, "objectiveText").GetMeta("journey_stage").AsString() == "public",
             "The optional event has a visible return-to-journey action");

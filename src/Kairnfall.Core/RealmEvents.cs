@@ -47,12 +47,13 @@ public sealed partial class RealmEngine
 
     private void CreateScheduledEvent(long cycle)
     {
-        string kind = WorldEventRules.Kinds[(int)(Math.Abs(cycle) % WorldEventRules.Kinds.Length)];
+        var newcomer = NewPlayerEventCandidate();
+        string kind = newcomer is null ? WorldEventRules.Kinds[(int)(Math.Abs(cycle) % WorldEventRules.Kinds.Length)] : "treasure_surge";
         var candidates = Data.Zones.Where(x => WorldEventRules.EligibleZone(kind, x)).OrderBy(x => x.Id, StringComparer.Ordinal).ToArray();
         if (candidates.Length == 0) candidates = Data.Zones.Where(x => x.Kind == "wilderness" && x.Layer == "Surface").OrderBy(x => x.Id, StringComparer.Ordinal).ToArray();
         if (candidates.Length == 0) return;
         var blocked = State.Events.Where(x => x.Ends > State.Time).Select(x => x.Zone).ToHashSet(StringComparer.Ordinal);
-        var available = candidates.Where(x => !blocked.Contains(x.Id)).ToArray();
+        var available = candidates.Where(x => !blocked.Contains(x.Id) && (newcomer is null || x.Id == newcomer.Zone)).ToArray();
         if (available.Length == 0) return;
         var occupied = Active.Where(State.Characters.ContainsKey).Select(Player).Where(x => x.Health > 0).Select(x => x.Zone).ToHashSet(StringComparer.Ordinal);
         var preferred = available.Where(x => occupied.Contains(x.Id)).ToArray();
@@ -60,7 +61,8 @@ public sealed partial class RealmEngine
         int start = (int)(WorldMap.Hash((int)(cycle % int.MaxValue), WorldEventRules.Kinds.Length, 1777) % (uint)available.Length);
         ZoneDef zone = available[start];
         uint hash = WorldMap.Hash((int)(cycle % int.MaxValue), zone.Seed, 2711);
-        var near = new Point(zone.Spawn.X + 7 + hash % 9, zone.Spawn.Y + 5 + (hash / 11) % 9);
+        var near = newcomer is null ? new Point(zone.Spawn.X + 7 + hash % 9, zone.Spawn.Y + 5 + (hash / 11) % 9)
+            : NewPlayerEventPosition(newcomer)!.Value;
         var value = new WorldEvent
         {
             Id = "event/" + cycle,
@@ -72,7 +74,9 @@ public sealed partial class RealmEngine
             Started = State.Time
         };
         if (kind == "caravan") value.Destination = WorldMap.FindFree(zone, new(zone.Spawn.X - 13, zone.Spawn.Y - 8));
-        State.Events.Add(value); StartEventStage(value); EconomicDirty = true;
+        State.Events.Add(value); StartEventStage(value);
+        if (newcomer is not null) newcomer.Discoveries.Add(NewPlayerJourney.PublicScheduledKey);
+        EconomicDirty = true;
     }
 
     private List<Character> EventParticipants(WorldEvent value, double radius = 32) => Active

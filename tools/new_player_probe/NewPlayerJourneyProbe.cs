@@ -121,7 +121,7 @@ public static class NewPlayerJourneyProbe
                 Need(fixture.Realm.Execute(fixture.Id, movement).Ok, "Normal movement command failed."); fixture.Realm.Tick(.1);
             }
             Need(fixture.Player.Position.Distance(initialPosition) > .1 && FirstHourExperience.Marked(fixture.Player, "movement"), "Actual movement did not retire the movement hint.");
-            fixture.Npc(data.Quest("main_01").Giver); fixture.Act("talk", data.Quest("main_01").Giver); fixture.Act("accept_quest", "main_01");
+            fixture.Npc(data.Quest("main_01").Giver); fixture.Act("talk", data.Quest("main_01").Giver); fixture.Act("accept_quest", item: "main_01");
             var rat = fixture.Realm.State.Creatures.Values.First(x => x.Zone == "wayfarers_rest" && x.Template == "field_rat" && x.Health > 0);
             fixture.Place(rat.Position);
             Need(fixture.Next().Stage == "combat", "The first safe fight is not discoverable after accepting the opening quest.");
@@ -132,12 +132,12 @@ public static class NewPlayerJourneyProbe
             fixture.Place(loot.Position); Need(fixture.Next().Stage == "loot", "The first real loot drop was not prioritized.");
             fixture.Act("loot", loot.Id);
             Need(fixture.Player.Discoveries.Contains(NewPlayerJourney.MilestoneKey("loot")), "Successful loot was not persisted as understood.");
-            fixture.Npc(data.Quest("starter_rune").Giver); fixture.Act("accept_quest", "starter_rune");
+            fixture.Npc(data.Quest("starter_rune").Giver); fixture.Act("accept_quest", item: "starter_rune");
             var beforeSocket = Wire.Copy(fixture.Player);
             string weapon = fixture.Player.Equipment["weapon"], rune = fixture.Player.Inventory.Single(x => x.Template == "rune_embers_1").Id;
             fixture.Act("socket", weapon, rune);
             Need(ProgressionFeedback.Between(data, beforeSocket, fixture.Player).Any(x => x.Kind == "equipment"), "The real rune improvement has no power-change feedback.");
-            fixture.Act("claim_quest", "starter_rune");
+            fixture.Act("claim_quest", item: "starter_rune");
             var nodes = fixture.Realm.State.Nodes.Values.Where(x => x.Zone == "wayfarers_rest" && data.Resources.Any(r => r.Id == x.Template && r.Item == "oak_log")).Take(3).ToArray();
             Need(nodes.Length == 3, "The opening resource chain no longer has three available authored nodes.");
             foreach (var node in nodes) { fixture.Place(node.Position); fixture.Act("gather", node.Id); fixture.Advance(2); }
@@ -151,17 +151,17 @@ public static class NewPlayerJourneyProbe
             fixture.Npc("wayfarers_rest_blacksmith"); fixture.Act("talk", "wayfarers_rest_blacksmith");
             Need(fixture.Player.Quests["main_01"].Complete, "Real opening objectives did not become claimable.");
             fixture.Npc(data.Quest("main_01").Giver); long beforeGold = fixture.Player.Gold;
-            var claim = fixture.Act("claim_quest", "main_01");
+            var claim = fixture.Act("claim_quest", item: "main_01");
             Need(fixture.Player.Gold == beforeGold + data.Quest("main_01").Gold && Items.Count(fixture.Player, "sealed_letter") == 1, "Opening quest reward differs from the authored reward.");
             string afterClaim = Economy(fixture.Player);
             Need(fixture.Realm.Execute(fixture.Id, claim).Ok && Economy(fixture.Player) == afterClaim, "Immediate quest receipt replay duplicated a reward.");
             fixture.Realm = new RealmEngine(data, Wire.Copy(fixture.Realm.State)); fixture.Realm.Active.Add(fixture.Id);
             Need(fixture.Realm.Execute(fixture.Id, claim).Ok && Economy(fixture.Player) == afterClaim, "Quest reward duplicated across restart.");
-            fixture.Reject(new GameCommand { Kind = "claim_quest", Target = "main_01" });
+            fixture.Reject(new GameCommand { Kind = "claim_quest", Item = "main_01" });
             int level = Progression.PlayerLevel(fixture.Player);
             Need(level >= 2 && ProgressionFeedback.Between(data, initial, fixture.Player).Any(x => x.Kind == "level" && x.Level == level), "First level feedback did not follow real earned progression.");
             fixture.Travel("kingsmeadow"); fixture.Next(); fixture.Travel("dawnreach");
-            fixture.Npc(data.Quest("main_02").Giver); fixture.Act("accept_quest", "main_02");
+            fixture.Npc(data.Quest("main_02").Giver); fixture.Act("accept_quest", item: "main_02");
             Need(fixture.Player.Zone == "dawnreach" && fixture.Player.Quests.ContainsKey("main_02"), "The earned letter did not lead to the first settlement quest.");
             Need(Items.Validate(fixture.Realm.State, data).Count == 0, "The opening journey violated inventory invariants.");
             Console.WriteLine($"NEW_PLAYER_JOURNEY_MILESTONES: opening quest -> kill -> loot -> rune -> planks -> handle -> claim -> Dawnreach; level={level}; no tutorial rewards");
@@ -234,7 +234,7 @@ public static class NewPlayerJourneyProbe
         });
         Test("no-foe, stale-loot, death, and unavailable-prerequisite states retain legitimate goals", () =>
         {
-            var fixture = new Fixture(data, "Fallback"); fixture.Npc(data.Quest("main_01").Giver); fixture.Act("accept_quest", "main_01");
+            var fixture = new Fixture(data, "Fallback"); fixture.Npc(data.Quest("main_01").Giver); fixture.Act("accept_quest", item: "main_01");
             var snapshot = fixture.Snapshot; snapshot.Creatures.Clear(); snapshot.Events.Clear();
             var next = NewPlayerJourney.Recommend(data, snapshot);
             Need(next.Stage == "gather", "Unavailable starter foes blocked the real workshop objective.");
@@ -318,7 +318,7 @@ public static class NewPlayerJourneyProbe
             activity.Kind = "treasure_surge"; activity.Ends = -1;
             Need(NewPlayerJourney.NearbyEvent(data, snapshot) is null, "Expired activity remained actionable.");
         });
-        Test("legacy event scheduling, event cap and the overworld footprint remain intact", () =>
+        Test("legacy event scheduling and the overworld footprint remain intact", () =>
         {
             var fixture = new Fixture(data, "Schedule"); fixture.Player.CompletedQuests.Add("main_01");
             fixture.Player.Zone = "kingsmeadow"; fixture.Player.Position = data.Zone("kingsmeadow").Spawn;

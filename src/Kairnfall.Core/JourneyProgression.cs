@@ -69,7 +69,7 @@ public static class JourneyProgression
         {
             var stationNpc=data.Npcs.FirstOrDefault(x=>x.Station==recipe.Station);
             zone=stationNpc is null?null:data.Zones.FirstOrDefault(x=>x.Id==stationNpc.Zone);
-            suffix="Open Crafting [C] near the "+recipe.Station.Replace('_',' ')+"; the panel shows missing ingredients and skill requirements.";
+            suffix="Open Crafting [F] near the "+recipe.Station.Replace('_',' ')+"; the panel shows missing ingredients and skill requirements.";
         }
         else if(objective.Action=="socket") return "Open Backpack [I], select the equipped weapon, then insert the starter rune into its open socket.";
         else if(objective.Action=="plant") return "Use the Farming action on clear surface soil; return when the crop is ready to harvest.";

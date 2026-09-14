@@ -112,7 +112,7 @@ public sealed partial class RealmEngine
         Items.Add(p.Inventory,Items.Create(Data,"wheat_seed",3),Data);
         Items.Add(p.Inventory,Items.Create(Data,"rune_embers_1"),Data);
         var stats=CombatMath.Stats(p,Data); p.Health=stats.Health; p.Mana=stats.Mana; p.Stamina=stats.Stamina;
-        p.Discoveries.Add(p.Zone); State.Characters.Add(p.Id,p); EconomicDirty=true;
+        p.Discoveries.Add(p.Zone); p.Discoveries.Add(NewPlayerJourney.EligibleKey); State.Characters.Add(p.Id,p); EconomicDirty=true;
         return p;
     }
     public CommandResult Execute(string character,GameCommand command)
@@ -143,6 +143,7 @@ public sealed partial class RealmEngine
             if(command.Kind!="respawn") Alive(p);
             string message=Dispatch(p,command);
             FirstHourExperience.ObserveCommand(p,command);
+            NewPlayerJourney.Observe(Data,backup.Characters[p.Id],p,command);
             InvalidateTradeConsents();
             p.LastAction=command.Sequence;
             var result=Result(true,message);
@@ -169,6 +170,7 @@ public sealed partial class RealmEngine
     {
         switch(c.Kind)
         {
+            case "guide_ack": return AcknowledgeGuidance(p,c);
             case "dash": return Dash(p,c);
             case "equip": Items.Equip(p,c.Item,Data); Progress(p,"equip",Data.Item(Items.Owned(p,c.Item).Template).Type); return "Equipment changed.";
             case "unequip": Items.Unequip(p,c.Arg,Data); return "Item unequipped.";

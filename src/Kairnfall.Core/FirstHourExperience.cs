@@ -13,13 +13,13 @@ public static class FirstHourExperience
         new("movement","Get your bearings","Move with WASD. Interact [E] works on nearby people, resources, doors and exits."),
         new("npc","Meet a Wayfarer","Follow the gold ! to a local quest giver and press Interact [E]."),
         new("gather","Gather your first material","Work an oak tree, copper vein or other nearby resource. Your starter tools are already in the backpack."),
-        new("craft","Make something useful","Follow A Place by the Fire: saw 2 oak logs into oak planks, then shape a wooden handle at the sawbench. Crafting [C] shows station and ingredient readiness."),
+        new("craft","Make something useful","Follow A Place by the Fire: saw 2 oak logs into oak planks, then shape a wooden handle at the sawbench. Crafting [F] shows station and ingredient readiness."),
         new("combat","Win your first fight","Target a nearby creature with Tab, hold basic attack, move out of telegraphs, and try a class art from the hotbar."),
         new("skill","Raise a skill level",$"Keep doing one real activity until a skill reaches level {FirstSkillLevelTarget}. The green XP bar shows the skill you trained most recently."),
         new("level","Raise your character level",$"Training any skills contributes to overall level. Reach character level {FirstCharacterLevelTarget} to open the next part of the journey."),
         new("equipment","Improve your equipment","Complete A Spark in the Stone and socket the starter rune, or equip a better-quality drop."),
         new("interior","Enter a real building","Walk through one of Wayfarer's Rest's named doors. Interiors contain the same service NPCs and reciprocal exits."),
-        new("transition","Take the western road","Use the road exit to Kingsmeadow. Entrances name their destination and the map [M] shows the route."),
+        new("transition","Take the eastern road","Use the road exit to Kingsmeadow. Entrances name their destination and the map [M] shows the route."),
         new("social","See the social layer","Open Social [P]. Use local chat, LFG, or create/join a party; nearby travelers also appear in Recent Players."),
         new("miniboss","Defeat your first rare foe","Hunt the gold RARE elite in Kingsmeadow. Rare enemies are mini-bosses with stronger health, traits and rewards.")
     ];

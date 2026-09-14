@@ -71,6 +71,7 @@ public partial class GameRoot
         objectiveToggle.Name = "ToggleObjectives"; objectiveToggle.FocusMode = FocusModeEnum.None;
         objectiveToggle.CustomMinimumSize = new Vector2(26, 26); objectiveHeader.AddChild(objectiveToggle);
         objectiveColumn.AddChild(objectiveText); objectiveColumn.AddChild(firstHourText);
+        BuildNewPlayerHud(objectiveColumn);
         var minimapPanel = new HudPanel
         {
             Name = "MinimapPanel", AnchorLeft = 1, AnchorRight = 1,
@@ -212,8 +213,6 @@ public partial class GameRoot
         stamina.MaxValue = stats.Stamina; stamina.Value = self.Stamina; staminaText.Text = $"Stamina  {Math.Ceiling(self.Stamina):0} / {stats.Stamina:0}";
         var zone = Data.Zone(self.Zone); location.Text = zone.Name;
         location.TooltipText = zone.Layer + " · " + WorldTime.Weather(zone, snap.Time) + "\n" + zone.Lore;
-        var firstHour=FirstHourExperience.Current(Data,self);
-        firstHourText.Text=firstHour is null?"":$"WAYFARER'S PATH · {FirstHourExperience.CompletedCount(Data,self)}/{FirstHourExperience.Steps.Count}\n{firstHour.Name} · {firstHour.Guidance}";
         var target = selectedTargetKind == "creature" ? snap.Creatures.FirstOrDefault(x => x.Id == selectedTarget && x.Health > 0) : null;
         targetFrame.Visible = target is not null;
         if (target is not null)
@@ -240,27 +239,7 @@ public partial class GameRoot
             deathText.Text = "Your equipment remains yours. Repair damaged equipment after returning to a settlement.\nRespawn in " + Math.Max(0, Math.Ceiling(self.DeadUntil - snap.Time)) + " seconds.";
             respawnButton.Disabled = self.DeadUntil > snap.Time;
         }
-        var tracked = self.Quests.OrderBy(x=>JourneyProgression.QuestPriority(Data.Quest(x.Key))).ThenBy(x=>x.Key,StringComparer.Ordinal).FirstOrDefault();
-        if (tracked.Value is null)
-        {
-            var lead=JourneyProgression.LocalQuest(Data,self,snap.Time);var next=JourneyProgression.Suggest(Data,self);var activity=JourneyProgression.SuggestedActivity(Data,self);
-            if(lead is not null)objectiveText.Text=$"NEW LEAD · {lead.QuestName}\nTalk to {lead.GiverName} here.\nOpen Quest [J] or Hunt [H] for direction.";
-            else if(zone.Kind=="interior"&&zone.Exits.FirstOrDefault() is { } wayOut)
-                objectiveText.Text=$"Return outside\nExit toward {Data.Zone(wayOut.Target).Name}\nInteract: E";
-            else if(next is not null&&next.Locked)
-                objectiveText.Text=$"NEXT FRONTIER · {next.ZoneName}\nUnlocks at Level {next.EntryLevel} · {next.LevelsNeeded} to go\nTrain {activity?.Name??"skills"}, craft, gather or quest · Hunt [H]";
-            else if(next is not null)
-                objectiveText.Text=$"NEXT FRONTIER · {next.ZoneName}\nThreat {next.ThreatLevel} · Entry {next.EntryLevel}+ · READY\nOpen Hunt [H] and select the exit.";
-            else objectiveText.Text=activity is null?"Explore, quest, craft and hunt to advance.":$"BUILD {activity.Name.ToUpperInvariant()} · Level {Progression.BaseLevel(self,activity.Id)}\n{activity.Action}\nHunt [H] shows local routes.";
-        }
-        else
-        {
-            var quest = Data.Quest(tracked.Key);
-            int next = Enumerable.Range(0, quest.Objectives.Count).FirstOrDefault(i => tracked.Value.Counts.ElementAtOrDefault(i) < quest.Objectives[i].Count, -1);
-            string guidance=next<0?"":JourneyProgression.ObjectiveGuidance(Data,quest,quest.Objectives[next],self);
-            objectiveText.Text = quest.Name + "\n" + (next < 0 ? "Return to " + Data.Npcs.First(x => x.Id == quest.Giver).Name + " to claim the reward."
-                : quest.Objectives[next].Description + "\n" + tracked.Value.Counts.ElementAtOrDefault(next) + " / " + quest.Objectives[next].Count + (guidance==""?"":" · "+guidance));
-        }
+        UpdateNewPlayerHud(snap);
         for (int i = 0; i < hotbar.Length; i++)
         {
             string id = hotbar[i]; var button = (AbilitySlot)hotbarButtons[i]; string key = (i == 9 ? 0 : i + 1).ToString();
