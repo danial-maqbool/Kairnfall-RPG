@@ -98,7 +98,9 @@ public static class ProgressionFeedback
                     changes.All(x => x.Difference > 0) ? "POWER INCREASED" : "EQUIPMENT CHANGED · trade-offs",
                     string.Join(" · ", changes.Select(x => x.Text))));
         }
-        if (FindUpgrade(data, after) is { } upgrade && !before.Inventory.Any(x => x.Id == upgrade.ItemId))
+        var previousItems = before.Inventory.Select(x => x.Id).ToHashSet(StringComparer.Ordinal);
+        if (after.Inventory.Any(x => !previousItems.Contains(x.Id))
+            && FindUpgrade(data, after) is { } upgrade && !previousItems.Contains(upgrade.ItemId))
             result.Add(new("upgrade:" + upgrade.ItemId, "upgrade", "UPGRADE FOUND · " + upgrade.Name,
                 upgrade.Detail + " · Open the backpack to review and equip."));
         var trained = data.Skills.Where(x => Progression.BaseLevel(after, x.Id) > Progression.BaseLevel(before, x.Id))

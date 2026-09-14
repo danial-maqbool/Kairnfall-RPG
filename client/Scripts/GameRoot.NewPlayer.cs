@@ -51,7 +51,7 @@ public partial class GameRoot
         firstHourText.MaxLinesVisible = 2;
         journeyActions = Ui.Row(objectiveColumn); journeyActions.Name = "JourneyActions";
         journeyAction = Ui.Button("Walk to objective", FollowJourneyObjective);
-        journeyAction.Name = "JourneyPrimaryAction"; journeyAction.FocusMode = FocusModeEnum.None;
+        journeyAction.ClipText = true; journeyAction.Name = "JourneyPrimaryAction"; journeyAction.FocusMode = FocusModeEnum.None;
         journeyAction.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         journeyAction.SetMeta(Ui.BaseFontSizeMeta, 12); journeyAction.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(12)); journeyActions.AddChild(journeyAction);
         journeyUnderstood = Ui.Button("Got it", () => AcknowledgeJourney(journeyObjective?.Stage == "public" ? "public" : journeyHint?.Id ?? ""));

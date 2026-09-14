@@ -123,6 +123,13 @@ public partial class LiveExperienceContract : Node
             await Delay(.3);
             Require(Self.Zone == "wayfarers_rest", "A normal account starts in Wayfarer's Rest");
             Require(game.Data.Ability(Field<string[]>(game, "hotbar")[0]).Class == Self.Class, "Hotbar 1 starts with the character's class ability");
+            string GuidanceEconomy() => System.Text.Json.JsonSerializer.Serialize(new { Self.Gold, Self.Inventory, Self.Equipment, Self.SkillXp, Self.Reputation, Self.Quests, Self.CompletedQuests, Self.PublicEventsCompleted }, Wire.Json);
+            string guidanceEconomy = GuidanceEconomy();
+            Require(NewPlayerJourney.Active(Self) && Field<Label>(game, "firstHourText").GetMeta("guidance_id").AsString() == "movement", "A real new account receives contextual movement guidance");
+            await Click(Field<Button>(game, "journeyUnderstood"));
+            await Until(() => NewPlayerJourney.Seen(Self, "movement"), "The native Got it button did not persist through the authoritative server.");
+            Require(GuidanceEconomy() == guidanceEconomy, "The native guidance acknowledgement grants no XP, items, gold, reputation or event credit");
+            Require(Self.Discoveries.Count(x => x == NewPlayerJourney.HintKey("movement")) == 1, "The durable guidance marker exists exactly once");
             var start = Self.Position;
             KeyEvent(Key.D, true); await Delay(1.2); KeyEvent(Key.D, false); await Delay(.4);
             Require(Self.Position.X > start.X + 2.5, "Native physical D input moves the authoritative character");
@@ -275,6 +282,7 @@ public partial class LiveExperienceContract : Node
             await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, "Reconnect did not restore acknowledged state.");
             Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId), "Native merchant sale quantities and exact gold survive reconnect");
             Require(Self.Equipment.GetValueOrDefault("weapon") == weapon, "GUI-equipped item identity survives reconnect");
+            Require(NewPlayerJourney.Seen(Self, "movement"), "Native guidance completion survives the real database-backed reconnect");
             // A hostile already in flight can legitimately award defensive XP between the last
             // pre-disconnect snapshot and the server's disconnect acknowledgement. Reconnect must
             // never lose any acknowledged skill checkpoint; exact equality would misclassify that
@@ -292,6 +300,7 @@ public partial class LiveExperienceContract : Node
                 Require(!reconnected.Connected, "Repeated live shutdown completes without a disposed-socket failure");
                 await reconnected.ConnectAsync(characterId);
                 await Until(() => game.Snapshot?.Self.Id == characterId && Self.LastAction >= sequence, "Repeated reconnect did not restore the authoritative snapshot.");
+                Require(Self.Discoveries.Count(x => x == NewPlayerJourney.HintKey("movement")) == 1, "Repeated reconnect neither loses nor duplicates acknowledged guidance");
                 bool retainedSkillXp = checkpointSkills.All(entry => Self.SkillXp.GetValueOrDefault(entry.Key) >= entry.Value);
                 Require(Self.Gold == merchantSale.Gold && !Self.Inventory.Any(x => x.Id == merchantSale.ItemId)
                     && Self.Equipment.GetValueOrDefault("weapon") == weapon && retainedSkillXp && Progression.Total(Self) >= checkpointXp,
