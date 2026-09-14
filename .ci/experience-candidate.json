@@ -1,6 +1,6 @@
 {
-  "sha": "8f151e1b8ab41777cedf821d78125a92aad783fb",
+  "sha": "639642e88dc7c2a0d65954aa6d5f8ab3886019d9",
   "base": "ff361899125aa0e7a3d4032127f017975c99a004",
   "mode": "repair",
-  "purpose": "Verify the coherent new-player journey with normal server APIs, persistent bounded hint acknowledgements, real progression/equipment deltas, legacy saves, zero-human public activity, replay-safe existing rewards, retained Task 20/21/22 systems, and native 1280x720/1920x1080 presentation contracts. No tutorial rewards, world expansion, releases or deployments."
+  "purpose": "Full exact-candidate verification after the real journey probe exposed the passive starter-rat filter. Includes standalone probe compilation, completed-fixture dependency checks, authority/persistence/replay coverage, unchanged public-event architecture and native Windows-resolution HUD contracts. No release or deployment."
 }
