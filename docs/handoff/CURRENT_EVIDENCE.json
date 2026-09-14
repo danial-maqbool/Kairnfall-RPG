@@ -39,5 +39,17 @@
   "releaseStatus": "NOT APPROVED — human acceptance remains.",
   "publicationReady": false,
   "releasePublished": false,
-  "releaseApproval": {"status":"NOT APPROVED — human acceptance remains.","art":false,"humanUx":false,"scale":false,"performance":false}
+  "releaseApproval": {"status":"NOT APPROVED — human acceptance remains.","art":false,"humanUx":false,"scale":false,"performance":false},
+  "humanOnlyGates": [
+    "Owner Windows gameplay pass for visible XP/level pacing and reconnect/restart persistence",
+    "Normal-play progression and class feel",
+    "Independent human adversarial/gameplay acceptance if independent approval is required",
+    "Independent artistic approval at native/in-engine scale",
+    "Full ordinary-account world and quest walkthrough",
+    "Sustained economy and balance feel",
+    "Audio listening approval",
+    "Production-scale load validation if a specific capacity will be advertised",
+    "Physical Windows DPI and hardware-input inspection",
+    "Owner-machine clean Windows package extraction and launch if required for release sign-off"
+  ]
 }
