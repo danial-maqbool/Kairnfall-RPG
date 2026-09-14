@@ -199,7 +199,7 @@ public partial class GameRoot
             detail.AddChild(Ui.Label("Return to " + giver.Name + " in " + Data.Zone(giver.Zone).Name + ".", 15, Ui.Muted, true));
             var questId = selected.Id;
             detail.AddChild(Ui.Button("Mark quest giver", () => MarkDestination(giver.Zone, giver.Position)));
-            if (progress.Complete) detail.AddChild(Ui.Button("Claim reward", () => endgame?Send("endgame_claim",target:questId):Send("claim_quest", item:questId), !NearNpc(giver)));
+            if (progress.Complete) detail.AddChild(Ui.Button("Claim reward", () => { if (endgame) Send("endgame_claim", target: questId); else Send("claim_quest", item: questId); }, !NearNpc(giver)));
             if(endgame) detail.AddChild(Ui.Button("Abandon contract",()=>Send("endgame_abandon",target:questId)));
         }
         refreshPage = Render; Render();
