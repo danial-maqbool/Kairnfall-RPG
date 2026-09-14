@@ -4,6 +4,7 @@ public sealed partial class RealmEngine
 {
     private QuestDef CurrentEndgameContract(string id)
     {
+        Need(EndgameLoops.IsContractId(id),"Unknown faction contract.");
         var board=EndgameLoops.Today(Data,State.Time);
         int expected=EndgameLoops.Factions.Count*EndgameLoops.ContractsPerBoard;
         Need(board.Count==expected&&board.Select(x=>x.Id).Distinct(StringComparer.Ordinal).Count()==expected,"Faction contract rotation is invalid.");
