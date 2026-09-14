@@ -3,7 +3,12 @@ namespace Kairnfall.Core;
 public sealed partial class RealmEngine
 {
     private QuestDef CurrentEndgameContract(string id)
-        =>EndgameLoops.Today(Data,State.Time).FirstOrDefault(x=>x.Id==id)??throw new RuleException("That faction contract is not in the current rotation.");
+    {
+        var board=EndgameLoops.Today(Data,State.Time);
+        int expected=EndgameLoops.Factions.Count*EndgameLoops.ContractsPerBoard;
+        Need(board.Count==expected&&board.Select(x=>x.Id).Distinct(StringComparer.Ordinal).Count()==expected,"Faction contract rotation is invalid.");
+        return board.FirstOrDefault(x=>x.Id==id)??throw new RuleException("That faction contract is not in the current rotation.");
+    }
 
     private string AcceptEndgame(Character player,string id)
     {
