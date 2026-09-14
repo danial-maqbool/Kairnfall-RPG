@@ -7,9 +7,9 @@
   "atelier_0.png"
  ],
  "occupancy": [
-  0.631
+  0.639
  ],
- "packed": 2337,
+ "packed": 2369,
  "too_large_for_a_page": [],
  "frames": {
   "props/ancient_oak": {
@@ -9777,6597 +9777,6821 @@
    "width": 32,
    "height": 32
   },
-  "items/froststeel_axe": {
+  "items/frostsilver_bar": {
    "page": 0,
    "x": 957,
+   "y": 919,
+   "width": 32,
+   "height": 32
+  },
+  "items/frostsilver_ore": {
+   "page": 0,
+   "x": 990,
+   "y": 919,
+   "width": 32,
+   "height": 32
+  },
+  "items/frostsilver_pickaxe": {
+   "page": 0,
+   "x": 1023,
+   "y": 919,
+   "width": 32,
+   "height": 32
+  },
+  "items/froststeel_axe": {
+   "page": 0,
+   "x": 1056,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_bar": {
    "page": 0,
-   "x": 990,
+   "x": 1089,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_bow": {
    "page": 0,
-   "x": 1023,
+   "x": 1122,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_charm": {
    "page": 0,
-   "x": 1056,
+   "x": 1155,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_crossbow": {
    "page": 0,
-   "x": 1089,
+   "x": 1188,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_dagger": {
    "page": 0,
-   "x": 1122,
+   "x": 1221,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_focus": {
    "page": 0,
-   "x": 1155,
+   "x": 1254,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_greataxe": {
    "page": 0,
-   "x": 1188,
+   "x": 1287,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_greatmace": {
    "page": 0,
-   "x": 1221,
+   "x": 1320,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_greatsword": {
    "page": 0,
-   "x": 1254,
+   "x": 1353,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_halberd": {
    "page": 0,
-   "x": 1287,
+   "x": 1386,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_heavy_belt": {
    "page": 0,
-   "x": 1320,
+   "x": 1419,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_heavy_boots": {
    "page": 0,
-   "x": 1353,
+   "x": 1452,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_heavy_chest": {
    "page": 0,
-   "x": 1386,
+   "x": 1485,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_heavy_cloak": {
    "page": 0,
-   "x": 1419,
+   "x": 1518,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_heavy_gloves": {
    "page": 0,
-   "x": 1452,
+   "x": 1551,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_heavy_helmet": {
    "page": 0,
-   "x": 1485,
+   "x": 1584,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_heavy_legs": {
    "page": 0,
-   "x": 1518,
+   "x": 1617,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_knuckles": {
    "page": 0,
-   "x": 1551,
+   "x": 1650,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_light_belt": {
    "page": 0,
-   "x": 1584,
+   "x": 1683,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_light_boots": {
    "page": 0,
-   "x": 1617,
+   "x": 1716,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_light_chest": {
    "page": 0,
-   "x": 1650,
+   "x": 1749,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_light_cloak": {
    "page": 0,
-   "x": 1683,
+   "x": 1782,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_light_gloves": {
    "page": 0,
-   "x": 1716,
+   "x": 1815,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_light_helmet": {
    "page": 0,
-   "x": 1749,
+   "x": 1848,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_light_legs": {
    "page": 0,
-   "x": 1782,
+   "x": 1881,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_mace": {
    "page": 0,
-   "x": 1815,
+   "x": 1914,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_medium_belt": {
    "page": 0,
-   "x": 1848,
+   "x": 1947,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_medium_boots": {
    "page": 0,
-   "x": 1881,
+   "x": 1980,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_medium_chest": {
    "page": 0,
-   "x": 1914,
+   "x": 2013,
    "y": 919,
    "width": 32,
    "height": 32
   },
   "items/froststeel_medium_cloak": {
    "page": 0,
-   "x": 1947,
-   "y": 919,
+   "x": 0,
+   "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_medium_gloves": {
    "page": 0,
-   "x": 1980,
-   "y": 919,
+   "x": 33,
+   "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_medium_helmet": {
    "page": 0,
-   "x": 2013,
-   "y": 919,
+   "x": 66,
+   "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_medium_legs": {
    "page": 0,
-   "x": 0,
+   "x": 99,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_necklace": {
    "page": 0,
-   "x": 33,
+   "x": 132,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_orb": {
    "page": 0,
-   "x": 66,
+   "x": 165,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_quiver": {
    "page": 0,
-   "x": 99,
+   "x": 198,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_ring": {
    "page": 0,
-   "x": 132,
+   "x": 231,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_shield": {
    "page": 0,
-   "x": 165,
+   "x": 264,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_spear": {
    "page": 0,
-   "x": 198,
+   "x": 297,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_staff": {
    "page": 0,
-   "x": 231,
+   "x": 330,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_sword": {
    "page": 0,
-   "x": 264,
+   "x": 363,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_tome": {
    "page": 0,
-   "x": 297,
+   "x": 396,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_tool_axe": {
    "page": 0,
-   "x": 330,
+   "x": 429,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_tool_hammer": {
    "page": 0,
-   "x": 363,
+   "x": 462,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_tool_knife": {
    "page": 0,
-   "x": 396,
+   "x": 495,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_tool_pickaxe": {
    "page": 0,
-   "x": 429,
+   "x": 528,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_tool_rod": {
    "page": 0,
-   "x": 462,
+   "x": 561,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_tool_shovel": {
    "page": 0,
-   "x": 495,
+   "x": 594,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_tool_sickle": {
    "page": 0,
-   "x": 528,
+   "x": 627,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_treated_leather": {
    "page": 0,
-   "x": 561,
+   "x": 660,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_trinket": {
    "page": 0,
-   "x": 594,
+   "x": 693,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/froststeel_wand": {
    "page": 0,
-   "x": 627,
+   "x": 726,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_cloth": {
    "page": 0,
-   "x": 660,
+   "x": 759,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_heavy_belt": {
    "page": 0,
-   "x": 693,
+   "x": 792,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_heavy_boots": {
    "page": 0,
-   "x": 726,
+   "x": 825,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_heavy_chest": {
    "page": 0,
-   "x": 759,
+   "x": 858,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_heavy_cloak": {
    "page": 0,
-   "x": 792,
+   "x": 891,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_heavy_gloves": {
    "page": 0,
-   "x": 825,
+   "x": 924,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_heavy_helmet": {
    "page": 0,
-   "x": 858,
+   "x": 957,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_heavy_legs": {
    "page": 0,
-   "x": 891,
+   "x": 990,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_light_belt": {
    "page": 0,
-   "x": 924,
+   "x": 1023,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_light_boots": {
    "page": 0,
-   "x": 957,
+   "x": 1056,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_light_chest": {
    "page": 0,
-   "x": 990,
+   "x": 1089,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_light_cloak": {
    "page": 0,
-   "x": 1023,
+   "x": 1122,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_light_gloves": {
    "page": 0,
-   "x": 1056,
+   "x": 1155,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_light_helmet": {
    "page": 0,
-   "x": 1089,
+   "x": 1188,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_light_legs": {
    "page": 0,
-   "x": 1122,
+   "x": 1221,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_medium_belt": {
    "page": 0,
-   "x": 1155,
+   "x": 1254,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_medium_boots": {
    "page": 0,
-   "x": 1188,
+   "x": 1287,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_medium_chest": {
    "page": 0,
-   "x": 1221,
+   "x": 1320,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_medium_cloak": {
    "page": 0,
-   "x": 1254,
+   "x": 1353,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_medium_gloves": {
    "page": 0,
-   "x": 1287,
+   "x": 1386,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_medium_helmet": {
    "page": 0,
-   "x": 1320,
+   "x": 1419,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/frostweave_medium_legs": {
    "page": 0,
-   "x": 1353,
+   "x": 1452,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/ghost_orchid": {
    "page": 0,
-   "x": 1386,
+   "x": 1485,
+   "y": 952,
+   "width": 32,
+   "height": 32
+  },
+  "items/ghost_reed": {
+   "page": 0,
+   "x": 1518,
+   "y": 952,
+   "width": 32,
+   "height": 32
+  },
+  "items/ghost_reed_extract": {
+   "page": 0,
+   "x": 1551,
+   "y": 952,
+   "width": 32,
+   "height": 32
+  },
+  "items/ghost_reed_sickle": {
+   "page": 0,
+   "x": 1584,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/glass": {
    "page": 0,
-   "x": 1419,
+   "x": 1617,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/harbor_manifest": {
    "page": 0,
-   "x": 1452,
+   "x": 1650,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/healing_potion": {
    "page": 0,
-   "x": 1485,
+   "x": 1683,
+   "y": 952,
+   "width": 32,
+   "height": 32
+  },
+  "items/heartwood_burl": {
+   "page": 0,
+   "x": 1716,
+   "y": 952,
+   "width": 32,
+   "height": 32
+  },
+  "items/heartwood_forester_axe": {
+   "page": 0,
+   "x": 1749,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/hempweave_cloth": {
    "page": 0,
-   "x": 1518,
+   "x": 1782,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/ice_pike": {
    "page": 0,
-   "x": 1551,
+   "x": 1815,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/ink": {
    "page": 0,
-   "x": 1584,
+   "x": 1848,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/iron_axe": {
    "page": 0,
-   "x": 1617,
+   "x": 1881,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/iron_bar": {
    "page": 0,
-   "x": 1650,
+   "x": 1914,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/iron_bow": {
    "page": 0,
-   "x": 1683,
+   "x": 1947,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/iron_charm": {
    "page": 0,
-   "x": 1716,
+   "x": 1980,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/iron_crossbow": {
    "page": 0,
-   "x": 1749,
+   "x": 2013,
    "y": 952,
    "width": 32,
    "height": 32
   },
   "items/iron_dagger": {
    "page": 0,
-   "x": 1782,
-   "y": 952,
+   "x": 0,
+   "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_focus": {
    "page": 0,
-   "x": 1815,
-   "y": 952,
+   "x": 33,
+   "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_greataxe": {
    "page": 0,
-   "x": 1848,
-   "y": 952,
+   "x": 66,
+   "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_greatmace": {
    "page": 0,
-   "x": 1881,
-   "y": 952,
+   "x": 99,
+   "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_greatsword": {
    "page": 0,
-   "x": 1914,
-   "y": 952,
+   "x": 132,
+   "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_halberd": {
    "page": 0,
-   "x": 1947,
-   "y": 952,
+   "x": 165,
+   "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_knuckles": {
    "page": 0,
-   "x": 1980,
-   "y": 952,
+   "x": 198,
+   "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_mace": {
    "page": 0,
-   "x": 2013,
-   "y": 952,
+   "x": 231,
+   "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_necklace": {
    "page": 0,
-   "x": 0,
+   "x": 264,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_orb": {
    "page": 0,
-   "x": 33,
+   "x": 297,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_ore": {
    "page": 0,
-   "x": 66,
+   "x": 330,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_quiver": {
    "page": 0,
-   "x": 99,
+   "x": 363,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_ring": {
    "page": 0,
-   "x": 132,
+   "x": 396,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_shield": {
    "page": 0,
-   "x": 165,
+   "x": 429,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_spear": {
    "page": 0,
-   "x": 198,
+   "x": 462,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_staff": {
    "page": 0,
-   "x": 231,
+   "x": 495,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_sword": {
    "page": 0,
-   "x": 264,
+   "x": 528,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_tome": {
    "page": 0,
-   "x": 297,
+   "x": 561,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_tool_axe": {
    "page": 0,
-   "x": 330,
+   "x": 594,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_tool_hammer": {
    "page": 0,
-   "x": 363,
+   "x": 627,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_tool_knife": {
    "page": 0,
-   "x": 396,
+   "x": 660,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_tool_pickaxe": {
    "page": 0,
-   "x": 429,
+   "x": 693,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_tool_rod": {
    "page": 0,
-   "x": 462,
+   "x": 726,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_tool_shovel": {
    "page": 0,
-   "x": 495,
+   "x": 759,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_tool_sickle": {
    "page": 0,
-   "x": 528,
+   "x": 792,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_treated_leather": {
    "page": 0,
-   "x": 561,
+   "x": 825,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_trinket": {
    "page": 0,
-   "x": 594,
+   "x": 858,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/iron_wand": {
    "page": 0,
-   "x": 627,
+   "x": 891,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/ironwood_log": {
    "page": 0,
-   "x": 660,
+   "x": 924,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/ironwood_plank": {
    "page": 0,
-   "x": 693,
+   "x": 957,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_ash_crown": {
+   "page": 0,
+   "x": 990,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_basalt_spine": {
+   "page": 0,
+   "x": 1023,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_blackfen": {
+   "page": 0,
+   "x": 1056,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_cinder_fields": {
+   "page": 0,
+   "x": 1089,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_dry_reach": {
+   "page": 0,
+   "x": 1122,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_ember_marches": {
+   "page": 0,
+   "x": 1155,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_glassmere": {
+   "page": 0,
+   "x": 1188,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_gull_isles": {
+   "page": 0,
+   "x": 1221,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_kingsmeadow": {
+   "page": 0,
+   "x": 1254,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_mosswater": {
+   "page": 0,
+   "x": 1287,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_mournground": {
+   "page": 0,
+   "x": 1320,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_northern_moor": {
+   "page": 0,
+   "x": 1353,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_old_boughs": {
+   "page": 0,
+   "x": 1386,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_pinewatch_reach": {
+   "page": 0,
+   "x": 1419,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_saltwind": {
+   "page": 0,
+   "x": 1452,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_silver_run": {
+   "page": 0,
+   "x": 1485,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_starfall_scar": {
+   "page": 0,
+   "x": 1518,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_stonefall": {
+   "page": 0,
+   "x": 1551,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_thistle_woods": {
+   "page": 0,
+   "x": 1584,
+   "y": 985,
+   "width": 32,
+   "height": 32
+  },
+  "items/keepsake_westfarms": {
+   "page": 0,
+   "x": 1617,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_cloth": {
    "page": 0,
-   "x": 726,
+   "x": 1650,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_heavy_belt": {
    "page": 0,
-   "x": 759,
+   "x": 1683,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_heavy_boots": {
    "page": 0,
-   "x": 792,
+   "x": 1716,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_heavy_chest": {
    "page": 0,
-   "x": 825,
+   "x": 1749,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_heavy_cloak": {
    "page": 0,
-   "x": 858,
+   "x": 1782,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_heavy_gloves": {
    "page": 0,
-   "x": 891,
+   "x": 1815,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_heavy_helmet": {
    "page": 0,
-   "x": 924,
+   "x": 1848,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_heavy_legs": {
    "page": 0,
-   "x": 957,
+   "x": 1881,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_light_belt": {
    "page": 0,
-   "x": 990,
+   "x": 1914,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_light_boots": {
    "page": 0,
-   "x": 1023,
+   "x": 1947,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_light_chest": {
    "page": 0,
-   "x": 1056,
+   "x": 1980,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_light_cloak": {
    "page": 0,
-   "x": 1089,
+   "x": 2013,
    "y": 985,
    "width": 32,
    "height": 32
   },
   "items/linen_light_gloves": {
    "page": 0,
-   "x": 1122,
-   "y": 985,
+   "x": 0,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_light_helmet": {
    "page": 0,
-   "x": 1155,
-   "y": 985,
+   "x": 33,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_light_legs": {
    "page": 0,
-   "x": 1188,
-   "y": 985,
+   "x": 66,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_medium_belt": {
    "page": 0,
-   "x": 1221,
-   "y": 985,
+   "x": 99,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_medium_boots": {
    "page": 0,
-   "x": 1254,
-   "y": 985,
+   "x": 132,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_medium_chest": {
    "page": 0,
-   "x": 1287,
-   "y": 985,
+   "x": 165,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_medium_cloak": {
    "page": 0,
-   "x": 1320,
-   "y": 985,
+   "x": 198,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_medium_gloves": {
    "page": 0,
-   "x": 1353,
-   "y": 985,
+   "x": 231,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_medium_helmet": {
    "page": 0,
-   "x": 1386,
-   "y": 985,
+   "x": 264,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/linen_medium_legs": {
    "page": 0,
-   "x": 1419,
-   "y": 985,
+   "x": 297,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lockpick": {
    "page": 0,
-   "x": 1452,
-   "y": 985,
+   "x": 330,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lore_book_1": {
    "page": 0,
-   "x": 1485,
-   "y": 985,
+   "x": 363,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lore_book_2": {
    "page": 0,
-   "x": 1518,
-   "y": 985,
+   "x": 396,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lore_book_3": {
    "page": 0,
-   "x": 1551,
-   "y": 985,
+   "x": 429,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lore_book_4": {
    "page": 0,
-   "x": 1584,
-   "y": 985,
+   "x": 462,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lore_book_5": {
    "page": 0,
-   "x": 1617,
-   "y": 985,
+   "x": 495,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lore_book_6": {
    "page": 0,
-   "x": 1650,
-   "y": 985,
+   "x": 528,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lore_book_7": {
    "page": 0,
-   "x": 1683,
-   "y": 985,
+   "x": 561,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/lore_book_8": {
    "page": 0,
-   "x": 1716,
-   "y": 985,
+   "x": 594,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mana_potion": {
    "page": 0,
-   "x": 1749,
-   "y": 985,
+   "x": 627,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/marsh_eel": {
    "page": 0,
-   "x": 1782,
-   "y": 985,
+   "x": 660,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/meadow_leaf": {
    "page": 0,
-   "x": 1815,
-   "y": 985,
+   "x": 693,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mistweave_cloth": {
    "page": 0,
-   "x": 1848,
-   "y": 985,
+   "x": 726,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_axe": {
    "page": 0,
-   "x": 1881,
-   "y": 985,
+   "x": 759,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_bar": {
    "page": 0,
-   "x": 1914,
-   "y": 985,
+   "x": 792,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_bow": {
    "page": 0,
-   "x": 1947,
-   "y": 985,
+   "x": 825,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_charm": {
    "page": 0,
-   "x": 1980,
-   "y": 985,
+   "x": 858,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_crossbow": {
    "page": 0,
-   "x": 2013,
-   "y": 985,
+   "x": 891,
+   "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_dagger": {
    "page": 0,
-   "x": 0,
+   "x": 924,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_focus": {
    "page": 0,
-   "x": 33,
+   "x": 957,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_greataxe": {
    "page": 0,
-   "x": 66,
+   "x": 990,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_greatmace": {
    "page": 0,
-   "x": 99,
+   "x": 1023,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_greatsword": {
    "page": 0,
-   "x": 132,
+   "x": 1056,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_halberd": {
    "page": 0,
-   "x": 165,
+   "x": 1089,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_heavy_belt": {
    "page": 0,
-   "x": 198,
+   "x": 1122,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_heavy_boots": {
    "page": 0,
-   "x": 231,
+   "x": 1155,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_heavy_chest": {
    "page": 0,
-   "x": 264,
+   "x": 1188,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_heavy_cloak": {
    "page": 0,
-   "x": 297,
+   "x": 1221,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_heavy_gloves": {
    "page": 0,
-   "x": 330,
+   "x": 1254,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_heavy_helmet": {
    "page": 0,
-   "x": 363,
+   "x": 1287,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_heavy_legs": {
    "page": 0,
-   "x": 396,
+   "x": 1320,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_knuckles": {
    "page": 0,
-   "x": 429,
+   "x": 1353,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_light_belt": {
    "page": 0,
-   "x": 462,
+   "x": 1386,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_light_boots": {
    "page": 0,
-   "x": 495,
+   "x": 1419,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_light_chest": {
    "page": 0,
-   "x": 528,
+   "x": 1452,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_light_cloak": {
    "page": 0,
-   "x": 561,
+   "x": 1485,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_light_gloves": {
    "page": 0,
-   "x": 594,
+   "x": 1518,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_light_helmet": {
    "page": 0,
-   "x": 627,
+   "x": 1551,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_light_legs": {
    "page": 0,
-   "x": 660,
+   "x": 1584,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_mace": {
    "page": 0,
-   "x": 693,
+   "x": 1617,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_medium_belt": {
    "page": 0,
-   "x": 726,
+   "x": 1650,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_medium_boots": {
    "page": 0,
-   "x": 759,
+   "x": 1683,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_medium_chest": {
    "page": 0,
-   "x": 792,
+   "x": 1716,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_medium_cloak": {
    "page": 0,
-   "x": 825,
+   "x": 1749,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_medium_gloves": {
    "page": 0,
-   "x": 858,
+   "x": 1782,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_medium_helmet": {
    "page": 0,
-   "x": 891,
+   "x": 1815,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_medium_legs": {
    "page": 0,
-   "x": 924,
+   "x": 1848,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_necklace": {
    "page": 0,
-   "x": 957,
+   "x": 1881,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_orb": {
    "page": 0,
-   "x": 990,
+   "x": 1914,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_ore": {
    "page": 0,
-   "x": 1023,
+   "x": 1947,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_quiver": {
    "page": 0,
-   "x": 1056,
+   "x": 1980,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_ring": {
    "page": 0,
-   "x": 1089,
+   "x": 2013,
    "y": 1018,
    "width": 32,
    "height": 32
   },
   "items/mithril_shield": {
    "page": 0,
-   "x": 1122,
-   "y": 1018,
+   "x": 0,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_spear": {
    "page": 0,
-   "x": 1155,
-   "y": 1018,
+   "x": 33,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_staff": {
    "page": 0,
-   "x": 1188,
-   "y": 1018,
+   "x": 66,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_sword": {
    "page": 0,
-   "x": 1221,
-   "y": 1018,
+   "x": 99,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_tome": {
    "page": 0,
-   "x": 1254,
-   "y": 1018,
+   "x": 132,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_tool_axe": {
    "page": 0,
-   "x": 1287,
-   "y": 1018,
+   "x": 165,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_tool_hammer": {
    "page": 0,
-   "x": 1320,
-   "y": 1018,
+   "x": 198,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_tool_knife": {
    "page": 0,
-   "x": 1353,
-   "y": 1018,
+   "x": 231,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_tool_pickaxe": {
    "page": 0,
-   "x": 1386,
-   "y": 1018,
+   "x": 264,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_tool_rod": {
    "page": 0,
-   "x": 1419,
-   "y": 1018,
+   "x": 297,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_tool_shovel": {
    "page": 0,
-   "x": 1452,
-   "y": 1018,
+   "x": 330,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_tool_sickle": {
    "page": 0,
-   "x": 1485,
-   "y": 1018,
+   "x": 363,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_treated_leather": {
    "page": 0,
-   "x": 1518,
-   "y": 1018,
+   "x": 396,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_trinket": {
    "page": 0,
-   "x": 1551,
-   "y": 1018,
+   "x": 429,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/mithril_wand": {
    "page": 0,
-   "x": 1584,
-   "y": 1018,
+   "x": 462,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonblossom": {
    "page": 0,
-   "x": 1617,
-   "y": 1018,
+   "x": 495,
+   "y": 1051,
+   "width": 32,
+   "height": 32
+  },
+  "items/moonfin": {
+   "page": 0,
+   "x": 528,
+   "y": 1051,
+   "width": 32,
+   "height": 32
+  },
+  "items/moonfin_oil": {
+   "page": 0,
+   "x": 561,
+   "y": 1051,
+   "width": 32,
+   "height": 32
+  },
+  "items/moonfin_rod": {
+   "page": 0,
+   "x": 594,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_axe": {
    "page": 0,
-   "x": 1650,
-   "y": 1018,
+   "x": 627,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_bar": {
    "page": 0,
-   "x": 1683,
-   "y": 1018,
+   "x": 660,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_bow": {
    "page": 0,
-   "x": 1716,
-   "y": 1018,
+   "x": 693,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_charm": {
    "page": 0,
-   "x": 1749,
-   "y": 1018,
+   "x": 726,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_crossbow": {
    "page": 0,
-   "x": 1782,
-   "y": 1018,
+   "x": 759,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_dagger": {
    "page": 0,
-   "x": 1815,
-   "y": 1018,
+   "x": 792,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_focus": {
    "page": 0,
-   "x": 1848,
-   "y": 1018,
+   "x": 825,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_greataxe": {
    "page": 0,
-   "x": 1881,
-   "y": 1018,
+   "x": 858,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_greatmace": {
    "page": 0,
-   "x": 1914,
-   "y": 1018,
+   "x": 891,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_greatsword": {
    "page": 0,
-   "x": 1947,
-   "y": 1018,
+   "x": 924,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_halberd": {
    "page": 0,
-   "x": 1980,
-   "y": 1018,
+   "x": 957,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_heavy_belt": {
    "page": 0,
-   "x": 2013,
-   "y": 1018,
+   "x": 990,
+   "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_heavy_boots": {
    "page": 0,
-   "x": 0,
+   "x": 1023,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_heavy_chest": {
    "page": 0,
-   "x": 33,
+   "x": 1056,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_heavy_cloak": {
    "page": 0,
-   "x": 66,
+   "x": 1089,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_heavy_gloves": {
    "page": 0,
-   "x": 99,
+   "x": 1122,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_heavy_helmet": {
    "page": 0,
-   "x": 132,
+   "x": 1155,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_heavy_legs": {
    "page": 0,
-   "x": 165,
+   "x": 1188,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_knuckles": {
    "page": 0,
-   "x": 198,
+   "x": 1221,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_light_belt": {
    "page": 0,
-   "x": 231,
+   "x": 1254,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_light_boots": {
    "page": 0,
-   "x": 264,
+   "x": 1287,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_light_chest": {
    "page": 0,
-   "x": 297,
+   "x": 1320,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_light_cloak": {
    "page": 0,
-   "x": 330,
+   "x": 1353,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_light_gloves": {
    "page": 0,
-   "x": 363,
+   "x": 1386,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_light_helmet": {
    "page": 0,
-   "x": 396,
+   "x": 1419,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_light_legs": {
    "page": 0,
-   "x": 429,
+   "x": 1452,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_mace": {
    "page": 0,
-   "x": 462,
+   "x": 1485,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_medium_belt": {
    "page": 0,
-   "x": 495,
+   "x": 1518,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_medium_boots": {
    "page": 0,
-   "x": 528,
+   "x": 1551,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_medium_chest": {
    "page": 0,
-   "x": 561,
+   "x": 1584,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_medium_cloak": {
    "page": 0,
-   "x": 594,
+   "x": 1617,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_medium_gloves": {
    "page": 0,
-   "x": 627,
+   "x": 1650,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_medium_helmet": {
    "page": 0,
-   "x": 660,
+   "x": 1683,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_medium_legs": {
    "page": 0,
-   "x": 693,
+   "x": 1716,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_necklace": {
    "page": 0,
-   "x": 726,
+   "x": 1749,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_orb": {
    "page": 0,
-   "x": 759,
+   "x": 1782,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_quiver": {
    "page": 0,
-   "x": 792,
+   "x": 1815,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_ring": {
    "page": 0,
-   "x": 825,
+   "x": 1848,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_shield": {
    "page": 0,
-   "x": 858,
+   "x": 1881,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_spear": {
    "page": 0,
-   "x": 891,
+   "x": 1914,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_staff": {
    "page": 0,
-   "x": 924,
+   "x": 1947,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_sword": {
    "page": 0,
-   "x": 957,
+   "x": 1980,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_tome": {
    "page": 0,
-   "x": 990,
+   "x": 2013,
    "y": 1051,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_tool_axe": {
    "page": 0,
-   "x": 1023,
-   "y": 1051,
+   "x": 0,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_tool_hammer": {
    "page": 0,
-   "x": 1056,
-   "y": 1051,
+   "x": 33,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_tool_knife": {
    "page": 0,
-   "x": 1089,
-   "y": 1051,
+   "x": 66,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_tool_pickaxe": {
    "page": 0,
-   "x": 1122,
-   "y": 1051,
+   "x": 99,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_tool_rod": {
    "page": 0,
-   "x": 1155,
-   "y": 1051,
+   "x": 132,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_tool_shovel": {
    "page": 0,
-   "x": 1188,
-   "y": 1051,
+   "x": 165,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_tool_sickle": {
    "page": 0,
-   "x": 1221,
-   "y": 1051,
+   "x": 198,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_treated_leather": {
    "page": 0,
-   "x": 1254,
-   "y": 1051,
+   "x": 231,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_trinket": {
    "page": 0,
-   "x": 1287,
-   "y": 1051,
+   "x": 264,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonsteel_wand": {
    "page": 0,
-   "x": 1320,
-   "y": 1051,
+   "x": 297,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_cloth": {
    "page": 0,
-   "x": 1353,
-   "y": 1051,
+   "x": 330,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_heavy_belt": {
    "page": 0,
-   "x": 1386,
-   "y": 1051,
+   "x": 363,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_heavy_boots": {
    "page": 0,
-   "x": 1419,
-   "y": 1051,
+   "x": 396,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_heavy_chest": {
    "page": 0,
-   "x": 1452,
-   "y": 1051,
+   "x": 429,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_heavy_cloak": {
    "page": 0,
-   "x": 1485,
-   "y": 1051,
+   "x": 462,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_heavy_gloves": {
    "page": 0,
-   "x": 1518,
-   "y": 1051,
+   "x": 495,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_heavy_helmet": {
    "page": 0,
-   "x": 1551,
-   "y": 1051,
+   "x": 528,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_heavy_legs": {
    "page": 0,
-   "x": 1584,
-   "y": 1051,
+   "x": 561,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_light_belt": {
    "page": 0,
-   "x": 1617,
-   "y": 1051,
+   "x": 594,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_light_boots": {
    "page": 0,
-   "x": 1650,
-   "y": 1051,
+   "x": 627,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_light_chest": {
    "page": 0,
-   "x": 1683,
-   "y": 1051,
+   "x": 660,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_light_cloak": {
    "page": 0,
-   "x": 1716,
-   "y": 1051,
+   "x": 693,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_light_gloves": {
    "page": 0,
-   "x": 1749,
-   "y": 1051,
+   "x": 726,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_light_helmet": {
    "page": 0,
-   "x": 1782,
-   "y": 1051,
+   "x": 759,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_light_legs": {
    "page": 0,
-   "x": 1815,
-   "y": 1051,
+   "x": 792,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_medium_belt": {
    "page": 0,
-   "x": 1848,
-   "y": 1051,
+   "x": 825,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_medium_boots": {
    "page": 0,
-   "x": 1881,
-   "y": 1051,
+   "x": 858,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_medium_chest": {
    "page": 0,
-   "x": 1914,
-   "y": 1051,
+   "x": 891,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_medium_cloak": {
    "page": 0,
-   "x": 1947,
-   "y": 1051,
+   "x": 924,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_medium_gloves": {
    "page": 0,
-   "x": 1980,
-   "y": 1051,
+   "x": 957,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_medium_helmet": {
    "page": 0,
-   "x": 2013,
-   "y": 1051,
+   "x": 990,
+   "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/moonweave_medium_legs": {
    "page": 0,
-   "x": 0,
+   "x": 1023,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/oak_log": {
    "page": 0,
-   "x": 33,
+   "x": 1056,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/oak_plank": {
    "page": 0,
-   "x": 66,
+   "x": 1089,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_axe": {
    "page": 0,
-   "x": 99,
+   "x": 1122,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_bar": {
    "page": 0,
-   "x": 132,
+   "x": 1155,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_bow": {
    "page": 0,
-   "x": 165,
+   "x": 1188,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_charm": {
    "page": 0,
-   "x": 198,
+   "x": 1221,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_crossbow": {
    "page": 0,
-   "x": 231,
+   "x": 1254,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_dagger": {
    "page": 0,
-   "x": 264,
+   "x": 1287,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_focus": {
    "page": 0,
-   "x": 297,
+   "x": 1320,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_greataxe": {
    "page": 0,
-   "x": 330,
+   "x": 1353,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_greatmace": {
    "page": 0,
-   "x": 363,
+   "x": 1386,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_greatsword": {
    "page": 0,
-   "x": 396,
+   "x": 1419,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_halberd": {
    "page": 0,
-   "x": 429,
+   "x": 1452,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_heavy_belt": {
    "page": 0,
-   "x": 462,
+   "x": 1485,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_heavy_boots": {
    "page": 0,
-   "x": 495,
+   "x": 1518,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_heavy_chest": {
    "page": 0,
-   "x": 528,
+   "x": 1551,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_heavy_cloak": {
    "page": 0,
-   "x": 561,
+   "x": 1584,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_heavy_gloves": {
    "page": 0,
-   "x": 594,
+   "x": 1617,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_heavy_helmet": {
    "page": 0,
-   "x": 627,
+   "x": 1650,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_heavy_legs": {
    "page": 0,
-   "x": 660,
+   "x": 1683,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_knuckles": {
    "page": 0,
-   "x": 693,
+   "x": 1716,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_light_belt": {
    "page": 0,
-   "x": 726,
+   "x": 1749,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_light_boots": {
    "page": 0,
-   "x": 759,
+   "x": 1782,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_light_chest": {
    "page": 0,
-   "x": 792,
+   "x": 1815,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_light_cloak": {
    "page": 0,
-   "x": 825,
+   "x": 1848,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_light_gloves": {
    "page": 0,
-   "x": 858,
+   "x": 1881,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_light_helmet": {
    "page": 0,
-   "x": 891,
+   "x": 1914,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_light_legs": {
    "page": 0,
-   "x": 924,
+   "x": 1947,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_mace": {
    "page": 0,
-   "x": 957,
+   "x": 1980,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_medium_belt": {
    "page": 0,
-   "x": 990,
+   "x": 2013,
    "y": 1084,
    "width": 32,
    "height": 32
   },
   "items/obsidian_medium_boots": {
    "page": 0,
-   "x": 1023,
-   "y": 1084,
+   "x": 0,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_medium_chest": {
    "page": 0,
-   "x": 1056,
-   "y": 1084,
+   "x": 33,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_medium_cloak": {
    "page": 0,
-   "x": 1089,
-   "y": 1084,
+   "x": 66,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_medium_gloves": {
    "page": 0,
-   "x": 1122,
-   "y": 1084,
+   "x": 99,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_medium_helmet": {
    "page": 0,
-   "x": 1155,
-   "y": 1084,
+   "x": 132,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_medium_legs": {
    "page": 0,
-   "x": 1188,
-   "y": 1084,
+   "x": 165,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_necklace": {
    "page": 0,
-   "x": 1221,
-   "y": 1084,
+   "x": 198,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_orb": {
    "page": 0,
-   "x": 1254,
-   "y": 1084,
+   "x": 231,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_ore": {
    "page": 0,
-   "x": 1287,
-   "y": 1084,
+   "x": 264,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_quiver": {
    "page": 0,
-   "x": 1320,
-   "y": 1084,
+   "x": 297,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_ring": {
    "page": 0,
-   "x": 1353,
-   "y": 1084,
+   "x": 330,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_shield": {
    "page": 0,
-   "x": 1386,
-   "y": 1084,
+   "x": 363,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_spear": {
    "page": 0,
-   "x": 1419,
-   "y": 1084,
+   "x": 396,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_staff": {
    "page": 0,
-   "x": 1452,
-   "y": 1084,
+   "x": 429,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_sword": {
    "page": 0,
-   "x": 1485,
-   "y": 1084,
+   "x": 462,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_tome": {
    "page": 0,
-   "x": 1518,
-   "y": 1084,
+   "x": 495,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_tool_axe": {
    "page": 0,
-   "x": 1551,
-   "y": 1084,
+   "x": 528,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_tool_hammer": {
    "page": 0,
-   "x": 1584,
-   "y": 1084,
+   "x": 561,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_tool_knife": {
    "page": 0,
-   "x": 1617,
-   "y": 1084,
+   "x": 594,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_tool_pickaxe": {
    "page": 0,
-   "x": 1650,
-   "y": 1084,
+   "x": 627,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_tool_rod": {
    "page": 0,
-   "x": 1683,
-   "y": 1084,
+   "x": 660,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_tool_shovel": {
    "page": 0,
-   "x": 1716,
-   "y": 1084,
+   "x": 693,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_tool_sickle": {
    "page": 0,
-   "x": 1749,
-   "y": 1084,
+   "x": 726,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_treated_leather": {
    "page": 0,
-   "x": 1782,
-   "y": 1084,
+   "x": 759,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_trinket": {
    "page": 0,
-   "x": 1815,
-   "y": 1084,
+   "x": 792,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/obsidian_wand": {
    "page": 0,
-   "x": 1848,
-   "y": 1084,
+   "x": 825,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/parchment": {
    "page": 0,
-   "x": 1881,
-   "y": 1084,
+   "x": 858,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/polished_gem": {
    "page": 0,
-   "x": 1914,
-   "y": 1084,
+   "x": 891,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/raw_hide": {
    "page": 0,
-   "x": 1947,
-   "y": 1084,
+   "x": 924,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/raw_meat": {
    "page": 0,
-   "x": 1980,
-   "y": 1084,
+   "x": 957,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/red_snapper": {
    "page": 0,
-   "x": 2013,
-   "y": 1084,
+   "x": 990,
+   "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/relic_shard": {
    "page": 0,
-   "x": 0,
+   "x": 1023,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/ridgeweave_cloth": {
    "page": 0,
-   "x": 33,
+   "x": 1056,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/river_trout": {
    "page": 0,
-   "x": 66,
+   "x": 1089,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/root_tablet": {
    "page": 0,
-   "x": 99,
+   "x": 1122,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rough_gem": {
    "page": 0,
-   "x": 132,
+   "x": 1155,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_bulwark_1": {
    "page": 0,
-   "x": 165,
+   "x": 1188,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_bulwark_2": {
    "page": 0,
-   "x": 198,
+   "x": 1221,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_bulwark_3": {
    "page": 0,
-   "x": 231,
+   "x": 1254,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_bulwark_4": {
    "page": 0,
-   "x": 264,
+   "x": 1287,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_bulwark_5": {
    "page": 0,
-   "x": 297,
+   "x": 1320,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_dust": {
    "page": 0,
-   "x": 330,
+   "x": 1353,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_echoes_1": {
    "page": 0,
-   "x": 363,
+   "x": 1386,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_echoes_2": {
    "page": 0,
-   "x": 396,
+   "x": 1419,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_echoes_3": {
    "page": 0,
-   "x": 429,
+   "x": 1452,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_echoes_4": {
    "page": 0,
-   "x": 462,
+   "x": 1485,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_echoes_5": {
    "page": 0,
-   "x": 495,
+   "x": 1518,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_embers_1": {
    "page": 0,
-   "x": 528,
+   "x": 1551,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_embers_2": {
    "page": 0,
-   "x": 561,
+   "x": 1584,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_embers_3": {
    "page": 0,
-   "x": 594,
+   "x": 1617,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_embers_4": {
    "page": 0,
-   "x": 627,
+   "x": 1650,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_embers_5": {
    "page": 0,
-   "x": 660,
+   "x": 1683,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_leeching_1": {
    "page": 0,
-   "x": 693,
+   "x": 1716,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_leeching_2": {
    "page": 0,
-   "x": 726,
+   "x": 1749,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_leeching_3": {
    "page": 0,
-   "x": 759,
+   "x": 1782,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_leeching_4": {
    "page": 0,
-   "x": 792,
+   "x": 1815,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_leeching_5": {
    "page": 0,
-   "x": 825,
+   "x": 1848,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_precision_1": {
    "page": 0,
-   "x": 858,
+   "x": 1881,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_precision_2": {
    "page": 0,
-   "x": 891,
+   "x": 1914,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_precision_3": {
    "page": 0,
-   "x": 924,
+   "x": 1947,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_precision_4": {
    "page": 0,
-   "x": 957,
+   "x": 1980,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_precision_5": {
    "page": 0,
-   "x": 990,
+   "x": 2013,
    "y": 1117,
    "width": 32,
    "height": 32
   },
   "items/rune_prospector_1": {
    "page": 0,
-   "x": 1023,
-   "y": 1117,
+   "x": 0,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_prospector_2": {
    "page": 0,
-   "x": 1056,
-   "y": 1117,
+   "x": 33,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_prospector_3": {
    "page": 0,
-   "x": 1089,
-   "y": 1117,
+   "x": 66,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_prospector_4": {
    "page": 0,
-   "x": 1122,
-   "y": 1117,
+   "x": 99,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_prospector_5": {
    "page": 0,
-   "x": 1155,
-   "y": 1117,
+   "x": 132,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_radiance_1": {
    "page": 0,
-   "x": 1188,
-   "y": 1117,
+   "x": 165,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_radiance_2": {
    "page": 0,
-   "x": 1221,
-   "y": 1117,
+   "x": 198,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_radiance_3": {
    "page": 0,
-   "x": 1254,
-   "y": 1117,
+   "x": 231,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_radiance_4": {
    "page": 0,
-   "x": 1287,
-   "y": 1117,
+   "x": 264,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_radiance_5": {
    "page": 0,
-   "x": 1320,
-   "y": 1117,
+   "x": 297,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_stone": {
    "page": 0,
-   "x": 1353,
-   "y": 1117,
+   "x": 330,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_storm_1": {
    "page": 0,
-   "x": 1386,
-   "y": 1117,
+   "x": 363,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_storm_2": {
    "page": 0,
-   "x": 1419,
-   "y": 1117,
+   "x": 396,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_storm_3": {
    "page": 0,
-   "x": 1452,
-   "y": 1117,
+   "x": 429,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_storm_4": {
    "page": 0,
-   "x": 1485,
-   "y": 1117,
+   "x": 462,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_storm_5": {
    "page": 0,
-   "x": 1518,
-   "y": 1117,
+   "x": 495,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_vigor_1": {
    "page": 0,
-   "x": 1551,
-   "y": 1117,
+   "x": 528,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_vigor_2": {
    "page": 0,
-   "x": 1584,
-   "y": 1117,
+   "x": 561,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_vigor_3": {
    "page": 0,
-   "x": 1617,
-   "y": 1117,
+   "x": 594,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_vigor_4": {
    "page": 0,
-   "x": 1650,
-   "y": 1117,
+   "x": 627,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_vigor_5": {
    "page": 0,
-   "x": 1683,
-   "y": 1117,
+   "x": 660,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_wanderer_1": {
    "page": 0,
-   "x": 1716,
-   "y": 1117,
+   "x": 693,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_wanderer_2": {
    "page": 0,
-   "x": 1749,
-   "y": 1117,
+   "x": 726,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_wanderer_3": {
    "page": 0,
-   "x": 1782,
-   "y": 1117,
+   "x": 759,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_wanderer_4": {
    "page": 0,
-   "x": 1815,
-   "y": 1117,
+   "x": 792,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_wanderer_5": {
    "page": 0,
-   "x": 1848,
-   "y": 1117,
+   "x": 825,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_warding_1": {
    "page": 0,
-   "x": 1881,
-   "y": 1117,
+   "x": 858,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_warding_2": {
    "page": 0,
-   "x": 1914,
-   "y": 1117,
+   "x": 891,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_warding_3": {
    "page": 0,
-   "x": 1947,
-   "y": 1117,
+   "x": 924,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_warding_4": {
    "page": 0,
-   "x": 1980,
-   "y": 1117,
+   "x": 957,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_warding_5": {
    "page": 0,
-   "x": 2013,
-   "y": 1117,
+   "x": 990,
+   "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_winter_1": {
    "page": 0,
-   "x": 0,
+   "x": 1023,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_winter_2": {
    "page": 0,
-   "x": 33,
+   "x": 1056,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_winter_3": {
    "page": 0,
-   "x": 66,
+   "x": 1089,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_winter_4": {
    "page": 0,
-   "x": 99,
+   "x": 1122,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/rune_winter_5": {
    "page": 0,
-   "x": 132,
+   "x": 1155,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_axe": {
    "page": 0,
-   "x": 165,
+   "x": 1188,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_bar": {
    "page": 0,
-   "x": 198,
+   "x": 1221,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_bow": {
    "page": 0,
-   "x": 231,
+   "x": 1254,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_charm": {
    "page": 0,
-   "x": 264,
+   "x": 1287,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_crossbow": {
    "page": 0,
-   "x": 297,
+   "x": 1320,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_dagger": {
    "page": 0,
-   "x": 330,
+   "x": 1353,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_focus": {
    "page": 0,
-   "x": 363,
+   "x": 1386,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_greataxe": {
    "page": 0,
-   "x": 396,
+   "x": 1419,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_greatmace": {
    "page": 0,
-   "x": 429,
+   "x": 1452,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_greatsword": {
    "page": 0,
-   "x": 462,
+   "x": 1485,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_halberd": {
    "page": 0,
-   "x": 495,
+   "x": 1518,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_heavy_belt": {
    "page": 0,
-   "x": 528,
+   "x": 1551,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_heavy_boots": {
    "page": 0,
-   "x": 561,
+   "x": 1584,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_heavy_chest": {
    "page": 0,
-   "x": 594,
+   "x": 1617,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_heavy_cloak": {
    "page": 0,
-   "x": 627,
+   "x": 1650,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_heavy_gloves": {
    "page": 0,
-   "x": 660,
+   "x": 1683,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_heavy_helmet": {
    "page": 0,
-   "x": 693,
+   "x": 1716,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_heavy_legs": {
    "page": 0,
-   "x": 726,
+   "x": 1749,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_knuckles": {
    "page": 0,
-   "x": 759,
+   "x": 1782,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_light_belt": {
    "page": 0,
-   "x": 792,
+   "x": 1815,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_light_boots": {
    "page": 0,
-   "x": 825,
+   "x": 1848,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_light_chest": {
    "page": 0,
-   "x": 858,
+   "x": 1881,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_light_cloak": {
    "page": 0,
-   "x": 891,
+   "x": 1914,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_light_gloves": {
    "page": 0,
-   "x": 924,
+   "x": 1947,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_light_helmet": {
    "page": 0,
-   "x": 957,
+   "x": 1980,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_light_legs": {
    "page": 0,
-   "x": 990,
+   "x": 2013,
    "y": 1150,
    "width": 32,
    "height": 32
   },
   "items/runesteel_mace": {
    "page": 0,
-   "x": 1023,
-   "y": 1150,
+   "x": 0,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_medium_belt": {
    "page": 0,
-   "x": 1056,
-   "y": 1150,
+   "x": 33,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_medium_boots": {
    "page": 0,
-   "x": 1089,
-   "y": 1150,
+   "x": 66,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_medium_chest": {
    "page": 0,
-   "x": 1122,
-   "y": 1150,
+   "x": 99,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_medium_cloak": {
    "page": 0,
-   "x": 1155,
-   "y": 1150,
+   "x": 132,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_medium_gloves": {
    "page": 0,
-   "x": 1188,
-   "y": 1150,
+   "x": 165,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_medium_helmet": {
    "page": 0,
-   "x": 1221,
-   "y": 1150,
+   "x": 198,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_medium_legs": {
    "page": 0,
-   "x": 1254,
-   "y": 1150,
+   "x": 231,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_necklace": {
    "page": 0,
-   "x": 1287,
-   "y": 1150,
+   "x": 264,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_orb": {
    "page": 0,
-   "x": 1320,
-   "y": 1150,
+   "x": 297,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_quiver": {
    "page": 0,
-   "x": 1353,
-   "y": 1150,
+   "x": 330,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_ring": {
    "page": 0,
-   "x": 1386,
-   "y": 1150,
+   "x": 363,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_shield": {
    "page": 0,
-   "x": 1419,
-   "y": 1150,
+   "x": 396,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_spear": {
    "page": 0,
-   "x": 1452,
-   "y": 1150,
+   "x": 429,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_staff": {
    "page": 0,
-   "x": 1485,
-   "y": 1150,
+   "x": 462,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_sword": {
    "page": 0,
-   "x": 1518,
-   "y": 1150,
+   "x": 495,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_tome": {
    "page": 0,
-   "x": 1551,
-   "y": 1150,
+   "x": 528,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_tool_axe": {
    "page": 0,
-   "x": 1584,
-   "y": 1150,
+   "x": 561,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_tool_hammer": {
    "page": 0,
-   "x": 1617,
-   "y": 1150,
+   "x": 594,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_tool_knife": {
    "page": 0,
-   "x": 1650,
-   "y": 1150,
+   "x": 627,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_tool_pickaxe": {
    "page": 0,
-   "x": 1683,
-   "y": 1150,
+   "x": 660,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_tool_rod": {
    "page": 0,
-   "x": 1716,
-   "y": 1150,
+   "x": 693,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_tool_shovel": {
    "page": 0,
-   "x": 1749,
-   "y": 1150,
+   "x": 726,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_tool_sickle": {
    "page": 0,
-   "x": 1782,
-   "y": 1150,
+   "x": 759,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_treated_leather": {
    "page": 0,
-   "x": 1815,
-   "y": 1150,
+   "x": 792,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_trinket": {
    "page": 0,
-   "x": 1848,
-   "y": 1150,
+   "x": 825,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runesteel_wand": {
    "page": 0,
-   "x": 1881,
-   "y": 1150,
+   "x": 858,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/runeweave_cloth": {
    "page": 0,
-   "x": 1914,
-   "y": 1150,
+   "x": 891,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/salt": {
    "page": 0,
-   "x": 1947,
-   "y": 1150,
+   "x": 924,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/satinweave_cloth": {
    "page": 0,
-   "x": 1980,
-   "y": 1150,
+   "x": 957,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/sealed_letter": {
    "page": 0,
-   "x": 2013,
-   "y": 1150,
+   "x": 990,
+   "y": 1183,
+   "width": 32,
+   "height": 32
+  },
+  "items/seasoned_heartwood": {
+   "page": 0,
+   "x": 1023,
+   "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/shovel": {
    "page": 0,
-   "x": 0,
+   "x": 1056,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/sickle": {
    "page": 0,
-   "x": 33,
+   "x": 1089,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_cloth": {
    "page": 0,
-   "x": 66,
+   "x": 1122,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_heavy_belt": {
    "page": 0,
-   "x": 99,
+   "x": 1155,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_heavy_boots": {
    "page": 0,
-   "x": 132,
+   "x": 1188,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_heavy_chest": {
    "page": 0,
-   "x": 165,
+   "x": 1221,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_heavy_cloak": {
    "page": 0,
-   "x": 198,
+   "x": 1254,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_heavy_gloves": {
    "page": 0,
-   "x": 231,
+   "x": 1287,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_heavy_helmet": {
    "page": 0,
-   "x": 264,
+   "x": 1320,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_heavy_legs": {
    "page": 0,
-   "x": 297,
+   "x": 1353,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_light_belt": {
    "page": 0,
-   "x": 330,
+   "x": 1386,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_light_boots": {
    "page": 0,
-   "x": 363,
+   "x": 1419,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_light_chest": {
    "page": 0,
-   "x": 396,
+   "x": 1452,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_light_cloak": {
    "page": 0,
-   "x": 429,
+   "x": 1485,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_light_gloves": {
    "page": 0,
-   "x": 462,
+   "x": 1518,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_light_helmet": {
    "page": 0,
-   "x": 495,
+   "x": 1551,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_light_legs": {
    "page": 0,
-   "x": 528,
+   "x": 1584,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_medium_belt": {
    "page": 0,
-   "x": 561,
+   "x": 1617,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_medium_boots": {
    "page": 0,
-   "x": 594,
+   "x": 1650,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_medium_chest": {
    "page": 0,
-   "x": 627,
+   "x": 1683,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_medium_cloak": {
    "page": 0,
-   "x": 660,
+   "x": 1716,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_medium_gloves": {
    "page": 0,
-   "x": 693,
+   "x": 1749,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_medium_helmet": {
    "page": 0,
-   "x": 726,
+   "x": 1782,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silk_medium_legs": {
    "page": 0,
-   "x": 759,
+   "x": 1815,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silver_axe": {
    "page": 0,
-   "x": 792,
+   "x": 1848,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silver_bar": {
    "page": 0,
-   "x": 825,
+   "x": 1881,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silver_bow": {
    "page": 0,
-   "x": 858,
+   "x": 1914,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silver_carp": {
    "page": 0,
-   "x": 891,
+   "x": 1947,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silver_charm": {
    "page": 0,
-   "x": 924,
+   "x": 1980,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silver_crossbow": {
    "page": 0,
-   "x": 957,
+   "x": 2013,
    "y": 1183,
    "width": 32,
    "height": 32
   },
   "items/silver_dagger": {
    "page": 0,
-   "x": 990,
-   "y": 1183,
+   "x": 0,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_focus": {
    "page": 0,
-   "x": 1023,
-   "y": 1183,
+   "x": 33,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_greataxe": {
    "page": 0,
-   "x": 1056,
-   "y": 1183,
+   "x": 66,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_greatmace": {
    "page": 0,
-   "x": 1089,
-   "y": 1183,
+   "x": 99,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_greatsword": {
    "page": 0,
-   "x": 1122,
-   "y": 1183,
+   "x": 132,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_halberd": {
    "page": 0,
-   "x": 1155,
-   "y": 1183,
+   "x": 165,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_knuckles": {
    "page": 0,
-   "x": 1188,
-   "y": 1183,
+   "x": 198,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_mace": {
    "page": 0,
-   "x": 1221,
-   "y": 1183,
+   "x": 231,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_necklace": {
    "page": 0,
-   "x": 1254,
-   "y": 1183,
+   "x": 264,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_orb": {
    "page": 0,
-   "x": 1287,
-   "y": 1183,
+   "x": 297,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_ore": {
    "page": 0,
-   "x": 1320,
-   "y": 1183,
+   "x": 330,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_quiver": {
    "page": 0,
-   "x": 1353,
-   "y": 1183,
+   "x": 363,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_ring": {
    "page": 0,
-   "x": 1386,
-   "y": 1183,
+   "x": 396,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_shield": {
    "page": 0,
-   "x": 1419,
-   "y": 1183,
+   "x": 429,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_spear": {
    "page": 0,
-   "x": 1452,
-   "y": 1183,
+   "x": 462,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_staff": {
    "page": 0,
-   "x": 1485,
-   "y": 1183,
+   "x": 495,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_sword": {
    "page": 0,
-   "x": 1518,
-   "y": 1183,
+   "x": 528,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_tome": {
    "page": 0,
-   "x": 1551,
-   "y": 1183,
+   "x": 561,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_tool_axe": {
    "page": 0,
-   "x": 1584,
-   "y": 1183,
+   "x": 594,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_tool_hammer": {
    "page": 0,
-   "x": 1617,
-   "y": 1183,
+   "x": 627,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_tool_knife": {
    "page": 0,
-   "x": 1650,
-   "y": 1183,
+   "x": 660,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_tool_pickaxe": {
    "page": 0,
-   "x": 1683,
-   "y": 1183,
+   "x": 693,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_tool_rod": {
    "page": 0,
-   "x": 1716,
-   "y": 1183,
+   "x": 726,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_tool_shovel": {
    "page": 0,
-   "x": 1749,
-   "y": 1183,
+   "x": 759,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_tool_sickle": {
    "page": 0,
-   "x": 1782,
-   "y": 1183,
+   "x": 792,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_treated_leather": {
    "page": 0,
-   "x": 1815,
-   "y": 1183,
+   "x": 825,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_trinket": {
    "page": 0,
-   "x": 1848,
-   "y": 1183,
+   "x": 858,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silver_wand": {
    "page": 0,
-   "x": 1881,
-   "y": 1183,
+   "x": 891,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/silverleaf": {
    "page": 0,
-   "x": 1914,
-   "y": 1183,
+   "x": 924,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/sinew": {
    "page": 0,
-   "x": 1947,
-   "y": 1183,
+   "x": 957,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/skinning_knife": {
    "page": 0,
-   "x": 1980,
-   "y": 1183,
+   "x": 990,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/star_lotus": {
    "page": 0,
-   "x": 2013,
-   "y": 1183,
+   "x": 1023,
+   "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starfin": {
    "page": 0,
-   "x": 0,
+   "x": 1056,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_axe": {
    "page": 0,
-   "x": 33,
+   "x": 1089,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_bar": {
    "page": 0,
-   "x": 66,
+   "x": 1122,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_bow": {
    "page": 0,
-   "x": 99,
+   "x": 1155,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_charm": {
    "page": 0,
-   "x": 132,
+   "x": 1188,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_crossbow": {
    "page": 0,
-   "x": 165,
+   "x": 1221,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_dagger": {
    "page": 0,
-   "x": 198,
+   "x": 1254,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_focus": {
    "page": 0,
-   "x": 231,
+   "x": 1287,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_greataxe": {
    "page": 0,
-   "x": 264,
+   "x": 1320,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_greatmace": {
    "page": 0,
-   "x": 297,
+   "x": 1353,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_greatsword": {
    "page": 0,
-   "x": 330,
+   "x": 1386,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_halberd": {
    "page": 0,
-   "x": 363,
+   "x": 1419,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_heavy_belt": {
    "page": 0,
-   "x": 396,
+   "x": 1452,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_heavy_boots": {
    "page": 0,
-   "x": 429,
+   "x": 1485,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_heavy_chest": {
    "page": 0,
-   "x": 462,
+   "x": 1518,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_heavy_cloak": {
    "page": 0,
-   "x": 495,
+   "x": 1551,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_heavy_gloves": {
    "page": 0,
-   "x": 528,
+   "x": 1584,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_heavy_helmet": {
    "page": 0,
-   "x": 561,
+   "x": 1617,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_heavy_legs": {
    "page": 0,
-   "x": 594,
+   "x": 1650,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_knuckles": {
    "page": 0,
-   "x": 627,
+   "x": 1683,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_light_belt": {
    "page": 0,
-   "x": 660,
+   "x": 1716,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_light_boots": {
    "page": 0,
-   "x": 693,
+   "x": 1749,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_light_chest": {
    "page": 0,
-   "x": 726,
+   "x": 1782,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_light_cloak": {
    "page": 0,
-   "x": 759,
+   "x": 1815,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_light_gloves": {
    "page": 0,
-   "x": 792,
+   "x": 1848,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_light_helmet": {
    "page": 0,
-   "x": 825,
+   "x": 1881,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_light_legs": {
    "page": 0,
-   "x": 858,
+   "x": 1914,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_mace": {
    "page": 0,
-   "x": 891,
+   "x": 1947,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_medium_belt": {
    "page": 0,
-   "x": 924,
+   "x": 1980,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_medium_boots": {
    "page": 0,
-   "x": 957,
+   "x": 2013,
    "y": 1216,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_medium_chest": {
    "page": 0,
-   "x": 990,
-   "y": 1216,
+   "x": 0,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_medium_cloak": {
    "page": 0,
-   "x": 1023,
-   "y": 1216,
+   "x": 33,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_medium_gloves": {
    "page": 0,
-   "x": 1056,
-   "y": 1216,
+   "x": 66,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_medium_helmet": {
    "page": 0,
-   "x": 1089,
-   "y": 1216,
+   "x": 99,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_medium_legs": {
    "page": 0,
-   "x": 1122,
-   "y": 1216,
+   "x": 132,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_necklace": {
    "page": 0,
-   "x": 1155,
-   "y": 1216,
+   "x": 165,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_orb": {
    "page": 0,
-   "x": 1188,
-   "y": 1216,
+   "x": 198,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_quiver": {
    "page": 0,
-   "x": 1221,
-   "y": 1216,
+   "x": 231,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_ring": {
    "page": 0,
-   "x": 1254,
-   "y": 1216,
+   "x": 264,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_shield": {
    "page": 0,
-   "x": 1287,
-   "y": 1216,
+   "x": 297,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_spear": {
    "page": 0,
-   "x": 1320,
-   "y": 1216,
+   "x": 330,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_staff": {
    "page": 0,
-   "x": 1353,
-   "y": 1216,
+   "x": 363,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_sword": {
    "page": 0,
-   "x": 1386,
-   "y": 1216,
+   "x": 396,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_tome": {
    "page": 0,
-   "x": 1419,
-   "y": 1216,
+   "x": 429,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_tool_axe": {
    "page": 0,
-   "x": 1452,
-   "y": 1216,
+   "x": 462,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_tool_hammer": {
    "page": 0,
-   "x": 1485,
-   "y": 1216,
+   "x": 495,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_tool_knife": {
    "page": 0,
-   "x": 1518,
-   "y": 1216,
+   "x": 528,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_tool_pickaxe": {
    "page": 0,
-   "x": 1551,
-   "y": 1216,
+   "x": 561,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_tool_rod": {
    "page": 0,
-   "x": 1584,
-   "y": 1216,
+   "x": 594,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_tool_shovel": {
    "page": 0,
-   "x": 1617,
-   "y": 1216,
+   "x": 627,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_tool_sickle": {
    "page": 0,
-   "x": 1650,
-   "y": 1216,
+   "x": 660,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_treated_leather": {
    "page": 0,
-   "x": 1683,
-   "y": 1216,
+   "x": 693,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_trinket": {
    "page": 0,
-   "x": 1716,
-   "y": 1216,
+   "x": 726,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starforged_mithril_wand": {
    "page": 0,
-   "x": 1749,
-   "y": 1216,
+   "x": 759,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starweave_cloth": {
    "page": 0,
-   "x": 1782,
-   "y": 1216,
+   "x": 792,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starwood_log": {
    "page": 0,
-   "x": 1815,
-   "y": 1216,
+   "x": 825,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/starwood_plank": {
    "page": 0,
-   "x": 1848,
-   "y": 1216,
+   "x": 858,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_axe": {
    "page": 0,
-   "x": 1881,
-   "y": 1216,
+   "x": 891,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_bar": {
    "page": 0,
-   "x": 1914,
-   "y": 1216,
+   "x": 924,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_bow": {
    "page": 0,
-   "x": 1947,
-   "y": 1216,
+   "x": 957,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_charm": {
    "page": 0,
-   "x": 1980,
-   "y": 1216,
+   "x": 990,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_crossbow": {
    "page": 0,
-   "x": 2013,
-   "y": 1216,
+   "x": 1023,
+   "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_dagger": {
    "page": 0,
-   "x": 0,
+   "x": 1056,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_focus": {
    "page": 0,
-   "x": 33,
+   "x": 1089,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_greataxe": {
    "page": 0,
-   "x": 66,
+   "x": 1122,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_greatmace": {
    "page": 0,
-   "x": 99,
+   "x": 1155,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_greatsword": {
    "page": 0,
-   "x": 132,
+   "x": 1188,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_halberd": {
    "page": 0,
-   "x": 165,
+   "x": 1221,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_knuckles": {
    "page": 0,
-   "x": 198,
+   "x": 1254,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_mace": {
    "page": 0,
-   "x": 231,
+   "x": 1287,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_necklace": {
    "page": 0,
-   "x": 264,
+   "x": 1320,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_orb": {
    "page": 0,
-   "x": 297,
+   "x": 1353,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_ore": {
    "page": 0,
-   "x": 330,
+   "x": 1386,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_quiver": {
    "page": 0,
-   "x": 363,
+   "x": 1419,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_ring": {
    "page": 0,
-   "x": 396,
+   "x": 1452,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_shield": {
    "page": 0,
-   "x": 429,
+   "x": 1485,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_spear": {
    "page": 0,
-   "x": 462,
+   "x": 1518,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_staff": {
    "page": 0,
-   "x": 495,
+   "x": 1551,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_sword": {
    "page": 0,
-   "x": 528,
+   "x": 1584,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_tome": {
    "page": 0,
-   "x": 561,
+   "x": 1617,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_tool_axe": {
    "page": 0,
-   "x": 594,
+   "x": 1650,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_tool_hammer": {
    "page": 0,
-   "x": 627,
+   "x": 1683,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_tool_knife": {
    "page": 0,
-   "x": 660,
+   "x": 1716,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_tool_pickaxe": {
    "page": 0,
-   "x": 693,
+   "x": 1749,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_tool_rod": {
    "page": 0,
-   "x": 726,
+   "x": 1782,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_tool_shovel": {
    "page": 0,
-   "x": 759,
+   "x": 1815,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_tool_sickle": {
    "page": 0,
-   "x": 792,
+   "x": 1848,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_treated_leather": {
    "page": 0,
-   "x": 825,
+   "x": 1881,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_trinket": {
    "page": 0,
-   "x": 858,
+   "x": 1914,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/steel_wand": {
    "page": 0,
-   "x": 891,
+   "x": 1947,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/storm_crystal": {
    "page": 0,
-   "x": 924,
+   "x": 1980,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/storm_ray": {
    "page": 0,
-   "x": 957,
+   "x": 2013,
    "y": 1249,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_axe": {
    "page": 0,
-   "x": 990,
-   "y": 1249,
+   "x": 0,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_bar": {
    "page": 0,
-   "x": 1023,
-   "y": 1249,
+   "x": 33,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_bow": {
    "page": 0,
-   "x": 1056,
-   "y": 1249,
+   "x": 66,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_charm": {
    "page": 0,
-   "x": 1089,
-   "y": 1249,
+   "x": 99,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_crossbow": {
    "page": 0,
-   "x": 1122,
-   "y": 1249,
+   "x": 132,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_dagger": {
    "page": 0,
-   "x": 1155,
-   "y": 1249,
+   "x": 165,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_focus": {
    "page": 0,
-   "x": 1188,
-   "y": 1249,
+   "x": 198,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_greataxe": {
    "page": 0,
-   "x": 1221,
-   "y": 1249,
+   "x": 231,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_greatmace": {
    "page": 0,
-   "x": 1254,
-   "y": 1249,
+   "x": 264,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_greatsword": {
    "page": 0,
-   "x": 1287,
-   "y": 1249,
+   "x": 297,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_halberd": {
    "page": 0,
-   "x": 1320,
-   "y": 1249,
+   "x": 330,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_heavy_belt": {
    "page": 0,
-   "x": 1353,
-   "y": 1249,
+   "x": 363,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_heavy_boots": {
    "page": 0,
-   "x": 1386,
-   "y": 1249,
+   "x": 396,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_heavy_chest": {
    "page": 0,
-   "x": 1419,
-   "y": 1249,
+   "x": 429,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_heavy_cloak": {
    "page": 0,
-   "x": 1452,
-   "y": 1249,
+   "x": 462,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_heavy_gloves": {
    "page": 0,
-   "x": 1485,
-   "y": 1249,
+   "x": 495,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_heavy_helmet": {
    "page": 0,
-   "x": 1518,
-   "y": 1249,
+   "x": 528,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_heavy_legs": {
    "page": 0,
-   "x": 1551,
-   "y": 1249,
+   "x": 561,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_knuckles": {
    "page": 0,
-   "x": 1584,
-   "y": 1249,
+   "x": 594,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_light_belt": {
    "page": 0,
-   "x": 1617,
-   "y": 1249,
+   "x": 627,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_light_boots": {
    "page": 0,
-   "x": 1650,
-   "y": 1249,
+   "x": 660,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_light_chest": {
    "page": 0,
-   "x": 1683,
-   "y": 1249,
+   "x": 693,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_light_cloak": {
    "page": 0,
-   "x": 1716,
-   "y": 1249,
+   "x": 726,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_light_gloves": {
    "page": 0,
-   "x": 1749,
-   "y": 1249,
+   "x": 759,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_light_helmet": {
    "page": 0,
-   "x": 1782,
-   "y": 1249,
+   "x": 792,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_light_legs": {
    "page": 0,
-   "x": 1815,
-   "y": 1249,
+   "x": 825,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_mace": {
    "page": 0,
-   "x": 1848,
-   "y": 1249,
+   "x": 858,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_medium_belt": {
    "page": 0,
-   "x": 1881,
-   "y": 1249,
+   "x": 891,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_medium_boots": {
    "page": 0,
-   "x": 1914,
-   "y": 1249,
+   "x": 924,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_medium_chest": {
    "page": 0,
-   "x": 1947,
-   "y": 1249,
+   "x": 957,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_medium_cloak": {
    "page": 0,
-   "x": 1980,
-   "y": 1249,
+   "x": 990,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_medium_gloves": {
    "page": 0,
-   "x": 2013,
-   "y": 1249,
+   "x": 1023,
+   "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_medium_helmet": {
    "page": 0,
-   "x": 0,
+   "x": 1056,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_medium_legs": {
    "page": 0,
-   "x": 33,
+   "x": 1089,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_necklace": {
    "page": 0,
-   "x": 66,
+   "x": 1122,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_orb": {
    "page": 0,
-   "x": 99,
+   "x": 1155,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_quiver": {
    "page": 0,
-   "x": 132,
+   "x": 1188,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_ring": {
    "page": 0,
-   "x": 165,
+   "x": 1221,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_shield": {
    "page": 0,
-   "x": 198,
+   "x": 1254,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_spear": {
    "page": 0,
-   "x": 231,
+   "x": 1287,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_staff": {
    "page": 0,
-   "x": 264,
+   "x": 1320,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_sword": {
    "page": 0,
-   "x": 297,
+   "x": 1353,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_tome": {
    "page": 0,
-   "x": 330,
+   "x": 1386,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_tool_axe": {
    "page": 0,
-   "x": 363,
+   "x": 1419,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_tool_hammer": {
    "page": 0,
-   "x": 396,
+   "x": 1452,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_tool_knife": {
    "page": 0,
-   "x": 429,
+   "x": 1485,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_tool_pickaxe": {
    "page": 0,
-   "x": 462,
+   "x": 1518,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_tool_rod": {
    "page": 0,
-   "x": 495,
+   "x": 1551,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_tool_shovel": {
    "page": 0,
-   "x": 528,
+   "x": 1584,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_tool_sickle": {
    "page": 0,
-   "x": 561,
+   "x": 1617,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_treated_leather": {
    "page": 0,
-   "x": 594,
+   "x": 1650,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_trinket": {
    "page": 0,
-   "x": 627,
+   "x": 1683,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormsteel_wand": {
    "page": 0,
-   "x": 660,
+   "x": 1716,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/stormweave_cloth": {
    "page": 0,
-   "x": 693,
+   "x": 1749,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/structure_campfire": {
    "page": 0,
-   "x": 726,
+   "x": 1782,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/structure_kitchen": {
    "page": 0,
-   "x": 759,
+   "x": 1815,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/structure_rune_table": {
    "page": 0,
-   "x": 792,
+   "x": 1848,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/structure_sawbench": {
    "page": 0,
-   "x": 825,
+   "x": 1881,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/structure_workbench": {
    "page": 0,
-   "x": 858,
+   "x": 1914,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/sunweave_cloth": {
    "page": 0,
-   "x": 891,
+   "x": 1947,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_axe": {
    "page": 0,
-   "x": 924,
+   "x": 1980,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_bar": {
    "page": 0,
-   "x": 957,
+   "x": 2013,
    "y": 1282,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_bow": {
    "page": 0,
-   "x": 990,
-   "y": 1282,
+   "x": 0,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_charm": {
    "page": 0,
-   "x": 1023,
-   "y": 1282,
+   "x": 33,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_crossbow": {
    "page": 0,
-   "x": 1056,
-   "y": 1282,
+   "x": 66,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_dagger": {
    "page": 0,
-   "x": 1089,
-   "y": 1282,
+   "x": 99,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_focus": {
    "page": 0,
-   "x": 1122,
-   "y": 1282,
+   "x": 132,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_greataxe": {
    "page": 0,
-   "x": 1155,
-   "y": 1282,
+   "x": 165,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_greatmace": {
    "page": 0,
-   "x": 1188,
-   "y": 1282,
+   "x": 198,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_greatsword": {
    "page": 0,
-   "x": 1221,
-   "y": 1282,
+   "x": 231,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_halberd": {
    "page": 0,
-   "x": 1254,
-   "y": 1282,
+   "x": 264,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_heavy_belt": {
    "page": 0,
-   "x": 1287,
-   "y": 1282,
+   "x": 297,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_heavy_boots": {
    "page": 0,
-   "x": 1320,
-   "y": 1282,
+   "x": 330,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_heavy_chest": {
    "page": 0,
-   "x": 1353,
-   "y": 1282,
+   "x": 363,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_heavy_cloak": {
    "page": 0,
-   "x": 1386,
-   "y": 1282,
+   "x": 396,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_heavy_gloves": {
    "page": 0,
-   "x": 1419,
-   "y": 1282,
+   "x": 429,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_heavy_helmet": {
    "page": 0,
-   "x": 1452,
-   "y": 1282,
+   "x": 462,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_heavy_legs": {
    "page": 0,
-   "x": 1485,
-   "y": 1282,
+   "x": 495,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_knuckles": {
    "page": 0,
-   "x": 1518,
-   "y": 1282,
+   "x": 528,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_light_belt": {
    "page": 0,
-   "x": 1551,
-   "y": 1282,
+   "x": 561,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_light_boots": {
    "page": 0,
-   "x": 1584,
-   "y": 1282,
+   "x": 594,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_light_chest": {
    "page": 0,
-   "x": 1617,
-   "y": 1282,
+   "x": 627,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_light_cloak": {
    "page": 0,
-   "x": 1650,
-   "y": 1282,
+   "x": 660,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_light_gloves": {
    "page": 0,
-   "x": 1683,
-   "y": 1282,
+   "x": 693,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_light_helmet": {
    "page": 0,
-   "x": 1716,
-   "y": 1282,
+   "x": 726,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_light_legs": {
    "page": 0,
-   "x": 1749,
-   "y": 1282,
+   "x": 759,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_mace": {
    "page": 0,
-   "x": 1782,
-   "y": 1282,
+   "x": 792,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_medium_belt": {
    "page": 0,
-   "x": 1815,
-   "y": 1282,
+   "x": 825,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_medium_boots": {
    "page": 0,
-   "x": 1848,
-   "y": 1282,
+   "x": 858,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_medium_chest": {
    "page": 0,
-   "x": 1881,
-   "y": 1282,
+   "x": 891,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_medium_cloak": {
    "page": 0,
-   "x": 1914,
-   "y": 1282,
+   "x": 924,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_medium_gloves": {
    "page": 0,
-   "x": 1947,
-   "y": 1282,
+   "x": 957,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_medium_helmet": {
    "page": 0,
-   "x": 1980,
-   "y": 1282,
+   "x": 990,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_medium_legs": {
    "page": 0,
-   "x": 2013,
-   "y": 1282,
+   "x": 1023,
+   "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_necklace": {
    "page": 0,
-   "x": 0,
+   "x": 1056,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_orb": {
    "page": 0,
-   "x": 33,
+   "x": 1089,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_quiver": {
    "page": 0,
-   "x": 66,
+   "x": 1122,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_ring": {
    "page": 0,
-   "x": 99,
+   "x": 1155,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_shield": {
    "page": 0,
-   "x": 132,
+   "x": 1188,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_spear": {
    "page": 0,
-   "x": 165,
+   "x": 1221,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_staff": {
    "page": 0,
-   "x": 198,
+   "x": 1254,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_sword": {
    "page": 0,
-   "x": 231,
+   "x": 1287,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_tome": {
    "page": 0,
-   "x": 264,
+   "x": 1320,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_tool_axe": {
    "page": 0,
-   "x": 297,
+   "x": 1353,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_tool_hammer": {
    "page": 0,
-   "x": 330,
+   "x": 1386,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_tool_knife": {
    "page": 0,
-   "x": 363,
+   "x": 1419,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_tool_pickaxe": {
    "page": 0,
-   "x": 396,
+   "x": 1452,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_tool_rod": {
    "page": 0,
-   "x": 429,
+   "x": 1485,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_tool_shovel": {
    "page": 0,
-   "x": 462,
+   "x": 1518,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_tool_sickle": {
    "page": 0,
-   "x": 495,
+   "x": 1551,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_treated_leather": {
    "page": 0,
-   "x": 528,
+   "x": 1584,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_trinket": {
    "page": 0,
-   "x": 561,
+   "x": 1617,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_iron_wand": {
    "page": 0,
-   "x": 594,
+   "x": 1650,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_axe": {
    "page": 0,
-   "x": 627,
+   "x": 1683,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_bar": {
    "page": 0,
-   "x": 660,
+   "x": 1716,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_bow": {
    "page": 0,
-   "x": 693,
+   "x": 1749,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_charm": {
    "page": 0,
-   "x": 726,
+   "x": 1782,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_crossbow": {
    "page": 0,
-   "x": 759,
+   "x": 1815,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_dagger": {
    "page": 0,
-   "x": 792,
+   "x": 1848,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_focus": {
    "page": 0,
-   "x": 825,
+   "x": 1881,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_greataxe": {
    "page": 0,
-   "x": 858,
+   "x": 1914,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_greatmace": {
    "page": 0,
-   "x": 891,
+   "x": 1947,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_greatsword": {
    "page": 0,
-   "x": 924,
+   "x": 1980,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_halberd": {
    "page": 0,
-   "x": 957,
+   "x": 2013,
    "y": 1315,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_heavy_belt": {
    "page": 0,
-   "x": 990,
-   "y": 1315,
+   "x": 0,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_heavy_boots": {
    "page": 0,
-   "x": 1023,
-   "y": 1315,
+   "x": 33,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_heavy_chest": {
    "page": 0,
-   "x": 1056,
-   "y": 1315,
+   "x": 66,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_heavy_cloak": {
    "page": 0,
-   "x": 1089,
-   "y": 1315,
+   "x": 99,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_heavy_gloves": {
    "page": 0,
-   "x": 1122,
-   "y": 1315,
+   "x": 132,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_heavy_helmet": {
    "page": 0,
-   "x": 1155,
-   "y": 1315,
+   "x": 165,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_heavy_legs": {
    "page": 0,
-   "x": 1188,
-   "y": 1315,
+   "x": 198,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_knuckles": {
    "page": 0,
-   "x": 1221,
-   "y": 1315,
+   "x": 231,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_light_belt": {
    "page": 0,
-   "x": 1254,
-   "y": 1315,
+   "x": 264,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_light_boots": {
    "page": 0,
-   "x": 1287,
-   "y": 1315,
+   "x": 297,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_light_chest": {
    "page": 0,
-   "x": 1320,
-   "y": 1315,
+   "x": 330,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_light_cloak": {
    "page": 0,
-   "x": 1353,
-   "y": 1315,
+   "x": 363,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_light_gloves": {
    "page": 0,
-   "x": 1386,
-   "y": 1315,
+   "x": 396,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_light_helmet": {
    "page": 0,
-   "x": 1419,
-   "y": 1315,
+   "x": 429,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_light_legs": {
    "page": 0,
-   "x": 1452,
-   "y": 1315,
+   "x": 462,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_mace": {
    "page": 0,
-   "x": 1485,
-   "y": 1315,
+   "x": 495,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_medium_belt": {
    "page": 0,
-   "x": 1518,
-   "y": 1315,
+   "x": 528,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_medium_boots": {
    "page": 0,
-   "x": 1551,
-   "y": 1315,
+   "x": 561,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_medium_chest": {
    "page": 0,
-   "x": 1584,
-   "y": 1315,
+   "x": 594,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_medium_cloak": {
    "page": 0,
-   "x": 1617,
-   "y": 1315,
+   "x": 627,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_medium_gloves": {
    "page": 0,
-   "x": 1650,
-   "y": 1315,
+   "x": 660,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_medium_helmet": {
    "page": 0,
-   "x": 1683,
-   "y": 1315,
+   "x": 693,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_medium_legs": {
    "page": 0,
-   "x": 1716,
-   "y": 1315,
+   "x": 726,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_necklace": {
    "page": 0,
-   "x": 1749,
-   "y": 1315,
+   "x": 759,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_orb": {
    "page": 0,
-   "x": 1782,
-   "y": 1315,
+   "x": 792,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_quiver": {
    "page": 0,
-   "x": 1815,
-   "y": 1315,
+   "x": 825,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_ring": {
    "page": 0,
-   "x": 1848,
-   "y": 1315,
+   "x": 858,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_shield": {
    "page": 0,
-   "x": 1881,
-   "y": 1315,
+   "x": 891,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_spear": {
    "page": 0,
-   "x": 1914,
-   "y": 1315,
+   "x": 924,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_staff": {
    "page": 0,
-   "x": 1947,
-   "y": 1315,
+   "x": 957,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_sword": {
    "page": 0,
-   "x": 1980,
-   "y": 1315,
+   "x": 990,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_tome": {
    "page": 0,
-   "x": 2013,
-   "y": 1315,
+   "x": 1023,
+   "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_tool_axe": {
    "page": 0,
-   "x": 0,
+   "x": 1056,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_tool_hammer": {
    "page": 0,
-   "x": 33,
+   "x": 1089,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_tool_knife": {
    "page": 0,
-   "x": 66,
+   "x": 1122,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_tool_pickaxe": {
    "page": 0,
-   "x": 99,
+   "x": 1155,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_tool_rod": {
    "page": 0,
-   "x": 132,
+   "x": 1188,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_tool_shovel": {
    "page": 0,
-   "x": 165,
+   "x": 1221,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_tool_sickle": {
    "page": 0,
-   "x": 198,
+   "x": 1254,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_treated_leather": {
    "page": 0,
-   "x": 231,
+   "x": 1287,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_trinket": {
    "page": 0,
-   "x": 264,
+   "x": 1320,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tempered_steel_wand": {
    "page": 0,
-   "x": 297,
+   "x": 1353,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/thread": {
    "page": 0,
-   "x": 330,
+   "x": 1386,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tin_bar": {
    "page": 0,
-   "x": 363,
+   "x": 1419,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/tin_ore": {
    "page": 0,
-   "x": 396,
+   "x": 1452,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/treasure_map_1": {
    "page": 0,
-   "x": 429,
+   "x": 1485,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/treasure_map_2": {
    "page": 0,
-   "x": 462,
+   "x": 1518,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/treasure_map_3": {
    "page": 0,
-   "x": 495,
+   "x": 1551,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/treasure_map_4": {
    "page": 0,
-   "x": 528,
+   "x": 1584,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/treasure_map_5": {
    "page": 0,
-   "x": 561,
+   "x": 1617,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/treasure_map_6": {
    "page": 0,
-   "x": 594,
+   "x": 1650,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/treasure_map_7": {
    "page": 0,
-   "x": 627,
+   "x": 1683,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/treasure_map_8": {
    "page": 0,
-   "x": 660,
+   "x": 1716,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/venom_gland": {
    "page": 0,
-   "x": 693,
+   "x": 1749,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/watcher_insignia": {
    "page": 0,
-   "x": 726,
+   "x": 1782,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/wheat": {
    "page": 0,
-   "x": 759,
+   "x": 1815,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/wheat_seed": {
    "page": 0,
-   "x": 792,
+   "x": 1848,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/wild_berry": {
    "page": 0,
-   "x": 825,
+   "x": 1881,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/woodcutters_axe": {
    "page": 0,
-   "x": 858,
+   "x": 1914,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/wooden_handle": {
    "page": 0,
-   "x": 891,
+   "x": 1947,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/wool_cloth": {
    "page": 0,
-   "x": 924,
+   "x": 1980,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/wool_heavy_belt": {
    "page": 0,
-   "x": 957,
+   "x": 2013,
    "y": 1348,
    "width": 32,
    "height": 32
   },
   "items/wool_heavy_boots": {
    "page": 0,
-   "x": 990,
-   "y": 1348,
+   "x": 0,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_heavy_chest": {
    "page": 0,
-   "x": 1023,
-   "y": 1348,
+   "x": 33,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_heavy_cloak": {
    "page": 0,
-   "x": 1056,
-   "y": 1348,
+   "x": 66,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_heavy_gloves": {
    "page": 0,
-   "x": 1089,
-   "y": 1348,
+   "x": 99,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_heavy_helmet": {
    "page": 0,
-   "x": 1122,
-   "y": 1348,
+   "x": 132,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_heavy_legs": {
    "page": 0,
-   "x": 1155,
-   "y": 1348,
+   "x": 165,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_light_belt": {
    "page": 0,
-   "x": 1188,
-   "y": 1348,
+   "x": 198,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_light_boots": {
    "page": 0,
-   "x": 1221,
-   "y": 1348,
+   "x": 231,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_light_chest": {
    "page": 0,
-   "x": 1254,
-   "y": 1348,
+   "x": 264,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_light_cloak": {
    "page": 0,
-   "x": 1287,
-   "y": 1348,
+   "x": 297,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_light_gloves": {
    "page": 0,
-   "x": 1320,
-   "y": 1348,
+   "x": 330,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_light_helmet": {
    "page": 0,
-   "x": 1353,
-   "y": 1348,
+   "x": 363,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_light_legs": {
    "page": 0,
-   "x": 1386,
-   "y": 1348,
+   "x": 396,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_medium_belt": {
    "page": 0,
-   "x": 1419,
-   "y": 1348,
+   "x": 429,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_medium_boots": {
    "page": 0,
-   "x": 1452,
-   "y": 1348,
+   "x": 462,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_medium_chest": {
    "page": 0,
-   "x": 1485,
-   "y": 1348,
+   "x": 495,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_medium_cloak": {
    "page": 0,
-   "x": 1518,
-   "y": 1348,
+   "x": 528,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_medium_gloves": {
    "page": 0,
-   "x": 1551,
-   "y": 1348,
+   "x": 561,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_medium_helmet": {
    "page": 0,
-   "x": 1584,
-   "y": 1348,
+   "x": 594,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/wool_medium_legs": {
    "page": 0,
-   "x": 1617,
-   "y": 1348,
+   "x": 627,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/yew_log": {
    "page": 0,
-   "x": 1650,
-   "y": 1348,
+   "x": 660,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "items/yew_plank": {
    "page": 0,
-   "x": 1683,
-   "y": 1348,
+   "x": 693,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/alchemy": {
    "page": 0,
-   "x": 1716,
-   "y": 1348,
+   "x": 726,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/animal_handling": {
    "page": 0,
-   "x": 1749,
-   "y": 1348,
+   "x": 759,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/arcane_magic": {
    "page": 0,
-   "x": 1782,
-   "y": 1348,
+   "x": 792,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/archery": {
    "page": 0,
-   "x": 1815,
-   "y": 1348,
+   "x": 825,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/axe_mastery": {
    "page": 0,
-   "x": 1848,
-   "y": 1348,
+   "x": 858,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/bartering": {
    "page": 0,
-   "x": 1881,
-   "y": 1348,
+   "x": 891,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/carpentry": {
    "page": 0,
-   "x": 1914,
-   "y": 1348,
+   "x": 924,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/cartography": {
    "page": 0,
-   "x": 1947,
-   "y": 1348,
+   "x": 957,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/construction": {
    "page": 0,
-   "x": 1980,
-   "y": 1348,
+   "x": 990,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/cooking": {
    "page": 0,
-   "x": 2013,
-   "y": 1348,
+   "x": 1023,
+   "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/crossbow_mastery": {
    "page": 0,
-   "x": 0,
+   "x": 1056,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/cryomancy": {
    "page": 0,
-   "x": 33,
+   "x": 1089,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/dagger_mastery": {
    "page": 0,
-   "x": 66,
+   "x": 1122,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/enchanting": {
    "page": 0,
-   "x": 99,
+   "x": 1155,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/endurance": {
    "page": 0,
-   "x": 132,
+   "x": 1188,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/evasion": {
    "page": 0,
-   "x": 165,
+   "x": 1221,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/excavation": {
    "page": 0,
-   "x": 198,
+   "x": 1254,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/exploration": {
    "page": 0,
-   "x": 231,
+   "x": 1287,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/farming": {
    "page": 0,
-   "x": 264,
+   "x": 1320,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/fishing": {
    "page": 0,
-   "x": 297,
+   "x": 1353,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/fletching": {
    "page": 0,
-   "x": 330,
+   "x": 1386,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/foraging": {
    "page": 0,
-   "x": 363,
+   "x": 1419,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/geomancy": {
    "page": 0,
-   "x": 396,
+   "x": 1452,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/heavy_armor": {
    "page": 0,
-   "x": 429,
+   "x": 1485,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/herbalism": {
    "page": 0,
-   "x": 462,
+   "x": 1518,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/hunting": {
    "page": 0,
-   "x": 495,
+   "x": 1551,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/jewelcrafting": {
    "page": 0,
-   "x": 528,
+   "x": 1584,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/leatherworking": {
    "page": 0,
-   "x": 561,
+   "x": 1617,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/light_armor": {
    "page": 0,
-   "x": 594,
+   "x": 1650,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/lockpicking": {
    "page": 0,
-   "x": 627,
+   "x": 1683,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/mace_mastery": {
    "page": 0,
-   "x": 660,
+   "x": 1716,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/meditation": {
    "page": 0,
-   "x": 693,
+   "x": 1749,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/medium_armor": {
    "page": 0,
-   "x": 726,
+   "x": 1782,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/mining": {
    "page": 0,
-   "x": 759,
+   "x": 1815,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/nature_magic": {
    "page": 0,
-   "x": 792,
+   "x": 1848,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/prospecting": {
    "page": 0,
-   "x": 825,
+   "x": 1881,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/pyromancy": {
    "page": 0,
-   "x": 858,
+   "x": 1914,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/radiance": {
    "page": 0,
-   "x": 891,
+   "x": 1947,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/restoration": {
    "page": 0,
-   "x": 924,
+   "x": 1980,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/runecasting": {
    "page": 0,
-   "x": 957,
+   "x": 2013,
    "y": 1381,
    "width": 32,
    "height": 32
   },
   "skills/runecrafting": {
    "page": 0,
-   "x": 990,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/scribing": {
-   "page": 0,
-   "x": 1023,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/shadow_magic": {
-   "page": 0,
-   "x": 1056,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/shield_mastery": {
-   "page": 0,
-   "x": 1089,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/skinning": {
-   "page": 0,
-   "x": 1122,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/slayer": {
-   "page": 0,
-   "x": 1155,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/smithing": {
-   "page": 0,
-   "x": 1188,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/spear_mastery": {
-   "page": 0,
-   "x": 1221,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/staff_mastery": {
-   "page": 0,
-   "x": 1254,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/stormcalling": {
-   "page": 0,
-   "x": 1287,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/summoning": {
-   "page": 0,
-   "x": 1320,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/survival": {
-   "page": 0,
-   "x": 1353,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/swordsmanship": {
-   "page": 0,
-   "x": 1386,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/tailoring": {
-   "page": 0,
-   "x": 1419,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/tinkering": {
-   "page": 0,
-   "x": 1452,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/treasure_hunting": {
-   "page": 0,
-   "x": 1485,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/unarmed_combat": {
-   "page": 0,
-   "x": 1518,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/wand_mastery": {
-   "page": 0,
-   "x": 1551,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/woodcutting": {
-   "page": 0,
-   "x": 1584,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "skills/woodworking": {
-   "page": 0,
-   "x": 1617,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/ash_0": {
-   "page": 0,
-   "x": 1650,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/ash_1": {
-   "page": 0,
-   "x": 1683,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/ash_2": {
-   "page": 0,
-   "x": 1716,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/ash_3": {
-   "page": 0,
-   "x": 1749,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/crystal_0": {
-   "page": 0,
-   "x": 1782,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/crystal_1": {
-   "page": 0,
-   "x": 1815,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/crystal_2": {
-   "page": 0,
-   "x": 1848,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/crystal_3": {
-   "page": 0,
-   "x": 1881,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/dirt_0": {
-   "page": 0,
-   "x": 1914,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/dirt_1": {
-   "page": 0,
-   "x": 1947,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/dirt_2": {
-   "page": 0,
-   "x": 1980,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/dirt_3": {
-   "page": 0,
-   "x": 2013,
-   "y": 1381,
-   "width": 32,
-   "height": 32
-  },
-  "terrain/grass_0": {
-   "page": 0,
    "x": 0,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/grass_1": {
+  "skills/scribing": {
    "page": 0,
    "x": 33,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/grass_2": {
+  "skills/shadow_magic": {
    "page": 0,
    "x": 66,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/grass_3": {
+  "skills/shield_mastery": {
    "page": 0,
    "x": 99,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/lava_0": {
+  "skills/skinning": {
    "page": 0,
    "x": 132,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/lava_1": {
+  "skills/slayer": {
    "page": 0,
    "x": 165,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/lava_2": {
+  "skills/smithing": {
    "page": 0,
    "x": 198,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/lava_3": {
+  "skills/spear_mastery": {
    "page": 0,
    "x": 231,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/marsh_0": {
+  "skills/staff_mastery": {
    "page": 0,
    "x": 264,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/marsh_1": {
+  "skills/stormcalling": {
    "page": 0,
    "x": 297,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/marsh_2": {
+  "skills/summoning": {
    "page": 0,
    "x": 330,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/marsh_3": {
+  "skills/survival": {
    "page": 0,
    "x": 363,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/moss_0": {
+  "skills/swordsmanship": {
    "page": 0,
    "x": 396,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/moss_1": {
+  "skills/tailoring": {
    "page": 0,
    "x": 429,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/moss_2": {
+  "skills/tinkering": {
    "page": 0,
    "x": 462,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/moss_3": {
+  "skills/treasure_hunting": {
    "page": 0,
    "x": 495,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/sand_0": {
+  "skills/unarmed_combat": {
    "page": 0,
    "x": 528,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/sand_1": {
+  "skills/wand_mastery": {
    "page": 0,
    "x": 561,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/sand_2": {
+  "skills/woodcutting": {
    "page": 0,
    "x": 594,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/sand_3": {
+  "skills/woodworking": {
    "page": 0,
    "x": 627,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/snow_0": {
+  "terrain/ash_0": {
    "page": 0,
    "x": 660,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/snow_1": {
+  "terrain/ash_1": {
    "page": 0,
    "x": 693,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/snow_2": {
+  "terrain/ash_2": {
    "page": 0,
    "x": 726,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/snow_3": {
+  "terrain/ash_3": {
    "page": 0,
    "x": 759,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/stone_0": {
+  "terrain/crystal_0": {
    "page": 0,
    "x": 792,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/stone_1": {
+  "terrain/crystal_1": {
    "page": 0,
    "x": 825,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/stone_2": {
+  "terrain/crystal_2": {
    "page": 0,
    "x": 858,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/stone_3": {
+  "terrain/crystal_3": {
    "page": 0,
    "x": 891,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/wall_0": {
+  "terrain/dirt_0": {
    "page": 0,
    "x": 924,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/wall_1": {
+  "terrain/dirt_1": {
    "page": 0,
    "x": 957,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/wall_2": {
+  "terrain/dirt_2": {
    "page": 0,
    "x": 990,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/wall_3": {
+  "terrain/dirt_3": {
    "page": 0,
    "x": 1023,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/water_0": {
+  "terrain/grass_0": {
    "page": 0,
    "x": 1056,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/water_1": {
+  "terrain/grass_1": {
    "page": 0,
    "x": 1089,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/water_2": {
+  "terrain/grass_2": {
    "page": 0,
    "x": 1122,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/water_3": {
+  "terrain/grass_3": {
    "page": 0,
    "x": 1155,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/wood_0": {
+  "terrain/lava_0": {
    "page": 0,
    "x": 1188,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/wood_1": {
+  "terrain/lava_1": {
    "page": 0,
    "x": 1221,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/wood_2": {
+  "terrain/lava_2": {
    "page": 0,
    "x": 1254,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "terrain/wood_3": {
+  "terrain/lava_3": {
    "page": 0,
    "x": 1287,
    "y": 1414,
    "width": 32,
    "height": 32
   },
-  "props/shadow": {
+  "terrain/marsh_0": {
    "page": 0,
    "x": 1320,
    "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/marsh_1": {
+   "page": 0,
+   "x": 1353,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/marsh_2": {
+   "page": 0,
+   "x": 1386,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/marsh_3": {
+   "page": 0,
+   "x": 1419,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/moss_0": {
+   "page": 0,
+   "x": 1452,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/moss_1": {
+   "page": 0,
+   "x": 1485,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/moss_2": {
+   "page": 0,
+   "x": 1518,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/moss_3": {
+   "page": 0,
+   "x": 1551,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/sand_0": {
+   "page": 0,
+   "x": 1584,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/sand_1": {
+   "page": 0,
+   "x": 1617,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/sand_2": {
+   "page": 0,
+   "x": 1650,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/sand_3": {
+   "page": 0,
+   "x": 1683,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/snow_0": {
+   "page": 0,
+   "x": 1716,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/snow_1": {
+   "page": 0,
+   "x": 1749,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/snow_2": {
+   "page": 0,
+   "x": 1782,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/snow_3": {
+   "page": 0,
+   "x": 1815,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/stone_0": {
+   "page": 0,
+   "x": 1848,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/stone_1": {
+   "page": 0,
+   "x": 1881,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/stone_2": {
+   "page": 0,
+   "x": 1914,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/stone_3": {
+   "page": 0,
+   "x": 1947,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/wall_0": {
+   "page": 0,
+   "x": 1980,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/wall_1": {
+   "page": 0,
+   "x": 2013,
+   "y": 1414,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/wall_2": {
+   "page": 0,
+   "x": 0,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/wall_3": {
+   "page": 0,
+   "x": 33,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/water_0": {
+   "page": 0,
+   "x": 66,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/water_1": {
+   "page": 0,
+   "x": 99,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/water_2": {
+   "page": 0,
+   "x": 132,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/water_3": {
+   "page": 0,
+   "x": 165,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/wood_0": {
+   "page": 0,
+   "x": 198,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/wood_1": {
+   "page": 0,
+   "x": 231,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/wood_2": {
+   "page": 0,
+   "x": 264,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "terrain/wood_3": {
+   "page": 0,
+   "x": 297,
+   "y": 1447,
+   "width": 32,
+   "height": 32
+  },
+  "props/shadow": {
+   "page": 0,
+   "x": 330,
+   "y": 1447,
    "width": 32,
    "height": 12
   }
