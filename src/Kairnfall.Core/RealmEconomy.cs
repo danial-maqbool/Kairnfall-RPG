@@ -167,7 +167,7 @@ public sealed partial class RealmEngine
         Items.Grant(p,quest.Gold);
         if(quest.Reward!="") Items.Add(p.Inventory,Items.Create(Data,quest.Reward),Data);
         p.CompletedQuests.Add(id); p.Quests.Remove(id);
-        p.Reputation[quest.Faction]=Math.Min(1000,p.Reputation.GetValueOrDefault(quest.Faction)+10); Progress(p,"quest",id);
+        EndgameLoops.GrantReputation(p,quest.Faction,10); Progress(p,"quest",id);
         if(quest.Repeatable) p.Cooldowns["quest:"+id]=State.Time+WorldTime.DayLength;
         if(p.CompletedQuests.Count==10) p.Achievements.Add("helping_hand");
         return "Completed: "+quest.Name;

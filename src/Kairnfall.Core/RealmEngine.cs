@@ -193,6 +193,9 @@ public sealed partial class RealmEngine
             case "inspect": return InspectLandmark(p,c.Target);
             case "accept_quest": return AcceptQuest(p,c.Item);
             case "claim_quest": return ClaimQuest(p,c.Item);
+            case "endgame_accept": return AcceptEndgame(p,c.Target);
+            case "endgame_claim": return ClaimEndgame(p,c.Target);
+            case "endgame_abandon": return AbandonEndgame(p,c.Target);
             case "transition": return Transition(p,c.Target);
             case "travel": return Travel(p,c.Target);
             case "consume": return Consume(p,c.Item);
@@ -395,13 +398,8 @@ public sealed partial class RealmEngine
         AdvanceGuildProject(p,action,amount);
         foreach(var entry in p.Quests)
         {
-            var q=Data.Quest(entry.Key); var progress=entry.Value;
-            for(int i=0;i<q.Objectives.Count;i++)
-            {
-                var o=q.Objectives[i];
-                if(o.Action==action&&(o.Target=="*"||o.Target==target)) progress.Counts[i]=Math.Min(o.Count,progress.Counts[i]+amount);
-            }
-            progress.Complete=q.Objectives.Select((o,i)=>progress.Counts[i]>=o.Count).All(x=>x);
+            var q=EndgameLoops.ResolveQuest(Data,entry.Key);
+            EndgameLoops.Advance(q,entry.Value,action,target,amount);
         }
     }
 }

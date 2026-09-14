@@ -519,7 +519,7 @@ public sealed partial class RealmEngine
             if(!online) continue;
             foreach(var entry in p.Quests)
             {
-                var q=Data.Quest(entry.Key);
+                var q=EndgameLoops.ResolveQuest(Data,entry.Key);
                 for(int i=0;i<q.Objectives.Count;i++) if(q.Objectives[i].Action=="deliver") entry.Value.Counts[i]=Math.Min(q.Objectives[i].Count,Items.Count(p,q.Objectives[i].Target));
                 entry.Value.Complete=q.Objectives.Select((x,i)=>entry.Value.Counts[i]>=x.Count).All(x=>x);
             }

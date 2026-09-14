@@ -144,6 +144,26 @@ public partial class GameRoot
                 else if (progress!.Complete) body.AddChild(Ui.Button("Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc)));
                 else body.AddChild(Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); }));
             }
+            if(npc.Role=="guild_registrar"&&EndgameLoops.IsFaction(npc.Faction))
+            {
+                int reputation=Snapshot.Self.Reputation.GetValueOrDefault(npc.Faction);
+                offers.AddChild(Ui.Label($"Daily faction contracts · {EndgameLoops.RankName(reputation)} {reputation}/1000",20,Ui.Gold));
+                foreach(var contract in EndgameLoops.Today(Data,Snapshot.Time,npc.Faction))
+                {
+                    bool active=Snapshot.Self.Quests.TryGetValue(contract.Id,out var progress);
+                    if(Snapshot.Self.CompletedQuests.Contains(contract.Id))continue;
+                    bool levelReady=Progression.PlayerLevel(Snapshot.Self)>=contract.MinimumLevel;
+                    var card=new PanelContainer();offers.AddChild(card);var body=Ui.Column(card);
+                    body.AddChild(Ui.Label(contract.Name+" · "+Ui.Words(EndgameLoops.ContractKind(contract)),19,Ui.Gold));
+                    body.AddChild(Ui.Label(contract.Story,14,Ui.Text,true));
+                    foreach(var objective in contract.Objectives)body.AddChild(Ui.Label("• "+objective.Description,14,Ui.Muted,true));
+                    if(!levelReady)body.AddChild(Ui.Label($"Requires character level {contract.MinimumLevel}.",14,Ui.Danger));
+                    body.AddChild(Ui.Label($"Reward: {contract.Gold} gold · {EndgameLoops.ReputationReward(contract)} reputation",14,Ui.Success));
+                    if(!active)body.AddChild(Ui.Button("Accept faction contract",()=>Send("endgame_accept",target:contract.Id),!NearNpc(npc)||!levelReady));
+                    else if(progress!.Complete)body.AddChild(Ui.Button("Claim faction reward",()=>Send("endgame_claim",target:contract.Id),!NearNpc(npc)));
+                    else body.AddChild(Ui.Button("Track contract",()=>{selectedQuest=contract.Id;OpenPage("Quests");}));
+                }
+            }
             if (offers.GetChildCount() == 0) offers.AddChild(Ui.Label("No further work is available here at present.", 16, Ui.Muted, true));
         }
         refreshPage = Render; Render();
@@ -160,11 +180,11 @@ public partial class GameRoot
             if (Snapshot is null) return; Ui.Clear(listing); Ui.Clear(detail);
             foreach (var entry in Snapshot.Self.Quests)
             {
-                var quest = Data.Quest(entry.Key); listing.AddChild(Ui.Button((entry.Value.Complete ? "✓ " : "") + quest.Name, () => { selectedQuest = quest.Id; refreshPage?.Invoke(); }));
+                var quest = EndgameLoops.ResolveQuest(Data, entry.Key); listing.AddChild(Ui.Button((entry.Value.Complete ? "✓ " : "") + quest.Name, () => { selectedQuest = quest.Id; refreshPage?.Invoke(); }));
             }
             if (Snapshot.Self.Quests.Count == 0) listing.AddChild(Ui.Label("Speak with people in Wayfarer's Rest to find work.", 16, Ui.Muted, true));
-            var selected = Data.Quests.FirstOrDefault(x => x.Id == selectedQuest && Snapshot.Self.Quests.ContainsKey(x.Id));
-            selected ??= Snapshot.Self.Quests.Count > 0 ? Data.Quest(Snapshot.Self.Quests.Keys.First()) : null;
+            QuestDef? selected = Snapshot.Self.Quests.ContainsKey(selectedQuest) ? EndgameLoops.ResolveQuest(Data, selectedQuest) : null;
+            selected ??= Snapshot.Self.Quests.Count > 0 ? EndgameLoops.ResolveQuest(Data, Snapshot.Self.Quests.Keys.First()) : null;
             if (selected is null) return;
             var progress = Snapshot.Self.Quests[selected.Id]; var giver = Data.Npc(selected.Giver);
             detail.AddChild(Ui.Label(selected.Name, 25, Ui.Gold)); detail.AddChild(Ui.Label(selected.Story, 17, Ui.Text, true));
@@ -173,11 +193,14 @@ public partial class GameRoot
                 var objective = selected.Objectives[i]; int count = i < progress.Counts.Count ? progress.Counts[i] : 0;
                 detail.AddChild(Ui.Label($"{Math.Min(count, objective.Count)}/{objective.Count}  {objective.Description}", 16, count >= objective.Count ? Ui.Success : Ui.Text, true));
             }
-            detail.AddChild(Ui.Label($"Reward: {selected.Gold} gold" + (selected.Reward == "" ? "" : " · " + Data.Item(selected.Reward).Name), 16, Ui.Success));
+            bool endgame = EndgameLoops.IsContractId(selected.Id);
+            string repReward=endgame?$" · {EndgameLoops.ReputationReward(selected)} {EndgameLoops.FactionName(selected.Faction)} reputation":"";
+            detail.AddChild(Ui.Label($"Reward: {selected.Gold} gold" + (selected.Reward == "" ? "" : " · " + Data.Item(selected.Reward).Name) + repReward, 16, Ui.Success));
             detail.AddChild(Ui.Label("Return to " + giver.Name + " in " + Data.Zone(giver.Zone).Name + ".", 15, Ui.Muted, true));
             var questId = selected.Id;
             detail.AddChild(Ui.Button("Mark quest giver", () => MarkDestination(giver.Zone, giver.Position)));
-            if (progress.Complete) detail.AddChild(Ui.Button("Claim reward", () => Send("claim_quest", item: questId), !NearNpc(giver)));
+            if (progress.Complete) detail.AddChild(Ui.Button("Claim reward", () => endgame?Send("endgame_claim",target:questId):Send("claim_quest", item:questId), !NearNpc(giver)));
+            if(endgame) detail.AddChild(Ui.Button("Abandon contract",()=>Send("endgame_abandon",target:questId)));
         }
         refreshPage = Render; Render();
     }
@@ -233,7 +256,14 @@ public partial class GameRoot
         rows.AddChild(Ui.Label("Faction reputation", 24, Ui.Gold));
         foreach (string faction in Data.Npcs.Select(x => x.Faction).Where(x => x != "").Distinct().Order())
         {
-            int reputation = Snapshot.Self.Reputation.GetValueOrDefault(faction); rows.AddChild(Ui.Label(Ui.Words(faction) + " · " + reputation + "/1000", 17)); var bar = Ui.Bar(new Color("94aa7b"), 650); bar.MaxValue = 1000; bar.Value = reputation; rows.AddChild(bar);
+            int reputation = Snapshot.Self.Reputation.GetValueOrDefault(faction); int next=EndgameLoops.NextRankThreshold(reputation); string nextText=next>0?$" · next rank {next}":" · maximum rank"; rows.AddChild(Ui.Label(EndgameLoops.FactionName(faction) + " · " + EndgameLoops.RankName(reputation) + " · " + reputation + "/1000" + nextText, 17)); var bar = Ui.Bar(new Color("94aa7b"), 650); bar.MaxValue = 1000; bar.Value = reputation; rows.AddChild(bar);
+        }
+        rows.AddChild(Ui.Label("Veteran faction boards",24,Ui.Gold));
+        foreach(string faction in EndgameLoops.Factions)
+        {
+            int active=Snapshot.Self.Quests.Keys.Count(id=>EndgameLoops.IsContractId(id)&&EndgameLoops.ResolveQuest(Data,id).Faction==faction);
+            int claimed=EndgameLoops.Today(Data,Snapshot.Time,faction).Count(q=>Snapshot.Self.CompletedQuests.Contains(q.Id));
+            rows.AddChild(Ui.Label($"{EndgameLoops.FactionName(faction)} · {active} active · {claimed}/{EndgameLoops.ContractsPerBoard} claimed this rotation",16,Ui.Muted));
         }
         rows.AddChild(Ui.Label($"Completed quests: {Snapshot.Self.CompletedQuests.Count}\nDiscovered waystones: {Snapshot.Self.Waypoints.Count}", 17, Ui.Muted));
     }

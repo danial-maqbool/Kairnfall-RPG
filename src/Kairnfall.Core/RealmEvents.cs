@@ -278,7 +278,8 @@ public sealed partial class RealmEngine
             long gold = 40 + zone.Level * (3 + tier) + tier * 30; Items.Grant(player, gold);
             Progression.Train(player, "exploration", 30 * tier, Math.Clamp(zone.Level, 1, 100), Data);
             Progression.Train(player, "survival", 20 * tier, Math.Clamp(zone.Level, 1, 100), Data);
-            player.Reputation["wayfarers"] = Math.Min(1000, player.Reputation.GetValueOrDefault("wayfarers") + 2 * tier);
+            EndgameLoops.GrantReputation(player,"wayfarers",2*tier);
+            Progress(player,"event_complete",value.Kind);
             player.PublicEventsCompleted++;
             if (player.PublicEventsCompleted >= 1) player.Achievements.Add("public_event_responder");
             if (player.PublicEventsCompleted >= 10) player.Achievements.Add("public_event_veteran");
