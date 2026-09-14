@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Apply Task 21 source patch
+      - name: Apply corrected Task 21 source patch
         run: python3 tools/task21_apply_fixed.py
       - name: Generate deterministic content
         run: python3 tools/build_content.py
