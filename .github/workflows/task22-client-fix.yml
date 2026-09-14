@@ -1,0 +1,40 @@
+name: Fix Task 22 client
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/task22-client-fix.yml
+permissions:
+  contents: write
+jobs:
+  fix-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Patch Task 22 claim callback
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('client/Scripts/GameRoot.Panels.cs')
+          text=p.read_text(encoding='utf-8')
+          old='''            if (progress.Complete) detail.AddChild(Ui.Button("Claim reward", () => endgame?Send("endgame_claim",target:questId):Send("claim_quest", item:questId), !NearNpc(giver)));'''
+          new='''            if (progress.Complete) detail.AddChild(Ui.Button("Claim reward", () => { if (endgame) Send("endgame_claim", target: questId); else Send("claim_quest", item: questId); }, !NearNpc(giver)));'''
+          if text.count(old)!=1: raise SystemExit('Task 22 client callback target missing')
+          p.write_text(text.replace(old,new),encoding='utf-8')
+          PY
+      - name: Compile Godot client
+        run: dotnet build client/Kairnfall.Client.csproj -c Debug
+      - name: Compile solution
+        run: dotnet build Kairnfall.slnx -c Release
+      - name: Commit client fix and remove temporary workflow
+        run: |
+          rm .github/workflows/task22-client-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix Task 22 faction claim client callback"
+          git push origin HEAD:main
