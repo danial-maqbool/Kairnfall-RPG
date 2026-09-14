@@ -6,6 +6,7 @@ public static class WorldEventRules
     public const double SpawnCadence = 240;
     public const double SuccessAftermathSeconds = 180;
     public const double FailureAftermathSeconds = 120;
+    public const double RewardContributionFloor = 4;
     public static readonly string[] Kinds =
     [
         "meteor", "caravan", "undead", "arcane_rift",
@@ -148,6 +149,15 @@ public static class WorldEventRules
     public static WorldEvent? Owner(RealmState state, string candidate) => state.Events
         .Where(value => Owns(value, candidate)).OrderByDescending(value => value.Id.Length).FirstOrDefault();
     public static double Contribution(WorldEvent value, string player) => value.Contributions.GetValueOrDefault(player);
+    public static double RewardThreshold(WorldEvent value)
+        => Math.Max(RewardContributionFloor, Math.Min(10, Math.Ceiling(Math.Max(1, value.Goal) * .2)));
+    public static bool RewardEligible(WorldEvent value, double contribution)
+        => double.IsFinite(contribution) && contribution >= RewardThreshold(value);
+    public static string ContributionStatus(WorldEvent value, string player)
+    {
+        double current = Contribution(value, player), threshold = RewardThreshold(value);
+        return RewardEligible(value, current) ? $"You {current:0} · reward qualified" : $"You {current:0}/{threshold:0} · reward pending";
+    }
     public static string ProgressText(WorldEvent value)
     {
         if (value.Status != "active") return EffectLabel(value.Effect);

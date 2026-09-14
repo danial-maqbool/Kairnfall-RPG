@@ -51,13 +51,14 @@ public sealed partial class RealmEngine
         var candidates = Data.Zones.Where(x => WorldEventRules.EligibleZone(kind, x)).OrderBy(x => x.Id, StringComparer.Ordinal).ToArray();
         if (candidates.Length == 0) candidates = Data.Zones.Where(x => x.Kind == "wilderness" && x.Layer == "Surface").OrderBy(x => x.Id, StringComparer.Ordinal).ToArray();
         if (candidates.Length == 0) return;
-        int start = (int)(WorldMap.Hash((int)(cycle % int.MaxValue), WorldEventRules.Kinds.Length, 1777) % (uint)candidates.Length);
-        ZoneDef zone = candidates[start];
-        for (int n = 0; n < candidates.Length; n++)
-        {
-            var candidate = candidates[(start + n) % candidates.Length];
-            if (!State.Events.Any(x => x.Zone == candidate.Id && x.Ends > State.Time)) { zone = candidate; break; }
-        }
+        var blocked = State.Events.Where(x => x.Ends > State.Time).Select(x => x.Zone).ToHashSet(StringComparer.Ordinal);
+        var available = candidates.Where(x => !blocked.Contains(x.Id)).ToArray();
+        if (available.Length == 0) return;
+        var occupied = Active.Where(State.Characters.ContainsKey).Select(Player).Where(x => x.Health > 0).Select(x => x.Zone).ToHashSet(StringComparer.Ordinal);
+        var preferred = available.Where(x => occupied.Contains(x.Id)).ToArray();
+        if (preferred.Length > 0) available = preferred;
+        int start = (int)(WorldMap.Hash((int)(cycle % int.MaxValue), WorldEventRules.Kinds.Length, 1777) % (uint)available.Length);
+        ZoneDef zone = available[start];
         uint hash = WorldMap.Hash((int)(cycle % int.MaxValue), zone.Seed, 2711);
         var near = new Point(zone.Spawn.X + 7 + hash % 9, zone.Spawn.Y + 5 + (hash / 11) % 9);
         var value = new WorldEvent
@@ -243,7 +244,7 @@ public sealed partial class RealmEngine
         value.Progress += 1; AddEventContribution(value, player.Id, 8); Progress(player,"event",value.Kind);
         string kind = WorldEventRules.NormalizeKind(value.Kind);
         Progression.Train(player, kind == "arcane_rift" ? "survival" : "exploration", kind == "arcane_rift" ? 8 : 4, Math.Clamp(Data.Zone(value.Zone).Level, 1, 100), Data);
-        return WorldEventRules.InteractionVerb(value) + "d · " + WorldEventRules.ProgressText(value) + ".";
+        return WorldEventRules.InteractionVerb(value) + "d · " + WorldEventRules.ProgressText(value) + ". " + WorldEventRules.ContributionStatus(value, player.Id) + ".";
     }
 
     private void AdvanceEvent(WorldEvent value)
@@ -267,9 +268,10 @@ public sealed partial class RealmEngine
 
     private void RewardEvent(WorldEvent value)
     {
-        double top = value.Contributions.Values.DefaultIfEmpty(0).Max(); if (top <= 0) return;
+        var eligible = value.Contributions.Where(x => WorldEventRules.RewardEligible(value, x.Value)).OrderByDescending(x => x.Value).ToArray();
+        double top = eligible.Select(x => x.Value).DefaultIfEmpty(0).Max(); if (top <= 0) return;
         var zone = Data.Zone(value.Zone);
-        foreach (var pair in value.Contributions.Where(x => x.Value >= 1).OrderByDescending(x => x.Value))
+        foreach (var pair in eligible)
         {
             if (!State.Characters.TryGetValue(pair.Key, out var player) || !value.Rewarded.Add(pair.Key)) continue;
             double share = pair.Value / top; int tier = share >= .65 ? 3 : share >= .35 ? 2 : 1;

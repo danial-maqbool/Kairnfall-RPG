@@ -15,13 +15,15 @@ Eight deterministic event families rotate through eligible regions:
 - **Treasure Surge** — recover temporary regional caches before the surge collapses.
 - **Regional Terror** — a focused public world-boss encounter in higher-level wilderness.
 
-Up to three active events can coexist. Placement respects region type and progression: settlement sieges use real settlements, higher-risk rifts and world bosses use later wilderness, and starter Wayfarer's Rest is never selected for a siege.
+Up to three active events can coexist. Placement respects region type and progression: settlement sieges use real settlements, higher-risk rifts and world bosses use later wilderness, and starter Wayfarer's Rest is never selected for a siege. The event director refuses to start a second event in a region that already has an active event or aftermath reservation. When several eligible regions are free, it prefers a region containing an active player before falling back to the deterministic world rotation.
 
 ## Scaling, contribution, and rewards
 
 Stage-zero objectives scale upward when multiple active players arrive together, up to a bounded six-player contribution target. Combat damage, event kills, event gathering, cache recovery, rift stabilization, and caravan escort presence are tracked server-side. Rewards are granted once to meaningful contributors and scale by contribution tier rather than last-hit ownership.
 
-Successful contributors receive gold, Exploration and Survival training, Wayfarers reputation, and an existing themed material or consumable where available. Public-event milestones are recorded at the first completion and at 10 and 25 completions. Event reward state is serialized with the realm so reconnects or saves cannot duplicate payouts.
+A small absolute contribution floor rejects tag-and-leave reward farming without using a percentage-of-leader eligibility rule. This means a player who arrives late can still qualify through a meaningful objective action rather than being punished because another player started earlier. Direct rift/caravan event interactions report whether the player's contribution has qualified or is still pending.
+
+Successful contributors receive gold, Exploration and Survival training, Wayfarers reputation, and an existing themed material or consumable where available. Public-event milestones are recorded at the first completion and at 10 and 25 completions. Event reward state is serialized with the realm so disconnects, reconnects, or server restarts cannot duplicate payouts.
 
 ## Success, failure, and regional aftermath
 
@@ -35,7 +37,7 @@ An event that completes all of its stages leaves a temporary positive regional c
 - Fortune increases chest gold.
 - Regional Unrest slows movement slightly and increases hostile attack pressure.
 
-Aftermath expires automatically and event-owned mobs, nodes, chests, and telegraphs are cleaned by exact event ownership.
+Aftermath also acts as the bounded regional reset/cooldown window: the director will not place another event in that region until the aftermath expires. Event-owned mobs, nodes, chests, and telegraphs are cleaned by exact event ownership, and the completed event record then expires automatically.
 
 ## Player presentation
 
@@ -45,6 +47,6 @@ Only Arcane Rift and caravan support stages use the context interaction key. Com
 
 ## Compatibility and validation
 
-Historical `arcane_storm` events are upgraded to the staged `arcane_rift` family when a saved realm is loaded. All new event fields have safe defaults for older saves. `LivingWorldEventChecks` permanently covers the eight event families, stage chaining, timeouts, exact cleanup, contribution rewards, persistence, scaling, caravan escort behavior, gameplay aftermath hooks, legacy upgrades, global snapshots, and client visibility contracts.
+Historical `arcane_storm` events are upgraded to the staged `arcane_rift` family when a saved realm is loaded. All new event fields have safe defaults for older saves. `LivingWorldEventChecks` permanently covers the eight event families, stage chaining, timeouts, exact cleanup, meaningful-contribution rewards, participant-aware scheduling, overlap prevention, active-event server restart, disconnect/reconnect reward safety, aftermath reset, persistence, scaling, caravan escort behavior, gameplay aftermath hooks, legacy upgrades, global snapshots, and client visibility contracts.
 
 Subjective event cadence, reward excitement, and large-group social feel still require human multiplayer playtesting; automated checks validate rules and integration rather than claiming those judgments.

@@ -39,7 +39,7 @@ internal static class LivingWorldEventChecks
             var realm = Realm(); var player = Hero(realm); var zone = ZoneFor("arcane_rift"); player.Zone = zone.Id; player.Position = zone.Spawn;
             var value = new WorldEvent { Id = "event/check-rift", Kind = "arcane_rift", Name = WorldEventRules.Name("arcane_rift"), Zone = zone.Id, Position = player.Position, Status = "active", Stage = 0, Goal = 2, Difficulty = 1, Started = realm.State.Time, StageStarted = realm.State.Time, StageEnds = realm.State.Time + 100, Ends = realm.State.Time + 100 };
             realm.State.Events.Add(value);
-            Need(Act(realm, player, "event", value.Id).Ok, "First rift stabilization failed."); realm.State.Time += 3;
+            var first = Act(realm, player, "event", value.Id); Need(first.Ok && first.Message.Contains("reward qualified", StringComparison.Ordinal), "First rift stabilization failed to explain reward qualification."); realm.State.Time += 3;
             Need(Act(realm, player, "event", value.Id).Ok, "Second rift stabilization failed.");
             realm.Tick(.1);
             value = realm.State.Events.Single(x => x.Id == value.Id);
@@ -124,6 +124,59 @@ internal static class LivingWorldEventChecks
             Need(world.Contains("\"event\"", StringComparison.Ordinal) && world.Contains("StageLabel", StringComparison.Ordinal), "World view has no event marker/identity.");
             Need(maps.Contains("Snapshot.Events", StringComparison.Ordinal) && maps.Contains("Events = () => Snapshot?.Events", StringComparison.Ordinal), "Minimap/atlas do not expose public events.");
             Need(hunting.Contains("ReadEvents", StringComparison.Ordinal) && hunting.Contains("PUBLIC EVENT", StringComparison.Ordinal), "Hunting Guide does not prioritize live events.");
+        });
+
+        Test("director prefers occupied eligible regions and refuses event overlap", () =>
+        {
+            double edge = WorldEventRules.SpawnCadence * 8 - .05;
+            var realm = Realm(edge); var player = Hero(realm, "Director"); var zone = ZoneFor("meteor");
+            player.Zone = zone.Id; player.Position = zone.Spawn;
+            realm.Tick(.1);
+            var scheduled = realm.State.Events.SingleOrDefault(x => x.Status == "active" && x.Id == "event/8");
+            Need(scheduled is not null && scheduled.Zone == zone.Id, "Director did not prefer an eligible occupied region.");
+
+            var blocked = Realm(edge); int serial = 0;
+            foreach (var candidate in data.Zones.Where(x => WorldEventRules.EligibleZone("meteor", x)))
+                blocked.State.Events.Add(new() { Id = "event/blocked/" + serial++, Kind = "meteor", Name = "Aftermath", Zone = candidate.Id, Position = candidate.Spawn, Status = "success", Effect = "starfall_bounty", EffectEnds = edge + 300, Ends = edge + 300 });
+            blocked.Tick(.1);
+            Need(!blocked.State.Events.Any(x => x.Status == "active"), "Director overlapped a region whose event/aftermath slot was already occupied.");
+        });
+
+        Test("meaningful contribution floor blocks token tags without penalizing late help", () =>
+        {
+            var realm = Realm(); var a = Hero(realm, "FloorA"); var b = Hero(realm, "FloorB"); var c = Hero(realm, "FloorC"); var zone = ZoneFor("world_boss");
+            foreach (var p in new[] { a, b, c }) { p.Zone = zone.Id; p.Position = zone.Spawn; }
+            var value = new WorldEvent { Id = "event/check-floor", Kind = "world_boss", Name = "Floor", Zone = zone.Id, Position = zone.Spawn, Status = "active", Goal = 1, StageEnds = realm.State.Time + 100, Ends = realm.State.Time + 100 };
+            double threshold = WorldEventRules.RewardThreshold(value);
+            value.Contributions[a.Id] = 100; value.Contributions[b.Id] = threshold - .1; value.Contributions[c.Id] = threshold;
+            realm.State.Events.Add(value); string mobId = value.Id + "/mob/0/0"; var def = data.Mob("field_rat");
+            realm.State.Creatures[mobId] = new() { Id = mobId, Template = def.Id, Zone = zone.Id, Position = zone.Spawn, Home = zone.Spawn, Health = .1 };
+            a.Stamina = 100; Need(Act(realm, a, "attack", mobId).Ok, "Reward-floor boss fixture could not be defeated."); realm.Tick(.1);
+            value = realm.State.Events.Single(x => x.Id == value.Id);
+            Need(a.PublicEventsCompleted == 1 && c.PublicEventsCompleted == 1 && b.PublicEventsCompleted == 0, "Reward floor did not separate meaningful participation from a token tag.");
+            Need(value.Rewarded.Contains(a.Id) && value.Rewarded.Contains(c.Id) && !value.Rewarded.Contains(b.Id), "Rewarded set drifted from the contribution floor.");
+            Need(WorldEventRules.ContributionStatus(value, b.Id).Contains("pending", StringComparison.Ordinal) && WorldEventRules.ContributionStatus(value, c.Id).Contains("qualified", StringComparison.Ordinal), "Contribution status does not explain reward eligibility.");
+        });
+
+        Test("active events survive restart and disconnected contributors cannot duplicate rewards", () =>
+        {
+            var realm = Realm(500); var a = Hero(realm, "RestartA"); var b = Hero(realm, "RestartB"); var zone = ZoneFor("world_boss");
+            a.Zone = b.Zone = zone.Id; a.Position = b.Position = zone.Spawn;
+            var value = new WorldEvent { Id = "event/check-restart", Kind = "world_boss", Name = "Restart", Zone = zone.Id, Position = zone.Spawn, Status = "active", Goal = 1, StageEnds = 650, Ends = 650, Contributions = new() { [a.Id] = 6, [b.Id] = 6 } };
+            realm.State.Events.Add(value); string mobId = value.Id + "/mob/0/0"; var def = data.Mob("field_rat");
+            realm.State.Creatures[mobId] = new() { Id = mobId, Template = def.Id, Zone = zone.Id, Position = zone.Spawn, Home = zone.Spawn, Health = .1 };
+
+            var restarted = new RealmEngine(data, Wire.Copy(realm.State)); var ra = restarted.Player(a.Id); var rb = restarted.Player(b.Id); restarted.Active.Add(ra.Id);
+            long offlineGold = rb.Gold; ra.Position = zone.Spawn; ra.Stamina = 100;
+            Need(Act(restarted, ra, "attack", mobId).Ok, "Restarted event boss could not be defeated."); restarted.Tick(.1);
+            var resolved = restarted.State.Events.Single(x => x.Id == value.Id);
+            Need(resolved.Status == "success" && resolved.Rewarded.Contains(b.Id) && rb.Gold > offlineGold && rb.PublicEventsCompleted == 1, "Disconnected contributor lost persisted event credit after restart.");
+            Need(resolved.Ends == resolved.EffectEnds && resolved.Ends - restarted.State.Time >= WorldEventRules.SuccessAftermathSeconds - 1, "Resolved event did not retain its bounded aftermath/reset window.");
+
+            long once = rb.Gold; var again = new RealmEngine(data, Wire.Copy(restarted.State)); again.Active.Add(b.Id); again.Tick(.1);
+            Need(again.Player(b.Id).Gold == once && again.State.Events.Single(x => x.Id == value.Id).Rewarded.Contains(b.Id), "Reconnect/restart duplicated an event reward.");
+            var saved = again.State.Events.Single(x => x.Id == value.Id); again.State.Time = saved.Ends + .1; again.Tick(.1);
+            Need(!again.State.Events.Any(x => x.Id == value.Id), "Finished event did not reset after its aftermath window.");
         });
 
         Console.WriteLine($"LIVING WORLD EVENTS: {passed} groups passed; total failures {failures.Count}.");
