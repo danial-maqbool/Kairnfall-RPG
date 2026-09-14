@@ -1,0 +1,38 @@
+name: Apply Task 22
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/task22_apply.py
+      - .github/workflows/task22-apply.yml
+permissions:
+  contents: write
+jobs:
+  apply-task22:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Apply Task 22 source changes
+        run: python3 tools/task22_apply.py
+      - name: Regenerate deterministic catalog
+        run: python3 tools/build_content.py
+      - name: Compile solution
+        run: dotnet build Kairnfall.slnx -c Release
+      - name: Run core regression suite
+        run: dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json
+      - name: Run world probe including Task 22 checks
+        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release
+      - name: Commit production Task 22 and clean applicator
+        shell: bash
+        run: |
+          rm .github/workflows/task22-apply.yml tools/task22_apply.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo 'No Task 22 changes to commit.'; exit 1; }
+          git commit -m "Task 22: add faction endgame loops"
+          git push origin HEAD:main
