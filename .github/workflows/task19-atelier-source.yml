@@ -1,0 +1,63 @@
+name: Temporary Task 19 Atelier source generation
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/task19-atelier-source.yml'
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2abacf5c263d9ac6e38d938c392d6007217757b1
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate and verify Task 19 source art
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py
+          python atelier/build.py --only items --jobs 1
+          python -m unittest tests.handoff.test_equipment_progression tests.handoff.test_atelier_integration -v
+          python - <<'PY'
+          from pathlib import Path
+          wanted = [
+              'frostsilver_bar','frostsilver_ore','frostsilver_pickaxe',
+              'ghost_reed','ghost_reed_extract','ghost_reed_sickle',
+              'heartwood_burl','heartwood_forester_axe','moonfin','moonfin_oil',
+              'moonfin_rod','seasoned_heartwood',
+          ]
+          for ident in wanted:
+              path=Path('atelier/Assets/items')/(ident+'.png')
+              if not path.is_file(): raise SystemExit('Missing generated source art: '+str(path))
+          PY
+          git status --short
+      - uses: actions/upload-artifact@v4
+        with:
+          name: task19-atelier-source
+          retention-days: 1
+          path: |
+            atelier/Assets/manifest.json
+            atelier/Assets/items/frostsilver_bar.png
+            atelier/Assets/items/frostsilver_ore.png
+            atelier/Assets/items/frostsilver_pickaxe.png
+            atelier/Assets/items/ghost_reed.png
+            atelier/Assets/items/ghost_reed_extract.png
+            atelier/Assets/items/ghost_reed_sickle.png
+            atelier/Assets/items/heartwood_burl.png
+            atelier/Assets/items/heartwood_forester_axe.png
+            atelier/Assets/items/moonfin.png
+            atelier/Assets/items/moonfin_oil.png
+            atelier/Assets/items/moonfin_rod.png
+            atelier/Assets/items/seasoned_heartwood.png
+            content/catalog.json
+            client/Data/catalog.json
+            content/counts.json
