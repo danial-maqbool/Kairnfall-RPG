@@ -100,7 +100,7 @@ public static class NewPlayerJourney
             if (player.Quests.ContainsKey("main_01") && !player.Bestiary.Any(x => x.Value > 0))
             {
                 var foe = snapshot.Creatures.Where(x => x.Zone == player.Zone && x.Health > 0 && x.Owner == "")
-                    .Where(x => data.Mob(x.Template) is { Boss: false, Elite: false, Level: <= 2 } mob && mob.Ai is not "passive" and not "fleeing")
+                    .Where(x => data.Mob(x.Template) is { Boss: false, Elite: false, Level: <= 2 } mob && (mob.Id == "field_rat" || mob.Ai is not "passive" and not "fleeing"))
                     .OrderBy(x => x.Position.Distance(player.Position)).ThenBy(x => x.Id, StringComparer.Ordinal).FirstOrDefault();
                 if (foe is not null) return new("combat", "Protect the village road", "Defeat one " + data.Mob(foe.Template).Name,
                     "Practice your weapon before continuing the workshop errand. This detour is optional.", "Combat XP and normal loot",

@@ -9,7 +9,7 @@ A new character starts at Wayfarer's Rest with the class weapon and armor equipp
 ## Designer-facing opening sequence
 
 1. Spawn in the shared settlement. The expanded objective names the real innkeeper, explains the reward and offers a walkable route. A brief hint shows current movement and interaction bindings.
-2. Accept the existing workshop errand. When a living weak hostile is visible, guidance offers one optional practice fight. Target selection and held basic attack are explained near the foe. If no suitable foe is available, the actual quest remains actionable.
+2. Accept the existing workshop errand. When an authored starter rat or another suitable weak foe is visible, guidance offers one optional practice fight. Target selection and held basic attack are explained near the foe. If no suitable foe is available, the actual quest remains actionable.
 3. A real kill and owned loot lead to backpack discovery. Normal combat XP and dropped rewards are unchanged. A usable, non-regressive equipment upgrade is flagged only when actual item and derived-stat comparisons agree. Receiving an item never equips it automatically.
 4. Use the starter rune through the existing trainer quest. The feedback queue shows actual equipment-stat changes, not a cosmetic power score. Gathering and crafting then follow the real oak-log -> oak-plank -> wooden-handle dependency chain.
 5. Claim the introductory quest normally. The reward card identifies the authored reward. Earned skill and character levels produce separate, non-modal cards; character-level feedback includes real maximum-health change, and ability notices use actual skill and cross-class requirements.

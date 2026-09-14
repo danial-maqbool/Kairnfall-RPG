@@ -91,7 +91,7 @@ public static class NewPlayerJourneyProbe
 
     public static int Run(Catalog data)
     {
-        int passed = 0; var failures = new List<string>(); Fixture? journey = null;
+        int passed = 0; var failures = new List<string>(); Fixture? journey = null; bool journeyCompleted = false;
         string footprint = JsonSerializer.Serialize(data.Zones.Select(x => new { x.Id, x.Width, x.Height, x.WorldX, x.WorldY, x.Exits }), Wire.Json);
         void Test(string name, Action body)
         {
@@ -124,7 +124,9 @@ public static class NewPlayerJourneyProbe
             fixture.Npc(data.Quest("main_01").Giver); fixture.Act("talk", data.Quest("main_01").Giver); fixture.Act("accept_quest", item: "main_01");
             var rat = fixture.Realm.State.Creatures.Values.First(x => x.Zone == "wayfarers_rest" && x.Template == "field_rat" && x.Health > 0);
             fixture.Place(rat.Position);
-            Need(fixture.Next().Stage == "combat", "The first safe fight is not discoverable after accepting the opening quest.");
+            var firstFight = fixture.Next();
+            Need(firstFight.Stage == "combat" && fixture.Realm.State.Creatures[firstFight.TargetId].Template == "field_rat",
+                "The authored starter rat is not discoverable after accepting the opening quest: " + firstFight.Stage + " / " + firstFight.TargetId);
             for (int strike = 0; rat.Health > 0 && strike < 80; strike++) { fixture.Act("attack", rat.Id); fixture.Advance(2); }
             Need(rat.Health <= 0 && fixture.Player.Bestiary.GetValueOrDefault("field_rat") > 0, "The authoritative first kill did not complete.");
             var loot = fixture.Realm.VisibleLoot(fixture.Id).FirstOrDefault(x => x.Owner == fixture.Id);
@@ -164,6 +166,7 @@ public static class NewPlayerJourneyProbe
             fixture.Npc(data.Quest("main_02").Giver); fixture.Act("accept_quest", item: "main_02");
             Need(fixture.Player.Zone == "dawnreach" && fixture.Player.Quests.ContainsKey("main_02"), "The earned letter did not lead to the first settlement quest.");
             Need(Items.Validate(fixture.Realm.State, data).Count == 0, "The opening journey violated inventory invariants.");
+            journeyCompleted = true;
             Console.WriteLine($"NEW_PLAYER_JOURNEY_MILESTONES: opening quest -> kill -> loot -> rune -> planks -> handle -> claim -> Dawnreach; level={level}; no tutorial rewards");
         });
         Test("usable equipment upgrades are real stat improvements and equip stays authoritative", () =>
@@ -247,7 +250,7 @@ public static class NewPlayerJourneyProbe
         });
         Test("identical snapshots and character switches cannot fabricate level-up feedback", () =>
         {
-            Need(journey is not null, "The real journey must complete before checking earned feedback.");
+            Need(journey is not null && journeyCompleted, "The real journey must complete before checking earned feedback.");
             var player = Wire.Copy(journey.Player);
             Need(ProgressionFeedback.Between(data, player, Wire.Copy(player)).Count == 0, "A repeated snapshot produced duplicate progression feedback.");
             var other = Wire.Copy(player); other.Id = Guid.NewGuid().ToString("N");
@@ -257,7 +260,7 @@ public static class NewPlayerJourneyProbe
         });
         Test("a solo newcomer discovers and completes the existing scheduled public event", () =>
         {
-            Need(journey is not null, "The real journey must complete before public discovery.");
+            Need(journey is not null && journeyCompleted, "The real journey must complete before public discovery.");
             var fixture = journey; fixture.Travel("kingsmeadow");
             foreach (var old in fixture.Realm.State.Events.ToArray()) WorldEventLifecycle.CleanupOwned(fixture.Realm.State, old.Id);
             fixture.Realm.State.Events.Clear(); // Controlled empty event calendar, not a gameplay/reward shortcut.
