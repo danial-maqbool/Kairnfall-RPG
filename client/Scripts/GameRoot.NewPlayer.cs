@@ -139,7 +139,7 @@ public partial class GameRoot
         firstHourText.SetMeta("guidance_id", journeyHint?.Id ?? "");
         firstHourText.Visible = objectiveText.Visible && journeyHint is not null;
         journeyActions.Visible = objectiveText.Visible;
-        bool distant = navigation.Position is { } point && point.Distance(self.Position) > 2.5;
+        bool distant = navigation.Position is { } point && point.Distance(snapshot.Self.Position) > 2.5;
         journeyAction.Text = self.Health <= 0 ? "Recovery shown below"
             : journeyObjective.Zone != self.Zone && navigation.Position is null ? "View entry requirements"
             : distant || navigation.TargetKind == "exit" ? "Walk to objective"
@@ -224,10 +224,10 @@ public partial class GameRoot
             float noticeWidth = Math.Max(120, Math.Min(440, right - left));
             notice.OffsetLeft = compact ? (left + right - noticeWidth) / 2 : -300;
             notice.OffsetRight = compact ? notice.OffsetLeft + noticeWidth : 300;
-            // Notifications belong above the class meter, never in the attack/
-            // interact button row. Both paths preserve the existing scaled font.
-            notice.OffsetTop = compact ? -284 : -250; notice.OffsetBottom = compact ? -226 : -215;
-            notice.MaxLinesVisible = compact ? 2 : -1;
+            // Enlarged text may wrap even on a full desktop viewport. Reserve
+            // two rows in both layouts, entirely above the class-resource meter.
+            notice.OffsetTop = -284; notice.OffsetBottom = -226;
+            notice.MaxLinesVisible = 2;
             notice.TooltipText = notice.Text;
             notice.Visible = !compact || progressionBanner is null || !progressionBanner.Visible;
         }
