@@ -2,8 +2,10 @@
 """Fail-closed structural acceptance for the Grounded-2026 actor migration.
 
 This proves active coverage, dimensions, alpha/state/direction completeness and
-that historical Atelier actor bytes did not re-enter runtime output. It does not
-claim artistic approval; rendered-frame inspection remains a separate gate.
+that historical Atelier actor bytes did not re-enter runtime output. Motion
+uniqueness is required from bodies and articulation-bearing layers; rings,
+charms and similar anchored overlays may legitimately retain their shape while
+the shared rig moves them. This does not claim artistic approval.
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ STATES=('idle','walk','attack','cast','hit','death')
 DIRECTIONS=('south','west','east','north')
 FRAMES=8
 ACTOR_GROUPS={'people','equipment','npcs','mobs'}
+ARTICULATED_SLOTS={'weapon','offhand','helmet','chest','gloves','legs','boots','cloak'}
 
 
 def need(value,message):
@@ -42,6 +45,12 @@ def expected_keys(data):
     return keys
 
 
+def motion_required(key,slots):
+    if key.startswith('people/body_') or key.startswith('npcs/') or key.startswith('mobs/'):
+        return True
+    return key.startswith('equipment/') and slots.get(key,'') in ARTICULATED_SLOTS
+
+
 def main():
     data=json.loads((ROOT/'content/catalog.json').read_text(encoding='utf-8'))
     runtime=json.loads((RUNTIME/'manifest.json').read_text(encoding='utf-8'))
@@ -50,6 +59,7 @@ def main():
     expected=expected_keys(data)
     entries={entry['key']:entry for entry in runtime['assets']}
     old={entry['key']:entry for entry in historical['assets']}
+    slots={f'equipment/{item["id"]}':item.get('slot','') for item in data['items'] if item.get('slot')}
     need(integration.get('actor_runtime_source')=='Grounded-2026 procedural construction','Runtime actor source is not Grounded-2026.')
     need(integration.get('actor_historical_fallbacks')==0 and not integration.get('historical_actor_bytes_active',True),'Historical actor fallbacks are active.')
     copied={entry['key'] for entry in integration.get('assets',[]) if entry['key'].split('/')[0] in ACTOR_GROUPS}
@@ -57,8 +67,7 @@ def main():
     missing=sorted(expected-set(entries)); need(not missing,'Missing active actor assets: '+', '.join(missing[:12]))
     extras={key for key in entries if key.split('/')[0] in ACTOR_GROUPS}-expected
     need(not extras,'Unexpected active actor assets: '+', '.join(sorted(extras)[:12]))
-    replacement_count=0
-    checked_frames=0
+    replacement_count=0; checked_frames=0; articulated=0
     for key in sorted(expected):
         path=RUNTIME/(key+'.png'); need(path.is_file(),'Missing runtime actor PNG: '+key)
         entry=entries[key]; need(entry.get('animated') is True,'Actor is not marked animated: '+key)
@@ -73,15 +82,19 @@ def main():
                         cell=frame(image,size,state,direction,number)
                         need(cell.getchannel('A').getbbox() is not None,f'Blank actor frame {key}/{state}/{direction}/{number}')
                         checked_frames+=1
-            idle=frame(image,size,'idle','south',0)
-            walk=frame(image,size,'walk','south',3)
-            attack=frame(image,size,'attack','east',3)
-            death=frame(image,size,'death','east',7)
-            need(ImageChops.difference(idle,walk).getbbox() is not None,'Walk repeats the standing frame: '+key)
-            need(ImageChops.difference(idle,attack).getbbox() is not None,'Attack repeats the standing frame: '+key)
-            need(ImageChops.difference(idle,death).getbbox() is not None,'Death repeats the standing frame: '+key)
-            rotated=[idle.rotate(angle,expand=False) for angle in (90,180,270)]
-            need(all(ImageChops.difference(candidate,death).getbbox() is not None for candidate in rotated),'Death is a rotated standing frame: '+key)
+            if motion_required(key,slots):
+                articulated+=1
+                idle=frame(image,size,'idle','south',0)
+                walk=frame(image,size,'walk','south',3)
+                attack=frame(image,size,'attack','east',3)
+                cast=frame(image,size,'cast','north',3)
+                death=frame(image,size,'death','east',7)
+                need(ImageChops.difference(idle,walk).getbbox() is not None,'Walk repeats the standing frame: '+key)
+                need(ImageChops.difference(idle,attack).getbbox() is not None,'Attack repeats the standing frame: '+key)
+                need(ImageChops.difference(idle,cast).getbbox() is not None,'Cast repeats the standing frame: '+key)
+                need(ImageChops.difference(idle,death).getbbox() is not None,'Death repeats the standing frame: '+key)
+                rotated=[idle.rotate(angle,expand=False) for angle in (90,180,270)]
+                need(all(ImageChops.difference(candidate,death).getbbox() is not None for candidate in rotated),'Death is a rotated standing frame: '+key)
         need(digest(path)==entry['sha256'],'Runtime manifest hash mismatch: '+key)
         if key in old:
             need(entry['sha256']!=old[key]['sha256'],'Rejected historical actor artwork reappeared: '+key)
@@ -90,7 +103,7 @@ def main():
     fauna=(ROOT/'tools/art/fauna.py').read_text(encoding='utf-8')
     need('grounded_people' in people and 'grounded_beasts' in fauna,'Active actor wrappers no longer name the Grounded-2026 sources.')
     need('base_frame' not in fauna and '_articulate_frame' not in fauna,'Legacy translated-frame creature fallback returned to the active wrapper.')
-    print(f'GROUNDED_ACTOR_ACCEPTANCE: {len(expected)} active sheets; {checked_frames} state/direction frames; {replacement_count} historical hashes replaced; actor fallbacks 0. Structural acceptance only; human artistic review remains separate.')
+    print(f'GROUNDED_ACTOR_ACCEPTANCE: {len(expected)} active sheets; {checked_frames} state/direction frames; {articulated} articulation-bearing sheets; {replacement_count} historical hashes replaced; actor fallbacks 0. Structural acceptance only; human artistic review remains separate.')
 
 
 if __name__=='__main__': main()
