@@ -14,7 +14,7 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: '1'
   DOTNET_NOLOGO: '1'
   PYTHONUTF8: '1'
-  PREPARE_BLOB: ce42c83adfb9b396f66e7ec20244ed2fb38b7614
+  PREPARE_BLOB: d1e06c7aa3bbbb3d0332ca7d7aeaa34f90395714
   RUNNER_BLOB: ca4638c8081dff77c47dff4dfeff12b4fbbcf987
 jobs:
   opening-preflight:
