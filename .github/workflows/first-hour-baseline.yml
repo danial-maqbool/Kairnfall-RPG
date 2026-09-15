@@ -10,6 +10,12 @@ permissions:
 concurrency:
   group: first-hour-baseline-${{ github.ref }}
   cancel-in-progress: false
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+  PYTHONUTF8: '1'
+  PREPARE_BLOB: ce42c83adfb9b396f66e7ec20244ed2fb38b7614
+  RUNNER_BLOB: ca4638c8081dff77c47dff4dfeff12b4fbbcf987
 jobs:
   opening-preflight:
     strategy:
@@ -17,12 +23,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    env:
-      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
-      DOTNET_NOLOGO: '1'
-      PYTHONUTF8: '1'
-      PREPARE_BLOB: 9778eb2e795af07681ff29b0fee97c9ee10485e1
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,100 +34,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Prepare verified candidate in the disposable checkout only
-        id: prepare
+      - name: Verify isolated runner and execute all candidate checks
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
           python - <<'PY'
-          import base64, hashlib, json, os, pathlib, subprocess, sys, urllib.request
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'opening-preflight'
-          root.mkdir(exist_ok=True)
-          sha=os.environ['PREPARE_BLOB']
-          url=f'https://api.github.com/repos/danial-maqbool/Kairnfall-RPG/git/blobs/{sha}'
-          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','User-Agent':'Kairnfall-Opening-Preflight'})
+          import base64,hashlib,json,os,pathlib,subprocess,sys,urllib.request
+          sha=os.environ['RUNNER_BLOB']
+          req=urllib.request.Request('https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/git/blobs/'+sha,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','User-Agent':'Kairnfall-Preflight'})
           with urllib.request.urlopen(req,timeout=60) as response: obj=json.load(response)
           raw=base64.b64decode(''.join(obj['content'].splitlines()),validate=True)
-          if obj['encoding']!='base64' or obj['sha']!=sha or hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!=sha:
-              raise RuntimeError('Preparation script identity mismatch')
-          script=root/'prepare_candidate.py'; script.write_bytes(raw)
+          if obj['encoding']!='base64' or obj['sha']!=sha or hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!=sha: raise RuntimeError('Runner identity mismatch')
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'opening-preflight';root.mkdir(exist_ok=True)
+          script=root/'candidate_runner.py';script.write_bytes(raw)
           subprocess.run([sys.executable,str(script)],check=True)
-          (root/'dotnet-info.txt').write_bytes(subprocess.check_output(['dotnet','--info']))
-          PY
-          python tools/build_content.py > "$RUNNER_TEMP/opening-preflight/content.log" 2>&1
-      - name: Compile the real server and client with the candidate
-        id: compile
-        shell: bash
-        run: |
-          set -euo pipefail
-          dotnet build Kairnfall.slnx -c Release > "$RUNNER_TEMP/opening-preflight/solution.log" 2>&1
-          dotnet build client/Kairnfall.Client.csproj -c Debug > "$RUNNER_TEMP/opening-preflight/client.log" 2>&1
-      - name: Run all existing world probes and the integrated opening regression
-        id: world
-        if: always() && steps.compile.outcome == 'success'
-        shell: bash
-        run: |
-          set -euo pipefail
-          dotnet run --project tools/world_probe -c Release > "$RUNNER_TEMP/opening-preflight/world.log" 2>&1
-          python - <<'PY'
-          import os,pathlib,re
-          text=(pathlib.Path(os.environ['RUNNER_TEMP'])/'opening-preflight/world.log').read_text(errors='replace')
-          if re.search(r'(?m)^FAIL |ERROR:|SCRIPT ERROR:|Unhandled exception',text): raise RuntimeError('Failure diagnostic in world probe')
-          if 'OPENING_JOURNEY_CHECKS: 5/5 groups;' not in text: raise RuntimeError('The new permanent opening regressions did not all execute')
-          print('\n'.join(line for line in text.splitlines() if line.startswith(('PASS OPENING:','OPENING_JOURNEY_CHECKS:','FIRST_HOUR_COMBAT_COMPLETION:'))))
-          PY
-      - name: Preserve the existing new-player journey regression
-        id: journey
-        if: always() && steps.compile.outcome == 'success'
-        shell: bash
-        run: |
-          set -euo pipefail
-          dotnet run --project tools/new_player_probe -c Release > "$RUNNER_TEMP/opening-preflight/existing-journey.log" 2>&1
-          python - <<'PY'
-          import os,pathlib,re
-          text=(pathlib.Path(os.environ['RUNNER_TEMP'])/'opening-preflight/existing-journey.log').read_text(errors='replace')
-          if re.search(r'(?m)^FAIL |ERROR:|SCRIPT ERROR:|Unhandled exception',text): raise RuntimeError('Failure diagnostic in existing journey probe')
-          print(text[-5000:])
-          PY
-      - name: Stage successful candidate source for an explicit later integration
-        if: success()
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --check
-          python - <<'PY'
-          import hashlib,json,os,pathlib,shutil,subprocess
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'opening-preflight'
-          manifest=json.loads((root/'candidate.json').read_text())
-          records=[]
-          for name in manifest['allowedPaths']:
-              path=pathlib.Path(name); raw=path.read_bytes()
-              target=root/'candidate-files'/name; target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
-              records.append({'path':name,'sha':hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest(),'size':len(raw)})
-          manifest['files']=records;manifest['automatedPreflight']='passed';manifest['runner']=os.environ['RUNNER_OS']
-          (root/'candidate.json').write_text(json.dumps(manifest,indent=2)+'\n')
-          (root/'candidate.patch').write_bytes(subprocess.check_output(['git','diff','--no-ext-diff']))
-          print('Prepared tested source bytes only. Main has not been updated to the candidate.')
-          PY
-      - name: Print bounded diagnostics and immutable baseline workflow summaries
-        if: always()
-        shell: bash
-        run: |
-          python - <<'PY'
-          import json,os,pathlib
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'opening-preflight'
-          for name in ('content.log','solution.log','client.log','world.log','existing-journey.log'):
-              path=root/name
-              if path.exists():
-                  lines=path.read_text(errors='replace').splitlines()
-                  selected=[line for line in lines if any(word in line for word in ('error ','FAIL','Exception','CHECKS:','COMPLETION:'))]
-                  print('\n=== '+name+' ===\n'+'\n'.join(selected[-65:] or lines[-35:])[-15000:])
-          summary=root/'baseline-actions.json'
-          if summary.exists():
-              for run in json.loads(summary.read_text()): print('BASELINE',run['head_sha'],run['name'],run['id'],run['status'],run['conclusion'],'attempt',run['run_attempt'])
-          print('No rendered-frame inspection, human playtest, art approval or production deployment is claimed by this preflight.')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
@@ -150,30 +72,10 @@ jobs:
       - name: Store only verified source objects without changing any ref
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           python3 - <<'PY'
-          import base64,hashlib,json,os,pathlib,urllib.request
-          root=pathlib.Path('evidence');manifest=json.loads((root/'candidate.json').read_text())
-          if manifest['checkout']!=os.environ['GITHUB_SHA'] or manifest['automatedPreflight']!='passed': raise RuntimeError('Unverified candidate')
-          allowed=set(manifest['allowedPaths'])
-          expected={'src/Kairnfall.Core/OpeningJourney.cs','content_src/opening_journey.py','client/Scripts/GameRoot.Opening.cs','tools/world_probe/OpeningJourneyChecks.cs','tools/build_content.py','src/Kairnfall.Core/RealmEngine.cs','src/Kairnfall.Core/RealmEconomy.cs','src/Kairnfall.Core/NewPlayerJourney.cs','src/Kairnfall.Core/JourneyProgression.cs','client/Scripts/GameRoot.Panels.cs','client/Scripts/WorldView.cs','src/Kairnfall.Core/MerchantSales.cs'}
-          if allowed!=expected or {x['path'] for x in manifest['files']}!=expected: raise RuntimeError('Unexpected candidate paths')
-          api='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']
-          def post(path,payload):
-              if path not in ('/git/blobs','/git/trees'): raise RuntimeError('Ref/commit/deployment operations are not permitted here')
-              req=urllib.request.Request(api+path,data=json.dumps(payload).encode(),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json','User-Agent':'Kairnfall-Verified-Source-Objects'})
-              with urllib.request.urlopen(req,timeout=60) as response: return json.load(response)
-          entries=[]
-          for record in manifest['files']:
-              raw=(root/'candidate-files'/record['path']).read_bytes();raw.decode('utf-8')
-              digest=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
-              if digest!=record['sha'] or len(raw)!=record['size'] or len(raw)>1_000_000: raise RuntimeError('Candidate source bytes changed')
-              sha=post('/git/blobs',{'encoding':'base64','content':base64.b64encode(raw).decode()})['sha']
-              if sha!=digest: raise RuntimeError('Uploaded source identity mismatch')
-              entries.append({'path':record['path'],'mode':'100644','type':'blob','sha':sha})
-          tree=post('/git/trees',{'base_tree':manifest['baseTree'],'tree':entries})['sha']
-          print('TESTED_OPENING_TREE='+tree)
-          print('TESTED_OPENING_PARENT='+manifest['checkout'])
-          print('Both platform preflights passed. These objects do not update main, create branches, publish assets, deploy, or constitute full-scope acceptance.')
+          import hashlib,os,pathlib,subprocess,sys
+          script=pathlib.Path('evidence/candidate_runner.py');raw=script.read_bytes()
+          if hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!=os.environ['RUNNER_BLOB']: raise RuntimeError('Runner changed in transfer')
+          subprocess.run([sys.executable,str(script),'--export'],check=True)
           PY
