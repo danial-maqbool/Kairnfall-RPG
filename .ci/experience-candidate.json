@@ -1,6 +1,6 @@
 {
-  "sha": "69cf06096b034afb1b13691e94f053c7f9793e81",
+  "sha": "0d04aca0ff18694311e0aeae64f14f95e8a67f68",
   "base": "ff361899125aa0e7a3d4032127f017975c99a004",
   "mode": "repair",
-  "purpose": "Full candidate verification after the native 1280x720/150-percent profile exposed a real hotbar collision. Preserve every layout assertion, add combat-target/navigation-grid/menu-discovery checks, retain all backend/security/world/old-save/solo-event probes and real native durable hint/reconnect interactions. No releases, production changes or tutorial rewards."
+  "purpose": "Complete candidate verification after 258 native experience assertions passed. The retained XP HUD contract now tests actual non-overlap and wrapped-status containment in both supported column layouts, with original vertical-gap checks retained for same-column layouts. Includes all existing backend/security/world/database/native/live acknowledgement and reconnect checks. No release or deployment."
 }
