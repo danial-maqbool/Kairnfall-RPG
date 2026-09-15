@@ -71,6 +71,17 @@ public partial class GameRoot
         nearbyTravelers.SetMeta(Ui.BaseFontSizeMeta, 12);
         nearbyTravelers.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(12));
         objectiveHeader.AddChild(nearbyTravelers); objectiveHeader.MoveChild(nearbyTravelers, 1);
+        // Preserve the existing visual language and font/DPI scaling, but avoid
+        // wasting two rows of large-button padding in the compact objective.
+        foreach (var button in new[] { journeyMenu, nearbyTravelers, objectiveToggle, journeyAction, journeyUnderstood })
+        {
+            foreach (string state in new[] { "normal", "hover", "pressed", "disabled" })
+            {
+                var style = (StyleBox)button.GetThemeStylebox(state).Duplicate();
+                style.ContentMarginTop = style.ContentMarginBottom = 6;
+                button.AddThemeStyleboxOverride(state, style);
+            }
+        }
         progressionBanner = new HudPanel
         {
             Name = "ProgressionFeedback", AnchorLeft = .5f, AnchorRight = .5f,
@@ -126,6 +137,7 @@ public partial class GameRoot
         firstHourText.Text = journeyHint is null ? "" : (firstHourText.MaxLinesVisible == 1 ? "" : "TIP · ") + JourneyHintText(hintText);
         firstHourText.TooltipText = journeyHint is null ? "" : JourneyHintText(journeyHint.Text);
         firstHourText.SetMeta("guidance_id", journeyHint?.Id ?? "");
+        firstHourText.Visible = objectiveText.Visible && journeyHint is not null;
         journeyActions.Visible = objectiveText.Visible;
         bool distant = navigation.Position is { } point && point.Distance(self.Position) > 2.5;
         journeyAction.Text = self.Health <= 0 ? "Recovery shown below"
@@ -177,12 +189,21 @@ public partial class GameRoot
         // a 1280x720 window at 150% content scaling. No font size is reduced.
         float width = compact ? Math.Clamp(hud.Size.X * .5f - 194, 226, 290) : 286;
         journeyPanel.CustomMinimumSize = new Vector2(width, 0);
-        objectiveText.CustomMinimumSize = firstHourText.CustomMinimumSize = new Vector2(width - 24, 0);
+        objectiveText.CustomMinimumSize = new Vector2(width - 24, 0);
+        // A clipped, autowrapped Label can otherwise report zero minimum height
+        // to its VBoxContainer. Reserve actual scaled-font rows, not just a text
+        // marker that passes tests while the hint is invisible in rendered play.
+        float hintLineHeight = firstHourText.GetThemeFont("font").GetHeight(firstHourText.GetThemeFontSize("font_size"));
+        float hintHeight = firstHourText.Visible ? MathF.Ceiling(hintLineHeight) * firstHourText.MaxLinesVisible
+            + firstHourText.GetThemeConstant("line_spacing") * Math.Max(0, firstHourText.MaxLinesVisible - 1) : 0;
+        firstHourText.CustomMinimumSize = new Vector2(width - 24, hintHeight);
         var minimap = hud.FindChild("MinimapPanel", true, false) as HudPanel;
         if (minimap is not null)
         {
             var surface = minimap.GetChildren().OfType<VBoxContainer>().First().GetChildren().OfType<Control>().First();
-            surface.CustomMinimumSize = new Vector2(172, smallest ? 82 : 122);
+            // Keep the full map button at every scale; the compact map surface
+            // yields space before guidance or combat controls become obscured.
+            surface.CustomMinimumSize = new Vector2(172, smallest ? 48 : 122);
             minimap.Size = new Vector2(minimap.Size.X, minimap.GetCombinedMinimumSize().Y);
         }
         if (compact)
@@ -203,8 +224,11 @@ public partial class GameRoot
             float noticeWidth = Math.Max(120, Math.Min(440, right - left));
             notice.OffsetLeft = compact ? (left + right - noticeWidth) / 2 : -300;
             notice.OffsetRight = compact ? notice.OffsetLeft + noticeWidth : 300;
-            notice.OffsetTop = compact ? -152 : -250; notice.OffsetBottom = compact ? -106 : -215;
+            // Notifications belong above the class meter, never in the attack/
+            // interact button row. Both paths preserve the existing scaled font.
+            notice.OffsetTop = compact ? -284 : -250; notice.OffsetBottom = compact ? -226 : -215;
             notice.MaxLinesVisible = compact ? 2 : -1;
+            notice.TooltipText = notice.Text;
             notice.Visible = !compact || progressionBanner is null || !progressionBanner.Visible;
         }
         if (publicEventText is not null)

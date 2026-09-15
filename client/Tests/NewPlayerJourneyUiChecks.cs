@@ -37,11 +37,19 @@ internal static class NewPlayerJourneyUiChecks
                 "Objective details preserve the real quest and reward preview at " + size);
             check(objective.MouseFilter == Control.MouseFilterEnum.Pass && hint.MouseFilter == Control.MouseFilterEnum.Pass, "Full guidance details accept tooltip hover at " + size);
             check(hint.GetMeta("guidance_id").AsString() == "movement" && !hint.Text.Contains('{'), "Movement guidance resolves actual input bindings at " + size);
+            float fontHeight = hint.GetThemeFont("font").GetHeight(hint.GetThemeFontSize("font_size"));
+            check(hint.IsVisibleInTree() && hint.GetGlobalRect().Size.Y >= MathF.Ceiling(fontHeight) && hint.GetVisibleLineCount() > 0,
+                "The movement tip has readable rendered glyph height, not just a presentation marker at " + size + " / " + scale + " / " + textScale);
             check(action.IsVisibleInTree() && !action.GetGlobalRect().Intersects(chat.GetGlobalRect()), "The journey action does not overlap chat at " + size);
             var card = Field<HudPanel>(game, "journeyPanel");
             var viewport = owner.GetViewport().GetVisibleRect();
             var minimap = game.FindChildren("MinimapPanel", "Control", true, false).OfType<Control>().Single();
-            GD.Print($"NEW_PLAYER_LAYOUT: {size} dpi={scale} text={textScale} viewport={viewport} objective={card.GetGlobalRect()} chat={chat.GetGlobalRect()}");
+            var controls = game.FindChildren("CombatControls", "Control", true, false).OfType<Control>().Single();
+            GD.Print($"NEW_PLAYER_LAYOUT: {size} dpi={scale} text={textScale} viewport={viewport} objective={card.GetGlobalRect()} hint={hint.GetGlobalRect()} controls={controls.GetGlobalRect()} chat={chat.GetGlobalRect()}");
+            check(card.GetGlobalRect().Encloses(hint.GetGlobalRect()) && !hint.GetGlobalRect().Intersects(action.GetGlobalRect()),
+                "Guidance is inside its card and clear of the objective action at " + size + " / " + scale + " / " + textScale);
+            check(!card.GetGlobalRect().Intersects(controls.GetGlobalRect()),
+                "The objective and tip cannot cover attack, interaction, target or dash buttons at " + size + " / " + scale + " / " + textScale);
             check(!card.GetGlobalRect().Intersects(chat.GetGlobalRect()), "The objective card avoids chat at " + size + " / " + scale + " / " + textScale);
             check(viewport.Encloses(card.GetGlobalRect()) && viewport.Encloses(action.GetGlobalRect()), "The objective and its action remain fully contained at " + size + " / " + scale + " / " + textScale);
             check(!card.GetGlobalRect().Intersects(minimap.GetGlobalRect()), "The objective card avoids the minimap at " + size);
@@ -49,6 +57,15 @@ internal static class NewPlayerJourneyUiChecks
             var navigation = game.FindChildren("Navigation", "Control", true, false).OfType<Control>().Single();
             check(!navigation.IsVisibleInTree() || !card.GetGlobalRect().Intersects(navigation.GetGlobalRect()), "The objective avoids the legacy navigation grid at " + size);
             check(Field<Button>(game, "journeyMenu").IsVisibleInTree(), "Every game panel stays discoverable through Menu at " + size);
+            Call(game, "Notify", "Welcome to Wayfarer's Rest · Your current objective shows the next step.", false);
+            Call(game, "FitJourneyHud"); await Frame(owner); await Frame(owner);
+            var notification = Field<Label>(game, "notice");
+            var meter = game.FindChildren("ClassResourceHud", "Control", true, false).OfType<Control>().Single();
+            check(notification.IsVisibleInTree() && viewport.Encloses(notification.GetGlobalRect())
+                && !notification.GetGlobalRect().Intersects(controls.GetGlobalRect())
+                && !notification.GetGlobalRect().Intersects(Field<Label>(game, "interactionHint").GetGlobalRect())
+                && !notification.GetGlobalRect().Intersects(meter.GetGlobalRect()),
+                "Welcome and reward notifications remain readable above combat controls at " + size + " / " + scale + " / " + textScale);
             var foe = snapshot.Creatures.First(x => x.Health > 0 && x.Owner == "");
             Call(game, "SelectTarget", "creature", foe.Id); Call(game, "UpdateHud"); await Frame(owner); await Frame(owner);
             check(!card.GetGlobalRect().Intersects(Field<HudPanel>(game, "targetFrame").GetGlobalRect()), "The objective does not cover the combat target at " + size + " / " + scale);
@@ -84,6 +101,7 @@ internal static class NewPlayerJourneyUiChecks
             "A real progression difference produces a non-modal level-up banner");
         var old = Wire.Copy(active); old.Self.Discoveries.Remove(NewPlayerJourney.EligibleKey);
         game.World.Accept(new TransportPacket { Snapshot = old }); Call(game, "UpdateHud");
-        check(Field<Label>(game, "firstHourText").Text == "", "Historical characters do not receive the new-player hint sequence");
+        check(Field<Label>(game, "firstHourText").Text == "" && !Field<Label>(game, "firstHourText").Visible,
+            "Historical characters do not receive the new-player hint sequence");
     }
 }
