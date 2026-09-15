@@ -33,7 +33,12 @@ public static class FirstHourExperience
 
     public static bool Completed(Catalog data,Character player,FirstHourMilestone step)=>step.Id switch
     {
-        "movement" or "npc" or "gather" or "craft" or "combat" or "interior" or "transition" or "miniboss" => Marked(player,step.Id),
+        "movement" or "npc" or "gather" or "craft" or "interior" or "transition" or "miniboss" => Marked(player,step.Id),
+        // A successful attack/cast is not a victory: projectiles and damage over time
+        // can resolve later, and support spells need not damage a foe at all. The
+        // realm-owned bestiary records actual kill credit and already survives saves.
+        // Keep historical completion markers; never reset existing characters.
+        "combat" => Marked(player,"combat") || player.Bestiary.Values.Any(count=>count>0),
         "skill" => data.Skills.Any(skill=>Progression.BaseLevel(player,skill.Id)>=FirstSkillLevelTarget),
         "level" => Progression.PlayerLevel(player)>=FirstCharacterLevelTarget,
         "equipment" => Marked(player,"equipment") || player.Equipment.Values
@@ -52,7 +57,6 @@ public static class FirstHourExperience
             case "talk": Mark(player,"npc"); break;
             case "gather": Mark(player,"gather"); break;
             case "craft": Mark(player,"craft"); break;
-            case "attack": case "cast": Mark(player,"combat"); break;
             case "equip": case "socket": Mark(player,"equipment"); break;
             case "chat": case "party_create": case "party_invite": case "party_join": case "lfg_set": case "lfg_request": case "friend_invite": case "friend_accept": Mark(player,"social"); break;
         }
