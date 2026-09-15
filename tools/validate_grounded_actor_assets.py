@@ -6,8 +6,8 @@ that historical Atelier actor bytes did not re-enter runtime output. Motion is
 checked only where a layer's shared joints actually move in that state: lower
 body overlays need walk/attack/hit/death but need not change for a stationary
 cast; anchored jewelry may keep its local shape. Construct locomotion and spirit
-attack/cast/recoil silhouettes are part of the active source contract. This does
-not claim artistic approval.
+locomotion/attack/cast/recoil silhouettes are part of the active source contract.
+This does not claim artistic approval.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 from PIL import Image, ImageChops
 
-VALIDATION_REVISION=4
+VALIDATION_REVISION=5
 ROOT=Path(__file__).resolve().parents[1]
 RUNTIME=ROOT/'client'/'Assets'
 ATELIER=ROOT/'atelier'/'Assets'
@@ -107,7 +107,10 @@ def main():
             replacement_count+=1
     people=(ROOT/'tools/art/people.py').read_text(encoding='utf-8')
     fauna=(ROOT/'tools/art/fauna.py').read_text(encoding='utf-8')
+    spirits=(ROOT/'atelier/forge/grounded_spirits.py').read_text(encoding='utf-8')
     need('grounded_people' in people and 'grounded_beasts' in fauna,'Active actor wrappers no longer name the Grounded-2026 sources.')
+    need('grounded_spirits' in fauna and 'render_spirit' in fauna,"Active creature wrapper no longer routes spirits through the articulated Grounded source.")
+    need("m['stride']" in spirits and 'tendril' in spirits,'Grounded spirit source no longer encodes locomotion articulation.')
     need('base_frame' not in fauna and '_articulate_frame' not in fauna,'Legacy translated-frame creature fallback returned to the active wrapper.')
     print(f'GROUNDED_ACTOR_ACCEPTANCE rev={VALIDATION_REVISION}: {len(expected)} active sheets; {checked_frames} state/direction frames; {state_motion_checks} anatomy-appropriate motion checks; {replacement_count} historical hashes replaced; actor fallbacks 0. Structural acceptance only; human artistic review remains separate.')
 
