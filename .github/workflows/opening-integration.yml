@@ -124,11 +124,15 @@ jobs:
           python tools/complete_skill_icons.py 2>&1 | tee artifacts/opening-integration/logs/skill-icons.log
           python tools/validate_game_assets.py 2>&1 | tee artifacts/opening-integration/logs/asset-validation.log
           python tools/validate_grounded_actor_assets.py 2>&1 | tee artifacts/opening-integration/logs/actor-validation.log
-      - name: Verify native onboarding controls and layouts
+      - name: Resolve Godot for native onboarding checks
         shell: bash
         run: |
           set -euo pipefail
           python tools/get_godot.py --os linux 2>&1 | tee artifacts/opening-integration/logs/godot.log
+      - name: Verify native onboarding controls and layouts
+        shell: bash
+        run: |
+          set -euo pipefail
           timeout 180 "$GODOT_BIN" --headless --editor --path client --import > artifacts/opening-integration/logs/import.log 2>&1
           timeout 180 "$GODOT_BIN" --headless --path client res://Tests/PlayerExperienceContract.tscn > artifacts/opening-integration/logs/experience.log 2>&1
           timeout 180 "$GODOT_BIN" --headless --path client res://Tests/ControlRulesContract.tscn > artifacts/opening-integration/logs/controls.log 2>&1
