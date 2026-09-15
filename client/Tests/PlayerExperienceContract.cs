@@ -146,6 +146,7 @@ public partial class PlayerExperienceContract : Node
             Require(itemControls.Count(x => x.Item is not null) >= self.Inventory.Count, "Equipment and backpack controls coexist for dragging");
             Require(self.Inventory.All(item => itemControls.Any(control => control.Item?.Id == item.Id)), "Every backpack item has a real native drag control");
             Call(game, "ClosePage");
+            await NewPlayerJourneyUiChecks.Run(this, game, data, Require);
             await NativeTestLifetime.ReleaseSceneAsync(this, game);
             Require(!GodotObject.IsInstanceValid(game), "Experience UI releases the complete native scene");
             GD.Print($"PLAYER_EXPERIENCE_CONTRACT: {checks} checks passed. Offline native fixtures; not a full graphical playthrough.");

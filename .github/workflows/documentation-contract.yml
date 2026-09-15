@@ -2,18 +2,25 @@ name: Documentation evidence contract
 
 on:
   push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   current-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Verify current evidence matches implementation
+          persist-credentials: false
+      - name: Verify evidence guard regressions
+        run: python3 -m unittest discover -s tests/handoff -p 'test_onboarding_evidence.py' -v
+      - name: Verify current evidence matches exact successful implementation runs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python3 tools/documentation_contract.py

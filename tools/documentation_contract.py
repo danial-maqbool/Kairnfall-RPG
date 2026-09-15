@@ -1,68 +1,147 @@
 #!/usr/bin/env python3
-"""Validate current Task 22 evidence while retaining Task 21 provenance."""
+"""Validate synchronized onboarding evidence against Git history and real Actions runs."""
 from __future__ import annotations
-import json, subprocess
+import hashlib
+import json
+import os
 from pathlib import Path
+import re
+import subprocess
+import urllib.request
 
-ROOT=Path(__file__).resolve().parents[1]
-EVIDENCE=ROOT/'docs'/'handoff'/'CURRENT_EVIDENCE.json'
-TASK21_EVIDENCE=ROOT/'docs'/'handoff'/'TASK21_EVIDENCE.json'
-CURRENT_DOCS=[ROOT/'HANDOFF.md',ROOT/'docs'/'SESSION_STATUS.md',ROOT/'docs'/'handoff'/'TASK22_CURRENT.md',ROOT/'docs'/'handoff'/'TASK22_VERIFICATION.md']
-RELEASE_STATUS='NOT APPROVED — human acceptance remains.'
-IMPLEMENTATION='d83aa0f9d09a081cd5ebe7f43fe2e2ed9c34baec'
-TASK21='9e493a02a0b371d3d0d6cd08e283c7d95000d9ce'
-EXPECTED={
-'Transaction security regression':34885269493,
-'Compile Windows client source':34885269419,
-'Live progression breadth':34885269509,
-'Windows package acceptance':34885269513,
-'Graphical multiplayer acceptance':34885269398,
-'Load acceptance':34885269448,
-'Build and verify':34885269413,
-'Task 13 adversarial acceptance':34885269459,
-'Release operations acceptance':34885269453,
-'Transaction integrity on Windows and Linux':34885269575}
+ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY = 'danial-maqbool/Kairnfall-RPG'
+WORKSTREAM = 'new-player-experience'
+RELEASE_STATUS = 'NOT APPROVED — human acceptance remains.'
+TASK22_BLOB = 'f6623a46db658f3f8c9ef3656a74722583380233'
+REQUIRED_WORKFLOWS = frozenset({
+    'Transaction security regression', 'Compile Windows client source',
+    'Live progression breadth', 'Windows package acceptance',
+    'Graphical multiplayer acceptance', 'Load acceptance', 'Build and verify',
+    'Task 13 adversarial acceptance', 'Release operations acceptance',
+    'Transaction integrity on Windows and Linux', 'New-player journey',
+})
+CURRENT_DOCS = ('HANDOFF.md', 'docs/SESSION_STATUS.md',
+                'docs/handoff/NEW_PLAYER_CURRENT.md', 'docs/handoff/NEW_PLAYER_VERIFICATION.md')
+TEMPORARY_PATHS = ('.ci/client-edit-request.json', '.ci/experience-candidate.json',
+                   '.ci/source-overlay.json', '.github/workflows/experience-candidate.yml',
+                   '.github/workflows/experience-log-diagnostic.yml',
+                   '.github/workflows/prepare-client-edit.yml', '.github/workflows/source-overlay.yml')
 
-def fail(m): raise RuntimeError(m)
-def latest_implementation_commit():
-    cmd=['git','log','-1','--format=%H','HEAD','--','.',':(exclude)docs/**',':(exclude)HANDOFF.md',':(exclude)tools/documentation_contract.py',':(exclude).ci/experience-candidate.json',':(exclude).github/workflows/**']
-    v=subprocess.run(cmd,cwd=ROOT,check=True,text=True,capture_output=True).stdout.strip()
-    if len(v)!=40: fail('Could not resolve latest implementation commit.')
-    return v
 
-def main():
-    e=json.loads(EVIDENCE.read_text(encoding='utf-8'))
-    if e.get('schema')!=1 or e.get('currentTask')!=22: fail('Current evidence must identify schema 1 / Task 22.')
-    if e.get('implementationBaseline')!=IMPLEMENTATION or latest_implementation_commit()!=IMPLEMENTATION: fail('Task 22 implementation baseline is stale.')
-    if e.get('repositorySideTask22Implemented') is not True: fail('Task 22 repository implementation state must be explicit.')
-    a=e.get('task22Authorization',{})
-    if a.get('authorized') is not True or a.get('publicationAuthorized') is not False or a.get('deploymentAuthorized') is not False: fail('Task 22 authorization boundary drifted.')
-    if e.get('releaseStatus')!=RELEASE_STATUS or e.get('publicationReady') is not False or e.get('releasePublished') is not False: fail('Release boundary drifted.')
-    if not isinstance(e.get('humanOnlyGates'),list) or not e['humanOnlyGates']: fail('Human-only release gates must remain explicit and non-empty.')
-    rows=e.get('task22ImplementationWorkflows',[])
-    if {r.get('name'):r.get('runId') for r in rows}!=EXPECTED: fail('Task 22 workflow set/run IDs drifted.')
-    if any(r.get('conclusion')!='success' or r.get('headSha')!=IMPLEMENTATION for r in rows): fail('Task 22 workflows must be successful exact-head evidence.')
-    expected_content={'factions':5,'contractsPerFactionPerDay':3,'contractsPerDay':15,'contractKinds':['elite','gather','craft','dungeon','boss','event'],'reputationCap':1000,'rankThresholds':[250,500,750,1000],'newOverworldRegions':0,'serverAuthoritative':True,'persistenceCovered':True,'replayProtectionCovered':True,'exactOnceRewards':True,'rankMilestoneRewards':True}
-    if e.get('task22Content')!=expected_content: fail('Task 22 content evidence drifted.')
-    s=e.get('task22DocumentationSync',{})
-    if s.get('preSyncRunId')!=34885269511 or s.get('preSyncHeadSha')!=IMPLEMENTATION or s.get('preSyncConclusion')!='failure': fail('Task 22 pre-sync documentation failure drifted.')
-    repair=e.get('task22ClientCompileRepair',{})
-    if repair.get('originalFailureRunId')!=34884785169 or repair.get('repairedExactHeadRunId')!=34885269419 or repair.get('publicationAuthorizationChanged') is not False: fail('Task 22 client repair provenance drifted.')
-    if e.get('historicalTask21Evidence')!='docs/handoff/TASK21_EVIDENCE.json': fail('Task 21 evidence pointer drifted.')
-    h=json.loads(TASK21_EVIDENCE.read_text(encoding='utf-8'))
-    if h.get('currentTask')!=21 or h.get('implementationBaseline')!=TASK21: fail('Historical Task 21 evidence drifted.')
-    if not isinstance(h.get('humanOnlyGates'),list) or not h['humanOnlyGates']: fail('Historical Task 21 release gates must remain explicit.')
-    for p in CURRENT_DOCS:
-        text=p.read_text(encoding='utf-8')
-        for marker in ('2026-09-15',IMPLEMENTATION,'CURRENT_EVIDENCE.json',RELEASE_STATUS,'Task 22'):
-            if marker not in text: fail(f'{p.relative_to(ROOT)} missing {marker}')
-    v=CURRENT_DOCS[-1].read_text(encoding='utf-8')
-    for marker in (str(34885269513),str(34885269511),'TASK21_EVIDENCE.json',str(34885269419)):
-        if marker not in v: fail('TASK22_VERIFICATION.md missing '+marker)
-    print(f'DOCUMENTATION_CONTRACT: task=22; implementation={IMPLEMENTATION}; windows_run=34885269513; task21_history={TASK21}')
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise RuntimeError(message)
+
+
+def validate_metadata(e: dict) -> str:
+    require(e.get('schema') == 1 and e.get('currentTask') == WORKSTREAM,
+            'Current evidence has not been synchronized to the verified new-player implementation.')
+    baseline = e.get('implementationBaseline', '')
+    require(isinstance(baseline, str) and re.fullmatch(r'[0-9a-f]{40}', baseline) is not None,
+            'Expected an exact implementation SHA.')
+    require(e.get('repository') == REPOSITORY and e.get('persistentBranches') == ['main'],
+            'Repository or single-main policy drifted.')
+    require(e.get('repositorySideNewPlayerExperienceImplemented') is True,
+            'Repository-side completion must be explicit.')
+    authorization = e.get('authorization', {})
+    require(authorization.get('implementationAuthorized') is True and
+            authorization.get('publicationAuthorized') is False and
+            authorization.get('deploymentAuthorized') is False and
+            authorization.get('productionInfrastructureChanged') is False,
+            'Implementation authorization must not authorize publication, deployment or infrastructure changes.')
+    require(e.get('releaseStatus') == RELEASE_STATUS and e.get('publicationReady') is False and
+            e.get('releasePublished') is False and e.get('deployed') is False,
+            'Release boundary drifted.')
+    require(isinstance(e.get('humanOnlyGates'), list) and bool(e['humanOnlyGates']) and
+            all(isinstance(item, str) and item for item in e['humanOnlyGates']),
+            'Human-only release gates must remain explicit.')
+    require(e.get('historicalTask22Evidence') == 'docs/handoff/TASK22_EVIDENCE.json',
+            'Historical Task 22 evidence must be preserved.')
+    require(e.get('temporaryToolingRemoved') is True and e.get('newOverworldRegions') == 0 and
+            e.get('tutorialRewardsAdded') is False and e.get('serverAuthoritative') is True,
+            'Cleanup, footprint or reward-authority boundary drifted.')
+    rows = e.get('implementationWorkflows', [])
+    require(isinstance(rows, list) and len(rows) == len(REQUIRED_WORKFLOWS) and
+            all(isinstance(row, dict) for row in rows), 'Incomplete implementation workflow set.')
+    require({row.get('name') for row in rows} == REQUIRED_WORKFLOWS, 'Required workflows are missing or duplicated.')
+    require(all(type(row.get('runId')) is int and row['runId'] > 0 and
+                row.get('conclusion') == 'success' and row.get('headSha') == baseline for row in rows),
+            'Every implementation workflow must be successful at the exact baseline.')
+    require(len({row['runId'] for row in rows}) == len(rows), 'Workflow run IDs must be unique.')
+    return baseline
+
+
+def validate_remote_run(row: dict, actual: dict, baseline: str) -> None:
+    require(actual.get('id') == row['runId'] and actual.get('name') == row['name'],
+            'Actions run identity does not match recorded evidence: ' + row['name'])
+    require(actual.get('head_sha') == baseline and actual.get('head_branch') == 'main',
+            'Actions run is not the exact main implementation: ' + row['name'])
+    require(actual.get('status') == 'completed' and actual.get('conclusion') == 'success',
+            'Actions run has not completed successfully: ' + row['name'])
+    require(actual.get('event') in ('push', 'workflow_dispatch') and
+            actual.get('repository', {}).get('full_name') == REPOSITORY,
+            'Actions evidence belongs to an unexpected repository or trigger.')
+
+
+def git(*arguments: str) -> str:
+    return subprocess.run(['git', *arguments], cwd=ROOT, check=True, text=True,
+                          capture_output=True).stdout.strip()
+
+
+def latest_implementation_commit() -> str:
+    # Workflow, guard, tooling and test edits all invalidate the baseline. Only handoff
+    # documentation is excluded, avoiding a self-referential documentation commit SHA.
+    return git('log', '-1', '--format=%H', 'HEAD', '--', '.',
+               ':(exclude)docs/**', ':(exclude)HANDOFF.md')
+
+
+def main() -> int:
+    evidence = json.loads((ROOT / 'docs/handoff/CURRENT_EVIDENCE.json').read_text(encoding='utf-8'))
+    baseline = validate_metadata(evidence)
+    require(latest_implementation_commit() == baseline, 'Implementation evidence is stale.')
+    git('merge-base', '--is-ancestor', baseline, 'HEAD')
+    historical = (ROOT / evidence['historicalTask22Evidence']).read_bytes()
+    digest = hashlib.sha1(b'blob ' + str(len(historical)).encode('ascii') + b'\0' + historical).hexdigest()
+    require(digest == TASK22_BLOB, 'Historical Task 22 evidence was changed instead of archived verbatim.')
+    for path in TEMPORARY_PATHS:
+        require(not (ROOT / path).exists(), 'Temporary tooling remains: ' + path)
+    origin = evidence.get('startingMain', '')
+    require(isinstance(origin, str) and re.fullmatch(r'[0-9a-f]{40}', origin) is not None,
+            'An exact starting-main SHA is required for the footprint audit.')
+    git('merge-base', '--is-ancestor', origin, baseline)
+    require(not git('diff', '--name-only', origin, baseline, '--', 'content_src'),
+            'This onboarding task must not change the authored overworld/content footprint.')
+    for relative in CURRENT_DOCS:
+        text = (ROOT / relative).read_text(encoding='utf-8')
+        for marker in (baseline, 'CURRENT_EVIDENCE.json', RELEASE_STATUS,
+                       'New-player experience', evidence.get('statusDate', '')):
+            require(bool(marker) and marker in text, relative + ' is missing a current-evidence marker.')
+    verification = (ROOT / CURRENT_DOCS[-1]).read_text(encoding='utf-8')
+    for row in evidence['implementationWorkflows']:
+        require(str(row['runId']) in verification and row['name'] in verification,
+                'Verification documentation omits an implementation run.')
+    if os.environ.get('CI', '').lower() == 'true':
+        token = os.environ.get('GITHUB_TOKEN', '')
+        require(bool(token), 'CI requires its read-only Actions token to verify real run results.')
+        for row in evidence['implementationWorkflows']:
+            request = urllib.request.Request(
+                f'https://api.github.com/repos/{REPOSITORY}/actions/runs/{row["runId"]}',
+                headers={'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json',
+                         'X-GitHub-Api-Version': '2022-11-28'})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                validate_remote_run(row, json.load(response), baseline)
+        mode = 'live-actions-verified'
+    else:
+        mode = 'offline-structure-only; run CI for remote verification'
+    print(f'DOCUMENTATION_CONTRACT: task={WORKSTREAM}; implementation={baseline}; '
+          f'workflows={len(REQUIRED_WORKFLOWS)}; {mode}')
     return 0
 
-if __name__=='__main__':
-    try: raise SystemExit(main())
+
+if __name__ == '__main__':
+    try:
+        raise SystemExit(main())
     except Exception as error:
-        print(f'DOCUMENTATION_CONTRACT_FAIL: {error}',file=__import__('sys').stderr); raise SystemExit(1)
+        print(f'DOCUMENTATION_CONTRACT_FAIL: {error}', file=__import__('sys').stderr)
+        raise SystemExit(1)

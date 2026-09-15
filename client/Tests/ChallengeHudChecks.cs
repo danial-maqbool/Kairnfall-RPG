@@ -37,11 +37,16 @@ internal static class ChallengeHudChecks
                 check(pacing.Text.Contains("Character XP")&&pacing.TooltipText.Contains("skill")&&pacing.TooltipText.Contains("contributes directly"),"HUD identifies character XP and explains direct skill XP contribution");
                 check(target.Text.Contains("Trivial hunt")&&target.Text.Contains("practice"),"The target frame identifies under-level farming and its low practice rate");
                 var quest=Find<Control>("QuestTracker");
-                check(Find<Control>("Vitals").GetGlobalRect().End.Y<=quest.GetGlobalRect().Position.Y+1,"XP feedback does not overlap the objective tracker");
+                var vitals=Find<Control>("Vitals");
+                check(!vitals.GetGlobalRect().Intersects(quest.GetGlobalRect()),"XP feedback does not overlap the objective tracker");
+                if(vitals.GetParent()==quest.GetParent())
+                    check(vitals.GetGlobalRect().End.Y<=quest.GetGlobalRect().Position.Y+1,"Same-column objectives remain below XP feedback");
                 check(Fits(quest)&&Fits(Find<Control>("Vitals")),"Complete objective and status panels fit the supported viewport");
                 string normal=pacing.Text; pacing.Text += "\nExtended experience explanation\nSkill practice is separate.";
                 await Frame();await Frame();
-                check(Find<Control>("Vitals").GetGlobalRect().End.Y+5<=quest.GetGlobalRect().Position.Y,"Wrapped status information moves the objective panel rather than covering it");
+                check(!vitals.GetGlobalRect().Intersects(quest.GetGlobalRect())&&Fits(vitals)&&Fits(quest),"Wrapped status information never covers or displaces the objective outside the viewport");
+                if(vitals.GetParent()==quest.GetParent())
+                    check(vitals.GetGlobalRect().End.Y+5<=quest.GetGlobalRect().Position.Y,"Wrapped same-column status information moves the objective panel rather than covering it");
                 pacing.Text=normal;await Frame();await Frame();
             }
         }

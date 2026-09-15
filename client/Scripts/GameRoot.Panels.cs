@@ -64,6 +64,7 @@ public partial class GameRoot
             case "Hunting": BuildHuntingPage(); break;
             case "Achievements": BuildAchievementsPage(); break;
             case "Settings": BuildSettingsPage(); break;
+            case "Menu": BuildJourneyMenu(); break;
             default: throw new InvalidOperationException("Unknown client page: " + name);
         }
         SynchronizeModalUx();

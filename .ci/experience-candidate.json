@@ -1,6 +1,0 @@
-{
-  "sha": "0d04aca0ff18694311e0aeae64f14f95e8a67f68",
-  "base": "ff361899125aa0e7a3d4032127f017975c99a004",
-  "mode": "repair",
-  "purpose": "Complete candidate verification after 258 native experience assertions passed. The retained XP HUD contract now tests actual non-overlap and wrapped-status containment in both supported column layouts, with original vertical-gap checks retained for same-column layouts. Includes all existing backend/security/world/database/native/live acknowledgement and reconnect checks. No release or deployment."
-}

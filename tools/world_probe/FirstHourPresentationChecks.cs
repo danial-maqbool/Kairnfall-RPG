@@ -43,7 +43,8 @@ internal static class FirstHourPresentationChecks
         });
         Test("first-hour tracker remains compact and coexists with the quest tracker",()=>
         {
-            string hud=File.ReadAllText(Path.Combine(root,"client","Scripts","GameRoot.Hud.cs"));Need(hud.Contains("FirstHourPath",StringComparison.Ordinal)&&hud.Contains("WAYFARER'S PATH",StringComparison.Ordinal),"Compact first-hour tracker missing.");
+            string hud=File.ReadAllText(Path.Combine(root,"client","Scripts","GameRoot.Hud.cs"));string journey=File.ReadAllText(Path.Combine(root,"client","Scripts","GameRoot.NewPlayer.cs"));
+            Need(hud.Contains("FirstHourPath",StringComparison.Ordinal)&&hud.Contains("BuildNewPlayerHud",StringComparison.Ordinal)&&journey.Contains("NewPlayerJourney.Recommend",StringComparison.Ordinal)&&journey.Contains("NewPlayerJourney.NextHint",StringComparison.Ordinal),"Compact state-driven first-hour tracker missing.");
             Need(hud.Contains("QuestTracker",StringComparison.Ordinal),"First-hour pass replaced the normal quest tracker.");
         });
         Test("maps distinguish route marker and exits without global marker spam",()=>

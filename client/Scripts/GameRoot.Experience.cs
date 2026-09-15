@@ -254,17 +254,17 @@ public partial class GameRoot
         classResourceText = Ui.Label("", 12, Ui.Text, true); classResourceText.HorizontalAlignment = HorizontalAlignment.Center;
         classResourceBar = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 7), MouseFilter = MouseFilterEnum.Ignore };
         classMeter.AddChild(classResourceText); classMeter.AddChild(classResourceBar); hud.AddChild(classMeter);
-        publicEventText = Ui.Label("", 13, Ui.Gold, true);
-        publicEventText.Name = "PublicEventHud"; publicEventText.AnchorLeft = publicEventText.AnchorRight = .5f;
-        publicEventText.AnchorTop = publicEventText.AnchorBottom = 0; publicEventText.OffsetLeft = -310; publicEventText.OffsetRight = 310;
-        publicEventText.OffsetTop = 18; publicEventText.OffsetBottom = 78; publicEventText.HorizontalAlignment = HorizontalAlignment.Center;
+        publicEventText = Ui.Label("", 12, Ui.Gold, true); publicEventText.MaxLinesVisible = 3;
+        publicEventText.Name = "PublicEventHud"; publicEventText.AnchorLeft = publicEventText.AnchorRight = 1;
+        publicEventText.AnchorTop = publicEventText.AnchorBottom = 0; publicEventText.OffsetLeft = -276; publicEventText.OffsetRight = -16;
+        publicEventText.OffsetTop = 234; publicEventText.OffsetBottom = 294; publicEventText.HorizontalAlignment = HorizontalAlignment.Left;
         publicEventText.MouseFilter = MouseFilterEnum.Ignore; publicEventText.AddThemeConstantOverride("outline_size", 4);
         publicEventText.AddThemeColorOverride("font_outline_color", Ui.Ink); hud.AddChild(publicEventText);
         notice.OffsetTop = -252; notice.OffsetBottom = -216;
         pickupFeed = new VBoxContainer
         {
             Name = "PickupFeed", AnchorLeft = 1, AnchorRight = 1,
-            OffsetLeft = -276, OffsetRight = -18, OffsetTop = 266, MouseFilter = MouseFilterEnum.Ignore
+            OffsetLeft = -276, OffsetRight = -18, OffsetTop = 306, MouseFilter = MouseFilterEnum.Ignore
         };
         hud.AddChild(pickupFeed);
         foreach (var button in hotbarButtons) button.FocusMode = FocusModeEnum.None;
@@ -272,6 +272,7 @@ public partial class GameRoot
 
     private void TickExperience(double delta)
     {
+        TickJourneyFeedback();
         if (!GameplayInputAllowed) StopCombatInput();
         if (attackKeyHeld && !Input.IsActionPressed("basic_attack")) StopCombatInput();
         if (attackKeyHeld) TryBasicAttack();
@@ -317,14 +318,15 @@ public partial class GameRoot
     private void UpdatePublicEventHud()
     {
         if (Snapshot is not { } snapshot || publicEventText is null) return;
-        var value = snapshot.Events.Where(x => x.Zone == snapshot.Self.Zone)
+        var value = snapshot.Events.Where(x => x.Zone == snapshot.Self.Zone && NewPlayerJourney.ActivityRelevant(Data, snapshot.Self, x, snapshot.Time))
             .OrderBy(x => x.Status == "active" ? 0 : 1).ThenByDescending(x => x.EffectEnds).FirstOrDefault();
-        if (value is null) { publicEventText.Text = ""; return; }
+        if (value is null) { publicEventText.Text = ""; publicEventText.TooltipText = ""; return; }
         if (value.Status == "active")
         {
             int stage = Math.Min(WorldEventRules.StageCount(value.Kind), value.Stage + 1);
             int remaining = Math.Max(0, (int)Math.Ceiling(value.StageEnds - snapshot.Time));
-            publicEventText.Text = $"PUBLIC EVENT · {value.Name}\nStage {stage}/{WorldEventRules.StageCount(value.Kind)} · {WorldEventRules.StageLabel(value)} · {WorldEventRules.ProgressText(value)} · {remaining}s · You {WorldEventRules.Contribution(value,snapshot.Self.Id):0}";
+            publicEventText.Text = $"PUBLIC EVENT · {value.Name}\nStage {stage}/{WorldEventRules.StageCount(value.Kind)} · {WorldEventRules.ProgressText(value)} · {remaining}s\n{WorldEventRules.ContributionStatus(value, snapshot.Self.Id)}";
+            publicEventText.TooltipText = WorldEventRules.StageLabel(value) + "\n" + publicEventText.Text;
         }
         else
         {
@@ -335,10 +337,11 @@ public partial class GameRoot
 
     private void ObservePlayerChanges(Snapshot? previous, Snapshot current)
     {
+        ObserveJourneyProgression(previous, current);
         if(previous is null)
         {
-            var first=FirstHourExperience.Current(Data,current.Self);
-            if(first is not null){Notify("WAYFARER'S REST · Follow the Wayfarer's Path beneath your current objective.");audio?.PlayEffect("quest_accept");}
+            if(NewPlayerJourney.Active(current.Self) && !NewPlayerJourney.Seen(current.Self, "movement") && !FirstHourExperience.Marked(current.Self, "movement"))
+            { Notify("Welcome to Wayfarer's Rest · Your current objective shows the next step."); audio?.PlayEffect("quest_accept"); }
             return;
         }
         if(previous.Self.Id != current.Self.Id) return;
@@ -373,6 +376,7 @@ public partial class GameRoot
         }
         foreach (var value in current.Events)
         {
+            if (!NewPlayerJourney.ActivityRelevant(Data, current.Self, value, current.Time)) continue;
             var beforeEvent = previous.Events.FirstOrDefault(x => x.Id == value.Id);
             if (beforeEvent is null && value.Status == "active")
             {
@@ -412,7 +416,7 @@ public partial class GameRoot
         foreach(string completed in current.Self.CompletedQuests.Except(previous.Self.CompletedQuests,StringComparer.Ordinal))
         {
             var quest=Data.Quests.FirstOrDefault(x=>x.Id==completed); if(quest is null)continue;
-            Notify("QUEST COMPLETE · "+quest.Name); World.ClassBurst(current.Self.Position,Ui.Gold); audio?.PlayEffect("quest_complete");
+            World.ClassBurst(current.Self.Position,Ui.Gold); audio?.PlayEffect("quest_complete");
         }
         foreach (var skill in Data.Skills)
         {
@@ -422,17 +426,13 @@ public partial class GameRoot
             int beforeLevel=Progression.SkillLevel(beforeXp),afterLevel=Progression.SkillLevel(currentXp);
             if(afterLevel>beforeLevel)
             {
-                Notify("SKILL UP · "+skill.Name+" "+afterLevel); World.ClassBurst(current.Self.Position,Ui.Success); audio?.PlayEffect("skill_up");
+                World.ClassBurst(current.Self.Position,Ui.Success); audio?.PlayEffect("skill_up");
             }
         }
         int overall = Progression.PlayerLevel(current.Self);
         if (overall > Progression.PlayerLevel(previous.Self))
         {
-            string key = "overall_" + current.Self.Id;
-            bool explained = settings.GetValue("hints", key, false).AsBool();
-            Notify("LEVEL UP · " + overall + (explained ? "" : " · Training any skill advances your character level."));
             World.ClassBurst(current.Self.Position,Ui.Gold); audio?.PlayEffect("level_up");
-            settings.SetValue("hints", key, true); settings.Save("user://settings.cfg");
         }
     }
 

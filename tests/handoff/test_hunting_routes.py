@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
 spec=importlib.util.spec_from_file_location('hunting_routes_content',ROOT/'tools/build_content.py')
 builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
-from content_src import hunting_routes
+from content_src import hunting_routes, dungeon_depth
 
 class HuntingRoutesTests(unittest.TestCase):
     @classmethod
@@ -29,8 +29,16 @@ class HuntingRoutesTests(unittest.TestCase):
             if z['kind']!='dungeon':continue
             self.assertGreaterEqual(len(z['species']),2)
             for species in z['species']:
-                self.assertLessEqual(self.mobs[species]['level'],z['level']+8,(z['id'],species))
-                self.assertFalse(self.mobs[species]['boss'])
+                mob=self.mobs[species]
+                self.assertFalse(mob['boss'])
+                if mob['elite']:
+                    # Task 21 intentionally adds one authored elite template to each
+                    # gauntlet; this ordinary-creature contract must not relabel it.
+                    self.assertIn(z['id'],dungeon_depth.ROOM_IDS)
+                    self.assertTrue(z['id'].endswith('_gauntlet'))
+                    self.assertEqual(sum(self.mobs[x]['elite'] for x in z['species']),1)
+                else:
+                    self.assertLessEqual(mob['level'],z['level']+8,(z['id'],species))
         self.assertNotIn('stone_guardian',self.zones['broken_mill']['species'])
     def test_extension_is_deterministic_and_cannot_be_applied_twice(self):
         self.assertEqual(self.data,builder.build())
