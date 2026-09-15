@@ -50,9 +50,9 @@ jobs:
           with urllib.request.urlopen(req,timeout=60) as response: obj=json.load(response)
           raw=base64.b64decode(''.join(obj['content'].splitlines()),validate=True)
           assert obj['sha']==identity and hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()==identity
-          evidence=candidate/'candidate-evidence'; evidence.mkdir(parents=True,exist_ok=True)
+          evidence=candidate.parent/'opening-prepare-evidence'; evidence.mkdir(parents=True,exist_ok=True)
           env=os.environ.copy(); env.update(GITHUB_SHA=os.environ['OPENING_BASE'],GITHUB_REPOSITORY=repo,GH_TOKEN=token,RUNNER_TEMP=str(evidence))
-          script=candidate/'prepare.py'; script.write_bytes(raw)
+          script=evidence/'prepare.py'; script.write_bytes(raw)
           subprocess.run(['python',str(script)],cwd=candidate,env=env,check=True,timeout=180)
           expected={
             'src/Kairnfall.Core/OpeningJourney.cs','content_src/opening_journey.py','client/Scripts/GameRoot.Opening.cs','tools/world_probe/OpeningJourneyChecks.cs',
