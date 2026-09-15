@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 from PIL import Image, ImageChops
 
+VALIDATION_REVISION=3
 ROOT=Path(__file__).resolve().parents[1]
 RUNTIME=ROOT/'client'/'Assets'
 ATELIER=ROOT/'atelier'/'Assets'
@@ -107,7 +108,7 @@ def main():
     fauna=(ROOT/'tools/art/fauna.py').read_text(encoding='utf-8')
     need('grounded_people' in people and 'grounded_beasts' in fauna,'Active actor wrappers no longer name the Grounded-2026 sources.')
     need('base_frame' not in fauna and '_articulate_frame' not in fauna,'Legacy translated-frame creature fallback returned to the active wrapper.')
-    print(f'GROUNDED_ACTOR_ACCEPTANCE: {len(expected)} active sheets; {checked_frames} state/direction frames; {state_motion_checks} anatomy-appropriate motion checks; {replacement_count} historical hashes replaced; actor fallbacks 0. Structural acceptance only; human artistic review remains separate.')
+    print(f'GROUNDED_ACTOR_ACCEPTANCE rev={VALIDATION_REVISION}: {len(expected)} active sheets; {checked_frames} state/direction frames; {state_motion_checks} anatomy-appropriate motion checks; {replacement_count} historical hashes replaced; actor fallbacks 0. Structural acceptance only; human artistic review remains separate.')
 
 
 if __name__=='__main__': main()
