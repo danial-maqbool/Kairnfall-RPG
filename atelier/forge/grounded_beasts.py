@@ -212,11 +212,29 @@ def insect(stage,spec,m,direction):
         for s in (-1,1): stage.disc((head[0]+s*spec.head*.35,head[1]+.6),.7,pigment.ramp(spec.eye)[4],None)
 
 def spirit(stage,spec,m,direction):
-    coat,dark,pale=_ramps(spec); c=m['collapse']; y=max(3,spec.height*(1-c*.75)*.55+m['bob']+2); charge=m['charge']; stage.ellipse((0,y),spec.girth*(1+charge*.12),spec.girth*1.25,coat[3]);
-    for s in (-1,1): stage.poly([(s*1.5,y+1),(s*(spec.girth+2),y+5+charge*3),(s*(spec.girth+1),y-1)],dark[3])
-    for i in range(3): stage.poly([(-spec.girth+i*spec.girth,y-spec.girth*.5),(-spec.girth+(i+.5)*spec.girth,y-spec.girth-5-c*4),(-spec.girth+(i+1)*spec.girth,y-spec.girth*.5)],coat[2])
+    coat,dark,pale=_ramps(spec); c=m['collapse']; charge=m['charge']
+    side=direction in (1,2); facing=1 if direction==2 else -1 if direction==1 else 0
+    # Spirits express action weight through the core, mantle and tendrils.
+    drive=m['lunge']*(facing if side else .28)
+    y=max(3,spec.height*(1-c*.75)*.55+m['bob']+2 + charge*1.7 - m['crouch']*.25)
+    x=drive
+    squash=1.0 + min(.18,abs(m['lunge'])*.025) - c*.28
+    stage.ellipse((x,y),spec.girth*(1+charge*.16)*squash,spec.girth*(1.25-charge*.08)*(1-c*.18),coat[3])
+    reach=spec.girth+2+abs(m['lunge'])*.55+charge*2.2
+    lift=5+charge*4+m['crouch']*.45
+    for s in (-1,1):
+        forward=(facing if side else s)
+        stage.poly([(x+s*1.4,y+1),(x+s*reach + forward*m['lunge']*.16,y+lift),(x+s*(spec.girth+1),y-1)],dark[3])
+    trail=-m['lunge']*(facing if side else .18)
+    for i in range(3):
+        left=-spec.girth+i*spec.girth
+        stage.poly([(x+left,y-spec.girth*.5),(x+left+spec.girth*.5+trail,y-spec.girth-5-c*4-charge*1.3),(x+left+spec.girth,y-spec.girth*.5)],coat[2])
     if spec.glow:
-        g=pigment.ramp(spec.glow); stage.disc((0,y+.8),max(1.2,spec.girth*.28),g[5],None)
+        g=pigment.ramp(spec.glow)
+        radius=max(1.2,spec.girth*.28)*(1+charge*.38+min(.24,abs(m['lunge'])*.035))
+        stage.disc((x+(facing if side else 0)*m['lunge']*.12,y+.8+charge*.8),radius,g[5],None)
+        if charge>.25:
+            stage.line([(x-2-charge*2,y+spec.girth+2),(x,y+spec.girth+4+charge*2),(x+2+charge*2,y+spec.girth+2)],g[4],1.2)
 
 def construct(stage,spec,m,direction):
     coat,dark,pale=_ramps(spec); c=m['collapse']; y=max(5,spec.height*.47*(1-c*.7)); width=spec.girth
