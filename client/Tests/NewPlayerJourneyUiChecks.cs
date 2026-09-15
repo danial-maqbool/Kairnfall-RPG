@@ -46,11 +46,22 @@ internal static class NewPlayerJourneyUiChecks
             check(viewport.Encloses(card.GetGlobalRect()) && viewport.Encloses(action.GetGlobalRect()), "The objective and its action remain fully contained at " + size + " / " + scale + " / " + textScale);
             check(!card.GetGlobalRect().Intersects(minimap.GetGlobalRect()), "The objective card avoids the minimap at " + size);
             check(Field<Button[]>(game, "hotbarButtons").All(button => !card.GetGlobalRect().Intersects(button.GetGlobalRect())), "The objective card avoids the hotbar at " + size);
+            var navigation = game.FindChildren("Navigation", "Control", true, false).OfType<Control>().Single();
+            check(!navigation.IsVisibleInTree() || !card.GetGlobalRect().Intersects(navigation.GetGlobalRect()), "The objective avoids the legacy navigation grid at " + size);
+            check(Field<Button>(game, "journeyMenu").IsVisibleInTree(), "Every game panel stays discoverable through Menu at " + size);
+            var foe = snapshot.Creatures.First(x => x.Health > 0 && x.Owner == "");
+            Call(game, "SelectTarget", "creature", foe.Id); Call(game, "UpdateHud"); await Frame(owner); await Frame(owner);
+            check(!card.GetGlobalRect().Intersects(Field<HudPanel>(game, "targetFrame").GetGlobalRect()), "The objective does not cover the combat target at " + size + " / " + scale);
+            Call(game, "SelectTarget", "", ""); Call(game, "UpdateHud");
             check(social.GetMeta("nearby_count").AsInt32() == 0 && social.IsVisibleInTree(), "Multiplayer discovery remains visible on an empty server at " + size);
             check(owner.GetViewport().GetVisibleRect().Encloses(social.GetGlobalRect()), "Nearby-player discovery remains inside the supported viewport at " + size);
         }
         owner.GetWindow().Size = new Vector2I(1920, 1080); owner.GetWindow().ContentScaleSize = new Vector2I(1920, 1080); owner.GetWindow().ContentScaleFactor = 1;
         Call(game, "ApplyUiTextScale", 1d, false); await Frame(owner); await Frame(owner);
+        Call(game, "OpenPage", "Menu"); await Frame(owner);
+        var menuPages = game.FindChildren("*", "Button", true, false).OfType<Button>().Where(x => x.HasMeta("menu_page")).Select(x => x.GetMeta("menu_page").AsString()).ToHashSet(StringComparer.Ordinal);
+        check(new[] { "Inventory", "Character", "Skills", "Abilities", "Quests", "Hunting", "Crafting", "Social", "Settings" }.All(menuPages.Contains), "The compact Menu preserves every existing navigation destination");
+        Call(game, "ClosePage"); await Frame(owner);
         player.CompletedQuests.Add("main_01"); player.Zone = "kingsmeadow"; player.Position = data.Zone(player.Zone).Spawn;
         var active = realm.Snapshot(player.Id);
         active.Events.Add(new WorldEvent { Id = "native-introduction", Kind = "treasure_surge", Name = WorldEventRules.Name("treasure_surge"),

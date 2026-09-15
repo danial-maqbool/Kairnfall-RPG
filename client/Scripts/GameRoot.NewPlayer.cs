@@ -7,7 +7,7 @@ namespace Kairnfall.Client;
 public partial class GameRoot
 {
     private HBoxContainer journeyActions = null!;
-    private Button journeyAction = null!, journeyUnderstood = null!, nearbyTravelers = null!;
+    private Button journeyAction = null!, journeyUnderstood = null!, nearbyTravelers = null!, journeyMenu = null!;
     private HudPanel progressionBanner = null!;
     private Label progressionTitle = null!, progressionDetail = null!;
     private JourneyObjective? journeyObjective;
@@ -22,9 +22,9 @@ public partial class GameRoot
     private bool compactJourneyLayout;
     private bool journeyLayoutReady;
 
-    private static string CompactJourneyLine(string text, int length = 36)
+    private string CompactJourneyLine(string text, int length = 36)
     {
-        int limit = Math.Max(18, (int)(length / Ui.TextScale));
+        int limit = Math.Max(16, (int)(length * (journeyPanel?.Size.X ?? 290) / 290 / Ui.TextScale));
         return text.Length <= limit ? text : text[..(limit - 1)] + "…";
     }
     private string JourneyKey(string action)
@@ -41,12 +41,20 @@ public partial class GameRoot
         journeyPanel = (HudPanel)objectiveColumn.GetParent();
         journeyHome = (VBoxContainer)journeyPanel.GetParent();
         var objectiveHeader = objectiveColumn.GetChildren().OfType<HBoxContainer>().First();
-        objectiveHeader.GetChildren().OfType<Label>().First().Text = "NEXT STEP";
+        objectiveHeader.GetChildren().OfType<Label>().First().Hide();
+        journeyMenu = Ui.Button("Menu", () => OpenPage("Menu"));
+        journeyMenu.Name = "JourneyGameMenu"; journeyMenu.FocusMode = FocusModeEnum.None;
+        journeyMenu.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        journeyMenu.SetMeta(Ui.BaseFontSizeMeta, 12); journeyMenu.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(12));
+        journeyMenu.TooltipText = "Game panels · inventory, equipment, quests, skills, crafting, social and settings.";
+        objectiveHeader.AddChild(journeyMenu); objectiveHeader.MoveChild(journeyMenu, 0);
         objectiveText.Name = "RecommendedObjective";
         objectiveText.SetMeta(Ui.BaseFontSizeMeta, 13);
         objectiveText.AddThemeFontSizeOverride("font_size", Ui.ScaledFont(13));
         objectiveText.MouseFilter = MouseFilterEnum.Pass;
         firstHourText.MouseFilter = MouseFilterEnum.Pass;
+        objectiveText.AutowrapMode = TextServer.AutowrapMode.Off; objectiveText.ClipText = true;
+        firstHourText.ClipText = true;
         objectiveText.MaxLinesVisible = 4;
         firstHourText.MaxLinesVisible = 2;
         journeyActions = Ui.Row(objectiveColumn); journeyActions.Name = "JourneyActions";
@@ -104,8 +112,19 @@ public partial class GameRoot
         objectiveText.TooltipText = journeyObjective.Title + "\n" + journeyObjective.Objective
             + "\nDestination: " + Data.Zone(journeyObjective.Zone).Name + " · " + navigation.Description
             + "\nWhy: " + journeyObjective.Why + "\nWhen finished: " + journeyObjective.Reward;
-        firstHourText.Text = journeyHint is null ? "" : "TIP · " + JourneyHintText(journeyHint.Text);
-        firstHourText.TooltipText = firstHourText.Text;
+        string hintText = journeyHint?.Text ?? "";
+        if (firstHourText.MaxLinesVisible == 1 && journeyHint is not null)
+            hintText = journeyHint.Id switch
+            {
+                "movement" => "{move_up}/{move_left}/{move_down}/{move_right}: move · {interact}: interact",
+                "combat" => "{target_next}: target · {basic_attack}: attack",
+                "loot" => "{interact}: loot · {inventory}: backpack",
+                "equipment" => "Review the upgrade, then Equip.",
+                "socket" => "{inventory}: insert your starter rune.",
+                _ => hintText
+            };
+        firstHourText.Text = journeyHint is null ? "" : (firstHourText.MaxLinesVisible == 1 ? "" : "TIP · ") + JourneyHintText(hintText);
+        firstHourText.TooltipText = journeyHint is null ? "" : JourneyHintText(journeyHint.Text);
         firstHourText.SetMeta("guidance_id", journeyHint?.Id ?? "");
         journeyActions.Visible = objectiveText.Visible;
         bool distant = navigation.Position is { } point && point.Distance(self.Position) > 2.5;
@@ -150,15 +169,43 @@ public partial class GameRoot
             journeyPanel.SetAnchorsAndOffsetsPreset(compact ? LayoutPreset.TopRight : LayoutPreset.TopLeft);
         }
         bool shortView = compact && hud.Size.Y < 600;
-        objectiveText.MaxLinesVisible = shortView ? (Ui.TextScale > 1.1f ? 2 : 3) : 4;
+        bool smallest = compact && hud.Size.Y < 540;
+        objectiveText.MaxLinesVisible = shortView ? (smallest || Ui.TextScale > 1.1f ? 2 : 3) : 4;
         firstHourText.MaxLinesVisible = shortView ? 1 : 2;
+        firstHourText.AutowrapMode = shortView ? TextServer.AutowrapMode.Off : TextServer.AutowrapMode.WordSmart;
+        // Leave a gap beside the unchanged central combat target frame, including
+        // a 1280x720 window at 150% content scaling. No font size is reduced.
+        float width = compact ? Math.Clamp(hud.Size.X * .5f - 194, 226, 290) : 286;
+        journeyPanel.CustomMinimumSize = new Vector2(width, 0);
+        objectiveText.CustomMinimumSize = firstHourText.CustomMinimumSize = new Vector2(width - 24, 0);
+        var minimap = hud.FindChild("MinimapPanel", true, false) as HudPanel;
+        if (minimap is not null)
+        {
+            var surface = minimap.GetChildren().OfType<VBoxContainer>().First().GetChildren().OfType<Control>().First();
+            surface.CustomMinimumSize = new Vector2(172, smallest ? 82 : 122);
+            minimap.Size = new Vector2(minimap.Size.X, minimap.GetCombinedMinimumSize().Y);
+        }
         if (compact)
         {
-            float minimapBottom = (hud.FindChild("MinimapPanel", true, false) as Control)?.GetRect().End.Y ?? 194;
             journeyPanel.AnchorLeft = journeyPanel.AnchorRight = 1;
-            journeyPanel.OffsetLeft = -306; journeyPanel.OffsetRight = -16;
-            journeyPanel.OffsetTop = Math.Max(202, minimapBottom + 8);
-            journeyPanel.Size = new Vector2(290, journeyPanel.GetCombinedMinimumSize().Y);
+            journeyPanel.OffsetLeft = -width - 16; journeyPanel.OffsetRight = -16;
+            journeyPanel.OffsetTop = (minimap?.GetRect().End.Y ?? 194) + 8;
+            journeyPanel.Size = new Vector2(width, journeyPanel.GetCombinedMinimumSize().Y);
+        }
+        // The same page actions remain discoverable through Menu. The old nine-
+        // button grid must not occupy the compact objective's screen area.
+        if (hud.FindChild("Navigation", true, false) is Control navigation) navigation.Visible = !compact;
+        if (notice is not null)
+        {
+            notice.AnchorLeft = notice.AnchorRight = compact ? 0 : .5f;
+            float left = journeyHome.GetGlobalRect().End.X + 12;
+            float right = journeyPanel.GetGlobalRect().Position.X - 12;
+            float noticeWidth = Math.Max(120, Math.Min(440, right - left));
+            notice.OffsetLeft = compact ? (left + right - noticeWidth) / 2 : -300;
+            notice.OffsetRight = compact ? notice.OffsetLeft + noticeWidth : 300;
+            notice.OffsetTop = compact ? -152 : -250; notice.OffsetBottom = compact ? -106 : -215;
+            notice.MaxLinesVisible = compact ? 2 : -1;
+            notice.Visible = !compact || progressionBanner is null || !progressionBanner.Visible;
         }
         if (publicEventText is not null)
         {
@@ -172,6 +219,20 @@ public partial class GameRoot
             }
         }
         journeyPanel.SetMeta("journey_compact_layout", compact);
+    }
+
+    private void BuildJourneyMenu()
+    {
+        if (page is null || hud.FindChild("Navigation", true, false) is not Control navigation) return;
+        page.AddChild(Ui.Label("Follow your current objective; open other systems when you need them.", 14, Ui.Muted, true));
+        var panels = new GridContainer { Columns = 2, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        panels.AddThemeConstantOverride("h_separation", 8); panels.AddThemeConstantOverride("v_separation", 8); page.AddChild(panels);
+        foreach (var source in navigation.FindChildren("*", "Button", true, false).OfType<Button>().Where(x => x.HasMeta("navigation_page")))
+        {
+            string destination = source.GetMeta("navigation_page").AsString();
+            var action = Ui.Button(destination == "Settings" ? "Settings" : source.Text, () => OpenPage(destination));
+            action.SetMeta("menu_page", destination); panels.AddChild(action);
+        }
     }
 
     private async void AcknowledgeJourney(string id)
@@ -238,7 +299,7 @@ public partial class GameRoot
             progressionUntil = now + 6;
         }
         float left = journeyHome.GetGlobalRect().End.X + 12;
-        float right = hud.Size.X - 306 - 12;
+        float right = (compactJourneyLayout ? journeyPanel.GetGlobalRect().Position.X : hud.Size.X - 306) - 12;
         float width = Math.Clamp(right - left, 160, 460);
         progressionBanner.AnchorLeft = progressionBanner.AnchorRight = 0;
         progressionBanner.OffsetLeft = (left + right - width) / 2;
