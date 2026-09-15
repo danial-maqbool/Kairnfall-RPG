@@ -1,0 +1,138 @@
+name: First-hour isolated baseline bridge
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/first-hour-baseline.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: first-hour-baseline-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Export immutable source and baseline run identities
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASELINE_SHA: 5a33f14cb304d2b7fd2d17f7b5657b7a69112ad4
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p "$RUNNER_TEMP/source"
+          git bundle create "$RUNNER_TEMP/source/repository.bundle" HEAD
+          git rev-parse HEAD > "$RUNNER_TEMP/source/revision.txt"
+          git remote get-url origin > "$RUNNER_TEMP/source/origin.txt"
+          git log -12 --format='%H %s' > "$RUNNER_TEMP/source/recent-commits.txt"
+          python3 - <<'PY'
+          import json, os, pathlib, urllib.request
+          repo = 'danial-maqbool/Kairnfall-RPG'
+          sha = os.environ['BASELINE_SHA']
+          url = f'https://api.github.com/repos/{repo}/actions/runs?head_sha={sha}&per_page=100'
+          request = urllib.request.Request(url, headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'], 'Accept':'application/vnd.github+json', 'User-Agent':'Kairnfall-Baseline-Bridge'})
+          with urllib.request.urlopen(request, timeout=60) as response:
+              data = json.load(response)
+          keys = ('id', 'name', 'head_sha', 'head_branch', 'status', 'conclusion', 'run_attempt', 'html_url', 'path')
+          result = {'baseline':sha, 'totalCount':data['total_count'], 'runs':[{k:r[k] for k in keys} for r in data['workflow_runs']]}
+          if len(result['runs']) != result['totalCount']:
+              raise RuntimeError('Baseline workflow response requires pagination; refusing an incomplete summary.')
+          dest = pathlib.Path(os.environ['RUNNER_TEMP'])/'source'/'baseline-actions.json'
+          dest.write_text(json.dumps(result, indent=2)+'\n')
+          print(json.dumps(result, indent=2))
+          PY
+          (cd "$RUNNER_TEMP/source" && sha256sum repository.bundle > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: first-hour-source-${{ github.sha }}
+          path: ${{ runner.temp }}/source/
+          compression-level: 0
+          retention-days: 3
+          if-no-files-found: error
+  toolchain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download an isolated official SDK with its published SHA-512
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/first-hour-tools/dotnet" "$RUNNER_TEMP/tool-evidence"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, tarfile, urllib.request
+          version = '10.0.400'
+          metadata_url = 'https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/10.0/releases.json'
+          with urllib.request.urlopen(metadata_url, timeout=60) as response:
+              metadata = json.load(response)
+          sdks = [s for r in metadata['releases'] for s in r.get('sdks', [r.get('sdk', {})]) if s.get('version') == version]
+          if not sdks:
+              raise RuntimeError('Pinned SDK not present in official release metadata: '+version)
+          assets = [f for f in sdks[0]['files'] if f['rid'] == 'linux-x64' and f['name'].endswith('.tar.gz')]
+          if len(assets) != 1:
+              raise RuntimeError('Ambiguous official SDK archive.')
+          asset = assets[0]
+          if not asset['url'].startswith('https://') or len(asset['hash']) != 128:
+              raise RuntimeError('Missing official HTTPS URL or SHA-512.')
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          archive = root/'dotnet-sdk.tar.gz'
+          urllib.request.urlretrieve(asset['url'], archive)
+          with archive.open('rb') as stream:
+              digest = hashlib.file_digest(stream, 'sha512').hexdigest()
+          if digest.lower() != asset['hash'].lower():
+              raise RuntimeError('Official .NET SDK checksum mismatch.')
+          with tarfile.open(archive) as source:
+              source.extractall(root/'first-hour-tools'/'dotnet', filter='data')
+          (root/'tool-evidence'/'dotnet-provenance.json').write_text(json.dumps({'version':version, 'metadataUrl':metadata_url, 'asset':asset, 'verifiedSha512':digest}, indent=2)+'\n')
+          print('Verified official .NET SDK', version, 'SHA-512', digest)
+          PY
+          echo "DOTNET_ROOT=$RUNNER_TEMP/first-hour-tools/dotnet" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/first-hour-tools/dotnet" >> "$GITHUB_PATH"
+          echo "NUGET_PACKAGES=$RUNNER_TEMP/first-hour-tools/nuget" >> "$GITHUB_ENV"
+      - name: Restore existing public dependencies and the pinned verified Godot editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --info > "$RUNNER_TEMP/tool-evidence/dotnet-info.txt"
+          dotnet restore Kairnfall.slnx
+          dotnet restore client/Kairnfall.Client.csproj
+          python3 tools/get_godot.py --os linux --directory "$RUNNER_TEMP/first-hour-tools/godot" | tee "$RUNNER_TEMP/tool-evidence/godot-download.log"
+          uname -a > "$RUNNER_TEMP/tool-evidence/runner.txt"
+          git rev-parse HEAD > "$RUNNER_TEMP/tool-evidence/revision.txt"
+          tar -C "$RUNNER_TEMP/first-hour-tools" -czf "$RUNNER_TEMP/dotnet-offline.tar.gz" dotnet nuget
+          tar -C "$RUNNER_TEMP/first-hour-tools/godot" -czf "$RUNNER_TEMP/godot-offline.tar.gz" godot godot.json
+          (cd "$RUNNER_TEMP" && sha256sum dotnet-offline.tar.gz godot-offline.tar.gz) > "$RUNNER_TEMP/tool-evidence/SHA256SUMS"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: first-hour-dotnet-${{ github.sha }}
+          path: ${{ runner.temp }}/dotnet-offline.tar.gz
+          compression-level: 0
+          retention-days: 3
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: first-hour-godot-${{ github.sha }}
+          path: ${{ runner.temp }}/godot-offline.tar.gz
+          compression-level: 0
+          retention-days: 3
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: first-hour-tool-provenance-${{ github.sha }}
+          path: ${{ runner.temp }}/tool-evidence/
+          retention-days: 3
+          if-no-files-found: error
