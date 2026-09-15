@@ -40,6 +40,8 @@ internal static class NewPlayerJourneyUiChecks
             float fontHeight = hint.GetThemeFont("font").GetHeight(hint.GetThemeFontSize("font_size"));
             check(hint.IsVisibleInTree() && hint.GetGlobalRect().Size.Y >= MathF.Ceiling(fontHeight) && hint.GetVisibleLineCount() > 0,
                 "The movement tip has readable rendered glyph height, not just a presentation marker at " + size + " / " + scale + " / " + textScale);
+            check(Field<Button>(game, "journeyUnderstood").IsVisibleInTree() && hint.IsVisibleInTree() && hint.Text.Length > 0,
+                "A fresh character is asked to acknowledge only a visible, nonempty explanation at " + size + " / " + scale + " / " + textScale);
             check(action.IsVisibleInTree() && !action.GetGlobalRect().Intersects(chat.GetGlobalRect()), "The journey action does not overlap chat at " + size);
             var card = Field<HudPanel>(game, "journeyPanel");
             var viewport = owner.GetViewport().GetVisibleRect();

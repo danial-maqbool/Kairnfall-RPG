@@ -2,6 +2,12 @@ namespace Kairnfall.Core;
 
 public sealed partial class RealmEngine
 {
+    /// <summary>
+    /// Records an allowlisted presentation hint inside the normal sequenced,
+    /// receipted character transaction. This is not a milestone/reward API:
+    /// creation eligibility, public-event scheduling and contribution credit
+    /// remain server-owned and are not inferred from an acknowledged hint.
+    /// </summary>
     private string AcknowledgeGuidance(Character player, GameCommand command)
     {
         Need(command.Target == "" && command.Item == "" && command.Amount == 1 && command.X == 0 && command.Y == 0,

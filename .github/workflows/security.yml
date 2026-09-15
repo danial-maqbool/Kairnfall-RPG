@@ -1,10 +1,16 @@
 name: Transaction security regression
 on:
   push:
+    branches: [main]
     paths:
       - 'src/**'
+      - 'client/**'
+      - 'tools/new_player_probe/**'
+      - 'tools/documentation_contract.py'
+      - 'tests/handoff/test_onboarding_evidence.py'
+      - 'docs/handoff/CURRENT_EVIDENCE.json'
       - 'tests/Kairnfall.SecurityTests/**'
-      - '.github/workflows/security.yml'
+      - '.github/workflows/**'
   pull_request:
   workflow_dispatch:
 permissions:

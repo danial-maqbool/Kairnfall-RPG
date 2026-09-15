@@ -1,16 +1,21 @@
 name: Load acceptance
 on:
   push:
-    branches: [main, 'team/acceptance-08-load']
+    branches: [main]
     paths:
       - 'src/**'
+      - 'client/**'
       - 'content_src/**'
       - 'tools/build_content.py'
       - 'tools/load_probe/**'
       - 'tools/concurrency_probe/**'
       - 'tools/world_probe/ConcurrencyStressChecks.cs'
+      - 'tools/new_player_probe/**'
+      - 'tools/documentation_contract.py'
+      - 'tests/handoff/test_onboarding_evidence.py'
+      - 'docs/handoff/CURRENT_EVIDENCE.json'
       - 'Kairnfall.slnx'
-      - '.github/workflows/load-acceptance.yml'
+      - '.github/workflows/**'
   pull_request:
   workflow_dispatch:
 permissions:

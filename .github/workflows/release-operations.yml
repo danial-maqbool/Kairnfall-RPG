@@ -4,11 +4,16 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'client/**'
       - 'tools/operations/**'
       - 'tools/package_probe/**'
+      - 'tools/new_player_probe/**'
+      - 'tools/documentation_contract.py'
+      - 'tests/handoff/test_onboarding_evidence.py'
+      - 'docs/handoff/CURRENT_EVIDENCE.json'
       - 'content/**'
       - 'content_src/**'
-      - '.github/workflows/release-operations.yml'
+      - '.github/workflows/**'
   workflow_dispatch:
 permissions:
   contents: read
