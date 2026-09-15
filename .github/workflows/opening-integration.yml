@@ -50,7 +50,8 @@ jobs:
           with urllib.request.urlopen(req,timeout=60) as response: obj=json.load(response)
           raw=base64.b64decode(''.join(obj['content'].splitlines()),validate=True)
           assert obj['sha']==identity and hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()==identity
-          env=os.environ.copy(); env.update(GITHUB_SHA=os.environ['OPENING_BASE'],GITHUB_REPOSITORY=repo,GH_TOKEN=token,RUNNER_TEMP=str(candidate/'candidate-evidence'))
+          evidence=candidate/'candidate-evidence'; evidence.mkdir(parents=True,exist_ok=True)
+          env=os.environ.copy(); env.update(GITHUB_SHA=os.environ['OPENING_BASE'],GITHUB_REPOSITORY=repo,GH_TOKEN=token,RUNNER_TEMP=str(evidence))
           script=candidate/'prepare.py'; script.write_bytes(raw)
           subprocess.run(['python',str(script)],cwd=candidate,env=env,check=True,timeout=180)
           expected={
@@ -70,13 +71,11 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import json
           root=Path('.')
           def replace(rel,old,new,count=1):
               path=root/rel; text=path.read_text(encoding='utf-8'); actual=text.count(old)
               if actual!=count: raise RuntimeError(f'{rel}: expected {count} matches, found {actual}: {old[:90]!r}')
               path.write_text(text.replace(old,new),encoding='utf-8',newline='\n')
-          # World audit understands the three server-owned opening objective actions.
           audit='tools/world_probe/WorldQuestAuditChecks.cs'
           replace(audit,'["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant","survey"]',
               '["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant","survey","opening_kill","opening_equip","opening_craft"]')
@@ -85,7 +84,6 @@ jobs:
               '                        "opening_equip" => quest.Id==OpeningJourney.CraftQuest && objective.Target=="weapon" && objective.Count==1 && data.Classes.All(c=>data.Item(c.Weapon).Slot=="weapon"),\n'
               '                        "opening_craft" => quest.Id==OpeningJourney.CraftQuest && objective.Target=="healing_potion" && objective.Count==1 && data.Recipe(OpeningJourney.Recipe).Output==objective.Target && data.Npcs.Any(n=>n.Zone==OpeningJourney.Home && n.Station==data.Recipe(OpeningJourney.Recipe).Station),\n'
               '                        "talk" => data.Npcs.Any(n=>n.Id==objective.Target),')
-          # The guaranteed upgrade gets its own authored catalogue identity while preserving class weapon skill/type.
           content='content_src/opening_journey.py'
           replace(content,'from __future__ import annotations','from __future__ import annotations\nfrom copy import deepcopy')
           reward_code='''    names = {\n        'vanguard': "Roadwarden's Longsword", 'berserker': "Roadwarden's Greataxe",\n        'ranger': "Roadwarden's Recurve", 'rogue': "Roadwarden's Dirk",\n        'arcanist': "Roadwarden's Focus Staff", 'warden': "Roadwarden's Thornstaff",\n        'templar': "Roadwarden's Flanged Mace", 'spellblade': "Roadwarden's Arming Sword",\n    }\n    items = {item['id']: item for item in data['items']}\n    for cls in data['classes']:\n        identity = 'opening_' + cls['id'] + '_weapon'\n        if identity in items or cls['id'] not in names:\n            raise ValueError('Review the opening reward mapping for ' + cls['id'])\n        reward = deepcopy(items[cls['weapon']])\n        reward.update(id=identity, name=names[cls['id']], icon=identity,\n                      description="Bren's earned roadwarden weapon. Its blue grip and brass maker's mark identify the village reward while preserving your starting weapon training.")\n        reward['tags'] = list(dict.fromkeys(reward.get('tags', []) + ['opening_reward', 'class:' + cls['id']]))\n        data['items'].append(reward)\n'''
@@ -97,7 +95,6 @@ jobs:
           checks='tools/world_probe/OpeningJourneyChecks.cs'
           replace(checks,'reward.Template == cls.Weapon && reward.Rarity == Rarity.Rare && reward.Sockets == 1',
               'reward.Template == OpeningJourney.RewardTemplate(cls.Id) && data.Item(reward.Template).Skill == data.Item(cls.Weapon).Skill && data.Item(reward.Template).Tags.Contains("opening_reward") && reward.Rarity == Rarity.Rare && reward.Sockets == 1')
-          # Stable semantic quest controls support native keyboard/mouse acceptance and clearer final copy.
           panels='client/Scripts/GameRoot.Panels.cs'
           old='''                if (!active) body.AddChild(Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc) || !levelReady));\n                else if (progress!.Complete) body.AddChild(Ui.Button("Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc)));\n                else body.AddChild(Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); }));'''
           new='''                Button questAction;\n                if (!active) questAction = Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc) || !levelReady);\n                else if (progress!.Complete) questAction = Ui.Button(quest.Id == OpeningJourney.CraftQuest ? "Finish journey" : "Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc));\n                else questAction = Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); });\n                questAction.Name = "QuestAction_" + quest.Id;\n                questAction.SetMeta("quest_id", quest.Id);\n                questAction.SetMeta("quest_action", !active ? "accept" : progress!.Complete ? "claim" : "track");\n                body.AddChild(questAction);'''
