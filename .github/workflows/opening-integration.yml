@@ -2,7 +2,9 @@ name: Integrate verified opening journey
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/opening-integration.yml']
+    paths:
+      - '.github/workflows/opening-integration.yml'
+      - 'tools/validate_grounded_actor_assets.py'
   workflow_dispatch:
 permissions:
   contents: write
