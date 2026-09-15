@@ -1,0 +1,72 @@
+name: Repair Grounded spirit actions
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/grounded-spirit-repair.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: grounded-spirit-repair-main
+  cancel-in-progress: false
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Re-author spirit action geometry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('atelier/forge/grounded_beasts.py')
+          text=path.read_text(encoding='utf-8')
+          start=text.index('def spirit(stage,spec,m,direction):')
+          end=text.index('\ndef construct(stage,spec,m,direction):',start)
+          new='''def spirit(stage,spec,m,direction):
+    coat,dark,pale=_ramps(spec); c=m['collapse']; charge=m['charge']
+    side=direction in (1,2); facing=1 if direction==2 else -1 if direction==1 else 0
+    # Spirits have no feet, so readable action weight comes from the core: attack
+    # thrusts it toward the facing, hit recoils it, cast rises and expands it.
+    drive=m['lunge']*(facing if side else .28)
+    y=max(3,spec.height*(1-c*.75)*.55+m['bob']+2 + charge*1.7 - m['crouch']*.25)
+    x=drive
+    squash=1.0 + min(.18,abs(m['lunge'])*.025) - c*.28
+    stage.ellipse((x,y),spec.girth*(1+charge*.16)*squash,spec.girth*(1.25-charge*.08)*(1-c*.18),coat[3])
+    # Two mantle vanes anticipate, extend on the strike, and lift while casting.
+    reach=spec.girth+2+abs(m['lunge'])*.55+charge*2.2
+    lift=5+charge*4+m['crouch']*.45
+    for s in (-1,1):
+        forward=(facing if side else s)
+        stage.poly([(x+s*1.4,y+1),(x+s*reach + forward*m['lunge']*.16,y+lift),(x+s*(spec.girth+1),y-1)],dark[3])
+    # Tendrils collapse into a genuinely different final pose; during attack they
+    # trail opposite the lunge instead of translating the whole standing image.
+    trail=-m['lunge']*(facing if side else .18)
+    for i in range(3):
+        left=-spec.girth+i*spec.girth
+        stage.poly([(x+left,y-spec.girth*.5),(x+left+spec.girth*.5+trail,y-spec.girth-5-c*4-charge*1.3),(x+left+spec.girth,y-spec.girth*.5)],coat[2])
+    if spec.glow:
+        g=pigment.ramp(spec.glow)
+        radius=max(1.2,spec.girth*.28)*(1+charge*.38+min(.24,abs(m['lunge'])*.035))
+        stage.disc((x+(facing if side else 0)*m['lunge']*.12,y+.8+charge*.8),radius,g[5],None)
+        if charge>.25:
+            stage.line([(x-2-charge*2,y+spec.girth+2),(x,y+spec.girth+4+charge*2),(x+2+charge*2,y+spec.girth+2)],g[4],1.2)
+
+'''
+          path.write_text(text[:start]+new+text[end+1:],encoding='utf-8',newline='\n')
+          PY
+          python -m py_compile atelier/forge/grounded_beasts.py
+          git diff --check
+      - name: Commit repair to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add atelier/forge/grounded_beasts.py
+          git commit -m 'fix(art): articulate spirit attack cast and recoil silhouettes'
+          git push origin HEAD:main
