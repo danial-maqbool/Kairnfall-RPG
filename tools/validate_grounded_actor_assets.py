@@ -5,8 +5,9 @@ This proves active coverage, dimensions, alpha/state/direction completeness and
 that historical Atelier actor bytes did not re-enter runtime output. Motion is
 checked only where a layer's shared joints actually move in that state: lower
 body overlays need walk/attack/hit/death but need not change for a stationary
-cast; anchored jewelry may keep its local shape. This does not claim artistic
-approval.
+cast; anchored jewelry may keep its local shape. Construct locomotion and spirit
+attack/cast/recoil silhouettes are part of the active source contract. This does
+not claim artistic approval.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ import json
 from pathlib import Path
 from PIL import Image, ImageChops
 
-VALIDATION_REVISION=3
+VALIDATION_REVISION=4
 ROOT=Path(__file__).resolve().parents[1]
 RUNTIME=ROOT/'client'/'Assets'
 ATELIER=ROOT/'atelier'/'Assets'
