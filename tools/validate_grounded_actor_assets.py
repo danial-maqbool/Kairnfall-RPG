@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 from PIL import Image, ImageChops
 
-VALIDATION_REVISION=5
+VALIDATION_REVISION=6
 ROOT=Path(__file__).resolve().parents[1]
 RUNTIME=ROOT/'client'/'Assets'
 ATELIER=ROOT/'atelier'/'Assets'
