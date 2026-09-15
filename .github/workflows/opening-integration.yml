@@ -1,0 +1,157 @@
+name: Integrate verified opening journey
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/opening-integration.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: opening-integration-main
+  cancel-in-progress: false
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONUTF8: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      OPENING_BASE: a356e3c881ab9b3cacc8f2e1ca696322a8a2ed8d
+      PREPARE_BLOB: d1e06c7aa3bbbb3d0332ca7d7aeaa34f90395714
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Materialize immutable tested opening onto current main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current="$(git rev-parse HEAD)"
+          test "$current" = "$GITHUB_SHA"
+          candidate="$RUNNER_TEMP/opening-candidate"
+          git worktree add --detach "$candidate" "$OPENING_BASE"
+          CANDIDATE="$candidate" CURRENT_ROOT="$GITHUB_WORKSPACE" python3 - <<'PY'
+          import base64,hashlib,json,os,pathlib,subprocess,urllib.request
+          repo=os.environ['GITHUB_REPOSITORY']; token=os.environ['GH_TOKEN']
+          candidate=pathlib.Path(os.environ['CANDIDATE']); root=pathlib.Path(os.environ['CURRENT_ROOT'])
+          identity=os.environ['PREPARE_BLOB']
+          req=urllib.request.Request(f'https://api.github.com/repos/{repo}/git/blobs/{identity}',headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','User-Agent':'Kairnfall-Opening-Integration'})
+          with urllib.request.urlopen(req,timeout=60) as response: obj=json.load(response)
+          raw=base64.b64decode(''.join(obj['content'].splitlines()),validate=True)
+          assert obj['sha']==identity and hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()==identity
+          env=os.environ.copy(); env.update(GITHUB_SHA=os.environ['OPENING_BASE'],GITHUB_REPOSITORY=repo,GH_TOKEN=token,RUNNER_TEMP=str(candidate/'candidate-evidence'))
+          script=candidate/'prepare.py'; script.write_bytes(raw)
+          subprocess.run(['python',str(script)],cwd=candidate,env=env,check=True,timeout=180)
+          expected={
+            'src/Kairnfall.Core/OpeningJourney.cs','content_src/opening_journey.py','client/Scripts/GameRoot.Opening.cs','tools/world_probe/OpeningJourneyChecks.cs',
+            'tools/build_content.py','src/Kairnfall.Core/RealmEngine.cs','src/Kairnfall.Core/RealmEconomy.cs','src/Kairnfall.Core/NewPlayerJourney.cs',
+            'src/Kairnfall.Core/JourneyProgression.cs','client/Scripts/GameRoot.Panels.cs','client/Scripts/WorldView.cs','src/Kairnfall.Core/MerchantSales.cs',
+            'tools/new_player_probe/NewPlayerJourneyProbe.cs'}
+          changed=set(subprocess.check_output(['git','diff','--name-only'],cwd=candidate,text=True).splitlines())
+          untracked=set(subprocess.check_output(['git','ls-files','--others','--exclude-standard'],cwd=candidate,text=True).splitlines())
+          if changed|untracked != expected: raise RuntimeError('Candidate path set changed: '+repr((changed|untracked)^expected))
+          for rel in expected:
+              source=candidate/rel; target=root/rel; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(source.read_bytes())
+          print('Copied tested opening candidate onto current main worktree without changing refs.')
+          PY
+      - name: Apply acceptance repairs and distinct class reward identities
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path('.')
+          def replace(rel,old,new,count=1):
+              path=root/rel; text=path.read_text(encoding='utf-8'); actual=text.count(old)
+              if actual!=count: raise RuntimeError(f'{rel}: expected {count} matches, found {actual}: {old[:90]!r}')
+              path.write_text(text.replace(old,new),encoding='utf-8',newline='\n')
+          # World audit understands the three server-owned opening objective actions.
+          audit='tools/world_probe/WorldQuestAuditChecks.cs'
+          replace(audit,'["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant","survey"]',
+              '["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant","survey","opening_kill","opening_equip","opening_craft"]')
+          replace(audit,'                        "talk" => data.Npcs.Any(n=>n.Id==objective.Target),',
+              '                        "opening_kill" => quest.Id==OpeningJourney.FightQuest && objective.Target==OpeningJourney.Foe && objective.Count==OpeningJourney.KillGoal && realm.State.Creatures.Values.Count(c=>c.Zone==OpeningJourney.Home && c.Template==objective.Target)>=OpeningJourney.KillGoal,\n'
+              '                        "opening_equip" => quest.Id==OpeningJourney.CraftQuest && objective.Target=="weapon" && objective.Count==1 && data.Classes.All(c=>data.Item(c.Weapon).Slot=="weapon"),\n'
+              '                        "opening_craft" => quest.Id==OpeningJourney.CraftQuest && objective.Target=="healing_potion" && objective.Count==1 && data.Recipe(OpeningJourney.Recipe).Output==objective.Target && data.Npcs.Any(n=>n.Zone==OpeningJourney.Home && n.Station==data.Recipe(OpeningJourney.Recipe).Station),\n'
+              '                        "talk" => data.Npcs.Any(n=>n.Id==objective.Target),')
+          # The guaranteed upgrade gets its own authored catalogue identity while preserving class weapon skill/type.
+          content='content_src/opening_journey.py'
+          replace(content,'from __future__ import annotations','from __future__ import annotations\nfrom copy import deepcopy')
+          reward_code='''    names = {\n        'vanguard': "Roadwarden's Longsword", 'berserker': "Roadwarden's Greataxe",\n        'ranger': "Roadwarden's Recurve", 'rogue': "Roadwarden's Dirk",\n        'arcanist': "Roadwarden's Focus Staff", 'warden': "Roadwarden's Thornstaff",\n        'templar': "Roadwarden's Flanged Mace", 'spellblade': "Roadwarden's Arming Sword",\n    }\n    items = {item['id']: item for item in data['items']}\n    for cls in data['classes']:\n        identity = 'opening_' + cls['id'] + '_weapon'\n        if identity in items or cls['id'] not in names:\n            raise ValueError('Review the opening reward mapping for ' + cls['id'])\n        reward = deepcopy(items[cls['weapon']])\n        reward.update(id=identity, name=names[cls['id']], icon=identity,\n                      description="Bren's earned roadwarden weapon. Its blue grip and brass maker's mark identify the village reward while preserving your starting weapon training.")\n        reward['tags'] = list(dict.fromkeys(reward.get('tags', []) + ['opening_reward', 'class:' + cls['id']]))\n        data['items'].append(reward)\n'''
+          replace(content,"    data['quests'].extend([",reward_code+"    data['quests'].extend([")
+          core='src/Kairnfall.Core/OpeningJourney.cs'
+          replace(core,'    public static bool Eligible(Character p) =>','    public static string RewardTemplate(string classId) => "opening_" + classId + "_weapon";\n    public static bool Eligible(Character p) =>')
+          replace(core,'        var def = data.Item(data.Class(p.Class).Weapon);','        var def = data.Item(RewardTemplate(p.Class));')
+          replace(core,'        + data.Item(data.Class(p.Class).Weapon).Name','        + data.Item(RewardTemplate(p.Class)).Name')
+          checks='tools/world_probe/OpeningJourneyChecks.cs'
+          replace(checks,'reward.Template == cls.Weapon && reward.Rarity == Rarity.Rare && reward.Sockets == 1',
+              'reward.Template == OpeningJourney.RewardTemplate(cls.Id) && data.Item(reward.Template).Skill == data.Item(cls.Weapon).Skill && data.Item(reward.Template).Tags.Contains("opening_reward") && reward.Rarity == Rarity.Rare && reward.Sockets == 1')
+          # Stable semantic quest controls support native keyboard/mouse acceptance and clearer final copy.
+          panels='client/Scripts/GameRoot.Panels.cs'
+          old='''                if (!active) body.AddChild(Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc) || !levelReady));\n                else if (progress!.Complete) body.AddChild(Ui.Button("Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc)));\n                else body.AddChild(Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); }));'''
+          new='''                Button questAction;\n                if (!active) questAction = Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc) || !levelReady);\n                else if (progress!.Complete) questAction = Ui.Button(quest.Id == OpeningJourney.CraftQuest ? "Finish journey" : "Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc));\n                else questAction = Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); });\n                questAction.Name = "QuestAction_" + quest.Id;\n                questAction.SetMeta("quest_id", quest.Id);\n                questAction.SetMeta("quest_action", !active ? "accept" : progress!.Complete ? "claim" : "track");\n                body.AddChild(questAction);'''
+          replace(panels,old,new)
+          print('Opening acceptance repairs and distinct class reward identities applied.')
+          PY
+          git diff --check
+      - name: Verify opening, authority and regenerated art
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/opening-integration/logs
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py 2>&1 | tee artifacts/opening-integration/logs/content.log
+          dotnet build Kairnfall.slnx -c Release 2>&1 | tee artifacts/opening-integration/logs/solution.log
+          dotnet build client/Kairnfall.Client.csproj -c Debug 2>&1 | tee artifacts/opening-integration/logs/client.log
+          dotnet run --no-build --project tools/world_probe -c Release 2>&1 | tee artifacts/opening-integration/logs/world.log
+          dotnet run --no-build --project tools/new_player_probe -c Release -- content/catalog.json 2>&1 | tee artifacts/opening-integration/logs/journey.log
+          dotnet run --no-build --project tests/Kairnfall.Tests -c Release -- content/catalog.json 2>&1 | tee artifacts/opening-integration/logs/core.log
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests -c Release 2>&1 | tee artifacts/opening-integration/logs/review.log
+          dotnet run --project tests/Kairnfall.SecurityTests -c Release -- content/catalog.json 2>&1 | tee artifacts/opening-integration/logs/security.log
+          grep -F 'OPENING_JOURNEY_CHECKS: 5/5 groups; classes=8/8' artifacts/opening-integration/logs/world.log
+          grep -F 'NEW_PLAYER_JOURNEY: 12/12 groups passed' artifacts/opening-integration/logs/journey.log
+          python tools/build_game_assets.py 2>&1 | tee artifacts/opening-integration/logs/assets.log
+          python tools/complete_skill_icons.py 2>&1 | tee artifacts/opening-integration/logs/skill-icons.log
+          python tools/validate_game_assets.py 2>&1 | tee artifacts/opening-integration/logs/asset-validation.log
+          python tools/validate_grounded_actor_assets.py 2>&1 | tee artifacts/opening-integration/logs/actor-validation.log
+      - name: Verify native onboarding controls and layouts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/get_godot.py --os linux 2>&1 | tee artifacts/opening-integration/logs/godot.log
+          timeout 180 "$GODOT_BIN" --headless --editor --path client --import > artifacts/opening-integration/logs/import.log 2>&1
+          timeout 180 "$GODOT_BIN" --headless --path client res://Tests/PlayerExperienceContract.tscn > artifacts/opening-integration/logs/experience.log 2>&1
+          timeout 180 "$GODOT_BIN" --headless --path client res://Tests/ControlRulesContract.tscn > artifacts/opening-integration/logs/controls.log 2>&1
+          for log in import experience controls; do
+            if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' "artifacts/opening-integration/logs/$log.log"; then exit 1; fi
+          done
+      - name: Commit verified opening to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/Kairnfall.Core client/Scripts content_src tools/build_content.py tools/new_player_probe tools/world_probe
+          git diff --cached --check
+          git commit -m 'feat(onboarding): integrate authoritative first-twenty-minute journey'
+          git push origin HEAD:main
+          git rev-parse HEAD
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opening-integration-${{ github.sha }}
+          path: artifacts/opening-integration/
+          retention-days: 14
+          if-no-files-found: warn
