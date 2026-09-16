@@ -3,8 +3,8 @@
 Turtles and tortoises retain the shared newly-authored quadruped anatomy while
 making head-on and rear attack/recoil silhouettes directionally distinct.  The
 base quadruped renderer already expresses signed lunge in side views; front and
-rear views need a depth cue because screen-space X cannot represent movement
-toward or away from the camera.
+rear views project that depth movement onto the screen while retaining planted
+feet, so action frames change real geometry rather than relying on hit flash.
 """
 from __future__ import annotations
 
@@ -19,13 +19,16 @@ def render_chelonian(definition, state, number, direction, spec):
     stage = Stage(size)
     motion = _motion(state, number)
 
-    # Preserve the common anatomy and timing contract.  For south/north views,
-    # turn signed attack/recoil travel into vertical depth motion: attacks drive
-    # the shell/head toward the camera while hits recoil it away.  This changes
-    # actual geometry rather than relying on the transient hit flash.
+    # South-facing actions move toward the camera (down-screen) while north-
+    # facing actions move away (up-screen); recoil reverses those directions.
+    # A larger recoil projection is deliberate: the shared hit crouch partially
+    # cancels the depth offset, and sub-pixel projection used to quantize frame 3
+    # back onto the exact idle alpha silhouette at native 64 px resolution.
     if direction in (0, 3) and state in ('attack', 'hit'):
         motion = dict(motion)
-        motion['bob'] -= motion['lunge'] * .18
+        depth_sign = -1.0 if direction == 0 else 1.0
+        depth_scale = 0.55 if state == 'attack' else 0.72
+        motion['bob'] += depth_sign * motion['lunge'] * depth_scale
 
     quadruped(stage, spec, motion, direction)
 
