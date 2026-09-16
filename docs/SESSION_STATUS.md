@@ -1,27 +1,44 @@
-# Session status — New-player experience
+# Kairnfall RPG — session status
 
-**2026-09-15** · `danial-maqbool/Kairnfall-RPG` · `main` only.
-
-Verified implementation baseline: **4214c57692bd70196f4c50db0a95ca6f2a510f31**.
-Current evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+Status date: **2026-09-16**  
+Workstream: **New-player experience / first-hour retention, Grounded actor migration, and UI cohesion**  
+Verified implementation baseline: **`7b11027ba913781443871ece56c8ab13008408d5`**  
+Evidence: `docs/handoff/CURRENT_EVIDENCE.json`  
 Release status: **NOT APPROVED — human acceptance remains.**
 
-## Completed repository work
+## Repository-side implementation status
 
-The existing verified candidate was inspected and integrated rather than rebuilt. The persistent-world journey now presents one legitimate next objective, current-keybinding guidance, a safe optional combat introduction, loot and real equipment/rune improvements, the existing gathering/crafting quest, visible skill/character progression and the route to the next settlement. Social discovery and nearby appropriate public activity are visible without requiring other players or a party.
+The authorized first-hour pass is implemented on `main`. The fresh-player opening is a coherent authoritative sequence: Bren Gale → two Field Rats → exactly-once class-compatible Rare Roadwarden weapon and potion ingredients → player-controlled Inventory equip → ordinary Healing Potion craft → return to Bren and handoff into the existing persistent world. All eight classes have distinct compatible reward identities. Full-inventory rollback, replay protection, pending mandatory reward protection/recovery, reconnect/restart, death/respawn, out-of-order milestone retention and established-character exclusion are permanent regressions.
 
-Presentation state uses existing saved discoveries. Creation eligibility and gameplay milestones are server-owned. Guide acknowledgements are allowlisted, sequenced, receipted and reward-neutral. Existing quest/event rewards retain their normal validation and replay protection. Old saves remain compatible and established characters are not forced into beginner hints. No authored overworld/content expansion, economy inflation, progression reset, new reward pipeline or production change was introduced.
+Grounded-2026 is the sole active actor runtime source for player bodies/hair, equipment overlays, NPC roles and mobs. Permanent acceptance verifies 1,245 actor sheets, 239,040 frame cells, 5,322 motion checks, 1,237 replaced historical actor hashes and zero actor fallbacks. Historical Atelier integration remains available only for compatible non-actor assets. Human artistic approval is not implied.
 
-Native-frame inspection caught invisible wrapped hints and notifications behind combat controls. Scaled glyph-height, containment and overlap regressions were added. The expanded matrix then caught an additional enlarged-desktop notice overlap at `3fdca6068b2e2688b9815ffd88541da34876b994`; `4214c57692bd70196f4c50db0a95ca6f2a510f31` fixed it without weakening assertions.
+The UI pass preserves Task #12 modal/focus/input/accessibility protections and uses `PageLayoutProfiles` for real content-specific modal geometry and purpose summaries. Permanent Windows coverage includes 1024×720, 1280×720, 1920×1080 and 2560×1440 plus supported text/content scaling, keyboard/mouse focus paths, overflow, settings/error/stale-state behavior and modal blocking.
 
-## Verified results and delivery
+## Exact technical acceptance
 
-All 13 functional workflows passed at the stated baseline. The dedicated journey recorded 12/12 groups, native experience 328 checks, native control rules 1,165 checks, XP HUD 9 checks and the live-server/PostgreSQL experience 125 checks. Core, review, security, full world, database/network, adversarial, Windows compile/native/package, graphical multiplayer, load and recovery checks passed. See `docs/handoff/NEW_PLAYER_VERIFICATION.md` for exact run IDs and limits.
+All 14 workflows required by the current evidence guard succeeded at `7b11027ba913781443871ece56c8ab13008408d5`: Build and verify, Task 13 adversarial acceptance, Load acceptance, Transaction security regression, Transaction integrity on Windows and Linux, Compile Windows client source, Live progression breadth, Graphical multiplayer acceptance, Windows package acceptance, Windows display and input acceptance, Visual acceptance matrix, Grounded actor acceptance, Release operations acceptance, and New-player journey. Exact run IDs are recorded in `docs/handoff/NEW_PLAYER_VERIFICATION.md` and `CURRENT_EVIDENCE.json`.
 
-Only after these runs passed was this documentation synchronized. The documentation-only delivery head must retain the baseline and pass its own fresh Actions. The evidence contract validates the recorded implementation runs through the read-only GitHub Actions API, including exact SHA, workflow identity, repository, branch and completed-success state. It also enforces removal of temporary tooling, preservation of the old Task 22 evidence blob and an unchanged authored content footprint.
+Key exact-head measurements:
 
-The candidate/edit/overlay request files and temporary workflows are removed; only the permanent exact-head journey workflow remains. The branch listing at implementation verification contained only `main`. Do not create a subsequent task, release, deployment, tag, branch, pull request or issue automatically.
+- New-player: 12/12 retained journey groups; 5/5 opening groups; 8/8 classes; 442 native player-experience checks; 1,169 native control/layout checks; 125 real-server/PostgreSQL live checks.
+- Windows package artifact `10450049656`: 56,319,111-byte CI archive; clean export/launch/restart/reconnect smoke passed.
+- Load reference: 2/10/25/50 real clients × 20 seconds; snapshot p95 204.8 ms; final rolling tick p95 42.8 ms; max sampled RSS 647,120 KiB; 10 reconnects in the 50-client stage.
+- Grounded exact-head artifact `10450285632`: 24,799,957-byte evidence archive; zero actor fallbacks.
 
-## Evidence boundaries
+The pre-synchronization Documentation evidence contract failed as designed because the checked-in evidence still named the previous implementation. Documentation is now synchronized without changing the verified implementation baseline; the final documentation-only head must pass a fresh live evidence contract.
 
-The 15-minute and first-hour sequence is a design target. The automated probe uses bounded clocks and reachable proximity fixtures around real gameplay APIs; it is not an uncoached human playthrough or a retention study. Native screenshots were inspected for the onboarding changes, not used to approve the entire game's art. Physical Windows hardware, normal-play pacing, audio/art acceptance and owner release approval remain separate human gates in `CURRENT_EVIDENCE.json`.
+## Scope and hygiene
+
+- Persistent branches: `main` only.
+- New overworld regions: 0.
+- Authored `content_src` footprint from starting main: only `content_src/opening_journey.py`.
+- Tutorial reward identities added: 8 class-specific opening weapons; reward authority remains server-side.
+- Old saves remain compatible; historical characters are not reset or silently enrolled.
+- Temporary candidate/repair/diagnostic workflows and request files are removed.
+- No release, publication, deployment, release tag or production-infrastructure change was authorized by this workstream.
+
+## Human-only gates still open
+
+Repository automation does not replace an owner Windows gameplay pass, uncoached first-hour timing/retention measurement, normal-play class/economy feel, independent artistic review, audio listening approval, a full ordinary-account world/quest walkthrough, physical Windows DPI/hardware-input inspection, owner-machine package extraction/launch where required, or production-scale validation before any capacity claim.
+
+Do not start another development task implicitly. This status records the completed repository-side work and its remaining human acceptance boundary.
