@@ -1,4 +1,5 @@
 name: Integrate verified opening journey
+# Temporary integration helper; removed after the verified opening lands.
 on:
   push:
     branches: [main]
