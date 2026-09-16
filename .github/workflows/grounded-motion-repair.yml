@@ -1,45 +1,17 @@
-name: Repair opening native preview gate
+name: Dispatch repaired opening integration
 on:
   push:
     branches: [main]
     paths: ['.github/workflows/grounded-motion-repair.yml']
 permissions:
-  contents: write
+  contents: read
   actions: write
 jobs:
-  repair:
+  dispatch:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Preserve preview quality across legacy and opening journeys
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          path=Path('client/Tests/NewPlayerJourneyUiChecks.cs')
-          text=path.read_text(encoding='utf-8')
-          old='''            check(objective.TooltipText.Contains(data.Quest("main_01").Name, StringComparison.Ordinal) && objective.TooltipText.Contains(data.Item("sealed_letter").Name, StringComparison.Ordinal),
-                "Objective details preserve the real quest and reward preview at " + size);'''
-          new='''            bool legacyPreview = objective.TooltipText.Contains(data.Quest("main_01").Name, StringComparison.Ordinal)
-                && objective.TooltipText.Contains(data.Item("sealed_letter").Name, StringComparison.Ordinal);
-            bool openingPreview = objective.TooltipText.Contains("Medicine for the Road", StringComparison.Ordinal)
-                && objective.TooltipText.Contains("Rare class weapon", StringComparison.Ordinal);
-            check(legacyPreview || openingPreview,
-                "Objective details preserve the real quest and deterministic reward preview at " + size);'''
-          if text.count(old)!=1: raise RuntimeError('Native preview assertion changed unexpectedly')
-          path.write_text(text.replace(old,new),encoding='utf-8',newline='\n')
-          PY
-          git diff --check
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add client/Tests/NewPlayerJourneyUiChecks.cs
-          git commit -m 'test(onboarding): recognize versioned opening reward preview'
-          git push origin HEAD:main
-      - name: Dispatch verified opening integration
+      - name: Dispatch verified opening integration at current main
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
