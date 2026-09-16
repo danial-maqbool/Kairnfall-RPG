@@ -48,10 +48,10 @@ def plan(library:Path,output:Path,keys:list[str])->tuple[list[tuple[str,Path,str
     for key in sorted(keys):
         group=PurePosixPath(key).parts[0]
         if group not in GROUPS: continue
+        destination=safe_path(output,key)
+        if not destination.is_file():
+            raise ValueError('Project asset generator did not create required runtime asset: '+key)
         if group in ACTOR_GROUPS:
-            destination=safe_path(output,key)
-            if not destination.is_file():
-                raise ValueError('Grounded-2026 actor generator did not create required runtime asset: '+key)
             with Image.open(destination) as current:
                 if current.mode!='RGBA' or current.getchannel('A').getbbox() is None:
                     raise ValueError('Grounded-2026 actor output is empty or non-RGBA: '+key)
@@ -65,7 +65,7 @@ def plan(library:Path,output:Path,keys:list[str])->tuple[list[tuple[str,Path,str
                             raise ValueError(f'Blank Grounded-2026 actor frame: {key}/{row}/{frame}')
             skipped.append({'key':key,'reason':'Grounded-2026 runtime actor source owns this key; historical Atelier actor bytes are inactive'})
             continue
-        source=safe_path(library,key); destination=safe_path(output,key)
+        source=safe_path(library,key)
         if key not in entries or not source.is_file():
             skipped.append({'key':key,'reason':'No matching Atelier source; keep generated project art'}); continue
         entry=entries[key]
@@ -100,16 +100,17 @@ def integrate(library:Path,output:Path,keys:list[str])->dict:
             target=safe_path(output,key); target.parent.mkdir(parents=True,exist_ok=True); safe_path(stage,key).replace(target)
     retire_authored_hero(output)
     counts=dict(sorted(Counter(key.split('/')[0] for key,_,_ in selected).items()))
+    coverage=dict(sorted(Counter(key.split('/')[0] for key in keys if key.split('/')[0] in GROUPS).items()))
     actor_skips=[entry for entry in skipped if entry['key'].split('/')[0] in ACTOR_GROUPS]
     expected_actor_count=sum(1 for key in keys if key.split('/')[0] in ACTOR_GROUPS)
     if len(actor_skips)!=expected_actor_count:
         raise ValueError('An actor key unexpectedly entered the historical Atelier copy path')
-    report={'schema':2,'source':'atelier/Assets','source_manifest_sha256':hashlib.sha256((library/'manifest.json').read_bytes()).hexdigest(),
-            'integrated':len(selected),'groups':counts,'skipped':skipped,
+    report={'schema':3,'source':'atelier/Assets','source_manifest_sha256':hashlib.sha256((library/'manifest.json').read_bytes()).hexdigest(),
+            'integrated':len(selected),'groups':counts,'coverage':coverage,'skipped':skipped,
             'actor_runtime_source':'Grounded-2026 procedural construction','actor_historical_fallbacks':0,
             'historical_actor_bytes_active':False,'catalog_ids_changed':False,'independent_gear_ladder_imported':False,
             'visual_approval':'not_granted_by_integrity_checks','assets':[{'key':key,'sha256':digest} for key,_,digest in selected]}
     (output/'atelier-integration.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     (output/'ATELIER_CREDITS.txt').write_text((library/'CREDITS.txt').read_text(encoding='utf-8'),encoding='utf-8')
-    print('ATELIER INTEGRATION:',len(selected),'non-actor catalog assets;',counts,'; inactive/other skips:',len(skipped),'; Grounded-2026 actor fallbacks: 0',flush=True)
+    print('ATELIER INTEGRATION:',len(selected),'historical non-actor catalog assets;',counts,'; runtime coverage:',coverage,'; generated/inactive skips:',len(skipped),'; Grounded-2026 actor fallbacks: 0',flush=True)
     return report
