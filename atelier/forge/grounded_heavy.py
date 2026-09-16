@@ -27,7 +27,11 @@ def _finish(stage: Stage, motion):
 def _bear_paw(stage: Stage, x: float, tone, pale, near: bool = True):
     """Broad plantigrade sole anchored to the common ground baseline."""
     fill = tone[3 if near else 2]
-    stage.ellipse((x, .78), 4.15 if near else 3.75, 1.05, fill)
+    # Keep the sole centred on the shared ground-contact row rather than
+    # placing that row at the ellipse edge. This preserves a genuinely broad
+    # plantigrade footprint in front/rear views while staying inside the
+    # 57-pixel lower presentation bound.
+    stage.ellipse((x, .28), 4.15 if near else 3.75, 1.05, fill)
     claw = pale[1]
     for offset in (-2.2, 0, 2.2):
         stage.line([(x + offset - .55, .72), (x + offset + .55, .45)], claw, .65)
