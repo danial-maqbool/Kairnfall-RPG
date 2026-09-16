@@ -94,6 +94,9 @@ jobs:
           replace(core,'    public static bool Eligible(Character p) =>','    public static string RewardTemplate(string classId) => "opening_" + classId + "_weapon";\n    public static bool Eligible(Character p) =>')
           replace(core,'        var def = data.Item(data.Class(p.Class).Weapon);','        var def = data.Item(RewardTemplate(p.Class));')
           replace(core,'        + data.Item(data.Class(p.Class).Weapon).Name','        + data.Item(RewardTemplate(p.Class)).Name')
+          replace(core,'=> new(stage, "Medicine for the road",','=> new(stage, "Medicine for the Road",')
+          replace(core,'"Rare class weapon + medicine supplies + " + data.Quest(FightQuest).Gold + " gold"','RewardDescription(data, p) + " +" + data.Quest(FightQuest).Gold + " gold"')
+          replace(core,'"Rare class weapon + potion ingredients + " + data.Quest(FightQuest).Gold + " gold"','RewardDescription(data, p) + " +" + data.Quest(FightQuest).Gold + " gold"')
           checks='tools/world_probe/OpeningJourneyChecks.cs'
           replace(checks,'reward.Template == cls.Weapon && reward.Rarity == Rarity.Rare && reward.Sockets == 1',
               'reward.Template == OpeningJourney.RewardTemplate(cls.Id) && data.Item(reward.Template).Skill == data.Item(cls.Weapon).Skill && data.Item(reward.Template).Tags.Contains("opening_reward") && reward.Rarity == Rarity.Rare && reward.Sockets == 1')
