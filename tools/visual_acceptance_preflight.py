@@ -10,6 +10,10 @@ from pathlib import Path
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
+# The active art wrappers live under tools/ but Grounded-2026 construction lives
+# under atelier/. CI invokes this script by path, so include both import roots
+# explicitly rather than depending on the runner's working-directory semantics.
+sys.path.insert(0,str(ROOT))
 sys.path.insert(0,str(ROOT/'tools'))
 from art.common import STATES
 from art.people import SKINS,HAIRS,body_frame,hair_frame,equipment_frame
