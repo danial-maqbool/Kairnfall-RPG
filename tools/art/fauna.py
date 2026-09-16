@@ -12,6 +12,7 @@ from atelier.forge.grounded_constructs import render_construct
 from atelier.forge.grounded_flying import render_flying_attack
 from atelier.forge.grounded_heavy import render_arachnid, render_bear
 from atelier.forge.grounded_spirits import render_spirit
+from atelier.forge.grounded_chelonians import render_chelonian
 
 
 def frame(definition, state, number, direction):
@@ -21,6 +22,8 @@ def frame(definition, state, number, direction):
         return render_bear(definition,state,number,direction,spec)
     if family in {'spider','quartz_spider'}:
         return render_arachnid(definition,state,number,direction,spec)
+    if family in {'turtle','tortoise'}:
+        return render_chelonian(definition,state,number,direction,spec)
     if spec.archetype in {'construct','mineral','mimic'}:
         return render_construct(definition,state,number,direction,spec)
     if spec.archetype in {'spirit','elemental'}:

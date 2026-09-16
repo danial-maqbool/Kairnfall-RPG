@@ -11,7 +11,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT)); sys.path.insert(0,str(ROOT/'tools'))
-from content_src import skills,items,abilities,mobs,encounter_variety,boss_uniques,world,dungeon_depth,profession_depth,exploration_rewards,quests,world_density,presentation,gear_progression
+from content_src import skills,items,abilities,mobs,encounter_variety,boss_uniques,world,dungeon_depth,profession_depth,exploration_rewards,quests,world_density,presentation,gear_progression,opening_journey
 from art import items as item_art, humanoid
 from art.common import STATES
 spec=importlib.util.spec_from_file_location('equipment_progression_builder',ROOT/'tools/build_content.py')
@@ -72,8 +72,13 @@ class EquipmentProgressionTests(unittest.TestCase):
             current=recipes[recipe['id']]
             for field in protected_recipe_fields:
                 self.assertEqual(recipe.get(field),current.get(field),recipe['id']+'/'+field)
-        for key in ('skills','classes','abilities','mobs','resources','quests','zones'):
+        for key in ('skills','classes','abilities','mobs','resources','zones'):
             self.assertEqual(self.base[key],self.data[key],key)
+        # Existing quest records remain exactly stable.  The only permitted catalog
+        # additions here are the two explicitly versioned first-session quests.
+        before={q['id']:q for q in self.base['quests']}; now={q['id']:q for q in self.data['quests']}
+        for ident,quest in before.items(): self.assertEqual(quest,now[ident],ident)
+        self.assertEqual(set(now)-set(before),{opening_journey.FIGHT_QUEST,opening_journey.CRAFT_QUEST})
 
     def test_npc_identity_position_and_old_stock_are_preserved(self):
         now={n['id']:n for n in self.data['npcs']}
@@ -92,6 +97,18 @@ class EquipmentProgressionTests(unittest.TestCase):
             expanded={r['output'] for r in self.data['recipes'] if set(r['ingredients'])<=reachable}
             if expanded<=reachable: break
             reachable|=expanded
+        # Opening weapons are deliberately not generic merchant/drop/recipe output:
+        # the authoritative OpeningJourney awards exactly one class-compatible item.
+        expected_opening=set()
+        for cls in self.data['classes']:
+            ident='opening_'+cls['id']+'_weapon'; expected_opening.add(ident)
+            reward=self.lookup[ident]
+            self.assertIn('opening_reward',reward.get('tags',[]),ident)
+            self.assertIn('class:'+cls['id'],reward.get('tags',[]),ident)
+            self.assertEqual(reward['skill'],self.lookup[cls['weapon']]['skill'],ident)
+        tagged={item['id'] for item in self.data['items'] if 'opening_reward' in item.get('tags',[])}
+        self.assertEqual(tagged,expected_opening);self.assertEqual(len(tagged),8)
+        reachable|=tagged
         self.assertFalse(self.new-reachable,sorted(self.new-reachable))
 
     def test_added_recipes_have_no_forward_skill_gate_or_recipe_cycle(self):
