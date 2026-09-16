@@ -28,7 +28,6 @@ def _bear_paw(stage: Stage, x: float, tone, pale, near: bool = True):
     """Broad plantigrade sole anchored to the common ground baseline."""
     fill = tone[3 if near else 2]
     stage.ellipse((x, .78), 4.15 if near else 3.75, 1.05, fill)
-    # Toe/claw articulation changes the outline without extending below ground.
     claw = pale[1]
     for offset in (-2.2, 0, 2.2):
         stage.line([(x + offset - .55, .72), (x + offset + .55, .45)], claw, .65)
@@ -38,12 +37,9 @@ def _bear_front_back(stage: Stage, spec, motion, direction: int, polar: bool):
     coat, dark, pale = _ramps(spec)
     back = direction == 3
     body_y = (16.8 if polar else 16.2) + motion['bob'] - motion['crouch'] * .32
-    # Polar bears carry their legs slightly closer under the heavier trunk.
     left = -10.5 if polar else -12.5
     right = 10.5 if polar else 12.5
 
-    # Far legs, trunk, then near legs establish true occlusion while both leg
-    # columns remain continuous from the shoulder mass into the planted paws.
     for x in (left, right):
         stage.segment((x, body_y - .7), (x, 1.25), 6.4, 5.9, coat[2])
         _bear_paw(stage, x, coat, pale, False)
@@ -76,8 +72,6 @@ def _bear_side(stage: Stage, spec, motion, direction: int, polar: bool):
     body_y = (16.4 if polar else 15.9) + motion['bob'] - motion['crouch'] * .34
     bases = (-11.5, -5.4, 5.4, 11.5)
 
-    # Four separately articulated legs keep the side silhouette readable and
-    # preserve broad ground contact even at full stride.
     for index, base in enumerate(bases):
         gait = math.cos(motion['phase'] + (index % 2) * math.pi) * 2.0 * motion['stride']
         foot_x = base + gait
@@ -104,8 +98,6 @@ def _bear_death(stage: Stage, spec, motion, direction: int, polar: bool):
     coat, dark, pale = _ramps(spec)
     collapse = motion['collapse']
     facing = 1 if direction == 2 else -1 if direction == 1 else 0
-    # The trunk settles and lengthens along the floor instead of rotating a
-    # standing sprite. Paws remain visible as the weight collapses over them.
     stage.ellipse((facing * collapse * 1.8, 5.2 - collapse * .8),
                   14.4 + collapse * 2.5, 4.9 - collapse * .55, coat[3])
     for index, x in enumerate((-11.5, -4.0, 4.0, 11.5)):
@@ -133,7 +125,7 @@ def render_bear(definition, state, number, direction, spec):
     return _finish(stage, motion)
 
 
-def _wood_spider(stage: Stage, spec, motion, direction: int):
+def _wood_spider(stage: Stage, spec, motion, state: str, direction: int):
     coat, dark, pale = _ramps(spec)
     side = direction in (1, 2)
     facing = 1 if direction == 2 else -1 if direction == 1 else 0
@@ -143,8 +135,6 @@ def _wood_spider(stage: Stage, spec, motion, direction: int):
     abdomen = (-facing * 2.8 + drive * .18, y + .35)
     head = (facing * 4.0 + drive * .46, y + (1.25 if direction == 0 else -.15))
 
-    # Organic wood spiders have a pear-shaped rounded abdomen and low, kinked
-    # legs. Their joints do not share the quartz spider's crystalline geometry.
     stage.ellipse(abdomen, 6.6, 4.8, coat[3])
     stage.ellipse((abdomen[0] - facing * 1.2, abdomen[1] + 1.1), 4.3, 2.7, coat[4], None)
     stage.ellipse(head, 4.0, 3.25, dark[3])
@@ -171,7 +161,7 @@ def _wood_spider(stage: Stage, spec, motion, direction: int):
         stage.line([(head[0] + 1.3, head[1] - 2.1), (head[0] + .5, head[1] - 3.0)], pale[1], .9)
 
 
-def _quartz_spider(stage: Stage, spec, motion, direction: int):
+def _quartz_spider(stage: Stage, spec, motion, state: str, direction: int):
     coat, dark, pale = _ramps(spec)
     glow = pigment.ramp(spec.glow or '#8fb9c8')
     side = direction in (1, 2)
@@ -182,8 +172,6 @@ def _quartz_spider(stage: Stage, spec, motion, direction: int):
     body_x = -facing * 1.8 + drive * .16
     head_x = facing * 5.0 + drive * .5
 
-    # Quartz spiders are constructed from faceted plates and tall angular legs;
-    # the silhouette and joint topology intentionally differ from wood spiders.
     stage.poly([(body_x - 6.8, y), (body_x - 3.2, y + 5.8),
                 (body_x + 3.4, y + 5.0), (body_x + 7.0, y),
                 (body_x + 2.8, y - 4.5), (body_x - 3.7, y - 4.2)], coat[3])
@@ -225,7 +213,7 @@ def render_arachnid(definition, state, number, direction, spec):
     stage = Stage(size)
     motion = _motion(state, number)
     if definition.get('family') == 'quartz_spider':
-        _quartz_spider(stage, spec, motion, direction)
+        _quartz_spider(stage, spec, motion, state, direction)
     else:
-        _wood_spider(stage, spec, motion, direction)
+        _wood_spider(stage, spec, motion, state, direction)
     return _finish(stage, motion)
