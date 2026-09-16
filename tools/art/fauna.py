@@ -10,11 +10,17 @@ from atelier.forge import beasts as anatomy
 from atelier.forge.grounded_beasts import render_frame
 from atelier.forge.grounded_constructs import render_construct
 from atelier.forge.grounded_flying import render_flying_attack
+from atelier.forge.grounded_heavy import render_arachnid, render_bear
 from atelier.forge.grounded_spirits import render_spirit
 
 
 def frame(definition, state, number, direction):
     spec=anatomy.describe(definition)
+    family=definition.get('family','')
+    if family in {'bear','polar_bear'}:
+        return render_bear(definition,state,number,direction,spec)
+    if family in {'spider','quartz_spider'}:
+        return render_arachnid(definition,state,number,direction,spec)
     if spec.archetype in {'construct','mineral','mimic'}:
         return render_construct(definition,state,number,direction,spec)
     if spec.archetype in {'spirit','elemental'}:
