@@ -1,88 +1,83 @@
 # New-player experience — verification evidence
 
-Status date: **2026-09-15**.
-Repository: `danial-maqbool/Kairnfall-RPG`; persistent branch: **main only**.
-Implementation baseline: **4214c57692bd70196f4c50db0a95ca6f2a510f31**.
-Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.
+Status date: **2026-09-16**.  
+Repository: `danial-maqbool/Kairnfall-RPG`; persistent branch: **main only**.  
+Implementation baseline: **`7b11027ba913781443871ece56c8ab13008408d5`**.  
+Machine-readable evidence: `docs/handoff/CURRENT_EVIDENCE.json`.  
 Release status: **NOT APPROVED — human acceptance remains.**
 
 ## Exact implementation-head workflows
 
-Every run below completed successfully at the implementation SHA above before current-evidence synchronization. Run identifiers refer to this repository's GitHub Actions; no candidate-only or earlier-head success substitutes for these runs.
+Every evidence-required technical workflow below completed successfully on `main` at the exact implementation SHA above. Earlier-head or candidate-only successes are not substituted.
 
 | Workflow | Run ID | Conclusion |
 | --- | ---: | --- |
-| Transaction security regression | 34916653785 | success |
-| Compile Windows client source | 34916653731 | success |
-| Live progression breadth | 34916653737 | success |
-| Windows package acceptance | 34916653734 | success |
-| Graphical multiplayer acceptance | 34916653638 | success |
-| Load acceptance | 34916653673 | success |
-| Build and verify | 34916653837 | success |
-| Task 13 adversarial acceptance | 34916653645 | success |
-| Release operations acceptance | 34916653651 | success |
-| Transaction integrity on Windows and Linux | 34916653845 | success |
-| New-player journey | 34916653660 | success |
-| Windows native input and display | 34916653650 | success |
-| Visual acceptance | 34916653656 | success |
+| Transaction security regression | `35103673287` | success |
+| Compile Windows client source | `35103673135` | success |
+| Live progression breadth | `35103673160` | success |
+| Windows package acceptance | `35103673233` | success |
+| Graphical multiplayer acceptance | `35103673163` | success |
+| Load acceptance | `35103673246` | success |
+| Build and verify | `35103673180` | success |
+| Task 13 adversarial acceptance | `35103673247` | success |
+| Release operations acceptance | `35103673242` | success |
+| Transaction integrity on Windows and Linux | `35103673240` | success |
+| New-player journey | `35103673241` | success |
+| Grounded actor acceptance | `35103673162` | success |
+| Visual acceptance matrix | `35103673155` | success |
+| Windows display and input acceptance | `35103673222` | success |
 
-The first eleven are required by the live documentation-evidence guard; the two supplemental native/visual workflows also passed. Visual acceptance is automated structure/presentation verification, not independent artistic approval. Release-operations acceptance is a disposable database backup/restore/fail-closed drill, not a deployment. Windows package output is a non-publishable CI artifact, not a release.
+Supplemental **Audio acceptance** run `35103673192` also succeeded at the same SHA. Pre-synchronization Documentation evidence contract run `35103673245` failed for the intended reason: the checked-in ledger still named the older implementation. Its guard regressions remained active. This failure is not treated as acceptance evidence; the documentation-only delivery head must pass a fresh live evidence check.
 
-## Dedicated artifact and measured checks
+## Opening journey evidence
 
-Journey run `34916653660` produced artifact `10377072147`, named `new-player-journey-4214c57692bd70196f4c50db0a95ca6f2a510f31`.
-Artifact digest: `sha256:fbe0f9534937eabd46ec9b323919f6fd3654ac923ad4709943a4e3b60e52053b`.
-Its `revision.txt` equals the implementation baseline. The logs and fresh-spawn/combat frames were retrieved through the connected GitHub integration and inspected.
+New-player journey run `35103673241` produced artifact **`10450286172`**, named `new-player-journey-7b11027ba913781443871ece56c8ab13008408d5`, size **2,122,591 bytes**, SHA-256 `ede37346a70897518559747eb008068676ed44bc885d996573116afa0571242d`.
 
-| Check | Verified result |
+| Check | Exact result |
 | --- | --- |
-| Standalone new-player journey | 12/12 groups |
-| Native player experience, including onboarding | 328 checks |
-| Native control rules | 1,165 checks |
-| Native XP HUD | 9 checks |
-| Native signal and input routing | passed |
-| Real-server/PostgreSQL native experience | 125 checks |
-| Core regression | 38 passed, zero failed |
-| Gameplay/malformed-input review | 34 passed, zero failed |
-| Transaction security | 13 passed, zero failed |
-| Isolated security probe | 5 passed, zero failed |
-| Real-network integration | 20 passed, zero failed |
-| Isolated database review | 5 passed, zero failed |
-| Python handoff/guard regression | 139 tests passed, including 10 new evidence-guard tests |
-| Full retained world probe | passed, including living public events, persistence, social, crafting and progression checks |
-| Retained Task 21 dungeon depth | 3 passed, zero failed |
-| Retained Task 22 endgame loops | 5 passed, zero failed |
+| Retained new-player journey | `12/12` groups passed |
+| Authoritative opening journey | `5/5` groups passed |
+| Classes through opening | `8/8` |
+| Native player-experience contract | `442` checks passed |
+| Native control/layout contract | `1,169` checks passed |
+| Real-server/PostgreSQL live experience | `125` checks passed |
 
-The standalone journey log records ordinary quest acceptance, combat, owned loot, rune insertion, plank/handle crafting, quest claim and arrival at Dawnreach, reaching character level 3 through existing awards. Replay of the same quest receipt immediately and after state reload does not duplicate rewards. Fresh duplicate claims are rejected. The clock and reachable interaction proximity are controlled fixtures; this does not measure human time-to-kill or an unassisted session duration.
+The opening probe covers Bren Gale → two Field Rats → exactly-once class-compatible Rare reward + potion ingredients → normal Inventory equip → ordinary Healing Potion craft → return/world handoff. It also covers full-inventory atomic rollback, pending-reward protection/recovery, reward replay, reconnect/restart, death/respawn, valid out-of-order milestone retention, old-character exclusion and all eight class reward mappings. Combat completion comes from server-owned kill credit, not an attack/cast attempt.
 
-The native onboarding matrix covers fourteen combinations: 1024x720 at native content scale, plus 1280x720 and 1920x1080 at 100%, 125% and 150% content scale, each with 100% and 125% text scale. Assertions require actual visible line/glyph height, not just nonempty text or a metadata marker. They check containment and separation from chat, minimap, target frame, hotbar, navigation, attack/interact/target/dash buttons and the class-resource meter. Current-head frames show a readable starter movement tip, real objective/reward, non-overlapping welcome notice and an actual level-up maximum-health delta.
+Automated proximity and deterministic fixtures prove a reachable coherent path; they do not establish an uncoached human twenty-minute completion time or retention lift.
 
-## Acceptance coverage
+## Actor migration and visual evidence
 
-| Requested behavior | Automated evidence |
-| --- | --- |
-| Fresh valid objective; uninterrupted normal early sequence | Dedicated fresh fixture and `Next()` validation after real movement, talk, combat, loot, crafting, quest and transition APIs |
-| Hint persistence, old saves and established-character eligibility | Serialized reload, missing-discovery defaults, old-character exclusion and real-server reconnect checks |
-| Real level-up and real usable equipment upgrades | Authoritative before/after progression, socket/equip commands, non-regressive stat comparison, no fake login banner |
-| Guidance cannot award XP/items/gold/reputation or skip quests | Allowlist and payload rejection, unchanged economy snapshots, rejected-command rollback, creation-only eligibility |
-| Exactly-once reward and reconnect/replay protection | Existing quest/event receipts, saved claim state and noncontributor rejection; no new tutorial reward exists |
-| Low-population multiplayer path | Solo public-event scheduling/participation/reward fixture and truthful zero-nearby-player native UI |
-| Existing Task 20/21/22 systems | Full world probe, public-event contribution regression, dungeon/boss cleanup/exactly-once checks and faction/endgame contract/reputation tests |
-| No overworld expansion | No authored `content_src` changes from starting main; serialized zone-footprint assertion; no new region or instance |
-| Windows and existing suites | Exact-head Windows compile/native/package plus full core/world/security/adversarial/database/network workflows |
+Grounded actor acceptance run `35103673162` succeeded on the exact implementation SHA. Its artifact is **`10450285632`**, `grounded-actors-7b11027ba913781443871ece56c8ab13008408d5`, size **24,799,957 bytes**, SHA-256 `dd15ff16cc16dae7c32faecb25aac1bd2b586309310126635f413633ade86964`.
 
-## Failure history retained
+The verified Grounded-2026 set contains **1,245 active actor sheets**, **239,040 nonblank state/direction/frame cells**, **5,322 anatomy-appropriate motion checks**, **1,237 replaced historical actor hashes**, and **zero actor fallbacks**. The measured active actor PNG footprint is **21,305,167 bytes**: people 1,649,840; equipment 12,726,680; NPC roles 2,180,429; mobs 4,748,218. Representative player/equipment/mob action/death states render through Godot; structural/native rendering evidence does not constitute independent artistic approval.
 
-Candidate `0d04aca0ff18694311e0aeae64f14f95e8a67f68` passed candidate run `34912895819` and was integrated in `d5ac8c64b5822987f8ec0e34d5b165adf526ad2d`. Native-frame inspection exposed zero-height wrapped tips and welcome notices behind combat controls that marker-only checks had missed. Commit `bf7f79e5136006592e0038b04b9633a19fbf0725` reserved real scaled-font hint height, adjusted compact geometry and added stronger native assertions.
+The Visual acceptance matrix `35103673155` also passed its exact-head deterministic asset and native presentation checks. `docs/ASSET_MIGRATION_FIRST_HOUR_UI.md` is the migration manifest.
 
-Those assertions correctly failed journey run `34915571582` at `3fdca6068b2e2688b9815ffd88541da34876b994`: the 1920x1080 desktop notification at 125% text scale extended into the class-resource HUD. Commit `4214c57692bd70196f4c50db0a95ca6f2a510f31` reserves two notification rows in both compact and desktop layouts. The same assertions passed in `34916653660`; none were removed or weakened.
+## UI/Windows acceptance
 
-Documentation run `34916653612` at the implementation baseline failed because current evidence still named Task 22. Its ten guard regressions passed. This was not treated as successful: evidence promotion was intentionally withheld until all functional workflows passed. The documentation-only delivery commit resolves the stale current-workstream record, preserves the previous Task 22 JSON blob verbatim and must pass a fresh documentation run at its own head.
+`PageLayoutProfiles` drives real page geometry and purpose summaries while the existing Task #12 modal/input/focus architecture remains in force. Exact-head Windows display and input acceptance `35103673222` passed. Permanent native coverage includes 1024×720, 1280×720, 1920×1080 and 2560×1440, supported text scaling, additional content-scale emulation, keyboard/mouse activation, modal input blocking, background-focus suspension/restoration, Escape behavior, overflow scrolling, settings persistence, malformed setting recovery, stale context-menu dismissal, and `Error ·` text that does not rely on color alone.
 
-## Delivery-head contract and limits
+Physical monitor DPI, hardware-specific input feel and subjective usability remain human-only gates.
 
-A handoff commit contains only `docs/**` and root `HANDOFF.md`, so it cannot change the verified gameplay, tests or workflows. The evidence guard independently verifies each required recorded run through the read-only Actions API, its exact implementation SHA/branch/repository/identity and completed-success status. Workflow, tooling, test or source edits invalidate the baseline. The guard also checks the seven temporary files are absent and archived Task 22 evidence has the original Git blob SHA `f6623a46db658f3f8c9ef3656a74722583380233`.
+## Windows package evidence
 
-Fresh delivery-head Actions, including documentation, build, adversarial, journey and other triggered gates, are required in addition to this baseline evidence. Their status is attached to the exact main commit in Actions, avoiding an impossible self-referential documentation SHA. Before final delivery, confirm that comparison against the implementation is documentation-only and the remote branch list still contains only `main`.
+Windows package acceptance `35103673233` succeeded on the exact implementation SHA, including clean Windows x86_64 export, packaged executable launch, restart/reconnect and native smoke coverage. Its non-published CI artifact is **`10450049656`**, `windows-package-7b11027ba913781443871ece56c8ab13008408d5`, archive size **56,319,111 bytes**, SHA-256 `9054e6367082e4c4768ebceece4b59076b62f13c5173a599bcdc805b954977ba`.
 
-No release, publication, deployment, release tag, production infrastructure change, permanent branch, pull request or issue was created for this work. Temporary candidate/edit/overlay request files and workflows are removed; the retained journey workflow is permanent regression coverage. Human first-hour timing, retention, subjective balance, artistic/audio approval and physical Windows hardware acceptance remain unmeasured or unapproved; they are not inferred from compilation, automated fixtures or generated asset counts.
+No like-for-like historical package measurement was captured for this pass, so no package-size delta is claimed. The artifact is acceptance evidence, not a release or deployment.
+
+## Load/performance evidence
+
+Load acceptance `35103673246` exercised **2, 10, 25 and 50 real clients for 20 seconds per stage**. Aggregate snapshot p95 was **204.8 ms**; final rolling tick p95 was **42.8 ms**; maximum sampled server RSS was **647,120 KiB**; and the 50-client stage included **10 reconnects**. This is a bounded CI reference target, not a public production-capacity claim.
+
+## Persistence, security and compatibility
+
+Build, adversarial, transaction-security, Windows/Linux transaction-integrity and release-operations acceptance all passed at the exact implementation head. The opening uses ordinary authoritative persistence/transaction rules, old characters are not reset, historical `first_hour` markers remain compatible, and presentation acknowledgements cannot manufacture XP, items, gold, reputation, quest completion or event contribution. The implementation adds zero new overworld regions and no deployment/production-infrastructure change.
+
+Relative to starting main `dff9f170f25f44c8ae024e8d94133f72d63f6446`, the only authored `content_src` addition/change is `content_src/opening_journey.py`. The previous Task 22 evidence remains archived verbatim, and temporary candidate/repair/diagnostic workflows are absent.
+
+## Delivery-head contract and human-only gates
+
+The synchronized delivery commit contains documentation only, so it does not change the verified gameplay/tests/workflows. `tools/documentation_contract.py` independently checks the exact implementation SHA, each required run's ID/name/branch/repository/conclusion, the single-main policy, authored-content footprint, archived Task 22 blob, zero temporary tooling, Grounded source/fallback boundary, UI resolution matrix and release-authorization limits.
+
+Repository-side technical completion does **not** approve artistic quality, uncoached first-hour pacing/retention, class/economy feel, audio by listening, a full ordinary-account walkthrough, physical Windows DPI/hardware input, owner-machine package behavior, or production-scale capacity. Publication, deployment and release approval remain separate and unauthorized.
