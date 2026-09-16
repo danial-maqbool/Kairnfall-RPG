@@ -127,6 +127,7 @@ jobs:
           python -m pip install --disable-pip-version-check Pillow==12.0.0
           python tools/build_content.py
           python tools/build_game_assets.py
+          python tools/complete_skill_icons.py
           python tools/validate_game_assets.py
           python tools/validate_grounded_actor_assets.py
           dotnet build client/Kairnfall.Client.csproj -c Release
