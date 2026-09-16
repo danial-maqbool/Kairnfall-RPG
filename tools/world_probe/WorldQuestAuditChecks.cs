@@ -72,7 +72,7 @@ internal static class WorldQuestAuditChecks
             });
         }
 
-        var knownActions=new HashSet<string>(["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant","survey"],StringComparer.Ordinal);
+        var knownActions=new HashSet<string>(["gather","craft","talk","deliver","chart","explore","boss","read","build","trade","socket","chest","kill","cast","plant","survey","opening_kill","opening_equip","opening_craft"],StringComparer.Ordinal);
         foreach(var quest in data.Quests)
         {
             Test("quest anchors "+quest.Id,()=>
@@ -85,6 +85,9 @@ internal static class WorldQuestAuditChecks
                     Need(objective.Count>0,"Objective count is not positive.");
                     bool resolved=objective.Action switch
                     {
+                        "opening_kill" => quest.Id==OpeningJourney.FightQuest && objective.Target==OpeningJourney.Foe && objective.Count==OpeningJourney.KillGoal && realm.State.Creatures.Values.Count(c=>c.Zone==OpeningJourney.Home && c.Template==objective.Target)>=OpeningJourney.KillGoal,
+                        "opening_equip" => quest.Id==OpeningJourney.CraftQuest && objective.Target=="weapon" && objective.Count==1 && data.Classes.All(c=>data.Item(c.Weapon).Slot=="weapon"),
+                        "opening_craft" => quest.Id==OpeningJourney.CraftQuest && objective.Target=="healing_potion" && objective.Count==1 && data.Recipe(OpeningJourney.Recipe).Output==objective.Target && data.Npcs.Any(n=>n.Zone==OpeningJourney.Home && n.Station==data.Recipe(OpeningJourney.Recipe).Station),
                         "talk" => data.Npcs.Any(n=>n.Id==objective.Target),
                         "explore" or "chart" => data.Zones.Any(z=>z.Id==objective.Target),
                         "boss" => data.Mobs.Any(m=>m.Id==objective.Target&&m.Boss)&&realm.State.Creatures.Values.Any(c=>c.Template==objective.Target),

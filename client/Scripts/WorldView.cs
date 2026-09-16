@@ -407,8 +407,8 @@ public partial class WorldView : Control
                 }
                 if (Snapshot is { } s)
                 {
-                    bool turnIn = Data.Quests.Any(q => q.Giver == npc.Id && s.Self.Quests.TryGetValue(q.Id, out var progress) && !progress.Complete && q.Objectives.Select((objective, i) => i < progress.Counts.Count && progress.Counts[i] >= objective.Count).All(x => x));
-                    bool available = Data.Quests.Any(q => q.Giver == npc.Id && !s.Self.Quests.ContainsKey(q.Id) && !s.Self.CompletedQuests.Contains(q.Id) && (q.Prerequisite == "" || s.Self.CompletedQuests.Contains(q.Prerequisite)));
+                    bool turnIn = Data.Quests.Any(q => q.Giver == npc.Id && s.Self.Quests.TryGetValue(q.Id, out var progress) && progress.Complete && q.Objectives.Select((objective, i) => i < progress.Counts.Count && progress.Counts[i] >= objective.Count).All(x => x));
+                    bool available = Data.Quests.Any(q => q.Giver == npc.Id && NewPlayerJourney.Available(s.Self,q,s.Time));
                     if (turnIn || available) Text(feet + new Vector2(0, -67), turnIn ? "?" : "!", Ui.Gold, 15);
                 }
                 break;

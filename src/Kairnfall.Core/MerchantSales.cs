@@ -71,6 +71,7 @@ public static class MerchantSales
             throw new RuleException("Move closer to the merchant.");
         if(quantity<=0||quantity>owned.Quantity||quantity>Math.Min(999,def.StackMax))
             throw new RuleException("Choose a quantity within this item's stack.");
+        if(OpeningJourney.Eligible(self)&&!OpeningJourney.Equipped(self)&&OpeningJourney.RewardId(self)==owned.Id) throw new RuleException("Equip your opening reward once before selling it. A stronger owned weapon also fulfils this step.");
         if(Items.Equipped(self,owned.Id)) throw new RuleException("Unequip this item before selling.");
         if(!Accepts(merchant,def,data))
             throw new RuleException(def.Type=="quest"||def.Value<=0?"This item cannot be sold.":"This merchant does not buy this item type.");

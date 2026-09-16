@@ -147,6 +147,7 @@ public sealed partial class RealmEngine
     }
     private string AcceptQuest(Character p,string id)
     {
+        Need(OpeningJourney.QuestVisible(p,id),"This opening quest belongs to a newly arrived character; your existing journey is unchanged.");
         var quest=Data.Quest(id); var npc=Data.Npc(quest.Giver); Near(p,npc.Zone,npc.Position,3);
         Need(!p.Quests.ContainsKey(id),"You already accepted this quest.");
         Need(quest.Repeatable||!p.CompletedQuests.Contains(id),"You already completed this quest.");
@@ -159,11 +160,13 @@ public sealed partial class RealmEngine
     }
     private string ClaimQuest(Character p,string id)
     {
+        Need(OpeningJourney.QuestVisible(p,id),"This opening quest belongs to a newly arrived character; your existing journey is unchanged.");
         var quest=Data.Quest(id); var npc=Data.Npc(quest.Giver); Near(p,npc.Zone,npc.Position,3);
         Need(p.Quests.TryGetValue(id,out var progress)&&progress.Complete,"This quest is not complete.");
         Need(quest.Repeatable||!p.CompletedQuests.Contains(id),"Reward already claimed.");
         foreach(var objective in quest.Objectives.Where(x=>x.Action=="deliver"))
             Items.Consume(p,objective.Target,objective.Count);
+        if(id==OpeningJourney.FightQuest) OpeningJourney.GrantFightReward(Data,p);
         Items.Grant(p,quest.Gold);
         if(quest.Reward!="") Items.Add(p.Inventory,Items.Create(Data,quest.Reward),Data);
         p.CompletedQuests.Add(id); p.Quests.Remove(id);

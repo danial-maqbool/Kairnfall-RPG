@@ -68,7 +68,7 @@ public static class NewPlayerJourney
         }
     }
 
-    public static bool Available(Character player, QuestDef quest, double now) => !player.Quests.ContainsKey(quest.Id)
+    public static bool Available(Character player, QuestDef quest, double now) => OpeningJourney.QuestVisible(player,quest.Id) && !player.Quests.ContainsKey(quest.Id)
         && (quest.Repeatable || !player.CompletedQuests.Contains(quest.Id))
         && Progression.PlayerLevel(player) >= quest.MinimumLevel
         && (quest.Prerequisite == "" || player.CompletedQuests.Contains(quest.Prerequisite))
@@ -83,6 +83,7 @@ public static class NewPlayerJourney
         var player = snapshot.Self;
         if (player.Health <= 0) return new("recovery", "Your journey continues", "Return to safety when ready",
             "Equipment is retained. Resume your current quest after recovery.", "No tutorial penalty", player.Zone, Panel: "");
+        if (OpeningJourney.Recommend(data,snapshot) is { } opening) return opening;
         bool beginner = Active(player);
         JourneyObjective Offer(QuestDef quest) => AtNpc(data, quest, "quest_offer", "Talk to " + data.Npc(quest.Giver).Name);
         if (beginner && Available(player, data.Quest("main_01"), snapshot.Time)) return Offer(data.Quest("main_01"));
@@ -302,6 +303,10 @@ public static class NewPlayerJourney
             : objective.Stage == "gather" ? "gather"
             : player.Quests.Count > 0 && !Seen(player, "quest") ? "quest"
             : Navigation(data, player, objective).Position is { } destination && destination.Distance(player.Position) > 10 ? "navigation" : "";
+        if (id == "craft" && OpeningJourney.Eligible(player) && !OpeningJourney.Finished(player))
+            return !Seen(player,id) ? new(id,"At the village alchemy table, open {crafting}. Select Healing Potions and make one batch: 2 Meadow Leaves + 1 Empty Vial make 2 useful potions. The recipe shows costs and missing requirements before you commit.") : null;
+        if (id == "combat" && OpeningJourney.Eligible(player) && !OpeningJourney.Finished(player))
+            return !Seen(player,id) ? new(id,"Use {target_next} to select one Field Rat, then hold {basic_attack} in weapon range. Move away from the attack warning; {dash} helps you leave danger but does not make you invulnerable. Return to the village after two victories.") : null;
         return id != "" && !Seen(player, id) ? new(id, Hints[id]) : null;
     }
 }

@@ -108,7 +108,7 @@ public partial class GameRoot
         var npc = Data.Npcs.FirstOrDefault(x => x.Id == selectedNpc);
         if (npc is null) return;
         var row = Ui.Row(page); row.AddChild(Ui.Image(Assets.Frame("npcs/" + npc.Role, 0, 0, 0), 110)); var text = Ui.Column(row);
-        text.AddChild(Ui.Label(npc.Name, 25, Ui.Gold)); text.AddChild(Ui.Label(Ui.Words(npc.Role) + " · " + Ui.Words(npc.Faction), 14, Ui.Muted)); text.AddChild(Ui.Label(npc.Dialogue, 17, Ui.Text, true));
+        text.AddChild(Ui.Label(npc.Name, 25, Ui.Gold)); text.AddChild(Ui.Label(Ui.Words(npc.Role) + " · " + Ui.Words(npc.Faction), 14, Ui.Muted)); text.AddChild(Ui.Label(OpeningDialogue(npc), 17, Ui.Text, true));
         var services = Ui.Row(page);
         if (npc.Stock.Length > 0) services.AddChild(Ui.Button("Trade goods", () => OpenPage("Shop")));
         if (npc.Role == "banker") services.AddChild(Ui.Button("Open bank", () => { selectedBag = "bank"; OpenPage("Bank"); }));
@@ -128,7 +128,7 @@ public partial class GameRoot
         void Render()
         {
             if (Snapshot is null) return; Ui.Clear(offers);
-            foreach (var quest in Data.Quests.Where(x => x.Giver == npc.Id))
+            foreach (var quest in Data.Quests.Where(x => x.Giver == npc.Id && OpeningJourney.QuestVisible(Snapshot.Self,x.Id)).OrderBy(x => OpeningJourney.IsOpeningQuest(x.Id) ? 0 : 1))
             {
                 bool active = Snapshot.Self.Quests.TryGetValue(quest.Id, out var progress);
                 bool complete = Snapshot.Self.CompletedQuests.Contains(quest.Id);
@@ -138,12 +138,18 @@ public partial class GameRoot
                 if (!active && ((!quest.Repeatable && complete) || !unlocked || cooldown)) continue;
                 var card = new PanelContainer(); offers.AddChild(card); var body = Ui.Column(card);
                 body.AddChild(Ui.Label(quest.Name + (quest.Repeatable ? " · Repeatable" : ""), 20, Ui.Gold)); body.AddChild(Ui.Label(quest.Story, 15, Ui.Text, true));
+                AddOpeningQuestDetails(body,quest);
                 foreach (var objective in quest.Objectives) body.AddChild(Ui.Label("• " + objective.Description, 14, Ui.Muted, true));
                 if (!levelReady) body.AddChild(Ui.Label($"Requires character level {quest.MinimumLevel}.", 14, Ui.Danger));
                 body.AddChild(Ui.Label($"Reward: {quest.Gold} gold" + (quest.Reward != "" ? " · " + Data.Item(quest.Reward).Name : ""), 14, Ui.Success));
-                if (!active) body.AddChild(Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc) || !levelReady));
-                else if (progress!.Complete) body.AddChild(Ui.Button("Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc)));
-                else body.AddChild(Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); }));
+                Button questAction;
+                if (!active) questAction = Ui.Button("Accept quest", () => Send("accept_quest", item: quest.Id), !NearNpc(npc) || !levelReady);
+                else if (progress!.Complete) questAction = Ui.Button(quest.Id == OpeningJourney.CraftQuest ? "Finish journey" : "Claim reward", () => Send("claim_quest", item: quest.Id), !NearNpc(npc));
+                else questAction = Ui.Button("Track objectives", () => { selectedQuest = quest.Id; OpenPage("Quests"); });
+                questAction.Name = "QuestAction_" + quest.Id;
+                questAction.SetMeta("quest_id", quest.Id);
+                questAction.SetMeta("quest_action", !active ? "accept" : progress!.Complete ? "claim" : "track");
+                body.AddChild(questAction);
             }
             if(npc.Role=="guild_registrar"&&EndgameLoops.IsFaction(npc.Faction))
             {
@@ -172,6 +178,7 @@ public partial class GameRoot
 
     private void BuildQuestsPage()
     {
+        if (page is not null) AddOpeningJournalRecap(page);
         if (page is null || Snapshot is null) return;
         var top = Ui.Row(page); top.AddChild(Ui.Button("Bestiary", () => OpenPage("Bestiary"))); top.AddChild(Ui.Button("Achievements and factions", () => OpenPage("Achievements")));
         var body = Ui.Row(page); body.SizeFlagsVertical = SizeFlags.ExpandFill;

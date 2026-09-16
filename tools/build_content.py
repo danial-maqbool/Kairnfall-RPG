@@ -8,13 +8,14 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from content_src import skills, items, abilities, mobs, encounter_variety, boss_uniques, world, dungeon_depth, profession_depth, exploration_rewards, quests, world_density, presentation, gear_progression, build_defining_loot
+from content_src import opening_journey, skills, items, abilities, mobs, encounter_variety, boss_uniques, world, dungeon_depth, profession_depth, exploration_rewards, quests, world_density, presentation, gear_progression, build_defining_loot
 
 
 def build() -> dict:
     data={name:[] for name in ['skills','classes','items','abilities','recipes','zones','mobs','resources','npcs','quests']}
     for module in [skills,items,abilities,mobs,encounter_variety,boss_uniques,world,dungeon_depth,profession_depth,exploration_rewards,quests,world_density,presentation,gear_progression,build_defining_loot]: module.build(data)
     profession_depth.finalize_values(data)
+    opening_journey.build(data)
     for category,entries in data.items():
         seen=set()
         for entry in entries:

@@ -112,7 +112,7 @@ public sealed partial class RealmEngine
         Items.Add(p.Inventory,Items.Create(Data,"wheat_seed",3),Data);
         Items.Add(p.Inventory,Items.Create(Data,"rune_embers_1"),Data);
         var stats=CombatMath.Stats(p,Data); p.Health=stats.Health; p.Mana=stats.Mana; p.Stamina=stats.Stamina;
-        p.Discoveries.Add(p.Zone); p.Discoveries.Add(NewPlayerJourney.EligibleKey); State.Characters.Add(p.Id,p); EconomicDirty=true;
+        p.Discoveries.Add(p.Zone); p.Discoveries.Add(NewPlayerJourney.EligibleKey); p.Discoveries.Add(OpeningJourney.EligibleKey); State.Characters.Add(p.Id,p); EconomicDirty=true;
         return p;
     }
     public CommandResult Execute(string character,GameCommand command)
@@ -144,6 +144,8 @@ public sealed partial class RealmEngine
             string message=Dispatch(p,command);
             FirstHourExperience.ObserveCommand(p,command);
             NewPlayerJourney.Observe(Data,backup.Characters[p.Id],p,command);
+            OpeningJourney.ObserveCommand(Data,p,command);
+            OpeningJourney.ValidatePendingRewardTransfers(backup,State);
             InvalidateTradeConsents();
             p.LastAction=command.Sequence;
             var result=Result(true,message);
@@ -396,6 +398,7 @@ public sealed partial class RealmEngine
     private void Progress(Character p,string action,string target,int amount=1)
     {
         if(amount<1) return;
+        OpeningJourney.ObserveActivity(p,action,target,amount);
         if(action=="kill"&&Data.Mobs.FirstOrDefault(x=>x.Id==target)?.Elite==true) FirstHourExperience.Mark(p,"miniboss");
         AdvanceGuildProject(p,action,amount);
         foreach(var entry in p.Quests)

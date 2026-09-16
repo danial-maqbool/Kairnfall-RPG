@@ -82,7 +82,7 @@ public static class JourneyProgression
     {
         int level=Progression.PlayerLevel(player);
         foreach(var quest in data.Quests
-            .Where(q=>!player.Quests.ContainsKey(q.Id)
+            .Where(q=>OpeningJourney.QuestVisible(player,q.Id)&&!player.Quests.ContainsKey(q.Id)
                 &&(q.Repeatable||!player.CompletedQuests.Contains(q.Id))
                 &&level>=q.MinimumLevel
                 &&(q.Prerequisite==""||player.CompletedQuests.Contains(q.Prerequisite))

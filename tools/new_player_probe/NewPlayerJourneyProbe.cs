@@ -37,6 +37,50 @@ public static class NewPlayerJourneyProbe
             Id = Realm.CreateCharacter("new-player-" + suffix, "Journey " + suffix, "vanguard", new()).Id;
             Realm.Active.Add(Id);
         }
+        public void CompleteOpening()
+        {
+            // Keep the existing workshop, rune, loot, settlement and public-event
+            // assertions below. Reach them through the new opening, never by writing
+            // completion flags or opting a fresh character out of the new journey.
+            var giver = OpeningJourney.Giver(Data);
+            Npc(giver.Id); Act("talk", giver.Id);
+            Act("accept_quest", item: OpeningJourney.FightQuest);
+            for (int victory = 0; victory < OpeningJourney.KillGoal; victory++)
+            {
+                var rat = Realm.State.Creatures.Values.Where(x => x.Zone == OpeningJourney.Home
+                    && x.Template == OpeningJourney.Foe && x.Health > 0 && x.Owner == "")
+                    .OrderBy(x => x.Position.Distance(Player.Position)).ThenBy(x => x.Id, StringComparer.Ordinal).FirstOrDefault();
+                Need(rat is not null, "The opening lacks a living reachable Field Rat without a respawn wait.");
+                Place(rat.Position);
+                var guidance = Next();
+                Need(guidance.Stage == "combat" && guidance.TargetKind == "creature"
+                    && Realm.State.Creatures[guidance.TargetId].Template == OpeningJourney.Foe,
+                    "The actual opening objective did not identify a starter Field Rat.");
+                for (int strike = 0; rat.Health > 0 && strike < 80; strike++)
+                { Place(rat.Position); Act("attack", rat.Id); Advance(2); }
+                Need(rat.Health <= 0 && OpeningJourney.Kills(Player) == victory + 1,
+                    "The actual starter victory did not advance the authoritative opening exactly once.");
+            }
+            Npc(giver.Id); Act("claim_quest", item: OpeningJourney.FightQuest);
+            string reward = OpeningJourney.RewardId(Player);
+            Need(reward != "" && Player.Inventory.Any(x => x.Id == reward), "The guaranteed upgrade was not delivered.");
+            var beforeEquip = Wire.Copy(Player); Act("equip", item: reward);
+            Need(OpeningJourney.Equipped(Player) && ProgressionFeedback.PowerChanges(Data,beforeEquip,Player).Count > 0,
+                "The real earned weapon did not produce a meaningful equipment improvement.");
+            var recipe = Data.Recipe(OpeningJourney.Recipe);
+            var station = Data.Npcs.First(x => x.Zone == OpeningJourney.Home && x.Station == recipe.Station);
+            Npc(station.Id); int beforePotions = Items.Count(Player, "healing_potion");
+            Act("craft", item: recipe.Id); Advance(3);
+            Need(OpeningJourney.Crafted(Player) && Items.Count(Player,"healing_potion") == beforePotions + recipe.Quantity,
+                "The real alchemy recipe did not deliver the useful opening output.");
+            Npc(giver.Id); Act("claim_quest", item: OpeningJourney.CraftQuest);
+            Need(OpeningJourney.Finished(Player) && OpeningJourney.Recommend(Data,Snapshot) is null,
+                "Completed opening did not return control to the existing world journey.");
+            string beforeRestart = Economy(Player);
+            Realm = new RealmEngine(Data, Wire.Copy(Realm.State)) { Loot = Wire.Copy(Realm.Loot) }; Realm.Active.Add(Id);
+            Need(OpeningJourney.Finished(Player) && beforeRestart == Economy(Player),
+                "Restart lost opening progress or changed its reward identities.");
+        }
         public JourneyObjective Next()
         {
             var next = NewPlayerJourney.Recommend(Data, Snapshot, Realm.VisibleLoot(Id));
@@ -101,7 +145,7 @@ public static class NewPlayerJourneyProbe
         Test("fresh characters get a real introductory NPC, route, why and reward preview", () =>
         {
             var fixture = new Fixture(data, "Fresh"); var player = fixture.Player;
-            var next = fixture.Next(); var first = data.Quest("main_01");
+            var next = fixture.Next(); var first = data.Quest(OpeningJourney.FightQuest);
             Need(NewPlayerJourney.Active(player) && next.Stage == "quest_offer" && next.TargetId == first.Giver, "Fresh spawn did not recommend the actual introductory giver.");
             Need(NewPlayerJourney.Available(player, first, fixture.Realm.State.Time), "The first recommendation is not legitimately available.");
             Need(next.Reward.Contains(first.Gold.ToString(), StringComparison.Ordinal), "Quest preview lost its authored gold.");
@@ -122,19 +166,11 @@ public static class NewPlayerJourneyProbe
             }
             Need(fixture.Player.Position.Distance(initialPosition) > .1 && FirstHourExperience.Marked(fixture.Player, "movement"), "Actual movement did not retire the movement hint.");
             Need(fixture.Realm.Execute(fixture.Id, new GameCommand { Kind = "move", X = 0, Y = 0 }).Ok, "Normal movement stop failed.");
+            fixture.CompleteOpening();
             fixture.Npc(data.Quest("main_01").Giver); fixture.Act("talk", data.Quest("main_01").Giver); fixture.Act("accept_quest", item: "main_01");
-            var rat = fixture.Realm.State.Creatures.Values.First(x => x.Zone == "wayfarers_rest" && x.Template == "field_rat" && x.Health > 0);
-            fixture.Place(rat.Position);
-            var firstFight = fixture.Next();
-            Need(firstFight.Stage == "combat" && fixture.Realm.State.Creatures[firstFight.TargetId].Template == "field_rat",
-                "The authored starter rat is not discoverable after accepting the opening quest: " + firstFight.Stage + " / " + firstFight.TargetId);
-            for (int strike = 0; rat.Health > 0 && strike < 80; strike++)
-            {
-                // The real starter animal retreats after being wounded. Re-establish
-                // reachable melee proximity rather than disabling its AI or range checks.
-                fixture.Place(rat.Position); fixture.Act("attack", rat.Id); fixture.Advance(2);
-            }
-            Need(rat.Health <= 0 && fixture.Player.Bestiary.GetValueOrDefault("field_rat") > 0, "The authoritative first kill did not complete.");
+            // Both actual opening kills leave ordinary owned loot. The mandatory
+            // equip/craft chain stays prioritized until complete; then normal loot
+            // guidance resumes instead of forcing another unrelated fight.
             var loot = fixture.Realm.VisibleLoot(fixture.Id).FirstOrDefault(x => x.Owner == fixture.Id);
             Need(loot is not null, "A real defeated starter foe left no owned loot.");
             fixture.Place(loot.Position); Need(fixture.Next().Stage == "loot", "The first real loot drop was not prioritized.");
@@ -173,7 +209,7 @@ public static class NewPlayerJourneyProbe
             Need(fixture.Player.Zone == "dawnreach" && fixture.Player.Quests.ContainsKey("main_02"), "The earned letter did not lead to the first settlement quest.");
             Need(Items.Validate(fixture.Realm.State, data).Count == 0, "The opening journey violated inventory invariants.");
             journeyCompleted = true;
-            Console.WriteLine($"NEW_PLAYER_JOURNEY_MILESTONES: opening quest -> kill -> loot -> rune -> planks -> handle -> claim -> Dawnreach; level={level}; no tutorial rewards");
+            Console.WriteLine($"NEW_PLAYER_JOURNEY_MILESTONES: medicine quest -> two kills -> guaranteed weapon -> equip -> potions -> return -> loot -> rune -> planks -> handle -> claim -> Dawnreach; level={level}; one-time server-owned opening reward");
         });
         Test("usable equipment upgrades are real stat improvements and equip stays authoritative", () =>
         {
@@ -226,7 +262,7 @@ public static class NewPlayerJourneyProbe
         });
         Test("old saves are compatible and established characters are never forced through hints", () =>
         {
-            var fixture = new Fixture(data, "Legacy"); fixture.Player.Discoveries.Remove(NewPlayerJourney.EligibleKey);
+            var fixture = new Fixture(data, "Legacy"); fixture.Player.Discoveries.Remove(NewPlayerJourney.EligibleKey); fixture.Player.Discoveries.Remove(OpeningJourney.EligibleKey);
             FirstHourExperience.Mark(fixture.Player, "gather"); fixture.Player.Gold = 87;
             string before = Economy(fixture.Player);
             fixture.Realm = new RealmEngine(data, Wire.Copy(fixture.Realm.State)); fixture.Realm.Active.Add(fixture.Id);
@@ -243,10 +279,10 @@ public static class NewPlayerJourneyProbe
         });
         Test("no-foe, stale-loot, death, and unavailable-prerequisite states retain legitimate goals", () =>
         {
-            var fixture = new Fixture(data, "Fallback"); fixture.Npc(data.Quest("main_01").Giver); fixture.Act("accept_quest", item: "main_01");
+            var fixture = new Fixture(data, "Fallback"); fixture.Npc(OpeningJourney.Giver(data).Id); fixture.Act("accept_quest", item: OpeningJourney.FightQuest);
             var snapshot = fixture.Snapshot; snapshot.Creatures.Clear(); snapshot.Events.Clear();
             var next = NewPlayerJourney.Recommend(data, snapshot);
-            Need(next.Stage == "gather", "Unavailable starter foes blocked the real workshop objective.");
+            Need(next.Stage == "combat" && next.Zone == OpeningJourney.Home && next.TargetId == "" && next.Why.Contains("No living",StringComparison.Ordinal), "An empty nearby snapshot targeted a dead foe, skipped the mandatory fight or lost the recovery explanation.");
             snapshot.Self.Health = 0;
             Need(NewPlayerJourney.Recommend(data, snapshot).Stage == "recovery", "Death has no explicit recovery recommendation.");
             Need(!NewPlayerJourney.Available(fixture.Player, data.Quest("starter_hunt"), fixture.Realm.State.Time), "The introductory elite prerequisite was skipped.");
