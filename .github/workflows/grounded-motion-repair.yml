@@ -1,79 +1,34 @@
-name: Repair Grounded construct gait
+name: Opening native artifact diagnostic
 on:
   push:
     branches: [main]
     paths: ['.github/workflows/grounded-motion-repair.yml']
   workflow_dispatch:
 permissions:
-  contents: write
-concurrency:
-  group: grounded-motion-repair-main
-  cancel-in-progress: false
+  contents: read
+  actions: read
 jobs:
-  patch:
+  diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Articulate construct locomotion at the joints
+      - name: Download failed opening artifact and print native logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: '10422513398'
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          path=Path('atelier/forge/grounded_beasts.py')
-          text=path.read_text(encoding='utf-8')
-          old="""def construct(stage,spec,m,direction):
-    coat,dark,pale=_ramps(spec); c=m['collapse']; y=max(5,spec.height*.47*(1-c*.7)); width=spec.girth
-    for s in (-1,1):
-        foot=(s*(width*.55+c*5),0); knee=(s*width*.5,y*.5); hip=(s*width*.4,y); stage.segment(hip,knee,3.4,2.8,dark[3]); stage.segment(knee,foot,2.8,2.3,dark[3])
-    stage.poly([(-width,y-3),(-width*.85,y+5),(0,y+8),(width*.85,y+5),(width,y-3),(width*.55,y-7),(-width*.55,y-7)],coat[3]); head=(0,y+12*(1-c*.5)); stage.poly([(-spec.head,head[1]-spec.head),(0,head[1]+spec.head),(spec.head,head[1]-spec.head)],dark[3])
-    for s in (-1,1):
-        shoulder=(s*width*.9,y+4); hand=(s*(width+5+m['charge']*3),y-1+m['lunge']*.2); stage.segment(shoulder,hand,3.2,2.3,coat[2 if s<0 else 3])
-    if spec.glow: stage.disc((0,y+2),2,pigment.ramp(spec.glow)[5],None)
-"""
-          new="""def construct(stage,spec,m,direction):
-    coat,dark,pale=_ramps(spec); c=m['collapse']; width=spec.girth
-    # Heavy constructs walk by transferring weight between planted feet. The body
-    # rises over the supporting leg while the opposite knee and arm counter-swing;
-    # this is new geometry from the shared motion clock, never bitmap translation.
-    step=math.cos(m['phase'])*3.1*m['stride']
-    support=abs(math.sin(m['phase']))*.7*m['stride']
-    y=max(5,spec.height*.47*(1-c*.7)+m['bob']+support*.35)
-    for index,s in enumerate((-1,1)):
-        phase_offset=.5 if index else 0
-        dx,lift=_gait(m,phase_offset,3.1,1.9)
-        foot=(s*(width*.55+c*5)+dx,max(0,lift-c*.2))
-        knee=(s*width*.5+dx*.38,y*.5+lift*.22)
-        hip=(s*width*.4,y)
-        stage.segment(hip,knee,3.4,2.8,dark[3]); stage.segment(knee,foot,2.8,2.3,dark[3])
-        _paw(stage,foot,'paw',pale)
-    lean=step*.12
-    stage.poly([(-width+lean,y-3),(-width*.85+lean,y+5),(lean,y+8),(width*.85+lean,y+5),(width+lean,y-3),(width*.55+lean,y-7),(-width*.55+lean,y-7)],coat[3])
-    head=(lean*1.3,y+12*(1-c*.5)+m['charge']*1.5)
-    stage.poly([(head[0]-spec.head,head[1]-spec.head),(head[0],head[1]+spec.head),(head[0]+spec.head,head[1]-spec.head)],dark[3])
-    for index,s in enumerate((-1,1)):
-        shoulder=(s*width*.9+lean,y+4)
-        counter=-step*(1 if index else -1)*.45
-        hand=(s*(width+5+m['charge']*3)+counter+lean,y-1+m['lunge']*.2+m['charge']*2)
-        elbow=((shoulder[0]+hand[0])*.5,(shoulder[1]+hand[1])*.5+1.2)
-        stage.segment(shoulder,elbow,3.2,2.7,coat[2 if s<0 else 3]); stage.segment(elbow,hand,2.7,2.1,coat[2 if s<0 else 3])
-    if spec.glow: stage.disc((lean*.5,y+2),2,pigment.ramp(spec.glow)[5],None)
-"""
-          if text.count(old)!=1:
-              raise RuntimeError('Construct renderer no longer matches the audited static-gait block.')
-          path.write_text(text.replace(old,new),encoding='utf-8',newline='\n')
-          PY
-          python -m py_compile atelier/forge/grounded_beasts.py
-          git diff --check
-      - name: Commit source repair
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add atelier/forge/grounded_beasts.py
-          git commit -m 'fix(art): articulate construct walk with weight transfer'
-          git push origin HEAD:main
+          curl --fail --location \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            -o artifact.zip
+          unzip -q artifact.zip -d evidence
+          for log in import experience controls; do
+            echo "===== ${log}.log ====="
+            cat "evidence/logs/${log}.log" || true
+          done
+          echo '===== native failure markers ====='
+          grep -R -nE 'ERROR:|SCRIPT ERROR:|Unhandled exception|FAIL|Exception|Error' evidence/logs || true
