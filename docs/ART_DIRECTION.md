@@ -1,58 +1,29 @@
 # Pixel-art direction and review contract
 
-## Native pixels and Atelier integration — 2026-09-09
+Status date: **2026-09-16**. This document describes the active repository-side visual contract. It does not constitute human artistic approval.
 
-Current main integrates 2,982 matching Atelier assets after hash, path, dimensions, animation-order and complete-rig checks. Body, hair, worn gear and NPC sheets switch as one coherent cohort. The independent Atelier gear ladder never replaces gameplay records. Default world zoom is 1x, full-canvas window stretching is disabled, and inventory icons do not enlarge their source pixels. World collision and tile coordinates remain unchanged. The actual pack renders in Godot at 1280x720 and 1920x1080. Use native `engine/` captures for Atelier review; historical `before/after` generator sheets do not prove approval of the imported pack. Independent image inspection remains uncompleted. [Rules and asset counts](HUNTING_AND_JOURNEY.md), [evidence and limits](handoff/HUNTING_AND_PRESENTATION_2026-09-09.md).
+## Grounded-2026 active actor direction
 
-## Equipment materials — 2026-09-09
+Grounded-2026 is the sole active runtime source for player bodies and hair, worn equipment overlays, NPC role sheets, and mobs. Historical Atelier actor bytes are not an actor fallback path: `tools/integrate_atelier.py` fails closed for actor groups and the permanent migration validator requires zero active historical actor fallbacks. Compatible historical Atelier material may still be used for non-actor groups such as terrain, buildings, props, items, resources, chests, structures, and abilities.
 
-The [gear extension](EQUIPMENT_PROGRESSION.md) retains 32 by 32 icons and 64 by 64 equipment frames. Original source adds material highlights, cloth folds, hide contours, stitching and fittings. Equipped layers retain shared body anchors, four directions, six states and nearest-neighbor presentation. Grade metadata does not rewrite old saved templates. Every grade has a contact sheet; representative full sets render in Godot at two resolutions. File construction checks and rendered frames are not independent visual approval. See the [review evidence and limits](handoff/EQUIPMENT_PROGRESSION_2026-09-09.md).
+Actors retain the existing native pixel contract: 64-pixel player/equipment/NPC/mob frames, four directions (south, west, east, north), six states (`idle`, `walk`, `attack`, `cast`, `hit`, `death`), and eight frames per state/direction. The client keeps the existing integer foot anchor and nearest-neighbor presentation. Boss presentation may use the existing larger boss canvas where already authored; this migration did not change world collision or tile coordinates.
 
-## Current action presentation
+The active construction lives under `atelier/forge/grounded_*.py` and is routed through `tools/art/people.py` and `tools/art/fauna.py`. Humanoids use shared anatomical joints, clothing, hands, boots, equipment and weapon/tool construction. Creature renderers use anatomy-specific quadruped, humanoid, bird/drake, serpent/worm, insect/arachnid/crustacean, spirit/elemental, construct/mineral and mimic paths rather than transforming historical standing sprites. Construct/mineral/mimic families use the dedicated articulated heavy-body renderer.
 
-See [the action checkpoint](handoff/ACTION_PRESENTATION_2026-09-08.md). The player and gear
-retain their shared 64-pixel canvas and integer foot anchor. WorldView now plays all eight
-action frames across the actual action duration. Corpses complete a 0.65-second collapse
-and hold the final pose separately from corpse retention. Spider and turtle actions use
-authored joint/neck offsets, not bitmap rotation or meaningless per-frame pixel changes.
-Review galleries now sample frames 0, 1, 2, 3, 4, and 7 in every state and direction.
-The tests and native renderer passed. Independent PNG inspection and final visual approval
-were not completed in the chat runtime; the evidence locations are in the checkpoint.
+At verified implementation baseline `7b11027ba913781443871ece56c8ab13008408d5`, permanent Grounded actor acceptance run `35103673162` succeeded. The runtime set contains **1,245 active actor sheets** and **239,040 nonblank state/direction/frame cells**. The structural motion contract covers **5,322 anatomy-appropriate motion checks**, proves **1,237 historical actor hashes were replaced**, and requires **zero actor fallbacks**. The associated exact-head artifact is `grounded-actors-7b11027ba913781443871ece56c8ab13008408d5` (`10450285632`, SHA-256 `dd15ff16cc16dae7c32faecb25aac1bd2b586309310126635f413633ade86964`). The measured active actor PNG footprint is 21,305,167 bytes from the verified Grounded pack measurement; this is a footprint measurement, not a quality score.
 
 ## Required visual standard
 
-The user requires pixel art based on the construction of real objects and recognizable anatomy.
-This is a visual acceptance contract. Generated files have not received final visual approval.
+Pixel art must be based on recognizable anatomy and real object construction. Different hashes alone do not establish different anatomy, and a duplicate warning must never be repaired with a meaningless pixel or invisible mark.
 
-Use 32-pixel terrain tiles, 64-pixel actor frames, and 128-pixel boss frames in the current pipeline.
-A sheet has eight columns and 24 rows: idle, walk, attack, cast, hit, death; four rows per state.
-Directions are south, west, east, north. The client anchors feet at half the frame width and 0.86 of its height.
-All equipment and body layers must use the same pose and anchor. Test movement as well as still frames.
+Use deliberate pixel clusters, controlled material ramps, consistent upper-left lighting, and nearest-neighbor presentation. Animals should remain identifiable with names hidden. Weapons should show working silhouettes and fittings; armor should preserve shared body anchors without floating, clipping, or swapping left/right lighting. Movement, action, hit and death states must produce meaningful silhouette or joint changes rather than static standing frames with cosmetic noise.
 
-Use deliberate pixel clusters, controlled material ramps, and consistent upper-left light.
-Do not add random noise or smoothing to simulate detail. Preserve nearest-neighbor rendering.
-An animal must remain identifiable with its name hidden. A weapon must show its working shape and construction.
+Review rats and mice for muzzle/tail proportions; rabbits for ears and folded hind legs; birds for beaks, wing feathers and feet; bats for finger-supported membranes; insects for six legs and body segmentation; spiders for eight legs; snakes for coherent coils; snails for shell and muscular foot; fish for fins; turtles and tortoises for appropriate limb construction. Fantasy creatures must retain coherent anatomy. Metal, wood, cloth, leather, stone and bone should read through material-specific edges, seams, straps, facets and joints at native scale.
 
-Review rats and mice for muzzle/tail proportions; rabbits for long ears and folded hind legs;
-birds for beaks, wing feathers, and feet; bats for finger-supported membranes;
-insects for six legs and body segments; spiders for eight legs; snakes for coherent coils;
-snails for a shell and muscular foot; fish for fins; turtles for flippers versus tortoise feet.
-Fantasy creatures must retain coherent anatomy. An owlbear is not a ghost or a recolored bear blob.
+## Migration and review gates
 
-Show metal blade edges, guards, tang/grip fittings, wood grain, cloth seams/folds,
-leather straps, stone facets, bone joints, and chest hinges/locks where visible at native scale.
-Buildings require roof planes, joinery, entrances, foundation, and usable perspective.
-Create different silhouettes and construction for each city, creature species, and boss.
+`tools/validate_grounded_actor_assets.py` is the permanent actor-migration contract. It verifies exact catalog coverage, RGBA/grid dimensions, nonblank frames, action/death motion, source-wrapper routing, historical-hash replacement and zero fallback. `VisualPresentationContract` and the Visual acceptance matrix render representative player, equipment, NPC and mob states in Godot rather than relying only on generated sheets. The first-hour migration manifest is `docs/ASSET_MIGRATION_FIRST_HOUR_UI.md`.
 
-The current generator and duplicate checks are development tools. Different hashes do not prove different anatomy.
-Do not repair a duplicate warning by adding a meaningless pixel or invisible mark.
-Keep elite recolors separate from the normal-species count.
+Automated rendering and structural checks do **not** approve artistic taste, animation feel, readability at a person's physical monitor distance, or the overall game-wide art direction. Independent human inspection of in-engine animation, clipping, foot sliding, lighting consistency, native-size readability and subjective quality remains required before release approval.
 
-Inspect contact sheets for every normal species and boss. Review every state/direction on problematic assets.
-Inspect equipped character animation for all weapon families and representative armor weights.
-Check clipping, flipped light direction, occluded hands, floating weapons, sprite jumps, and foot sliding.
-Inspect cities, interiors, underground areas, combat telegraphs, and interface screens in the real game.
-
-Save reviewed screenshots or recordings and an asset-by-asset decision log under ignored `artifacts/visual/`.
-Commit a sanitized review summary with exact source revision and remaining defects.
-Do not label a contact sheet a gameplay screenshot. Do not label art approved before inspecting it.
+Release status: **NOT APPROVED — human acceptance remains.**
