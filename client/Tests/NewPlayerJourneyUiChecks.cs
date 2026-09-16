@@ -36,7 +36,8 @@ internal static class NewPlayerJourneyUiChecks
             bool legacyPreview = objective.TooltipText.Contains(data.Quest("main_01").Name, StringComparison.Ordinal)
                 && objective.TooltipText.Contains(data.Item("sealed_letter").Name, StringComparison.Ordinal);
             bool openingPreview = objective.TooltipText.Contains("Medicine for the Road", StringComparison.Ordinal)
-                && objective.TooltipText.Contains("Rare class weapon", StringComparison.Ordinal);
+                && objective.TooltipText.Contains("Roadwarden's Longsword", StringComparison.Ordinal)
+                && objective.TooltipText.Contains("Guaranteed Rare", StringComparison.Ordinal);
             check(legacyPreview || openingPreview,
                 "Objective details preserve the real quest and deterministic reward preview at " + size);
             check(objective.MouseFilter == Control.MouseFilterEnum.Pass && hint.MouseFilter == Control.MouseFilterEnum.Pass, "Full guidance details accept tooltip hover at " + size);
