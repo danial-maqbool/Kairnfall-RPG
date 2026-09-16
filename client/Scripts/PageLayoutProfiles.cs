@@ -42,9 +42,14 @@ internal static class PageLayoutProfiles
         var profile = For(page);
         float horizontalMargin = viewport.X <= 1100 ? 48 : 80;
         float verticalMargin = viewport.Y <= 760 ? 70 : 120;
-        float maxWidth = Math.Max(560, viewport.X - horizontalMargin);
-        float maxHeight = Math.Max(480, viewport.Y - verticalMargin);
-        return new Vector2(Math.Min(profile.Width, maxWidth), Math.Min(profile.Height, maxHeight));
+        // Supported Windows sizes keep their page-specific targets. Extremely compact
+        // or safe-mode viewports still clamp inside the available logical canvas instead
+        // of forcing the former 560x480 minimum beyond the viewport.
+        float maxWidth = Math.Max(320, viewport.X - horizontalMargin);
+        float maxHeight = Math.Max(300, viewport.Y - verticalMargin);
+        return new Vector2(
+            Math.Clamp(profile.Width, 320, maxWidth),
+            Math.Clamp(profile.Height, 300, maxHeight));
     }
 
     internal static bool IsCompact(string page)
