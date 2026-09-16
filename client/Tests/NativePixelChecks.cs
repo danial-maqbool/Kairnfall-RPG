@@ -29,14 +29,14 @@ internal static class NativePixelChecks
         check(Godot.FileAccess.FileExists(report),"The actual runtime pack includes its Atelier integration audit");
         using(var document=JsonDocument.Parse(Godot.FileAccess.GetFileAsString(report)))
         {
-            var root=document.RootElement;var groups=root.GetProperty("groups");
-            check(groups.GetProperty("items").GetInt32()==game.Data.Items.Count,"Every catalog item uses its matching Atelier icon");
-            check(groups.GetProperty("equipment").GetInt32()==game.Data.Items.Count(i=>i.Slot!=""),"Every equipped item belongs to the complete Atelier rig cohort");
-            check(groups.GetProperty("people").GetInt32()==60,"Both bodies and every hair layer come from the same rig");
+            var root=document.RootElement;var coverage=root.GetProperty("coverage");
+            check(coverage.GetProperty("items").GetInt32()==game.Data.Items.Count,"Every catalog item has a generated runtime icon with explicit Atelier provenance");
+            check(coverage.GetProperty("equipment").GetInt32()==game.Data.Items.Count(i=>i.Slot!=""),"Every equipped item belongs to the complete runtime rig cohort");
+            check(coverage.GetProperty("people").GetInt32()==60,"Both bodies and every hair layer belong to the same runtime rig cohort");
             check(!root.GetProperty("catalog_ids_changed").GetBoolean()&&!root.GetProperty("independent_gear_ladder_imported").GetBoolean(),"Atelier integration changes no saved item identity or tier ladder");
         }
         float oldZoom=game.World.Zoom;
-        foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
+        foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080),new Vector2I(2560,1440)})
         {
             host.GetWindow().Size=size;host.GetWindow().ContentScaleSize=size;game.World.Zoom=1;
             await Frame();await Frame();
