@@ -1,5 +1,5 @@
 name: Integrate verified opening journey
-# Temporary integration helper; removed after the verified opening lands.
+# Temporary integration helper; rerun after full runtime asset provenance repair and removed after the verified opening lands.
 on:
   push:
     branches: [main]
@@ -63,7 +63,7 @@ jobs:
             'src/Kairnfall.Core/JourneyProgression.cs','client/Scripts/GameRoot.Panels.cs','client/Scripts/WorldView.cs','src/Kairnfall.Core/MerchantSales.cs',
             'tools/new_player_probe/NewPlayerJourneyProbe.cs'}
           changed=set(subprocess.check_output(['git','diff','--name-only'],cwd=candidate,text=True).splitlines())
-          untracked=set(subprocess.check_output(['git','ls-files','--others','--exclude-standard'],cwd=candidate,text=True).splitlines())
+          untracked=set(subprocess.check_output(['git','ls-files','others','--exclude-standard'],cwd=candidate,text=True).splitlines())
           if changed|untracked != expected: raise RuntimeError('Candidate path set changed: '+repr((changed|untracked)^expected))
           for rel in expected:
               source=candidate/rel; target=root/rel; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(source.read_bytes())
