@@ -16,4 +16,7 @@ from atelier.forge.grounded_people import body_frame, hair_frame, armour_frame, 
 
 
 def equipment_frame(item,state,frame,direction,body=0):
-    return armour_frame(item,state,frame,direction,body)
+    # Grounded-2026 equipment rendering is body-agnostic. Keep the historical
+    # compatibility parameter in this wrapper because callers still pass it,
+    # but do not forward it into the new renderer.
+    return armour_frame(item,state,frame,direction)
