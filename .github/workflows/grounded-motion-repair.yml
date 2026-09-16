@@ -12,23 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Download failed opening artifact and print native logs
+      - name: Print concise native failure context
         env:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: '10422513398'
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
-            -o artifact.zip
+          curl --fail --location -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" -o artifact.zip
           unzip -q artifact.zip -d evidence
-          for log in import experience controls; do
-            echo "===== ${log}.log ====="
-            cat "evidence/logs/${log}.log" || true
+          for log in experience controls import; do
+            echo "===== ${log}.log failure context ====="
+            grep -nE -C 12 'ERROR:|SCRIPT ERROR:|Unhandled exception|FAIL|Exception|Error|contract failed|CONTRACT' "evidence/logs/${log}.log" | tail -n 260 || true
+            echo "===== ${log}.log tail ====="
+            tail -n 80 "evidence/logs/${log}.log" || true
           done
-          echo '===== native failure markers ====='
-          grep -R -nE 'ERROR:|SCRIPT ERROR:|Unhandled exception|FAIL|Exception|Error' evidence/logs || true
