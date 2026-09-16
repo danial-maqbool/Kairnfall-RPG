@@ -1,4 +1,4 @@
-name: Inspect repaired opening native failure
+name: Inspect final opening native blocker
 on:
   push:
     branches: [main]
@@ -14,7 +14,7 @@ jobs:
       - name: Print native failure context
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_ID: '10424909801'
+          ARTIFACT_ID: '10426215919'
         shell: bash
         run: |
           set -euo pipefail
@@ -22,7 +22,7 @@ jobs:
           unzip -q artifact.zip -d evidence
           for log in experience controls import; do
             echo "===== ${log}.log failure context ====="
-            grep -nE -C 18 'ERROR:|SCRIPT ERROR:|Unhandled exception|FAIL|Exception|Error|CONTRACT' "evidence/logs/${log}.log" | tail -n 420 || true
+            grep -nE -C 20 'ERROR:|SCRIPT ERROR:|Unhandled exception|FAIL|Exception|Error|CONTRACT' "evidence/logs/${log}.log" | tail -n 500 || true
             echo "===== ${log}.log tail ====="
-            tail -n 150 "evidence/logs/${log}.log" || true
+            tail -n 180 "evidence/logs/${log}.log" || true
           done
