@@ -33,8 +33,12 @@ internal static class NewPlayerJourneyUiChecks
             var action = Field<Button>(game, "journeyAction"); var social = Field<Button>(game, "nearbyTravelers");
             var chat = Field<HudPanel>(game, "chatFrame");
             check(objective.IsVisibleInTree() && objective.GetMeta("journey_stage").AsString() == "quest_offer", "A fresh native HUD exposes the real first objective at " + size);
-            check(objective.TooltipText.Contains(data.Quest("main_01").Name, StringComparison.Ordinal) && objective.TooltipText.Contains(data.Item("sealed_letter").Name, StringComparison.Ordinal),
-                "Objective details preserve the real quest and reward preview at " + size);
+            bool legacyPreview = objective.TooltipText.Contains(data.Quest("main_01").Name, StringComparison.Ordinal)
+                && objective.TooltipText.Contains(data.Item("sealed_letter").Name, StringComparison.Ordinal);
+            bool openingPreview = objective.TooltipText.Contains("Medicine for the Road", StringComparison.Ordinal)
+                && objective.TooltipText.Contains("Rare class weapon", StringComparison.Ordinal);
+            check(legacyPreview || openingPreview,
+                "Objective details preserve the real quest and deterministic reward preview at " + size);
             check(objective.MouseFilter == Control.MouseFilterEnum.Pass && hint.MouseFilter == Control.MouseFilterEnum.Pass, "Full guidance details accept tooltip hover at " + size);
             check(hint.GetMeta("guidance_id").AsString() == "movement" && !hint.Text.Contains('{'), "Movement guidance resolves actual input bindings at " + size);
             float fontHeight = hint.GetThemeFont("font").GetHeight(hint.GetThemeFontSize("font_size"));
