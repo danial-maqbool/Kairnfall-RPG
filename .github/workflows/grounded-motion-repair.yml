@@ -1,4 +1,4 @@
-name: Inspect opening objective tooltip
+name: Inspect reconstructed opening objective
 on:
   push:
     branches: [main]
@@ -10,22 +10,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Decode immutable opening sources and print objective construction
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct immutable candidate and print objective source
         env:
           GH_TOKEN: ${{ github.token }}
+          PREPARE_BLOB: d1e06c7aa3bbbb3d0332ca7d7aeaa34f90395714
+          OPENING_BASE: a356e3c881ab9b3cacc8f2e1ca696322a8a2ed8d
         shell: bash
         run: |
           set -euo pipefail
+          git checkout --detach "$OPENING_BASE"
           python3 - <<'PY'
-          import base64,json,os,urllib.request
-          for sha,name in [('27997cfb03a84a089f2dae2970ed3821a3d2c567','GameRoot.Opening.cs'),('75a5a1c6781183638a7836671a17a1b07c4f3b65','OpeningJourney.cs')]:
-              req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/git/blobs/{sha}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
-              with urllib.request.urlopen(req,timeout=30) as response: obj=json.load(response)
-              text=base64.b64decode(''.join(obj['content'].splitlines())).decode('utf-8')
-              print(f'===== {name} =====')
-              lines=text.splitlines()
+          import base64,hashlib,json,os,pathlib,subprocess,urllib.request
+          sha=os.environ['PREPARE_BLOB']
+          req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/git/blobs/{sha}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(req,timeout=30) as response: obj=json.load(response)
+          raw=base64.b64decode(''.join(obj['content'].splitlines()))
+          assert hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()==sha
+          tmp=pathlib.Path(os.environ['RUNNER_TEMP']); script=tmp/'prepare.py'; script.write_bytes(raw)
+          env=os.environ.copy(); env.update(GITHUB_SHA=os.environ['OPENING_BASE'],RUNNER_TEMP=str(tmp/'evidence'))
+          pathlib.Path(env['RUNNER_TEMP']).mkdir(parents=True,exist_ok=True)
+          subprocess.run(['python3',str(script)],env=env,check=True)
+          for rel in ('client/Scripts/GameRoot.Opening.cs','src/Kairnfall.Core/OpeningJourney.cs'):
+              print('===== '+rel+' =====')
+              lines=pathlib.Path(rel).read_text(encoding='utf-8').splitlines()
               for i,line in enumerate(lines):
-                  if any(term.lower() in line.lower() for term in ('tooltip','objective','reward','medicine','initial','recommend')):
-                      for row in lines[max(0,i-5):min(len(lines),i+8)]: print(row)
-                      print('---')
+                  if any(term in line.lower() for term in ('tooltip','objective','reward','medicine','recommend','initial')):
+                      print('\n'.join(lines[max(0,i-4):min(len(lines),i+7)])); print('---')
           PY
