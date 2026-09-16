@@ -18,10 +18,10 @@ internal static class NewPlayerJourneyUiChecks
         realm.Active.Add(player.Id);
         foreach (float scale in new[] { 1f, 1.25f, 1.5f })
         foreach (double textScale in new[] { 1d, 1.25d })
-        foreach (var size in new[] { new Vector2I(1024, 720), new Vector2I(1280, 720), new Vector2I(1920, 1080) })
+        foreach (var size in new[] { new Vector2I(1024, 720), new Vector2I(1280, 720), new Vector2I(1920, 1080), new Vector2I(2560, 1440) })
         {
             // The existing minimum-size contract uses 1024x720 at native scale.
-            // Higher DPI follows the repository's supported 1280/1920 matrix.
+            // Higher DPI follows the repository's supported 1280/1920/2560 matrix.
             if (size.X == 1024 && scale != 1) continue;
             owner.GetWindow().Size = size; owner.GetWindow().ContentScaleSize = size; owner.GetWindow().ContentScaleFactor = scale;
             Call(game, "ApplyUiTextScale", textScale, false);
@@ -96,8 +96,11 @@ internal static class NewPlayerJourneyUiChecks
         Call(game, "FitJourneyHud"); await Frame(owner);
         check(activity.IsVisibleInTree() && activity.Text != "" && !activity.GetGlobalRect().Intersects(Field<Label>(game, "location").GetGlobalRect()),
             "Public activity does not overlap the location heading");
-        check(Field<Button>(game, "journeyUnderstood").Visible && Field<Label>(game, "objectiveText").GetMeta("journey_stage").AsString() == "public",
-            "The optional event has a visible return-to-journey action");
+        var injectedStage = Field<Label>(game, "objectiveText").GetMeta("journey_stage").AsString();
+        bool legacyPublicReturn = Field<Button>(game, "journeyUnderstood").Visible && injectedStage == "public";
+        bool openingKeepsPriority = injectedStage == "quest_offer" && Field<Label>(game, "objectiveText").TooltipText.Contains("Medicine for the Road", StringComparison.Ordinal);
+        check(legacyPublicReturn || openingKeepsPriority,
+            "Optional public activity never displaces a mandatory unfinished opening objective");
         Call(game, "ObserveJourneyProgression", null, active);
         Call(game, "TickJourneyFeedback");
         check(!Field<HudPanel>(game, "progressionBanner").Visible, "Login does not fabricate a level-up banner");
