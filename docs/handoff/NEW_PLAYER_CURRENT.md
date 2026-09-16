@@ -1,42 +1,45 @@
 # New-player experience — current implementation
 
-Status: **2026-09-15**.
-Verified source: **4214c57692bd70196f4c50db0a95ca6f2a510f31** on `main`.
-Evidence authority: `docs/handoff/CURRENT_EVIDENCE.json`.
+Status date: **2026-09-16**.  
+Verified implementation source: **`7b11027ba913781443871ece56c8ab13008408d5`** on `main`.  
+Evidence authority: `docs/handoff/CURRENT_EVIDENCE.json`.  
 Release status: **NOT APPROVED — human acceptance remains.**
 
-## Player-facing sequence
+## Player-facing opening
 
-A fresh character enters the real Wayfarer's Rest settlement with the existing starter equipment. The objective card names the innkeeper, shows the actual quest/reward and supplies a normal walkable route. Movement and interaction hints use current bindings. Once the introductory quest is accepted, a suitable starter foe may introduce targeting and held basic attack; the quest remains available when no foe is present.
+A newly created eligible character begins a bounded opening in the existing shared world. Bren Gale gives the first purpose, two Field Rats establish authoritative combat completion, and the server grants one deterministic class-compatible Rare Roadwarden weapon plus the ingredients for the craft lesson. The player equips the weapon through the normal Inventory action, brews Healing Potion recovery consumables through ordinary Crafting, returns to Bren, and is handed into Kairnfall's normal quest/travel/social world.
 
-Owned loot leads to the backpack. Actual usable upgrades are identified by item and derived-stat comparisons; the player chooses whether to equip. The existing rune and trainer quest provide a deterministic equipment improvement. The workshop errand explains its necessary oak-log to oak-plank to wooden-handle dependency before the blacksmith conversation and ordinary quest claim. Real skill/character changes produce a short non-modal feedback queue. The sealed letter and legitimate exit graph direct the character through Kingsmeadow toward Dawnreach and the next quest.
+The eight class reward identities are distinct and skill-compatible: Vanguard Longsword, Berserker Greataxe, Ranger Recurve, Rogue Dirk, Arcanist Focus Staff, Warden Thornstaff, Templar Flanged Mace, and Spellblade Arming Sword. The reward is never auto-equipped. Full inventory is an atomic recoverable failure; replay cannot duplicate the grant; and the mandatory reward remains protected/recoverable until the equip milestone is established.
 
-An eligible Kingsmeadow newcomer may encounter the existing treasure-surge activity in one normal public-event slot. The event remains shared and uses normal contribution, scaling, reward and aftermath rules. It is optional and solo-functional. The nearby-traveler control opens existing social tools, names only public snapshot information, and truthfully displays zero when no other players are nearby.
+Death/respawn, reconnect, realm restart and valid out-of-order actions retain server-owned milestones. Established characters are not reset or silently re-enrolled, and historical `first_hour` markers remain compatible. The opening is an intended early-session route, not a measured twenty-minute human benchmark.
+
+Kairnfall's multiplayer nature is visible through the existing Nearby Travelers/social/chat/party/group-finding surfaces and normal shared activity. Empty nearby population is represented truthfully; no fake player or tutorial-only multiplayer system is introduced.
+
+## Art and UI state
+
+Grounded-2026 is the sole active actor runtime source for player bodies/hair, equipment overlays, NPC roles and mobs. The permanent migration contract verifies 1,245 active actor sheets, 239,040 frame cells, 1,237 replaced historical actor hashes, anatomy-appropriate motion and zero actor fallbacks. Historical Atelier use is restricted to compatible non-actor groups. See `docs/ASSET_MIGRATION_FIRST_HOUR_UI.md` and `docs/ART_DIRECTION.md`.
+
+The existing Task #12 modal/focus/input architecture remains intact. `PageLayoutProfiles` drives real page geometry and purpose summaries. Native Windows acceptance exercises 1024×720, 1280×720, 1920×1080 and 2560×1440, supported text scales, keyboard/mouse navigation, modal blocking/focus restoration, overflow, stale-state dismissal, settings persistence and non-color-only error feedback.
 
 ## Source map
 
-| Responsibility | Existing or extended source |
+| Responsibility | Active source |
 | --- | --- |
-| Recommended objective, eligibility, hints, legitimate navigation | `src/Kairnfall.Core/NewPlayerJourney.cs` |
-| Actual stat differences and usable upgrade comparison | `src/Kairnfall.Core/ProgressionFeedback.cs` |
-| Reward-neutral acknowledgement and existing-event scheduling preference | `src/Kairnfall.Core/RealmOnboarding.cs`, `RealmEngine.cs`, `RealmEvents.cs` |
-| Objective card, optional social access, level/gear feedback, adaptive placement | `client/Scripts/GameRoot.NewPlayer.cs` and existing HUD/panel partials |
-| Real gameplay-API journey and adversarial state checks | `tools/new_player_probe/NewPlayerJourneyProbe.cs` |
-| Native readable-hint and collision matrix | `client/Tests/NewPlayerJourneyUiChecks.cs`, called by `PlayerExperienceContract` |
-| Native real-server acknowledgement/reconnect checks | `client/Tests/LiveExperienceContract.cs` |
-| Exact-head permanent CI | `.github/workflows/new-player-journey.yml` |
-| Verified evidence and anti-staleness guard | `tools/documentation_contract.py`, `tests/handoff/test_onboarding_evidence.py` |
+| Opening authority, eligibility, milestones and reward mapping | `src/Kairnfall.Core/OpeningJourney.cs` |
+| Authored opening content and eight reward identities | `content_src/opening_journey.py` |
+| Existing broader recommendation/handoff journey | `src/Kairnfall.Core/NewPlayerJourney.cs` |
+| Opening dialogue/objective/UI integration | `client/Scripts/GameRoot.Opening.cs`, `GameRoot.Panels.cs`, `GameRoot.NewPlayer.cs` |
+| Page geometry/accessibility/modal protections | `client/Scripts/PageLayoutProfiles.cs`, `GameRoot.UiUx.cs` |
+| Active actor construction | `atelier/forge/grounded_*.py`, `tools/art/people.py`, `tools/art/fauna.py` |
+| Opening authority/progression probes | `tools/world_probe/OpeningJourneyChecks.cs`, `tools/new_player_probe/NewPlayerJourneyProbe.cs` |
+| Native journey/layout/live-server contracts | `client/Tests/*Contract.cs`, `client/Tests/NewPlayerJourneyUiChecks.cs` |
+| Permanent exact-head CI | `.github/workflows/new-player-journey.yml`, `.github/workflows/grounded-actor-acceptance.yml` and retained acceptance workflows |
+| Anti-stale evidence guard | `tools/documentation_contract.py`, `tests/handoff/test_onboarding_evidence.py` |
 
-## Persistence and safety
+## Verified repository-side state
 
-Creation-only `onboarding:v1:eligible` opts in new characters. Missing eligibility deliberately excludes old characters, even at low levels. Existing `Character.Discoveries` storage provides safe empty defaults and persists allowlisted hint acknowledgements and server-observed milestones without resetting old `first_hour` progress.
+All **14** evidence-required technical workflows completed successfully at exact implementation SHA `7b11027ba913781443871ece56c8ab13008408d5`. The permanent New-player journey run passed 12/12 retained journey groups, 5/5 opening groups across 8/8 classes, 442 native player-experience checks, 1,169 native control/layout checks and 125 real-server/PostgreSQL live checks. Grounded actor, Visual matrix, Windows package/display/input, graphical multiplayer, load, progression, security, adversarial, transaction and release-operations acceptance also passed at that same SHA. Exact run IDs are recorded in `NEW_PLAYER_VERIFICATION.md` and `CURRENT_EVIDENCE.json`.
 
-`guide_ack` is a presentation command, not a reward or event-credit command. It rejects gameplay payload fields and uses ordinary sequenced, receipted character transactions. Repeated acknowledgement is idempotent. Neither a hint nor its acknowledgement can change XP, levels, inventory, gold, reputation, quest completion or event contribution. No tutorial reward was added. Existing quest claims and event rewards are covered by replay/restart and noncontributor tests.
+The implementation adds zero overworld regions and no deployment or production-infrastructure change. The only authored `content_src` delta from starting main `dff9f170f25f44c8ae024e8d94133f72d63f6446` is `content_src/opening_journey.py`. Temporary candidate/repair/diagnostic workflows are removed; `main` remains the only persistent branch.
 
-## Verified completion and remaining boundaries
-
-The 13 functional workflows at the stated implementation baseline passed, including the permanent journey runner, Windows compilation, native layout/input, clean package/reconnect, full retained world checks and Task 20/21/22 regressions. `NEW_PLAYER_VERIFICATION.md` records exact runs and repaired failures. Handoff synchronization follows, rather than precedes, this verification; documentation delivery is checked at its own exact main head.
-
-No authored `content_src` file changed relative to starting main `dff9f170f25f44c8ae024e8d94133f72d63f6446`. There are zero new overworld regions, no economy rebalance and no production changes. Temporary candidate/edit/overlay workflows and request files are removed. The previous Task 22 current-evidence document is preserved byte-for-byte as `TASK22_EVIDENCE.json`, with older history unchanged.
-
-Do not start another task automatically. Manual/live acceptance remains after repository work; automated reachable-proximity fixtures and native tests are not human timing, retention, physical hardware or artistic approval.
+Human first-hour timing/retention, subjective usability and balance, independent artistic approval, audio listening approval, physical Windows DPI/hardware input and production-capacity claims remain outside automated acceptance and are still required where applicable.
