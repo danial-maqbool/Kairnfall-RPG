@@ -61,6 +61,9 @@ public partial class WindowsScaleContract : Node
             var backgroundFocus=new Button{Name="UiUxBackgroundFocus",Text="Background focus fixture",FocusMode=Control.FocusModeEnum.All};
             Field<Control>(game,"hud").AddChild(backgroundFocus); backgroundFocus.GrabFocus(); await Frame();
             Call(game,"OpenPage","Settings"); await Frame(); await Frame(); Call(game,"SynchronizeModalUx"); await Frame();
+            var settingsProfile=global::PageLayoutProfiles.For("Settings");
+            Require(Field<PanelContainer>(game,"gameWindow").TooltipText==settingsProfile.Summary,"Settings uses the shared page-specific purpose summary");
+            Require(global::PageLayoutProfiles.SizeFor("Dialogue",new Vector2(1920,1080)).X<global::PageLayoutProfiles.SizeFor("Inventory",new Vector2(1920,1080)).X,"Content-specific profiles keep conversation more compact than inventory");
             var blocker=game.FindChildren("ModalInputBlocker","ColorRect",true,false).Cast<ColorRect>().Single();
             Require(Contained(blocker),"Modal input blocker covers the visible viewport");
             Require(backgroundFocus.FocusMode==Control.FocusModeEnum.None,"An open panel removes background HUD controls from keyboard focus traversal");
@@ -153,7 +156,7 @@ public partial class WindowsScaleContract : Node
             baseSlot.QueueFree(); await Frame();
 
             foreach(float scale in new[]{1.25f,1.50f})
-            foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
+            foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080),new Vector2I(2560,1440)})
             {
                 GetWindow().Size=size; GetWindow().ContentScaleSize=size; GetWindow().ContentScaleFactor=scale; await Frame(); await Frame();
                 string label=$"{size.X}x{size.Y} at {scale*100:F0}%";
@@ -188,25 +191,29 @@ public partial class WindowsScaleContract : Node
             Require(Contained(Field<PanelContainer>(game,"gameWindow")),"A modal panel remains contained at the supported minimum Windows size");
             Call(game,"ClosePage"); await Frame(); await Frame();
 
+            foreach(var matrixSize in new[]{new Vector2I(1024,720),new Vector2I(1280,720),new Vector2I(1920,1080),new Vector2I(2560,1440)})
             foreach(double textScale in new[]{.9d,1d,1.15d,1.25d})
             {
+                GetWindow().ContentScaleFactor=1; GetWindow().Size=matrixSize; GetWindow().ContentScaleSize=matrixSize; await Frame(); await Frame();
                 Call(game,"ApplyUiTextScale",textScale,false);
+                string layoutLabel=$"{matrixSize.X}x{matrixSize.Y} at text scale {textScale:0.##}";
                 foreach(string pageName in new[]{"Inventory","Bank","Character","Equipment Guide","Shop","Sell","Skills","Abilities","Quests","Dialogue","Crafting","Social","Trade","Auction","Map","Bestiary","Hunting","Achievements","Settings"})
                 {
                     Call(game,"OpenPage",pageName); await Frame(); await Frame(); Call(game,"FitOpenPage");
                     var window=Field<PanelContainer>(game,"gameWindow");
-                    Require(Contained(window),pageName+" fits minimum Windows size at text scale "+textScale);
+                    Require(Contained(window),pageName+" fits "+layoutLabel);
+                    Require(window.TooltipText==global::PageLayoutProfiles.For(pageName).Summary,pageName+" exposes its page-specific purpose summary at "+layoutLabel);
                     var closeButton=window.FindChildren("*","Button",true,false).OfType<Button>().First(button=>button.Text.StartsWith("Close",StringComparison.Ordinal));
-                    Require(Contained(closeButton),pageName+" close remains reachable");
+                    Require(Contained(closeButton),pageName+" close remains reachable at "+layoutLabel);
                     var overflow=window.FindChild("PageOverflow",true,false) as ScrollContainer;
-                    Require(overflow is { FollowFocus:true },pageName+" overflow follows keyboard focus to offscreen content");
+                    Require(overflow is { FollowFocus:true },pageName+" overflow follows keyboard focus at "+layoutLabel);
                     await Click(closeButton);
-                    Require(Field<string>(game,"currentPage")=="",pageName+" closes via actual mouse input");
+                    Require(Field<string>(game,"currentPage")=="",pageName+" closes via actual mouse input at "+layoutLabel);
                 }
             }
             Call(game,"ApplyUiTextScale",1d,false);
 
-            GD.Print($"WINDOWS_SCALE_CONTRACT: {checks} checks passed for accessibility, modal focus, keyboard items, and 125%/150% Windows scale emulation. Physical Windows monitor DPI approval is not inferred.");
+            GD.Print($"WINDOWS_SCALE_CONTRACT: {checks} checks passed for accessibility, modal focus, keyboard items, and 1024/1280/1920/2560 layout and 125%/150% Windows scale emulation. Physical Windows monitor DPI approval is not inferred.");
             await NativeTestLifetime.ReleaseSceneAsync(this,game); connection=null; GetTree().Quit(0);
         }
         catch(Exception error)

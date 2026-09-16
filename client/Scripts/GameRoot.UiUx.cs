@@ -119,10 +119,12 @@ public partial class GameRoot
         if (viewport.X <= 0 || viewport.Y <= 0) viewport = GetViewport().GetVisibleRect().Size;
         if (viewport.X <= 0 || viewport.Y <= 0) return;
 
-        var desired = new Vector2(
-            Math.Max(320, Math.Min(1100, viewport.X - 80)),
-            Math.Max(300, Math.Min(670, viewport.Y - 140)));
+        var profile = PageLayoutProfiles.For(currentPage);
+        var desired = PageLayoutProfiles.SizeFor(currentPage, viewport);
         gameWindow.Size = desired;
+        gameWindow.TooltipText = profile.Summary;
+        gameWindow.SetMeta("page_layout_profile", currentPage);
+        gameWindow.SetMeta("page_layout_summary", profile.Summary);
         var position = gameWindow.Position;
         position.X = Math.Clamp(position.X, 0, Math.Max(0, viewport.X - gameWindow.Size.X));
         position.Y = Math.Clamp(position.Y, 0, Math.Max(0, viewport.Y - gameWindow.Size.Y));

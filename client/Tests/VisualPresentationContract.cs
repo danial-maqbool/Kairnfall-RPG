@@ -76,7 +76,7 @@ public partial class VisualPresentationContract : Node
                 "Item statistics use native LF line endings on Windows without doubled paragraph gaps");
             var gradeGallery=new EquipmentTierGallery { Data=game.Data,Assets=game.Assets };
             AddChild(gradeGallery); await Frame();
-            foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
+            foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080),new Vector2I(2560,1440)})
             {
                 GetWindow().Size=size; GetWindow().ContentScaleSize=size; await Frame();
                 foreach(int level in new[]{5,27,55,75,100})
@@ -88,7 +88,7 @@ public partial class VisualPresentationContract : Node
             }
             Check(game.Assets.Missing.Count==0,"Every requested tier weapon and armor renders without missing assets");
             gradeGallery.QueueFree(); await Frame(); await Frame();
-            foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080)})
+            foreach(var size in new[]{new Vector2I(1280,720),new Vector2I(1920,1080),new Vector2I(2560,1440)})
             {
                 GetWindow().Size=size; GetWindow().ContentScaleSize=size;
                 await Frame(); await Frame(); Refresh();

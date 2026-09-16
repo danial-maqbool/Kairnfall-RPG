@@ -95,3 +95,16 @@ usability, art, audio and normal-play feel remain human evaluation. Content-scal
 emulation and rendered fixtures do not establish those approvals.
 
 **NOT APPROVED — human acceptance remains.**
+
+
+## First-hour cohesive page-profile pass
+
+The shared `PageLayoutProfiles` table now drives the real modal window geometry rather
+than remaining dead configuration. Each page publishes a concise purpose summary through
+the native tooltip/accessibility surface while retaining Task 12 modal blocking, focus
+return, overflow scrolling, keyboard activation and error-prefix behavior.
+
+Permanent Windows coverage now exercises every existing page at 1024×720, 1280×720,
+1920×1080 and 2560×1440 across 90%, 100%, 115% and 125% UI text, plus 125%/150%
+content-scale emulation for HUD, Inventory, Crafting and Map. Rendered visual review also
+includes 2560×1440. Physical monitor DPI and subjective usability remain human-only gates.
