@@ -13,7 +13,9 @@ on:
       - 'content_src/**'
       - 'client/Scripts/PixelAssets.cs'
       - 'client/Scripts/WorldView*.cs'
+      - 'client/Scripts/PageLayoutProfiles.cs'
       - 'client/Tests/VisualPresentationContract.*'
+      - 'src/release-candidate.trigger'
       - '.github/workflows/grounded-actor-acceptance.yml'
   workflow_dispatch:
 permissions:

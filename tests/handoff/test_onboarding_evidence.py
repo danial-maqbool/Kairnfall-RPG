@@ -22,7 +22,11 @@ class OnboardingEvidenceTests(unittest.TestCase):
             'releasePublished': False, 'deployed': False, 'humanOnlyGates': ['Human release acceptance'],
             'historicalTask22Evidence': 'docs/handoff/TASK22_EVIDENCE.json',
             'temporaryToolingRemoved': True, 'newOverworldRegions': 0,
-            'tutorialRewardsAdded': False, 'serverAuthoritative': True,
+            'tutorialRewardsAdded': 8, 'serverAuthoritative': True,
+            'actorRuntimeSource': 'Grounded-2026 procedural construction',
+            'actorHistoricalFallbacks': 0,
+            'uiResolutionMatrix': contract.EXPECTED_UI_MATRIX.copy(),
+            'assetMigrationManifest': contract.ASSET_MANIFEST,
             'implementationWorkflows': [
                 {'name': name, 'runId': index + 1, 'headSha': self.sha, 'conclusion': 'success'}
                 for index, name in enumerate(sorted(contract.REQUIRED_WORKFLOWS))],
@@ -65,9 +69,16 @@ class OnboardingEvidenceTests(unittest.TestCase):
                 contract.validate_metadata(e)
 
     def test_reward_and_footprint_boundary_is_enforced(self):
-        for key, value in (('tutorialRewardsAdded', True), ('newOverworldRegions', 1),
-                           ('serverAuthoritative', False), ('temporaryToolingRemoved', False),
-                           ('persistentBranches', ['main', 'feature'])):
+        for key, value in (('tutorialRewardsAdded', 7), ('tutorialRewardsAdded', True),
+                           ('newOverworldRegions', 1), ('serverAuthoritative', False),
+                           ('temporaryToolingRemoved', False), ('persistentBranches', ['main', 'feature'])):
+            e = deepcopy(self.evidence); e[key] = value
+            with self.assertRaises(RuntimeError):
+                contract.validate_metadata(e)
+
+    def test_actor_and_ui_evidence_boundary_is_enforced(self):
+        for key, value in (('actorRuntimeSource', 'legacy'), ('actorHistoricalFallbacks', 1),
+                           ('uiResolutionMatrix', ['1280x720']), ('assetMigrationManifest', 'docs/other.md')):
             e = deepcopy(self.evidence); e[key] = value
             with self.assertRaises(RuntimeError):
                 contract.validate_metadata(e)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate synchronized onboarding evidence against Git history and real Actions runs."""
+"""Validate synchronized onboarding/art/UI evidence against Git history and real Actions runs."""
 from __future__ import annotations
 import hashlib
 import json
@@ -20,13 +20,23 @@ REQUIRED_WORKFLOWS = frozenset({
     'Graphical multiplayer acceptance', 'Load acceptance', 'Build and verify',
     'Task 13 adversarial acceptance', 'Release operations acceptance',
     'Transaction integrity on Windows and Linux', 'New-player journey',
+    'Grounded actor acceptance', 'Visual acceptance matrix',
+    'Windows display and input acceptance',
 })
 CURRENT_DOCS = ('HANDOFF.md', 'docs/SESSION_STATUS.md',
                 'docs/handoff/NEW_PLAYER_CURRENT.md', 'docs/handoff/NEW_PLAYER_VERIFICATION.md')
-TEMPORARY_PATHS = ('.ci/client-edit-request.json', '.ci/experience-candidate.json',
-                   '.ci/source-overlay.json', '.github/workflows/experience-candidate.yml',
-                   '.github/workflows/experience-log-diagnostic.yml',
-                   '.github/workflows/prepare-client-edit.yml', '.github/workflows/source-overlay.yml')
+TEMPORARY_PATHS = (
+    '.ci/client-edit-request.json', '.ci/experience-candidate.json', '.ci/source-overlay.json',
+    '.github/workflows/experience-candidate.yml', '.github/workflows/experience-log-diagnostic.yml',
+    '.github/workflows/prepare-client-edit.yml', '.github/workflows/source-overlay.yml',
+    '.github/workflows/first-hour-baseline.yml', '.github/workflows/grounded-motion-repair.yml',
+    '.github/workflows/grounded-spirit-repair.yml', '.github/workflows/opening-integration-repair.yml',
+    '.github/workflows/opening-integration.yml', '.github/workflows/opening-native-diagnostic.yml',
+    '.github/workflows/opening-native-log-diagnostic.yml',
+)
+EXPECTED_UI_MATRIX = ['1024x720', '1280x720', '1920x1080', '2560x1440']
+ASSET_MANIFEST = 'docs/ASSET_MIGRATION_FIRST_HOUR_UI.md'
+ALLOWED_AUTHORED_CONTENT = {'content_src/opening_journey.py'}
 
 
 def require(condition: bool, message: str) -> None:
@@ -59,8 +69,16 @@ def validate_metadata(e: dict) -> str:
     require(e.get('historicalTask22Evidence') == 'docs/handoff/TASK22_EVIDENCE.json',
             'Historical Task 22 evidence must be preserved.')
     require(e.get('temporaryToolingRemoved') is True and e.get('newOverworldRegions') == 0 and
-            e.get('tutorialRewardsAdded') is False and e.get('serverAuthoritative') is True,
-            'Cleanup, footprint or reward-authority boundary drifted.')
+            type(e.get('tutorialRewardsAdded')) is int and e.get('tutorialRewardsAdded') == 8 and
+            e.get('serverAuthoritative') is True,
+            'Cleanup, footprint, tutorial reward count or reward-authority boundary drifted.')
+    require(e.get('actorRuntimeSource') == 'Grounded-2026 procedural construction' and
+            e.get('actorHistoricalFallbacks') == 0,
+            'Active actor source or zero-fallback migration boundary drifted.')
+    require(e.get('uiResolutionMatrix') == EXPECTED_UI_MATRIX,
+            'UI acceptance resolution matrix is incomplete or reordered.')
+    require(e.get('assetMigrationManifest') == ASSET_MANIFEST,
+            'Asset migration manifest is missing from current evidence.')
     rows = e.get('implementationWorkflows', [])
     require(isinstance(rows, list) and len(rows) == len(REQUIRED_WORKFLOWS) and
             all(isinstance(row, dict) for row in rows), 'Incomplete implementation workflow set.')
@@ -106,12 +124,14 @@ def main() -> int:
     require(digest == TASK22_BLOB, 'Historical Task 22 evidence was changed instead of archived verbatim.')
     for path in TEMPORARY_PATHS:
         require(not (ROOT / path).exists(), 'Temporary tooling remains: ' + path)
+    require((ROOT / ASSET_MANIFEST).is_file(), 'Asset migration manifest is absent from the repository.')
     origin = evidence.get('startingMain', '')
     require(isinstance(origin, str) and re.fullmatch(r'[0-9a-f]{40}', origin) is not None,
             'An exact starting-main SHA is required for the footprint audit.')
     git('merge-base', '--is-ancestor', origin, baseline)
-    require(not git('diff', '--name-only', origin, baseline, '--', 'content_src'),
-            'This onboarding task must not change the authored overworld/content footprint.')
+    authored = {path for path in git('diff', '--name-only', origin, baseline, '--', 'content_src').splitlines() if path}
+    require(authored == ALLOWED_AUTHORED_CONTENT,
+            'Authored content footprint differs from the single approved opening module: ' + ', '.join(sorted(authored)))
     for relative in CURRENT_DOCS:
         text = (ROOT / relative).read_text(encoding='utf-8')
         for marker in (baseline, 'CURRENT_EVIDENCE.json', RELEASE_STATUS,
