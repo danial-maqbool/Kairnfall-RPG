@@ -1,0 +1,46 @@
+name: Character candidate failure diagnostics
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/character-failure-report.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Recover the failed candidate artifact without rerunning or promoting it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 35272414269 --repo "$GITHUB_REPOSITORY" --name character-candidate-400eb7744c46801411c6eb13b1836583d4deeedf --dir artifacts/failed-character
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source=Path('artifacts/failed-character')
+          report={'run_id':35272414269,'head_sha':'400eb7744c46801411c6eb13b1836583d4deeedf','files':{}}
+          for path in sorted(source.rglob('*')):
+              if not path.is_file() or path.suffix not in ('.log','.json','.txt'):continue
+              text=path.read_text(encoding='utf-8',errors='replace')
+              if path.suffix=='.log':text='\n'.join(text.splitlines()[-100:])
+              report['files'][path.relative_to(source).as_posix()]=text[-30000:]
+          target=Path('docs/art/character-rebuild/candidate-failure.json')
+          target.parent.mkdir(parents=True,exist_ok=True)
+          target.write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+          test "$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/art/character-rebuild/candidate-failure.json
+          git commit -m 'test(characters): retain failed candidate diagnostics without promotion'
+          gh auth setup-git
+          git push origin HEAD:main
