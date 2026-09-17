@@ -5,6 +5,7 @@ on:
     paths:
       - 'tools/art/character_motion.py'
       - 'tools/art/characters.py'
+      - 'tools/art/wildlife.py'
       - 'tools/character_rebuild_stage.py'
       - '.github/workflows/character-rebuild-stage.yml'
 permissions:
@@ -42,9 +43,9 @@ jobs:
           test "$current" = "$GITHUB_SHA" || { echo 'main moved; refusing to publish stale preview'; exit 1; }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- docs/art/character-rebuild/heroes.png docs/art/character-rebuild/motion.png docs/art/character-rebuild/stage-report.json
+          git add -- docs/art/character-rebuild/heroes.png docs/art/character-rebuild/motion.png docs/art/character-rebuild/creatures.png docs/art/character-rebuild/stage-report.json
           git diff --cached --quiet && exit 0
-          git commit -m 'test(art): retain replacement character frames and staging results'
+          git commit -m 'test(art): retain replacement actor frames and staging results'
           gh auth setup-git
           git push origin HEAD:main
       - uses: actions/upload-artifact@v4
