@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'tools/character_rebuild/**'
+      - 'tools/check_character_source.py'
       - '.github/workflows/character-rebuild-apply.yml'
 permissions:
   contents: write
@@ -41,10 +42,15 @@ jobs:
           python -m pip install Pillow==12.0.0
           python tools/build_content.py 2>&1 | tee artifacts/character-candidate/logs/content.log
           python tools/build_game_assets.py --output artifacts/character-baseline-assets 2>&1 | tee artifacts/character-candidate/logs/baseline.log
-      - name: Apply guarded source and old-asset retirement in disposable checkout
+      - name: Apply guarded migration and check every pose family before atlas generation
         run: |
           set -euo pipefail
           python tools/character_rebuild/apply.py 2>&1 | tee artifacts/character-candidate/logs/apply.log
+          python tools/character_rebuild/repair.py 2>&1 | tee artifacts/character-candidate/logs/repair.log
+          python tools/check_character_source.py 2>&1 | tee artifacts/character-candidate/logs/source-preflight.log
+      - name: Compile the complete solution and native client
+        run: |
+          set -euo pipefail
           dotnet build Kairnfall.slnx -c Release 2>&1 | tee artifacts/character-candidate/logs/core-build.log
           dotnet build client/Kairnfall.Client.csproj -c Debug 2>&1 | tee artifacts/character-candidate/logs/client-build.log
       - name: Preserve gameplay authority and validate presentation clocks
@@ -79,7 +85,6 @@ jobs:
           python - <<'PY'
           import json, os, shutil
           from pathlib import Path
-          root=Path('.')
           report=json.loads(Path('artifacts/test-results/character-assets.json').read_text())
           native=json.loads(Path('artifacts/character-candidate/native-result.json').read_text())
           if not report['passed'] or not native['passed']:raise SystemExit('Candidate evidence is not passing.')
@@ -90,7 +95,7 @@ jobs:
           Path('docs/art/character-rebuild/integration-report.json').write_text(json.dumps(report,indent=2)+'\n')
           stage=Path('docs/art/character-rebuild/stage-report.json')
           value=json.loads(stage.read_text());value['runtimeIntegrated']=True;stage.write_text(json.dumps(value,indent=2)+'\n')
-          text='# Wayfarer character replacement\n\nThe new character and creature source, complete runtime atlases, additional action sheets, authority cues and native rendering tests are integrated. Prior actor PNGs and authored masters are deleted from the working tree; Git history and saves are retained.\n\nThe accepted candidate is recorded in `integration-report.json`. Permanent Linux and Windows character acceptance must pass at the delivery head before the task is marked verified. Compilation and structural checks do not establish independent artistic approval, ordinary-account play quality or release readiness.\n\nUse `python tools/build_content.py`, `python tools/build_game_assets.py`, `python tools/complete_skill_icons.py`, `python tools/validate_character_assets.py`, and `python tools/build_wayfarer_pack.py` to rebuild and verify. The last command compares against committed atlases; `--write` is an explicit source-authoring operation, not a validation step.\n'
+          text='# Wayfarer character replacement\n\nThe new character and creature source, complete runtime atlases, additional action sheets, authority cues and native rendering tests are integrated. Prior actor PNGs and authored masters are deleted from the working tree; Git history and saves are retained.\n\nThe accepted candidate is recorded in `integration-report.json`. Permanent Linux and Windows character acceptance must pass at the delivery head before the task is marked verified. Compilation and structural checks do not establish independent artistic approval, ordinary-account play quality or release readiness.\n\nUse `python tools/build_content.py`, `python tools/check_character_source.py`, `python tools/build_game_assets.py`, `python tools/complete_skill_icons.py`, `python tools/validate_character_assets.py`, and `python tools/build_wayfarer_pack.py` to rebuild and verify. The last command compares against committed atlases; `--write` is an explicit source-authoring operation, not a validation step.\n'
           Path('docs/CHARACTER_REBUILD.md').write_text(text)
           for name in ('HANDOFF.md','docs/SESSION_STATUS.md'):
               path=Path(name);path.write_text('## Active workstream: Wayfarer character replacement\n\nCharacter replacement is integrated; delivery-head verification is in progress. Read `docs/CHARACTER_REBUILD.md` and `docs/art/character-rebuild/integration-report.json`. The previous first-hour evidence below is historical and does not certify the new character implementation.\n\n---\n\n'+path.read_text())
@@ -101,12 +106,41 @@ jobs:
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add --all -- .github/workflows tools/art tools/build_game_assets.py tools/integrate_atelier.py tools/validate_game_assets.py tools/validate_grounded_actor_assets.py tools/validate_character_assets.py tools/build_wayfarer_pack.py tools/run_character_native.py tools/character_probe tools/character_rebuild tools/character_rebuild_stage.py client/Scripts/PixelAssets.cs client/Scripts/SpritePoseRules.cs client/Scripts/WorldView.cs client/Scripts/WorldView.CharacterMotion.cs client/Scripts/GameRoot.cs client/Scripts/PixelPresentation.cs client/Tests/CharacterPresentationContract.cs client/Tests/CharacterPresentationContract.tscn src/Kairnfall.Core/ActorPresentation.cs src/Kairnfall.Core/Models.cs src/Kairnfall.Core/RealmEngine.cs src/Kairnfall.Core/ReconnectRecovery.cs Kairnfall.slnx art/wayfarer atelier/Assets atelier/authored atelier/build.py atelier/coverage.json atelier/README.md foundry/Assets foundry/preview foundry/coverage.json docs/art/character-rebuild docs/CHARACTER_REBUILD.md docs/ART_DIRECTION.md docs/SESSION_STATUS.md HANDOFF.md
+          git add --all -- .github/workflows tools/art tools/check_character_source.py tools/build_game_assets.py tools/integrate_atelier.py tools/validate_game_assets.py tools/validate_grounded_actor_assets.py tools/validate_character_assets.py tools/build_wayfarer_pack.py tools/run_character_native.py tools/character_probe tools/character_rebuild tools/character_rebuild_stage.py client/Scripts/PixelAssets.cs client/Scripts/SpritePoseRules.cs client/Scripts/WorldView.cs client/Scripts/WorldView.CharacterMotion.cs client/Scripts/GameRoot.cs client/Scripts/PixelPresentation.cs client/Tests/CharacterPresentationContract.cs client/Tests/CharacterPresentationContract.tscn src/Kairnfall.Core/ActorPresentation.cs src/Kairnfall.Core/Models.cs src/Kairnfall.Core/RealmEngine.cs src/Kairnfall.Core/ReconnectRecovery.cs Kairnfall.slnx art/wayfarer atelier/Assets atelier/authored atelier/build.py atelier/coverage.json atelier/README.md foundry/Assets foundry/previews foundry/coverage.json docs/art/character-rebuild docs/CHARACTER_REBUILD.md docs/ART_DIRECTION.md docs/SESSION_STATUS.md HANDOFF.md
           git diff --cached --check
           git commit -m 'feat(characters): replace legacy sprites, rebuild motions and synchronize public actions'
           gh auth setup-git
           git push origin HEAD:main
           git rev-parse HEAD > artifacts/character-candidate/published-revision.txt
+      - name: Retain a readable failure record without publishing the candidate
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          lines=['FAILED CHARACTER CANDIDATE','run_id='+os.environ['GITHUB_RUN_ID'],'head_sha='+os.environ['GITHUB_SHA'],'Candidate runtime was not promoted.','']
+          for path in sorted(Path('artifacts/character-candidate/logs').glob('*.log')):
+              text=path.read_text(encoding='utf-8',errors='replace')
+              count=160 if any(k in path.name for k in ('validation','preflight','review','repair','apply','native','import')) else 14
+              lines.extend(['=== '+path.name+' ===',*text.splitlines()[-count:],''])
+          for path in sorted(Path('artifacts/test-results').glob('character-*.json')):
+              lines.extend(['=== '+path.name+' ===',path.read_text()[-30000:],''])
+          target=Path('docs/art/character-rebuild/last-failure.txt');target.parent.mkdir(parents=True,exist_ok=True)
+          target.write_text('\n'.join(lines)+'\n')
+          PY
+          current=$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/main --jq .object.sha)
+          test "$current" = "$GITHUB_SHA" || { echo 'main moved; failure retained in artifact only'; exit 0; }
+          git reset --quiet
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- docs/art/character-rebuild/last-failure.txt
+          git diff --cached --quiet && exit 0
+          git commit -m 'test(characters): retain candidate failure without changing active runtime'
+          gh auth setup-git
+          git push origin HEAD:main
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -114,6 +148,7 @@ jobs:
           path: |
             artifacts/character-candidate/
             artifacts/test-results/character-assets.json
+            artifacts/test-results/character-source.json
             artifacts/test-results/asset-structure.json
           retention-days: 14
           if-no-files-found: error
