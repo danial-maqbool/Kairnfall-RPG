@@ -1,10 +1,19 @@
 {
-  "checkedFrames": 211200,
-  "errors": [],
+  "checkedFrames": 239040,
+  "errors": [
+    "Duplicate creature silhouettes: [['bog_ghoul', 'pirate_cutthroat']]"
+  ],
+  "duplicateCreatureSilhouettes": [
+    [
+      "bog_ghoul",
+      "pirate_cutthroat"
+    ]
+  ],
   "runtimeIntegrated": false,
   "artisticApproval": false,
   "sourceHashes": {
     "characters.py": "1bd1a1f541037b0c95d645e2906cc8156de6a5aa9159a57b62bec4168c0a6a48",
-    "character_motion.py": "2b84d5c2ea709063338c5eccfdf2ab5f30af4b5f64bda8365fce5bf123a1a92b"
+    "character_motion.py": "2b84d5c2ea709063338c5eccfdf2ab5f30af4b5f64bda8365fce5bf123a1a92b",
+    "wildlife.py": "a0924feb448d0861bc86ec7c89895c2a1671272ff5d2ac0393029d8ddc130ac9"
   }
 }
