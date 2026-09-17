@@ -27,4 +27,4 @@ jobs:
           name: kairnfall-source-${{ github.sha }}
           path: artifacts/source/
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 7
