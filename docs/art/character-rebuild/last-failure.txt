@@ -1,0 +1,125 @@
+FAILED CHARACTER CANDIDATE
+run_id=35274257595
+head_sha=090b93d1c55c3347e34ed860d20e6b1f544451c1
+Candidate runtime was not promoted.
+
+=== apply.log ===
+Guarded character runtime integration applied.
+Guarded Wayfarer source, additional poses and generator ownership applied.
+Retired 1877 tracked actor/master files; retained 1245 old runtime hashes for regression checks.
+ATELIER: reindexing /home/runner/work/Kairnfall-RPG/Kairnfall-RPG/atelier/Assets
+ATELIER RESULT: 2533 images (0 animation sheets), 22 audio files in 1s. Structural checks passed; visual review is still required.
+CHARACTER CANDIDATE APPLIED: no game source has been published by this command.
+
+=== baseline.log ===
+ASSETS: named NPC roles
+ASSETS: creature anatomy
+ASSETS: creatures 0 / 145
+ASSETS: creatures 20 / 145
+ASSETS: creatures 40 / 145
+ASSETS: creatures 60 / 145
+ASSETS: creatures 80 / 145
+ASSETS: creatures 100 / 145
+ASSETS: creatures 120 / 145
+ASSETS: creatures 140 / 145
+ASSETS: original audio
+ASSETS: synthesized 96 runtime WAV files
+ATELIER INTEGRATION: 1857 historical non-actor catalog assets; {'abilities': 132, 'buildings': 164, 'chests': 14, 'items': 1426, 'props': 23, 'resources': 41, 'structures': 5, 'terrain': 52} ; runtime coverage: {'abilities': 132, 'buildings': 172, 'chests': 14, 'equipment': 1014, 'items': 1434, 'mobs': 145, 'npcs': 26, 'people': 60, 'props': 31, 'resources': 45, 'structures': 5, 'terrain': 67} ; generated/inactive skips: 1288 ; Grounded-2026 actor fallbacks: 0
+ASSETS RESULT: 3179 PNG files; 1245 animation sheets; 96 audio files. Structural checks passed; visual review remains required.
+
+=== content.log ===
+  "rare_elites": 19,
+  "bosses": 20,
+  "cities": 5,
+  "settlements": 11,
+  "dungeons": 30,
+  "task21_compact_rooms": 8,
+  "biomes": 20,
+  "profession_rare_resources": 4,
+  "profession_specialty_tools": 4,
+  "profession_specialty_recipes": 4,
+  "surface_region_tiles": 2048000,
+  "catalog_sha256": "1e06a2a37e89a890665c13c604f09a287b6ea1d715ed3eaacd41d7927ad25b1c",
+  "status": "Catalog records generated. Counts alone do not establish gameplay or art completion."
+}
+
+=== repair.log ===
+Fixed running direction shadowing; retained exact native success accounting and source preflight.
+
+=== source-preflight.log ===
+{
+  "checks": 137844,
+  "sampled_frames": 41160,
+  "equipment_constructions": 74,
+  "creature_definitions": 145,
+  "errors": [
+    "Insufficient cast motion in direction 1: mobs/root_walker (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/root_walker (0 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/coral_construct (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/coral_construct (0 pixels, need 8)",
+    "Insufficient walk motion in direction 0: mobs/prism_golem (3 pixels, need 8)",
+    "Insufficient walk motion in direction 0: mobs/geode_sprite (6 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/myconid_stalker (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/myconid_stalker (0 pixels, need 8)",
+    "Insufficient walk motion in direction 0: mobs/cavern_snail (1 pixels, need 8)",
+    "Insufficient attack motion in direction 0: mobs/cavern_snail (5 pixels, need 8)",
+    "Insufficient cast motion in direction 0: mobs/cavern_snail (0 pixels, need 8)",
+    "Insufficient hit motion in direction 0: mobs/cavern_snail (0 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/lantern_fungus (1 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/lantern_fungus (1 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/rare_coral_construct (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/rare_coral_construct (0 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/rare_lantern_fungus (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/rare_lantern_fungus (1 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/bracken_king (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/bracken_king (0 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/chorus_below (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/chorus_below (1 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/reef_colossus (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/reef_colossus (0 pixels, need 8)"
+  ],
+  "error_count": 24,
+  "passed": false,
+  "full_atlas_validation": false,
+  "artistic_approval": false
+}
+
+=== character-source.json ===
+{
+  "checks": 137844,
+  "sampled_frames": 41160,
+  "equipment_constructions": 74,
+  "creature_definitions": 145,
+  "errors": [
+    "Insufficient cast motion in direction 1: mobs/root_walker (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/root_walker (0 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/coral_construct (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/coral_construct (0 pixels, need 8)",
+    "Insufficient walk motion in direction 0: mobs/prism_golem (3 pixels, need 8)",
+    "Insufficient walk motion in direction 0: mobs/geode_sprite (6 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/myconid_stalker (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/myconid_stalker (0 pixels, need 8)",
+    "Insufficient walk motion in direction 0: mobs/cavern_snail (1 pixels, need 8)",
+    "Insufficient attack motion in direction 0: mobs/cavern_snail (5 pixels, need 8)",
+    "Insufficient cast motion in direction 0: mobs/cavern_snail (0 pixels, need 8)",
+    "Insufficient hit motion in direction 0: mobs/cavern_snail (0 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/lantern_fungus (1 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/lantern_fungus (1 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/rare_coral_construct (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/rare_coral_construct (0 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/rare_lantern_fungus (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/rare_lantern_fungus (1 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/bracken_king (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/bracken_king (0 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/chorus_below (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/chorus_below (1 pixels, need 8)",
+    "Insufficient cast motion in direction 1: mobs/reef_colossus (0 pixels, need 8)",
+    "Insufficient cast motion in direction 2: mobs/reef_colossus (0 pixels, need 8)"
+  ],
+  "error_count": 24,
+  "passed": false,
+  "full_atlas_validation": false,
+  "artistic_approval": false
+}
+
+
