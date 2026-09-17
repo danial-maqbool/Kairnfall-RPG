@@ -19,7 +19,6 @@ def _manta(b,s,m):
     tail=[(x-6,0,z),(x-11,math.sin(phase)*1.1,z-1),(x-16,math.sin(phase-.7)*2,z-1),(x-19,math.sin(phase-1)*2.5,z)]
     b.line(tail,shade(tone,.65),1.5)
     for side in (-1,1):
-        # Curled cephalic lobes flank the mouth; no mammalian ears or fish dorsal fin.
         b.line([(x+5,side*2,z),(x+8,side*3,z),(x+9,side*2,z+.5)],shade(tone,1.15),1.8)
         b.dot((x+4,side*3,z+1),s.eye if dead<.8 else '343440')
         for k in range(3):b.dot((x-k*2,side*(4+k),z+.7+beat*.15),s.accent or shade(tone,1.35))
@@ -39,7 +38,6 @@ def _cuttle(b,s,m):
     for k in range(4):b.line([(x-6+k*2,-2,z+2),(x-5+k*2,2,z+2)],s.accent or shade(s.coat,.72))
     b.ellipsoid((x+5,0,z),3.4,3.6,2.7,s.coat)
     for side in (-1,1):b.dot((x+5,side*3.2,z+1),s.eye if dead<.8 else '36363a')
-    # Eight short arms spread, coil and settle without moving the sprite's foot anchor.
     for arm in range(8):
         spread=(arm-3.5)*1.65*(1-dead*.5)
         ripple=math.sin(phase+arm*.7)*(1.3 if m['state']=='walk' else .4)+charge*1.2
@@ -50,7 +48,8 @@ def _cuttle(b,s,m):
     extension=2+(max(0,drive)*1.4 if m['state']=='attack' else charge*3)
     for side in (-1,1):
         root=(x+7,side*1.2,z)
-        tip=(min(23,x+12+extension),side*2,2+charge*2)
+        # A horizontal feeding strike stays above the south-facing cell boundary.
+        tip=(min(23,x+12+extension),side*2,5+charge*2)
         b.line([root,(x+11,side*3,z-1),tip],shade(s.coat,1.12),1.4)
         b.ellipsoid(tip,1.6,1,.7,s.accent or s.coat)
 
@@ -94,6 +93,10 @@ def main():
                 a=k*math.pi/3;r=max(.5,4-k*.30)
                 points.append((sx+math.cos(a)*r,side*5.5,sz+math.sin(a)*r))
             b.line(points,shade(shell,.65),1.1)""")
-    print('Explicit manta, cuttlefish, scorpion and hermit-crab silhouettes; corrected bat/wyvern leg count and fungus cap.',flush=True)
+    replace(path,"end=(hx+7+m['drive'],side*8,z+2)",
+        "end=(hx+7+m['drive']+m['charge']*1.5,side*(8+m['charge']*2),z+2+m['charge']*4)")
+    replace(path,"b.poly([end,(end[0]+4,end[1]-2,z+3),(end[0]+5,end[1],z+2),(end[0]+3,end[1]+3,z)],s.coat)",
+        "b.poly([end,(end[0]+4,end[1]-2,end[2]+1),(end[0]+5,end[1],end[2]),(end[0]+3,end[1]+3,end[2]-2)],s.coat)")
+    print('Explicit species anatomy; raised, visible casting pincers and bounded feeding-tentacle contact.',flush=True)
 
 if __name__=='__main__':main()
