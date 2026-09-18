@@ -23,4 +23,4 @@ jobs:
       - name: Verify current evidence matches exact successful implementation runs
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 tools/character_delivery_contract.py
+        run: python3 tools/documentation_contract.py
