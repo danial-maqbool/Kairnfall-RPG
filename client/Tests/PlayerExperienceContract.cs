@@ -79,7 +79,7 @@ public partial class PlayerExperienceContract : Node
             Require(ExperienceRules.ChooseTarget(self, [pet], data, pet.Id, 2) is null, "Owned companions cannot be attack targets");
             var dead = Wire.Copy(target); dead.Health = 0;
             Require(ExperienceRules.ChooseTarget(self, [dead], data, "", 2) is null, "Dead creatures cannot be selected");
-            var distant = Wire.Copy(target); distant.Position = self.Position.Add(new Point(20, 0));
+            var distant = Wire.Copy(target); distant.Id = "distant"; distant.Position = self.Position.Add(new Point(20, 0));
             Require(!ExperienceRules.CanTarget(self, distant, data, 2), "Out-of-range creatures are rejected");
             Require(ExperienceRules.ChooseEngagementTarget(self, [target, distant], data, distant.Id) is null,
                 "An explicit target beyond the short approach range is never silently replaced by another creature");
