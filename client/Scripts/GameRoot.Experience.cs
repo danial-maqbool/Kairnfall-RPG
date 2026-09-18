@@ -7,6 +7,8 @@ namespace Kairnfall.Client;
 public partial class GameRoot
 {
     private bool attackKeyHeld;
+    private double basicAttackBufferedUntil;
+    private string basicAttackBufferedTarget = "";
     private bool applicationFocused = true;
     private bool combatApproach, approachUsed;
     private double approachDeadline, nextApproachPlan, approachTravelled;
@@ -48,8 +50,9 @@ public partial class GameRoot
             if (!targetKey.Echo) CycleHostileTarget(targetKey.ShiftPressed);
             GetViewport().SetInputAsHandled(); return;
         }
-        // GUI focus can consume a release after the press reached the world.
-        if (InputMap.HasAction("basic_attack") && @event.IsActionReleased("basic_attack")) StopCombatInput();
+        // GUI focus can consume a release after the press reached the world. Keep only
+        // the short tap buffer; release must never keep automatic approach movement alive.
+        if (InputMap.HasAction("basic_attack") && @event.IsActionReleased("basic_attack")) ReleaseBasicAttack();
     }
 
     private void CancelCombatApproach()
@@ -61,13 +64,28 @@ public partial class GameRoot
     private bool engagementStarted;
     private double observedAttackCooldown;
 
-    private void StopCombatInput()
+    private bool BasicAttackBuffered(double localTime)
+        => double.IsFinite(localTime) && basicAttackBufferedTarget != "" && localTime <= basicAttackBufferedUntil;
+
+    private void ClearBasicAttackBuffer()
+    {
+        basicAttackBufferedUntil = 0;
+        basicAttackBufferedTarget = "";
+    }
+
+    private void ReleaseBasicAttack()
     {
         engagementStarted = false;
         attackKeyHeld = false;
         approachUsed = false;
         approachTravelled = 0; nextApproachPlan = 0;
         CancelCombatApproach();
+    }
+
+    private void StopCombatInput()
+    {
+        ReleaseBasicAttack();
+        ClearBasicAttackBuffer();
     }
 
     private void BeginBasicAttack(bool held)
@@ -78,15 +96,25 @@ public partial class GameRoot
         var snapshot = Snapshot!;
         engagementOrigin = snapshot.Self.Position; engagementStarted = true;
         observedAttackCooldown = snapshot.Self.Cooldowns.GetValueOrDefault("attack");
-        var target = ExperienceRules.ChooseTarget(snapshot.Self, snapshot.Creatures, Data,
-            selectedTargetKind == "creature" ? selectedTarget : "", ExperienceRules.WeaponRange(snapshot.Self, Data));
+        var target = ExperienceRules.ChooseEngagementTarget(snapshot.Self, snapshot.Creatures, Data,
+            selectedTargetKind == "creature" ? selectedTarget : "");
         if (target is not null)
         {
             selectedTargetKind = "creature"; selectedTarget = target.Id; World.TargetId = target.Id;
         }
         string problem = ExperienceRules.AttackProblem(snapshot.Self, Data, snapshot.Time);
-        if (problem != "") { Notify(problem); return; }
-        if (target is null && selectedTargetKind != "creature") Notify("No hostile creature is within weapon range.");
+        if (problem != "") { StopCombatInput(); Notify(problem); return; }
+        if (target is null)
+        {
+            StopCombatInput();
+            Notify(selectedTargetKind == "creature"
+                ? "Selected target is beyond the short attack approach."
+                : "No hostile creature is within weapon range.");
+            return;
+        }
+        double now = Time.GetTicksMsec() / 1000.0;
+        basicAttackBufferedTarget = target.Id;
+        basicAttackBufferedUntil = now + ExperienceRules.BasicAttackBufferSeconds;
         TryBasicAttack();
     }
 
@@ -116,13 +144,17 @@ public partial class GameRoot
         {
             CancelCombatApproach(); return;
         }
-        var target = selectedTargetKind == "creature" ? snapshot.Creatures.FirstOrDefault(x => x.Id == selectedTarget) : null;
-        if (selectedTargetKind == "creature" && (target is null || target.Health <= 0 || target.Owner != "" || target.Zone != snapshot.Self.Zone))
+        bool buffered = BasicAttackBuffered(now);
+        string preferred = buffered ? basicAttackBufferedTarget
+            : selectedTargetKind == "creature" ? selectedTarget : "";
+        var target = preferred != "" ? snapshot.Creatures.FirstOrDefault(x => x.Id == preferred) : null;
+        if (preferred != "" && (target is null || target.Health <= 0 || target.Owner != "" || target.Zone != snapshot.Self.Zone))
         {
             StopCombatInput(); return;
         }
-        target ??= ExperienceRules.ChooseTarget(snapshot.Self, snapshot.Creatures, Data, "", ExperienceRules.WeaponRange(snapshot.Self, Data));
-        if (target is null) return;
+        target ??= ExperienceRules.ChooseEngagementTarget(snapshot.Self, snapshot.Creatures, Data,
+            selectedTargetKind == "creature" ? selectedTarget : "");
+        if (target is null) { ClearBasicAttackBuffer(); return; }
         selectedTargetKind = "creature"; selectedTarget = target.Id; World.TargetId = target.Id;
         bool inRange = ExperienceRules.CanTarget(snapshot.Self, target, Data, ExperienceRules.WeaponRange(snapshot.Self, Data), true);
         if (!inRange)
@@ -160,7 +192,10 @@ public partial class GameRoot
         CancelCombatApproach();
         if (basicAttackGate.TryTake(now, snapshot.Time, snapshot.Self.Cooldowns.GetValueOrDefault("attack"), true,
             ExperienceRules.AttackInterval(snapshot.Self, Data)))
+        {
+            ClearBasicAttackBuffer();
             _ = SendAsync(new GameCommand { Kind = "attack", Target = target.Id }, true);
+        }
     }
 
     private WorldTarget? ContextTarget()
@@ -274,8 +309,10 @@ public partial class GameRoot
     {
         TickJourneyFeedback();
         if (!GameplayInputAllowed) StopCombatInput();
-        if (attackKeyHeld && !Input.IsActionPressed("basic_attack")) StopCombatInput();
-        if (attackKeyHeld) TryBasicAttack();
+        if (attackKeyHeld && !Input.IsActionPressed("basic_attack")) ReleaseBasicAttack();
+        double combatNow = Time.GetTicksMsec() / 1000.0;
+        if (attackKeyHeld || BasicAttackBuffered(combatNow)) TryBasicAttack();
+        else if (basicAttackBufferedTarget != "") ClearBasicAttackBuffer();
         TickAbilityBuffer();
         contextClock += delta;
         if (contextClock < .1 || interactionHint is null) return;
@@ -285,7 +322,6 @@ public partial class GameRoot
         UpdateMobControls(); UpdateClassResourceHud(); UpdatePublicEventHud();
         interactionButton.Disabled = context is null;
         basicAttackButton.Disabled = !GameplayInputAllowed;
-        basicAttackButton.Text = "Attack [" + bindings["basic_attack"] + "]";
         interactionButton.Text = "Interact [" + bindings["interact"] + "]";
         interactionHint.Text = context is { } target
             ? "[" + bindings["interact"] + "] " + ContextVerb(target) + " " + target.Name
