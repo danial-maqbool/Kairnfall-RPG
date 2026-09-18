@@ -40,7 +40,7 @@ internal static class PresentationChecks
         bool processing = world.IsProcessing(); world.SetProcess(false);
         try
         {
-            track.Invoke(world, new object[] { id, position, new Point(1, 0), 100.0 });
+            track.Invoke(world, new object[] { id, position, new Point(1, 0), 100.0, false });
             foreach (int state in new[] { 2, 3, 4 })
             {
                 world.Animate(id, state, .3);
@@ -51,7 +51,7 @@ internal static class PresentationChecks
                 world._Process(.03);
                 check(ReadPose().State == 0, "WorldView leaves the action after its declared duration");
             }
-            track.Invoke(world, new object[] { id, position, new Point(1, 0), 0.0 });
+            track.Invoke(world, new object[] { id, position, new Point(1, 0), 0.0, false });
             world._Process(.7);
             check(ReadPose().State == 5 && ReadPose().Frame == 7, "The real corpse renderer uses a completed collapse pose");
             world._Process(1);
