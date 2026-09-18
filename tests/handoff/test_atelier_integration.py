@@ -33,12 +33,12 @@ class AtelierIntegrationTests(unittest.TestCase):
         (source/'manifest.json').write_text(json.dumps(meta));(source/'CREDITS.txt').write_text('Original fixture art.')
         return source,output,keys,before_output
 
-    def test_grounded_actor_runtime_is_never_replaced_by_historical_atelier_bytes(self):
+    def test_wayfarer_actor_runtime_is_never_replaced_by_historical_atelier_bytes(self):
         with tempfile.TemporaryDirectory() as temp:
             source,output,keys,before_output=self.fixture(Path(temp));before_source={str(p.relative_to(source)):p.read_bytes() for p in source.rglob('*') if p.is_file()}
             report=module.integrate(source,output,keys)
             self.assertEqual(report['integrated'],2)
-            self.assertEqual(report['actor_runtime_source'],'Grounded-2026 procedural construction')
+            self.assertEqual(report['actor_runtime_source'],'Wayfarer original joint construction')
             self.assertEqual(report['actor_historical_fallbacks'],0)
             self.assertFalse(report['historical_actor_bytes_active'])
             for key in keys:
@@ -58,11 +58,11 @@ class AtelierIntegrationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'checksum'):module.integrate(source,output,keys)
             self.assertEqual(before,{str(p):p.read_bytes() for p in output.rglob('*.png')})
 
-    def test_invalid_grounded_actor_output_is_rejected_before_nonactor_copy(self):
+    def test_invalid_wayfarer_actor_output_is_rejected_before_nonactor_copy(self):
         with tempfile.TemporaryDirectory() as temp:
             source,output,keys,_=self.fixture(Path(temp));p=module.safe_path(output,'equipment/copper_sword');Image.new('RGBA',(512,1536),(0,0,0,0)).save(p)
             before={str(path):path.read_bytes() for path in output.rglob('*.png')}
-            with self.assertRaisesRegex(ValueError,'Grounded-2026 actor output is empty'):module.integrate(source,output,keys)
+            with self.assertRaisesRegex(ValueError,'Wayfarer actor output is empty'):module.integrate(source,output,keys)
             self.assertEqual(before,{str(path):path.read_bytes() for path in output.rglob('*.png')})
 
     def test_incompatible_environment_uses_existing_art_with_recorded_reason(self):
