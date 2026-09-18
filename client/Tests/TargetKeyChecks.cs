@@ -57,6 +57,21 @@ internal static class TargetKeyChecks
             check(Read<string>("selectedTarget")==a.Id,"Key-repeat does not race through targets");
             focusButton.GrabFocus(); await Tap();
             check(Read<string>("selectedTarget")==b.Id && host.GetViewport().GuiGetFocusOwner()==focusButton,"A focused non-text HUD control cannot consume the target key");
+            host.GetViewport().GuiReleaseFocus();
+            data.Self.Cooldowns["attack"]=data.Time+.15;
+            game.World.Accept(new TransportPacket {Snapshot=data});
+            Member("selectedTarget").SetValue(game,a.Id); Member("selectedTargetKind").SetValue(game,"creature"); game.World.TargetId=a.Id;
+            typeof(GameRoot).GetMethod("BeginBasicAttack",flags)!.Invoke(game,[true]);
+            check(Read<string>("basicAttackBufferedTarget")==a.Id&&Read<double>("basicAttackBufferedUntil")>0,
+                "A near-ready authoritative cooldown stores one short basic-attack intent");
+            typeof(GameRoot).GetMethod("ReleaseBasicAttack",flags)!.Invoke(game,null);
+            check(!Read<bool>("attackKeyHeld")&&Read<string>("basicAttackBufferedTarget")==a.Id,
+                "Releasing the attack key preserves only the short queued tap intent");
+            typeof(GameRoot).GetMethod("StopCombatInput",flags)!.Invoke(game,null);
+            check(Read<string>("basicAttackBufferedTarget")==""&&Read<double>("basicAttackBufferedUntil")==0,
+                "Menus, focus loss and hard combat stops clear queued attack intent");
+            data.Self.Cooldowns.Remove("attack");
+            game.World.Accept(new TransportPacket {Snapshot=data});
             Read<LineEdit>("chatInput").GrabFocus(); await Frame(); await Tap();
             check(Read<string>("selectedTarget")==b.Id,"Typing retains GUI navigation without targeting a creature");
             host.GetViewport().GuiReleaseFocus();
