@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "base": "06f04aa042e0087b0777f6f2021c82824bad7b6f",
+  "entries": [
+    {
+      "path": ".github/workflows/client.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ddb7a278f7f4a229488ddd8e807603a680dcbb6f"
+    },
+    {
+      "path": ".github/workflows/documentation-contract.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ae509f3ae04455fa4e4ac63af3c7aeb29f59cc89"
+    },
+    {
+      "path": ".github/workflows/graphical-multiplayer.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b334a4014de3d645ef70c54de737231d9da473cb"
+    },
+    {
+      "path": ".github/workflows/grounded-actor-acceptance.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dd121589bdc606231ea1b042ea88cda677d70676"
+    },
+    {
+      "path": ".github/workflows/live-progression-breadth.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0e48154236dd01864d778ee1056da4291fd53f22"
+    },
+    {
+      "path": ".github/workflows/load-acceptance.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4a43cd65656acea2a168e869f959637c32c42a76"
+    },
+    {
+      "path": ".github/workflows/new-player-journey.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "749de28e597885885b699228275447d00bad8674"
+    },
+    {
+      "path": ".github/workflows/release-operations.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6dcc38fcef12162169f3afd923a76294c79fd684"
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0cd0660968df831c7448e8bafd678a776cddcf9d"
+    },
+    {
+      "path": ".github/workflows/transaction-security.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "418e3c43f7db33717c96c4b6051f807f7bbb4ce4"
+    },
+    {
+      "path": ".github/workflows/visual-acceptance-matrix.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a3417d6018934749f6eae426601acb4a98328304"
+    },
+    {
+      "path": ".github/workflows/visual-review.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0640d64aabb509b3f488a7d1234aed2a28bab647"
+    },
+    {
+      "path": ".github/workflows/windows-package.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1e277fd216b6596840f820abf88090faedc2126e"
+    },
+    {
+      "path": "src/release-candidate.trigger",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fc4dbe6b6acb2356a4fd6063f6d2190d071b28aa"
+    },
+    {
+      "path": "tests/handoff/test_character_evidence.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "97eb30bc65ccee0c7947b5e4767523ecf3b3fd12"
+    },
+    {
+      "path": "tools/character_delivery_contract.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c29d3483a0228f3f62e8c977416362db3cbfca0e"
+    },
+    {
+      "path": "tools/documentation_contract.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f981ba7ef56d2c474feb2501862d82c97a2c1d8"
+    },
+    {
+      "path": "tools/local_dev.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c0e162e28d518104d2745c619c33eaa51bb72b43"
+    },
+    {
+      "path": "docs/handoff/NEW_PLAYER_EVIDENCE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c998c352e9a04c9d73d64266fb189fd29db233cd"
+    },
+    {
+      "path": ".github/workflows/character-rebuild-stage.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": null
+    },
+    {
+      "path": ".github/workflows/character-rebuild-apply.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": null
+    },
+    {
+      "path": ".github/workflows/2d-humanoid-assets.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": null
+    },
+    {
+      "path": ".github/workflows/character-delivery-prepare.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": null
+    }
+  ],
+  "removed_workflows": [
+    ".github/workflows/character-rebuild-stage.yml",
+    ".github/workflows/character-rebuild-apply.yml",
+    ".github/workflows/2d-humanoid-assets.yml",
+    ".github/workflows/character-delivery-prepare.yml"
+  ],
+  "import_timeouts_updated": [
+    "client.yml",
+    "graphical-multiplayer.yml",
+    "live-progression-breadth.yml",
+    "new-player-journey.yml",
+    "visual-acceptance-matrix.yml",
+    "visual-review.yml"
+  ],
+  "guard_tests": "passed",
+  "pack_integrity": "passed",
+  "workflow_changes_published": false
+}
