@@ -1,6 +1,8 @@
 ## Active workstream: Wayfarer character replacement
 
-Character replacement source is integrated; workflow cleanup and delivery-head verification are in progress. Read `docs/CHARACTER_REBUILD.md` and `docs/art/character-rebuild/integration-report.json`. The previous first-hour evidence below is historical and does not certify the new character implementation.
+Status date: **2026-09-18**. Verified implementation baseline: **`16f2798edc6b90791548b5bf551eab6433ac9277`**. Evidence: `docs/handoff/CURRENT_EVIDENCE.json`. Release status: **NOT APPROVED — human acceptance remains.**
+
+Repository-side character replacement is complete on `main`. Wayfarer is the active actor source; the committed pack covers 1,245 base sheets, 5,500 additional motion sheets, 6,745 actor sheets and 415,040 frame cells with zero historical actor fallbacks. Linux and Windows native character acceptance both pass at the exact implementation baseline. See `docs/CHARACTER_REBUILD.md` and `docs/handoff/CHARACTER_VERIFICATION.md`.
 
 ---
 
