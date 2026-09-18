@@ -1,0 +1,183 @@
+{
+  "schema": 1,
+  "statusDate": "2026-09-18",
+  "currentTask": "character-rebuild",
+  "repository": "danial-maqbool/Kairnfall-RPG",
+  "persistentBranches": [
+    "main"
+  ],
+  "startingMain": "dff9f170f25f44c8ae024e8d94133f72d63f6446",
+  "implementationBaseline": "16f2798edc6b90791548b5bf551eab6433ac9277",
+  "repositorySideCharacterRebuildImplemented": true,
+  "repositorySideNewPlayerExperienceImplemented": true,
+  "serverAuthoritative": true,
+  "oldSavesCompatible": true,
+  "temporaryToolingRemoved": true,
+  "authorization": {
+    "implementationAuthorized": true,
+    "publicationAuthorized": false,
+    "deploymentAuthorized": false,
+    "productionInfrastructureChanged": false
+  },
+  "releaseStatus": "NOT APPROVED — human acceptance remains.",
+  "publicationReady": false,
+  "releasePublished": false,
+  "deployed": false,
+  "humanArtApproval": false,
+  "humanUxApproval": false,
+  "humanOnlyGates": [
+    "Independent artistic approval at native and in-engine scale",
+    "Owner Windows gameplay pass and ordinary-account world/quest walkthrough",
+    "Uncoached first-hour usability, timing and retention measurement",
+    "Normal-play class, progression, economy and balance feel",
+    "Audio listening approval",
+    "Physical Windows DPI and hardware-input inspection",
+    "Production-scale validation before any capacity claim"
+  ],
+  "newOverworldRegions": 0,
+  "tutorialRewardsAdded": 8,
+  "actorRuntimeSource": "Wayfarer original joint construction",
+  "actorHistoricalFallbacks": 0,
+  "uiResolutionMatrix": [
+    "1024x720",
+    "1280x720",
+    "1920x1080",
+    "2560x1440"
+  ],
+  "characterAssetManifest": "art/wayfarer/Assets/manifest.json",
+  "historicalNewPlayerEvidence": "docs/handoff/NEW_PLAYER_EVIDENCE.json",
+  "historicalTask22Evidence": "docs/handoff/TASK22_EVIDENCE.json",
+  "actorEvidence": {
+    "baseSheets": 1245,
+    "motionSheets": 5500,
+    "actorSheets": 6745,
+    "frameCells": 415040,
+    "historicalHashesReplaced": 1245,
+    "retiredFiles": 1877
+  },
+  "actorArtifacts": [
+    {
+      "platform": "linux",
+      "artifactId": 10531023507,
+      "artifactName": "character-sprites-ubuntu-latest-16f2798edc6b90791548b5bf551eab6433ac9277",
+      "artifactSizeBytes": 29126538,
+      "artifactDigest": "sha256:c7b990457b3568a754652741d8709bf8fd9216acb8a89046b8b7b43da82266c4"
+    },
+    {
+      "platform": "windows",
+      "artifactId": 10531604391,
+      "artifactName": "character-sprites-windows-latest-16f2798edc6b90791548b5bf551eab6433ac9277",
+      "artifactSizeBytes": 29127492,
+      "artifactDigest": "sha256:4ccb9749d8fe24462d45c67bf60f01a5ac41f3ebc329139fee1fe45652d47d97"
+    }
+  ],
+  "nativeAcceptancePlatforms": [
+    "linux",
+    "windows"
+  ],
+  "implementationWorkflows": [
+    {
+      "name": "Transaction security regression",
+      "runId": 35305085938,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Compile Windows client source",
+      "runId": 35305085953,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Live progression breadth",
+      "runId": 35305085977,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Windows package acceptance",
+      "runId": 35305085972,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Graphical multiplayer acceptance",
+      "runId": 35305085908,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Load acceptance",
+      "runId": 35305085906,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build and verify",
+      "runId": 35305085944,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Task 13 adversarial acceptance",
+      "runId": 35305085917,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Release operations acceptance",
+      "runId": 35305085927,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Transaction integrity on Windows and Linux",
+      "runId": 35305085964,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "New-player journey",
+      "runId": 35305085947,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Character sprite acceptance",
+      "runId": 35305085957,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Visual acceptance matrix",
+      "runId": 35305085930,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Windows display and input acceptance",
+      "runId": 35305085910,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    },
+    {
+      "name": "Audio acceptance",
+      "runId": 35305085955,
+      "headSha": "16f2798edc6b90791548b5bf551eab6433ac9277",
+      "conclusion": "success"
+    }
+  ],
+  "preSyncDocumentation": {
+    "runId": 35305085922,
+    "conclusion": "failure",
+    "reason": "Expected stale-ledger rejection before this documentation-only synchronization."
+  },
+  "releaseApproval": {
+    "status": "NOT APPROVED — human acceptance remains.",
+    "art": false,
+    "humanUx": false,
+    "scale": false,
+    "performance": false
+  },
+  "deliveryVerificationPolicy": "Documentation-only delivery commits retain implementation baseline 16f2798edc6b90791548b5bf551eab6433ac9277. The live documentation contract verifies every recorded Actions run against GitHub and validates both Linux and Windows character jobs."
+}
