@@ -16,6 +16,15 @@ internal static class CombatReadabilityChecks
             Need(CombatReadabilityRules.TelegraphUrgency(telegraph,11.5)==0&&CombatReadabilityRules.TelegraphUrgency(telegraph,12.5)==1,"Telegraph urgency is not bounded by authoritative time.");
             Need(CombatReadabilityRules.TelegraphLabel(telegraph).Contains("INTERRUPT",StringComparison.Ordinal),"Interruptible casts lack an explicit cue.");
             Need(CombatReadabilityRules.StatusLabel("stun")=="STUNNED"&&CombatReadabilityRules.IsCrowdControl("root"),"Crowd-control labels are not stable.");
+            var self=new Character{Id="summary-self",Zone="wayfarers_rest",Position=new(10,10),Health=100};
+            var definition=data.Mobs.First(x=>x.Id=="field_rat");
+            var target=new Creature{Id="summary-target",Template=definition.Id,Zone=self.Zone,Position=new(11,10),Health=definition.Health*.49,Target=self.Id};
+            string summary=CombatReadabilityRules.TargetSummary(self,target,definition,1.6);
+            Need(summary.Contains("49%",StringComparison.Ordinal)&&summary.Contains("IN RANGE",StringComparison.Ordinal)
+                &&summary.Contains("ATTACKING YOU",StringComparison.Ordinal),"Selected-target summary is not grounded in authoritative health, distance and threat.");
+            target.Position=new(12,10);
+            Need(CombatReadabilityRules.TargetSummary(self,target,definition,1.6).Contains("CLOSE GAP",StringComparison.Ordinal),
+                "Selected-target summary does not distinguish short approach distance.");
             foreach(var elite in data.Mobs.Where(x=>x.Elite))Need(CombatReadabilityRules.EliteTraitLabel(elite)!="","An elite has no readable trait label: "+elite.Id);
         });
 
