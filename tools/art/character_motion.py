@@ -13,6 +13,11 @@ FRAMES = 8
 SIZE = 64
 FOOT_BASELINE = 55
 
+# Fixed phase tables prevent platform-libm rounding differences in committed sprites.
+_STRIDE = (0.0, 0.70703125, 1.0, 0.70703125, 0.0, -0.70703125, -1.0, -0.70703125)
+_WALK_CLOTH = (-1, 0, 2, 2, 1, 0, -2, -2)
+_RUN_CLOTH = (-2, 0, 2, 3, 2, 0, -2, -3)
+
 
 def _lerp(a, b, amount):
     return tuple(round(x + (y - x) * amount) for x, y in zip(a, b))
@@ -29,10 +34,9 @@ def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
     profile = direction in (1, 2)
     side = -1 if direction == 1 else 1
     back = direction == 3
-    cycle = frame * math.tau / FRAMES
     moving = state in ('walk', 'run')
-    stride = math.sin(cycle) if moving else 0.0
-    bounce = (0, -1, -1, 0, 0, -1, -1, 0)[frame] if moving else 0
+    stride = _STRIDE[frame] if moving else 0.0
+    bounce = (0, -1, -1, 0, 0, -1, -1, 0)[frame] if state == 'run' else 0
     breath = -1 if state == 'idle' and frame in (3, 4) else 0
     j = {
         'head': (32, 17 + bounce), 'neck': (32, 26 + bounce),
@@ -70,7 +74,6 @@ def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
     angle = 24.0
     lean = 0
     if state == 'attack':
-        # Two anticipation frames, one contact frame, then visible follow-through.
         lean = (0, -1, -2, 2, 3, 2, 1, 0)[frame]
         angle = (24, -12, -48, 74, 108, 72, 38, 24)[frame]
         hand = ((41,38),(37,33),(36,27),(47,32),(48,40),(44,41),(42,39),(41,38))[frame]
@@ -91,7 +94,6 @@ def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
         j['head']=(32,17-(1 if lift>=5 else 0))
         angle=24-round(lift*1.6)
     elif state == 'run':
-        # A longer stride, forward torso and bent elbows distinguish running from fast walking.
         for name in ('head', 'neck', 'shoulder_l', 'shoulder_r'):
             x,y=j[name]; j[name]=(x+2,y-1)
         for limb, limb_sign in (('l',1),('r',-1)):
@@ -145,9 +147,8 @@ def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
         for name, value in tuple(j.items()):
             j[name]=(SIZE-value[0],value[1])
         angle=-angle
-    # Metadata is added after mirroring to keep the joint transformation explicit.
     j.update(state=state,frame=frame,side=profile,back=back,sign=side,body=body,
              stride=stride,angle=angle,lean=lean*side,
-             cloth=round(math.sin(cycle-.65)*(3 if state=='run' else 2)) if moving else round((0,1,2,3,3,2,1,0)[frame]*.65) if state=='cast' else round(lean*.6),
+             cloth=(_RUN_CLOTH if state=='run' else _WALK_CLOTH)[frame] if moving else round((0,1,2,3,3,2,1,0)[frame]*.65) if state=='cast' else round(lean*.6),
              collapse=(0,.12,.30,.52,.76,.92,1,1)[frame] if state=='death' else 0.0)
     return j
