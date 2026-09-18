@@ -183,7 +183,12 @@ public partial class GameRoot
                 nextApproachPlan = now + .12;
                 double remaining = Math.Min(2.5 - approachTravelled, Math.Max(0, 6 - engagementOrigin.Distance(snapshot.Self.Position)));
                 var path = ExperienceRules.ApproachPath(snapshot.Self, target, Data, remaining);
-                if (path.Count == 0) { CancelCombatApproach(); return; }
+                if (path.Count == 0)
+                {
+                    StopCombatInput();
+                    Notify("No short attack route to the selected target.");
+                    return;
+                }
                 pendingInteraction = null; route.Clear(); route.AddRange(path);
                 combatApproach = true;
             }
