@@ -56,8 +56,11 @@ public partial class GameRoot
             double attackLeft = Math.Max(0, snapshot.Self.Cooldowns.GetValueOrDefault("attack") - snapshot.Time);
             double reach = ExperienceRules.WeaponRange(snapshot.Self, Data);
             double cadence = ExperienceRules.AttackInterval(snapshot.Self, Data);
-            basicAttackButton.Text = attackLeft > .04 ? $"Attack {attackLeft:0.0}s" : "Attack [" + bindings["basic_attack"] + "]";
-            basicAttackButton.TooltipText = $"Server-authoritative basic attack · {reach:0.0} tile reach · {cadence:0.00}s recovery.\nHold the attack key to repeat; the server confirms every hit.";
+            double local = Time.GetTicksMsec() / 1000.0;
+            bool queued = BasicAttackBuffered(local) && attackLeft > .02;
+            basicAttackButton.Text = queued ? $"Attack · QUEUED {attackLeft:0.0}s"
+                : attackLeft > .04 ? $"Attack {attackLeft:0.0}s" : "Attack [" + bindings["basic_attack"] + "]";
+            basicAttackButton.TooltipText = $"Server-authoritative basic attack · {reach:0.0} tile reach · {cadence:0.00}s recovery.\nHold the attack key to repeat. A tap up to {ExperienceRules.BasicAttackBufferSeconds:0.00}s before recovery queues one attack; the server still confirms every hit.";
         }
 
         targetNextButton.Disabled = !GameplayInputAllowed;
