@@ -298,7 +298,17 @@ public partial class GameRoot : Control
         }
         else if (ability.Kind is "strike" or "projectile" or "interrupt" or "drain" or "dot")
         {
-            var target = ExperienceRules.ChooseTarget(snapshot.Self, snapshot.Creatures, Data, targetId, ability.Range);
+            Creature? target = null;
+            if (selectedTargetKind == "creature" && targetId != "")
+            {
+                target = snapshot.Creatures.FirstOrDefault(x => x.Id == targetId);
+                if (target is not null)
+                {
+                    string blocker = ExperienceRules.TargetProblem(snapshot.Self, target, Data, ability.Range);
+                    if (blocker != "") { Notify(blocker); return; }
+                }
+            }
+            target ??= ExperienceRules.ChooseTarget(snapshot.Self, snapshot.Creatures, Data, "", ability.Range);
             if (target is null) { Notify("No hostile creature is within this ability's range."); return; }
             targetId = target.Id; point = target.Position;
         }
