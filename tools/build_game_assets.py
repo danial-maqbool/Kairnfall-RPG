@@ -157,7 +157,7 @@ def main():
         audio_pack(root/'audio'); return
     catalog=ROOT/'content/catalog.json'
     if not catalog.is_file(): raise SystemExit('Run python tools/build_content.py first.')
-    data=json.loads(catalog.read_text(encoding='utf-8')); generated=[]; sheets=[]
+    data=json.loads(catalog.read_text(encoding='utf-8')); generated=[]; sheets=[]; actor_pixels={}
     preflight(data)
     for group in ("people","equipment","npcs","mobs","motions"):
         path=root/group
@@ -166,6 +166,8 @@ def main():
     state_counts={}
     def emit(image,key,animated=False,state_count=6):
         if key in generated: raise ValueError('Duplicate asset key: '+key)
+        if key.split('/')[0] in {'people','equipment','npcs','mobs','motions'}:
+            actor_pixels[key]=hashlib.sha256(image.tobytes()).hexdigest()
         path=root/(key+'.png'); save(image,path); generated.append(key)
         if animated: sheets.append(key); state_counts[key]=state_count
     print('ASSETS: terrain and environment',flush=True)
@@ -226,7 +228,9 @@ def main():
         with Image.open(path) as im:
             if im.mode!='RGBA' or im.getchannel('A').getbbox() is None: raise ValueError('Empty or non-RGBA asset: '+key)
             if key in animated_keys and (im.width%8 or im.height!=im.width//8*4*state_counts[key]): raise ValueError('Invalid animation grid: '+key)
-            entries.append({'key':key,'width':im.width,'height':im.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'animated':key in animated_keys,**({'state_count':state_counts[key]} if key in animated_keys else {})})
+            entries.append({'key':key,'width':im.width,'height':im.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
+                            **({'pixel_sha256':actor_pixels[key]} if key in actor_pixels else {}),
+                            'animated':key in animated_keys,**({'state_count':state_counts[key]} if key in animated_keys else {})})
     manifest={'schema':1,'source':'Wayfarer actor construction and checksum-verified non-actor Atelier artwork; source scripts are included.','atelier_assets':atelier['integrated'],'artistic_review':'not_approved','frame_order':list(STATES),'motion_order':list(EXTRA_STATES),'directions':list(DIRECTIONS),'frames_per_row':8,'assets':entries}
     (root/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     (root/'CREDITS.txt').write_text('Kairnfall original pixel-art generators and synthesized audio. Source code is included under tools/art and tools/build_game_assets.py. Original project source uses the repository MIT license. Only compatible non-actor Atelier artwork is integrated. Wayfarer is the sole character and creature source; no actor raster fallback is permitted. Read ATELIER_CREDITS.txt and atelier-integration.json for provenance and exact hashes. No independent gear records or third-party artwork are imported. Structural validation is not visual approval.\n',encoding='utf-8')
