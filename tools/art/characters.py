@@ -28,7 +28,7 @@ _ORDERS = (
  ('weapon','offhand','body','legs','boots','chest','belt','cloak','hair','helmet','necklace','charm','trinket','gloves','ring'))
 
 
-def layer_order(direction):
+def layer_order(direction, _context=None):
     if direction not in range(4): raise ValueError('Invalid layer direction')
     return list(_ORDERS[direction])
 
