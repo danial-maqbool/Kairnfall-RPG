@@ -302,11 +302,9 @@ public partial class GameRoot : Control
             if (selectedTargetKind == "creature" && targetId != "")
             {
                 target = snapshot.Creatures.FirstOrDefault(x => x.Id == targetId);
-                if (target is not null)
-                {
-                    string blocker = ExperienceRules.TargetProblem(snapshot.Self, target, Data, ability.Range);
-                    if (blocker != "") { Notify(blocker); return; }
-                }
+                if (target is null) { Notify("Selected target is no longer available."); return; }
+                string blocker = ExperienceRules.TargetProblem(snapshot.Self, target, Data, ability.Range);
+                if (blocker != "") { Notify(blocker); return; }
             }
             target ??= ExperienceRules.ChooseTarget(snapshot.Self, snapshot.Creatures, Data, "", ability.Range);
             if (target is null) { Notify("No hostile creature is within this ability's range."); return; }
