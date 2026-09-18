@@ -506,7 +506,10 @@ public partial class WorldView : Control
     private void DrawTelegraph(Telegraph effect)
     {
         var center = Pixels(effect.Position); var color = ElementColor(effect.Element);
-        color.A = .35f + (float)Math.Clamp(1 - (effect.Resolves - RealmTime), 0, 1) * .25f;
+        float urgency = (float)CombatReadabilityRules.TelegraphUrgency(effect, RealmTime);
+        float pulse = urgency * (.35f + .35f * (.5f + .5f * MathF.Sin((float)Clock * 22f)));
+        float outline = 1.5f + pulse;
+        color.A = .35f + urgency * .25f;
         float radius = (float)effect.Radius * Tile;
         if (effect.Shape == "line")
         {
@@ -514,7 +517,7 @@ public partial class WorldView : Control
             var perpendicular = direction.Orthogonal() * 10;
             var end = center + direction * radius;
             DrawColoredPolygon([center - perpendicular, end - perpendicular, end + perpendicular, center + perpendicular], new Color(color, color.A * .4f));
-            DrawLine(center - perpendicular, end - perpendicular, color, 1); DrawLine(center + perpendicular, end + perpendicular, color, 1);
+            DrawLine(center - perpendicular, end - perpendicular, color, outline); DrawLine(center + perpendicular, end + perpendicular, color, outline);
         }
         else if (effect.Shape == "cone")
         {
@@ -522,18 +525,18 @@ public partial class WorldView : Control
             var points = new List<Vector2> { center };
             for (int i = 0; i <= 16; i++) points.Add(center + Vector2.FromAngle(angle - .6f + i * 1.2f / 16) * radius);
             DrawColoredPolygon(points.ToArray(), new Color(color, color.A * .4f));
-            DrawArc(center, radius, angle - .6f, angle + .6f, 24, color, 1.5f);
+            DrawArc(center, radius, angle - .6f, angle + .6f, 24, color, outline);
         }
         else if (effect.Shape == "ring")
         {
-            DrawArc(center, radius, 0, MathF.Tau, 48, color, 2);
-            DrawArc(center, radius * .55f, 0, MathF.Tau, 48, color, 2);
+            DrawArc(center, radius, 0, MathF.Tau, 48, color, outline + .5f);
+            DrawArc(center, radius * .55f, 0, MathF.Tau, 48, color, outline + .5f);
         }
         else
         {
             DrawCircle(center, radius, new Color(color, color.A * .16f));
-            DrawArc(center, radius, 0, MathF.Tau, 48, color, 1.5f);
-            DrawArc(center, radius * .86f, 0, MathF.Tau, 48, new Color(color, color.A * .5f), 1);
+            DrawArc(center, radius, 0, MathF.Tau, 48, color, outline);
+            DrawArc(center, radius * .86f, 0, MathF.Tau, 48, new Color(color, color.A * .5f), Math.Max(1, outline - .5f));
         }
         if (EnemyCombatRules.IsKnownAttack(effect.Skill) && Snapshot?.Creatures.Any(x => x.Id == effect.Source) == true)
             Text(center + new Vector2(0, -radius - 5), EnemyCombatRules.AttackLabel(effect.Skill), color, 9);
