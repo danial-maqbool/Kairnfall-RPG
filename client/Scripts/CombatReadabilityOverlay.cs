@@ -16,6 +16,7 @@ public partial class CombatReadabilityOverlay : Control
     public int VisibleStatusCount { get; private set; }
     public bool RevivePromptVisible { get; private set; }
     public int VisibleTelegraphCount { get; private set; }
+    public string SelectedTargetSummary { get; private set; } = "";
 
     private Snapshot? snapshot;
     private string selectedTarget = "";
@@ -60,8 +61,12 @@ public partial class CombatReadabilityOverlay : Control
         snapshot=current;
         VisibleTelegraphCount=current.Telegraphs.Count(x=>current.Creatures.Any(c=>c.Id==x.Source&&c.Health>0));
         VisibleStatusCount=current.Self.Statuses.Count(x=>x.Until>current.Time&&CombatReadabilityRules.IsCrowdControl(x.Kind));
+        SelectedTargetSummary="";
         if(targetId!=""&&current.Creatures.FirstOrDefault(x=>x.Id==targetId) is { } target)
+        {
             VisibleStatusCount+=target.Statuses.Count(x=>x.Until>current.Time&&CombatReadabilityRules.IsCrowdControl(x.Kind));
+            SelectedTargetSummary=CombatReadabilityRules.TargetSummary(current.Self,target,Data.Mob(target.Template),ExperienceRules.WeaponRange(current.Self,Data));
+        }
         RevivePromptVisible=current.Players.Any(x=>CombatReadabilityRules.CanRevive(current.Self,x,current.Party,current.Time));
         cues.RemoveAll(x=>x.Until<=local);
         PrimaryCue=cues.LastOrDefault()?.Text??"";
@@ -70,7 +75,7 @@ public partial class CombatReadabilityOverlay : Control
 
     public void Clear()
     {
-        snapshot=null;selectedTarget="";cues.Clear();PrimaryCue="";VisibleStatusCount=0;RevivePromptVisible=false;VisibleTelegraphCount=0;QueueRedraw();
+        snapshot=null;selectedTarget="";cues.Clear();PrimaryCue="";VisibleStatusCount=0;RevivePromptVisible=false;VisibleTelegraphCount=0;SelectedTargetSummary="";QueueRedraw();
     }
 
     private void CueAt(Point position,string text,Color color,double local,double duration=.85)
@@ -97,9 +102,9 @@ public partial class CombatReadabilityOverlay : Control
         {
             if(!snap.Creatures.Any(x=>x.Id==telegraph.Source&&x.Health>0))continue;
             double remaining=CombatReadabilityRules.TelegraphRemaining(telegraph,snap.Time);
-            string label=CombatReadabilityRules.TelegraphLabel(telegraph)+$"  {remaining:0.0}s";
+            string label=CombatReadabilityRules.TelegraphLabel(telegraph)+$"  {remaining:0.0}s"+(remaining<=.35?" · NOW":"");
             Label(World.WorldToScreen(telegraph.Position)+new Vector2(0,-30),label,
-                CombatReadabilityRules.IsInterruptible(telegraph)?Ui.Gold:WorldView.ElementColor(telegraph.Element),10);
+                CombatReadabilityRules.IsInterruptible(telegraph)?Ui.Gold:remaining<=.35?Ui.Danger:WorldView.ElementColor(telegraph.Element),10);
         }
 
         foreach(var mob in snap.Creatures.Where(x=>x.Health>0))
@@ -110,7 +115,7 @@ public partial class CombatReadabilityOverlay : Control
             var statuses=mob.Statuses.Where(x=>x.Until>snap.Time&&CombatReadabilityRules.IsCrowdControl(x.Kind))
                 .Select(x=>CombatReadabilityRules.StatusLabel(x.Kind)).Distinct(StringComparer.Ordinal).Take(2).ToArray();
             if(!selected&&banner==""&&statuses.Length==0)continue;
-            string text=string.Join(" · ",new[]{selected?"TARGET":"",banner,string.Join(" · ",statuses)}.Where(x=>x!=""));
+            string text=string.Join(" · ",new[]{selected?"TARGET · "+SelectedTargetSummary:"",banner,string.Join(" · ",statuses)}.Where(x=>x!=""));
             if(text!="")Label(World.WorldToScreen(mob.Position)+new Vector2(0,-90),text,definition.Boss||definition.Elite?Ui.Gold:Ui.Text,9);
         }
 
