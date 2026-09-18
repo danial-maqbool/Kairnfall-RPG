@@ -6,6 +6,8 @@ namespace Kairnfall.Client;
 public static class ExperienceRules
 {
     public const double TargetCycleRadius = 12;
+    public const double SelectedTargetGrace = 1.75;
+    public const double BasicAttackBufferSeconds = .25;
     public static bool AllowsWorldInput(bool online, bool typing, bool menuOpen, bool focused, bool alive)
         => online && !typing && !menuOpen && focused && alive;
 
@@ -57,6 +59,30 @@ public static class ExperienceRules
             .OrderBy(x => TargetScore(self, x)).ThenBy(x => x.Id, StringComparer.Ordinal).FirstOrDefault();
     }
 
+    public static Creature? ChooseEngagementTarget(Character self, IEnumerable<Creature> creatures, Catalog data, string selected)
+    {
+        var list = creatures.ToArray();
+        double range = WeaponRange(self, data);
+        var current = list.FirstOrDefault(x => x.Id == selected
+            && CanTarget(self, x, data, range + SelectedTargetGrace, true));
+        return current ?? ChooseTarget(self, list, data, "", range);
+    }
+
+    public static string TargetProblem(Character self, Creature creature, Catalog data, double range)
+    {
+        if (!double.IsFinite(range) || range < 0 || !self.Position.Finite || !creature.Position.Finite)
+            return "Target position is invalid.";
+        if (self.Health <= 0) return "Respawn before targeting.";
+        if (creature.Health <= 0) return "Target is already defeated.";
+        if (creature.Owner != "") return "Companions cannot be hostile targets.";
+        if (creature.Zone != self.Zone) return "Target is in another region.";
+        double distance = self.Position.Distance(creature.Position);
+        if (distance > range) return $"Target is {distance:0.0} tiles away · reach {range:0.0}.";
+        if (!WorldMap.LineOfSight(data.Zone(self.Zone), self.Position, creature.Position))
+            return "No clear line of sight to the selected target.";
+        return "";
+    }
+
     public static Creature? CycleTarget(Character self, IEnumerable<Creature> creatures, Catalog data, string selected, bool reverse = false)
     {
         // Deliberate target cycling includes neutral animals, never pets or corpses.
@@ -72,7 +98,8 @@ public static class ExperienceRules
     {
         var direction = self.Position.Direction(creature.Position);
         double facing = direction.X * self.Facing.X + direction.Y * self.Facing.Y;
-        return self.Position.Distance(creature.Position) - .35 * facing;
+        double threat = creature.Target == self.Id ? -1.25 : 0;
+        return self.Position.Distance(creature.Position) - .35 * facing + threat;
     }
 
     public static List<Point> ApproachPath(Character self, Creature creature, Catalog data, double remainingDistance = 2.5)
