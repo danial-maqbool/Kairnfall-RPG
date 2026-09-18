@@ -94,7 +94,7 @@ internal static class PresentationChecks
         var elite = new Creature
         {
             Id = "combat-readability-elite", Template = eliteDef.Id, Zone = self.Zone,
-            Position = new Point(position.X + 1, position.Y), Home = position, Health = eliteDef.Health,
+            Position = new Point(position.X + 1, position.Y), Home = position, Health = eliteDef.Health, Target = self.Id,
             Statuses = [new StatusEffect { Kind = "root", Until = 30, Source = self.Id }]
         };
         string allyId = "combat-readability-ally";
@@ -116,6 +116,9 @@ internal static class PresentationChecks
         check(overlay.VisibleTelegraphCount == 1, "Native combat overlay reads the authoritative enemy cast telegraph");
         check(overlay.VisibleStatusCount == 2, "Native combat overlay exposes self and target crowd-control state");
         check(overlay.RevivePromptVisible, "Native combat overlay exposes a nearby eligible party revive");
+        check(overlay.SelectedTargetSummary.Contains("100% · IN RANGE", StringComparison.Ordinal)
+            && overlay.SelectedTargetSummary.Contains("ATTACKING YOU", StringComparison.Ordinal),
+            "Selected-target overlay reports authoritative health, range readiness and incoming pressure");
         var attack = (Button)typeof(GameRoot).GetField("basicAttackButton", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(game)!;
         self.Cooldowns["attack"] = 21.2;
         world.Accept(new TransportPacket { Snapshot = snap });
