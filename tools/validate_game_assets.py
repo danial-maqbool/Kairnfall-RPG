@@ -73,7 +73,7 @@ def main():
             check(alpha.getbbox() is not None,'Completely transparent PNG: '+key)
             if entry['animated']:
                 size=image.width//8
-                check(image.width%8==0 and image.height==24*size,'Invalid animation grid: '+key)
+                check(image.width%8==0 and image.height==4*entry.get("state_count",6)*size,'Invalid animation grid: '+key)
                 # Equipment can be hidden by occlusion. Standalone actors must remain visible.
                 if key.startswith(('mobs/','npcs/','people/body_')):
                     for row in range(24):

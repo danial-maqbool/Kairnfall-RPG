@@ -7,6 +7,7 @@ from __future__ import annotations
 import math
 
 STATES = ('idle', 'walk', 'attack', 'cast', 'hit', 'death')
+EXTRA_STATES = ('interact', 'craft', 'run', 'bow_attack', 'crossbow_attack')
 DIRECTIONS = ('south', 'west', 'east', 'north')
 FRAMES = 8
 SIZE = 64
@@ -19,7 +20,7 @@ def _lerp(a, b, amount):
 
 def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
     """Return synchronized body, clothing and equipment attachment coordinates."""
-    if state not in STATES or not isinstance(frame, int) or not 0 <= frame < FRAMES:
+    if state not in STATES + EXTRA_STATES or not isinstance(frame, int) or not 0 <= frame < FRAMES:
         raise ValueError('Invalid character animation state/frame')
     if not isinstance(direction, int) or not 0 <= direction < len(DIRECTIONS):
         raise ValueError('Invalid character direction')
@@ -29,8 +30,9 @@ def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
     side = -1 if direction == 1 else 1
     back = direction == 3
     cycle = frame * math.tau / FRAMES
-    stride = math.sin(cycle) if state == 'walk' else 0.0
-    bounce = (0, -1, -1, 0, 0, -1, -1, 0)[frame] if state == 'walk' else 0
+    moving = state in ('walk', 'run')
+    stride = math.sin(cycle) if moving else 0.0
+    bounce = (0, -1, -1, 0, 0, -1, -1, 0)[frame] if moving else 0
     breath = -1 if state == 'idle' and frame in (3, 4) else 0
     j = {
         'head': (32, 17 + bounce), 'neck': (32, 26 + bounce),
@@ -47,7 +49,7 @@ def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
                  elbow_l=(29, 34+bounce+breath), elbow_r=(36, 34+bounce+breath),
                  hand_l=(30, 40+bounce+breath), hand_r=(39, 39+bounce+breath),
                  knee_l=(31, 47), knee_r=(34, 47), foot_l=(30, 55), foot_r=(35, 55))
-    if state == 'walk':
+    if moving:
         if profile:
             j['foot_l'] = (32 + round(6*stride), 55 - max(0, round(3*stride)))
             j['foot_r'] = (32 - round(6*stride), 55 - max(0, round(-3*stride)))
@@ -88,6 +90,43 @@ def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
             x,y=j[name]; j[name]=(x,y-round(lift*.5))
         j['head']=(32,17-(1 if lift>=5 else 0))
         angle=24-round(lift*1.6)
+    elif state == 'run':
+        # A longer stride, forward torso and bent elbows distinguish running from fast walking.
+        for name in ('head', 'neck', 'shoulder_l', 'shoulder_r'):
+            x,y=j[name]; j[name]=(x+2,y-1)
+        for limb, limb_sign in (('l',1),('r',-1)):
+            x,y=j['foot_'+limb];j['foot_'+limb]=(x+round(limb_sign*stride*2),y-max(0,round(limb_sign*stride*2)))
+            x,y=j['elbow_'+limb];j['elbow_'+limb]=(x+round(limb_sign*stride*2),y-1)
+            x,y=j['hand_'+limb];j['hand_'+limb]=(x+round(limb_sign*stride*2),y-3)
+    elif state == 'interact':
+        reach=(0,1,3,5,5,3,1,0)[frame]
+        j['hand_l']=(j['hand_l'][0]-round(reach*.25),j['hand_l'][1]-reach)
+        j['hand_r']=(j['hand_r'][0]+round(reach*.5),j['hand_r'][1]-round(reach*.6))
+        j['elbow_l']=(j['elbow_l'][0],j['elbow_l'][1]-round(reach*.5))
+        j['elbow_r']=(j['elbow_r'][0]+round(reach*.2),j['elbow_r'][1]-round(reach*.3))
+        j['head']=(32,17+(1 if frame in (3,4) else 0))
+    elif state == 'craft':
+        lift=(0,3,7,9,2,0,3,0)[frame]
+        j['hand_r']=(40,38-lift)
+        j['elbow_r']=(38,33-round(lift*.6))
+        j['hand_l']=(29,39+(1 if frame==4 else 0))
+        j['elbow_l']=(24,35)
+        j['head']=(33,18+(1 if frame==4 else 0))
+    elif state in ('bow_attack','crossbow_attack'):
+        if state=='bow_attack':
+            draw=(1,3,7,12,5,2,1,0)[frame]
+            j['hand_r']=(43,34)
+            j['hand_l']=(40-draw,34)
+            j['elbow_r']=(39,31)
+            j['elbow_l']=(31-round(draw*.35),31)
+        else:
+            recoil=(0,0,0,0,-2,-1,0,0)[frame]
+            j['hand_r']=(35+recoil,36)
+            j['hand_l']=(43+recoil,34)
+            j['elbow_r']=(39,32)
+            j['elbow_l']=(29,35)
+        j['head']=(33,17-(1 if frame in (2,3) else 0))
+        angle=24
     elif state == 'hit':
         recoil=(0,-3,-4,-2,-1,0,0,0)[frame]
         for name in ('head','neck','shoulder_l','shoulder_r','elbow_l','elbow_r','hand_l','hand_r'):
@@ -109,6 +148,6 @@ def rig(state: str, frame: int, direction: int, body: int = 0) -> dict:
     # Metadata is added after mirroring to keep the joint transformation explicit.
     j.update(state=state,frame=frame,side=profile,back=back,sign=side,body=body,
              stride=stride,angle=angle,lean=lean*side,
-             cloth=round(math.sin(cycle-.65)*2) if state=='walk' else round(lean*.6),
+             cloth=round(math.sin(cycle-.65)*(3 if state=='run' else 2)) if moving else round((0,1,2,3,3,2,1,0)[frame]*.65) if state=='cast' else round(lean*.6),
              collapse=(0,.12,.30,.52,.76,.92,1,1)[frame] if state=='death' else 0.0)
     return j

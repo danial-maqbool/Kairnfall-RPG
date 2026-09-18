@@ -11,6 +11,7 @@ public sealed partial class RealmEngine
         Active.Clear();
         inputs.Clear();
         playerTargets.Clear();
+        presentationCues.Clear();
         transitionReady.Clear();
         OutgoingChat.Clear();
 

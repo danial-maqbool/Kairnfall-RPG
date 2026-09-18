@@ -29,6 +29,7 @@ def main():
             if not ok:raise RuntimeError('Native fixture failed: '+name)
         except subprocess.TimeoutExpired:
             results.append({'name':name,'passed':False,'timeout':timeout});raise
+    succeeded=False
     try:
         run('import',[binary,'--headless','--editor','--path','client','--import'],900)
         prefix=[]
@@ -45,11 +46,12 @@ def main():
                   'equipment-state-5-frame-7.png','mobs-state-5-frame-7.png']
         for name in required:
             if not (shots/name).is_file() or (shots/name).stat().st_size<100:raise RuntimeError('Missing native viewport evidence: '+name)
+        succeeded=True
     finally:
         images={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(shots.glob('*.png'))}
         report={'revision':os.environ.get('GITHUB_SHA','local'),'platform':sys.platform,'fixtures':results,
                 'rendered_viewports':len(images),'png_sha256':images,
-                'passed':len(results)==3 and all(r['passed'] for r in results),
+                'passed':succeeded and len(results)==3 and all(r['passed'] for r in results),
                 'artistic_approval':False,'ordinary_account_gameplay':False,'release_approval':False}
         (out/'native-result.json').write_text(json.dumps(report,indent=2)+'\n')
     print('CHARACTER_NATIVE_SUITE:',json.dumps({k:v for k,v in report.items() if k!='png_sha256'}),flush=True)

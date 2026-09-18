@@ -22,9 +22,7 @@ public sealed class PixelAssets
         string path = "res://Assets/" + key + ".png";
         if (!ResourceLoader.Exists(path))
         {
-            missing.Add(key);
-            GD.PushError("Required art is missing: " + path);
-            return null;
+            missing.Add(key); GD.PushError("Required art is missing: " + path); return null;
         }
         var texture = GD.Load<Texture2D>(path);
         if (texture is null) { missing.Add(key); return null; }
@@ -37,39 +35,68 @@ public sealed class PixelAssets
 
     public AtlasTexture? Frame(string key, int state, int direction, int frame)
     {
-        var texture = Texture(key);
+        var address = SpritePoseRules.SheetAddress(key, state);
+        var texture = Texture(address.Key);
         if (texture is null) return null;
         int size = texture.GetWidth() / Frames;
-        string cache = key + ":" + state + ":" + direction + ":" + frame;
+        direction = Math.Clamp(direction, 0, 3); frame = Math.Clamp(frame, 0, Frames - 1);
+        string cache = address.Key + ":" + address.State + ":" + direction + ":" + frame;
         if (!frames.TryGetValue(cache, out var result))
         {
-            result = new AtlasTexture { Atlas = texture, Region = new Rect2(Math.Clamp(frame, 0, 7) * size, (Math.Clamp(state, 0, 5) * 4 + Math.Clamp(direction, 0, 3)) * size, size, size) };
+            result = new AtlasTexture { Atlas = texture, Region = new Rect2(frame * size, (address.State * 4 + direction) * size, size, size) };
             frames[cache] = result;
         }
         return result;
     }
 
     public void DrawFrame(CanvasItem canvas, string key, Vector2 feet, int state, int direction, int frame, Color? tint = null)
+        => DrawSlice(canvas, key, feet, state, direction, frame, 0, int.MaxValue, tint);
+
+    private void DrawSlice(CanvasItem canvas, string key, Vector2 feet, int state, int direction, int frame,
+        int fromY, int toY, Color? tint = null)
     {
-        var texture = Texture(key);
+        var address = SpritePoseRules.SheetAddress(key, state);
+        var texture = Texture(address.Key);
         if (texture is null) return;
-        float size = texture.GetWidth() / (float)Frames;
-        var source = new Rect2(Math.Clamp(frame, 0, 7) * size, (Math.Clamp(state, 0, 5) * 4 + Math.Clamp(direction, 0, 3)) * size, size, size);
-        canvas.DrawTextureRectRegion(texture, new Rect2(feet - SpritePoseRules.Anchor((int)size), new Vector2(size, size)), source, tint ?? Colors.White);
+        int size = texture.GetWidth() / Frames;
+        int top = Math.Clamp(fromY, 0, size), bottom = Math.Clamp(toY, top, size);
+        if (top == bottom) return;
+        var source = new Rect2(Math.Clamp(frame, 0, Frames - 1) * size,
+            (address.State * 4 + Math.Clamp(direction, 0, 3)) * size + top, size, bottom - top);
+        var destination = new Rect2(feet - SpritePoseRules.Anchor(size) + new Vector2(0, top), new Vector2(size, bottom - top));
+        canvas.DrawTextureRectRegion(texture, destination, source, tint ?? Colors.White);
     }
 
-    // Runtime avatars always use the deterministic layered body, hair, and equipment pipeline.
-    public void DrawPerson(CanvasItem canvas, Appearance appearance, IReadOnlyDictionary<string, string> equipment, Vector2 feet, int state, int direction, int frame)
+    // Upper-body actions and grounded locomotion are independent presentation tracks.
+    public void DrawPerson(CanvasItem canvas, Appearance appearance, IReadOnlyDictionary<string, string> equipment,
+        Vector2 feet, int state, int direction, int frame, int locomotionFrame = -1, bool running = false)
     {
+        state = SpritePoseRules.WeaponPose(state, equipment);
+        bool contextAction = state is 6 or 7;
+        bool movingAction = locomotionFrame >= 0 && state is 2 or 3 or 6 or 7 or 9 or 10;
+        int movingState = running ? 8 : 1;
+        if (contextAction)
+            foreach (string carried in new[] { "weapon", "offhand" })
+                if (equipment.TryGetValue(carried, out var item))
+                    DrawFrame(canvas, "equipment/" + item, feet, state, direction, frame);
         foreach (string layer in SpritePoseRules.Layers(direction))
         {
+            if (contextAction && layer is "weapon" or "offhand") continue;
             string? key = layer switch
             {
                 "body" => $"people/body_{Math.Clamp(appearance.Body, 0, 1)}_{Math.Clamp(appearance.Skin, 0, 5)}",
                 "hair" => $"people/hair_{Math.Clamp(appearance.Hair, 0, 5)}_{Math.Clamp(appearance.HairColor, 0, 7)}",
                 _ => equipment.TryGetValue(layer, out var template) ? "equipment/" + template : null
             };
-            if (key is not null) DrawFrame(canvas, key, feet, state, direction, frame);
+            if (key is null) continue;
+            if (movingAction && layer is "legs" or "boots")
+                DrawFrame(canvas, key, feet, movingState, direction, locomotionFrame);
+            else if (movingAction && layer is "body" or "chest" or "cloak")
+            {
+                DrawSlice(canvas, key, feet, state, direction, frame, 0, SpritePoseRules.WaistCut);
+                DrawSlice(canvas, key, feet, movingState, direction, locomotionFrame, SpritePoseRules.WaistCut, SpritePoseRules.ActorSize);
+            }
+            else DrawFrame(canvas, key, feet, state, direction, frame);
         }
     }
 
@@ -110,13 +137,9 @@ public partial class AvatarPreview : Control
         float available = Math.Min(Size.X / 72, Size.Y / 72);
         float scale = available >= 1 ? MathF.Floor(available) : available;
         DrawSetTransform(new Vector2(Size.X / 2, Size.Y * .85f).Round(), 0, new Vector2(scale, scale));
-        DrawEllipseShadow();
-        Assets.DrawPerson(this, Appearance, Equipment, Vector2.Zero, 0, Direction, (int)(clock * 6) % 8);
+        var shadow = Assets.Texture("props/shadow");
+        if (shadow is not null) DrawTextureRect(shadow, new Rect2(-16, -6, 32, 12), false);
+        Assets.DrawPerson(this, Appearance, Equipment, Vector2.Zero, 0, Direction, (int)(clock * 5) % 8);
         DrawSetTransform(Vector2.Zero);
-    }
-    private void DrawEllipseShadow()
-    {
-        var texture = Assets.Texture("props/shadow");
-        if (texture is not null) DrawTextureRect(texture, new Rect2(-16, -6, 32, 12), false);
     }
 }

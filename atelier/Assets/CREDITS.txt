@@ -1,4 +1,9 @@
-Kairnfall Atelier art library.
+Kairnfall Atelier non-actor art library.
+
+Actor sprites and authored masters were retired by the Wayfarer migration.
+They are not generated, indexed, copied or available as a runtime fallback.
+The original historical source remains recoverable in Git history.
+
 
 Every image and sound in this directory is generated from the source in
 atelier/forge by the build script atelier/build.py. There is no third party

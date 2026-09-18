@@ -19,6 +19,7 @@ sys.path.insert(0,str(ROOT))
 from art.common import Pixel,canvas,palette,shade,rgba,seed,sheet,save,STATES,DIRECTIONS,ELEMENT_COLORS
 from art.items import icon
 from art.people import body_frame,hair_frame,equipment_frame,npc_frame
+from art.character_motion import EXTRA_STATES
 from art.environment_pack import TERRAINS,PROPS,tile,prop,building,chest,resource,structure,crystal
 from art.fauna import frame as creature_frame
 from art.room_art import render as furnishing_image, building, edge as grass_edge
@@ -158,10 +159,15 @@ def main():
     if not catalog.is_file(): raise SystemExit('Run python tools/build_content.py first.')
     data=json.loads(catalog.read_text(encoding='utf-8')); generated=[]; sheets=[]
     preflight(data)
-    def emit(image,key,animated=False):
+    for group in ("people","equipment","npcs","mobs","motions"):
+        path=root/group
+        if path.is_symlink(): raise ValueError("Actor output must not be a symlink: "+str(path))
+        if path.exists(): shutil.rmtree(path)
+    state_counts={}
+    def emit(image,key,animated=False,state_count=6):
         if key in generated: raise ValueError('Duplicate asset key: '+key)
         path=root/(key+'.png'); save(image,path); generated.append(key)
-        if animated: sheets.append(key)
+        if animated: sheets.append(key); state_counts[key]=state_count
     print('ASSETS: terrain and environment',flush=True)
     for kind in TERRAINS:
         for n in range(4): emit(tile(kind,n),f'terrain/{kind}_{n}')
@@ -193,6 +199,20 @@ def main():
         if index%50==0: print('ASSETS: equipment',index,'/',len(equipment),flush=True)
     print('ASSETS: named NPC roles',flush=True)
     for role in sorted({n['role'] for n in data['npcs']}): emit(sheet(lambda st,n,d:npc_frame(role,st,n,d)),'npcs/'+role,True)
+    print('ASSETS: separate interaction, work, running and ranged-pose atlases',flush=True)
+    def motion_sheet(draw,state):
+        image=canvas((512,256))
+        for direction in range(4):
+            for frame in range(8): image.alpha_composite(draw(state,frame,direction),(frame*64,direction*64))
+        return image
+    for state in EXTRA_STATES:
+        for body in range(2):
+            for skin in range(6): emit(motion_sheet(lambda st,n,d:body_frame(body,skin,st,n,d),state),f'motions/{state}/people/body_{body}_{skin}',True,1)
+        for style in range(6):
+            for colour in range(8): emit(motion_sheet(lambda st,n,d:hair_frame(style,colour,st,n,d),state),f'motions/{state}/people/hair_{style}_{colour}',True,1)
+        for item in equipment: emit(motion_sheet(lambda st,n,d:equipment_frame(item,st,n,d),state),f'motions/{state}/equipment/'+item['id'],True,1)
+        for role in sorted({n['role'] for n in data['npcs']}): emit(motion_sheet(lambda st,n,d:npc_frame(role,st,n,d),state),f'motions/{state}/npcs/'+role,True,1)
+        print('ASSETS: extra pose',state,'complete',flush=True)
     print('ASSETS: creature anatomy',flush=True)
     for index,m in enumerate(data['mobs']):
         emit(sheet(lambda st,n,d:creature_frame(m,st,n,d),128 if m['boss'] else 64),'mobs/'+m['id'],True)
@@ -205,11 +225,11 @@ def main():
         path=root/(key+'.png')
         with Image.open(path) as im:
             if im.mode!='RGBA' or im.getchannel('A').getbbox() is None: raise ValueError('Empty or non-RGBA asset: '+key)
-            if key in animated_keys and (im.width%8 or im.height!=im.width//8*24): raise ValueError('Invalid animation grid: '+key)
-            entries.append({'key':key,'width':im.width,'height':im.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'animated':key in animated_keys})
-    manifest={'schema':1,'source':'Original project and checksum-verified Atelier catalog artwork; source scripts are included.','atelier_assets':atelier['integrated'],'artistic_review':'not_approved','frame_order':list(STATES),'directions':list(DIRECTIONS),'frames_per_row':8,'assets':entries}
+            if key in animated_keys and (im.width%8 or im.height!=im.width//8*4*state_counts[key]): raise ValueError('Invalid animation grid: '+key)
+            entries.append({'key':key,'width':im.width,'height':im.height,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'animated':key in animated_keys,**({'state_count':state_counts[key]} if key in animated_keys else {})})
+    manifest={'schema':1,'source':'Wayfarer actor construction and checksum-verified non-actor Atelier artwork; source scripts are included.','atelier_assets':atelier['integrated'],'artistic_review':'not_approved','frame_order':list(STATES),'motion_order':list(EXTRA_STATES),'directions':list(DIRECTIONS),'frames_per_row':8,'assets':entries}
     (root/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
-    (root/'CREDITS.txt').write_text('Kairnfall original pixel-art generators and synthesized audio. Source code is included under tools/art and tools/build_game_assets.py. Original project source uses the repository MIT license. Matching Atelier assets from atelier/Assets replace compatible catalog artwork as a complete humanoid rig cohort. Read ATELIER_CREDITS.txt and atelier-integration.json for provenance and exact hashes. No independent gear records or third-party artwork are imported. Structural validation is not visual approval.\n',encoding='utf-8')
+    (root/'CREDITS.txt').write_text('Kairnfall original pixel-art generators and synthesized audio. Source code is included under tools/art and tools/build_game_assets.py. Original project source uses the repository MIT license. Only compatible non-actor Atelier artwork is integrated. Wayfarer is the sole character and creature source; no actor raster fallback is permitted. Read ATELIER_CREDITS.txt and atelier-integration.json for provenance and exact hashes. No independent gear records or third-party artwork are imported. Structural validation is not visual approval.\n',encoding='utf-8')
     evidence=ROOT/'artifacts/screenshots'; evidence.mkdir(parents=True,exist_ok=True)
     creatures=canvas((10*160,math.ceil(len(data['mobs'])/10)*175)); draw=ImageDraw.Draw(creatures)
     for i,m in enumerate(data['mobs']):

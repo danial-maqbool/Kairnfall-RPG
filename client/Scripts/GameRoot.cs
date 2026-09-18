@@ -212,7 +212,7 @@ public partial class GameRoot : Control
             if (!result.Ok || !quiet) Notify(result.Message, !result.Ok);
             if (result.Ok)
             {
-                if (command.Kind is "attack" or "cast" or "gather") World.Animate(Snapshot!.Self.Id, command.Kind == "cast" ? 3 : 2, .6);
+                // Accepted server cues drive both self and remote actions; receipts must not restart them.
                 if (command.Kind == "cast")
                     for (int i = 0; i < hotbar.Length; i++)
                         if (hotbar[i] == command.Item && hotbarButtons[i] is AbilitySlot slot) slot.ShowActivation();

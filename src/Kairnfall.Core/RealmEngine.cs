@@ -153,6 +153,7 @@ public sealed partial class RealmEngine
             if(p.Receipts.Count>32) p.Receipts.RemoveAt(0);
             var errors=Items.Validate(State,Data);
             if(errors.Count>0) throw new InvalidOperationException(string.Join("; ",errors));
+            ObservePresentation(p,command);
             EconomicDirty=true; return result;
         }
         catch(RuleException e)
@@ -327,6 +328,7 @@ public sealed partial class RealmEngine
         if(NearService(p,"auctioneer")) snap.Auctions=State.Auctions.Values.OrderBy(x=>x.Expires).Take(200).Select(Wire.Copy).ToList();
         foreach(var npc in Data.Npcs.Where(x=>x.Zone==p.Zone&&x.Position.Distance(p.Position)<6))
             foreach(var item in npc.Stock) snap.ShopStock[npc.Id+"/"+item]=State.ShopStock.GetValueOrDefault(npc.Id+"/"+item);
+        AppendPresentation(snap);
         return snap;
     }
     public List<LootPile> VisibleLoot(string player)
@@ -337,7 +339,7 @@ public sealed partial class RealmEngine
     }
     public void Disconnect(string id)
     {
-        Active.Remove(id); inputs.Remove(id); playerTargets.Remove(id); transitionReady.Remove(id);
+        Active.Remove(id); inputs.Remove(id); playerTargets.Remove(id); transitionReady.Remove(id); presentationCues.Remove(id);
         if(State.Characters.TryGetValue(id,out var player)) ClearLfg(player);
         foreach(var t in State.Trades.Values.Where(x=>x.A.Character==id||x.B.Character==id).ToList()) State.Trades.Remove(t.Id);
         EconomicDirty=true;

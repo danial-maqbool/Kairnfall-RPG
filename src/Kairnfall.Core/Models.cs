@@ -505,6 +505,7 @@ public sealed class PublicPlayer
 }
 public sealed class Snapshot
 {
+    public List<ActorPresentationCue> ActorCues { get; set; } = [];
     public int Version { get; set; } = Wire.Version;
     public double Time { get; set; }
     public long Revision { get; set; }

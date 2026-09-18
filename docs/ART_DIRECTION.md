@@ -1,3 +1,13 @@
+# Current character source: Wayfarer
+
+Player bodies, hair, equipment overlays, NPCs and creatures now come only from the new Wayfarer construction in `tools/art/characters.py`, `character_motion.py`, and `wildlife.py`. Committed runtime atlases and source hashes are in `art/wayfarer/Assets`. The earlier actor implementation and counts below are historical, not the active renderer.
+
+Base compatibility remains 64-pixel actors, 128-pixel bosses, four directions and eight frames for six states. Separate one-action atlases add interaction, crafting, running, bow draw/release and crossbow handling. The client keeps legs grounded during upper-body actions. Accepted server cues synchronize public actions without changing rewards, saves or combat authority.
+
+The rejected actor PNGs and authored masters are deleted from the working tree. Legacy actor publishing is disabled. Git history is retained. Structural and native rendering results are not independent artistic acceptance or release approval.
+
+---
+
 # Pixel-art direction and review contract
 
 Status date: **2026-09-16**. This document describes the active repository-side visual contract. It does not constitute human artistic approval.

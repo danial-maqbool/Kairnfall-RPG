@@ -12,4 +12,5 @@
   <Project Path="tools/load_probe/Kairnfall.LoadProbe.csproj" />
   <Project Path="tools/concurrency_probe/Kairnfall.ConcurrencyProbe.csproj" />
   <Project Path="tools/operations/Kairnfall.Operations.csproj" />
+  <Project Path="tools/character_probe/CharacterProbe.csproj" />
 </Solution>

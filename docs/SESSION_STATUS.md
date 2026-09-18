@@ -1,3 +1,9 @@
+## Active workstream: Wayfarer character replacement
+
+Character replacement source is integrated; workflow cleanup and delivery-head verification are in progress. Read `docs/CHARACTER_REBUILD.md` and `docs/art/character-rebuild/integration-report.json`. The previous first-hour evidence below is historical and does not certify the new character implementation.
+
+---
+
 # Kairnfall RPG — session status
 
 Status date: **2026-09-16**  

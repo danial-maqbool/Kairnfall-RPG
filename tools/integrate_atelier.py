@@ -1,6 +1,6 @@
 """Integrate checked-in Atelier catalog art without changing gameplay records.
 
-Grounded-2026 owns every active player, equipment-overlay, NPC and mob frame.
+Wayfarer owns every active player, equipment-overlay, NPC and mob frame.
 Those actor groups are deliberately never copied from the historical Atelier
 binary library, so clean regeneration cannot silently restore rejected sprites.
 Atelier remains available for compatible non-actor world and icon artwork.
@@ -54,16 +54,16 @@ def plan(library:Path,output:Path,keys:list[str])->tuple[list[tuple[str,Path,str
         if group in ACTOR_GROUPS:
             with Image.open(destination) as current:
                 if current.mode!='RGBA' or current.getchannel('A').getbbox() is None:
-                    raise ValueError('Grounded-2026 actor output is empty or non-RGBA: '+key)
+                    raise ValueError('Wayfarer actor output is empty or non-RGBA: '+key)
                 size=current.width//8
                 if current.width%8 or current.height!=size*24 or size not in (64,128):
-                    raise ValueError('Grounded-2026 actor grid is invalid: '+key)
+                    raise ValueError('Wayfarer actor grid is invalid: '+key)
                 alpha=current.getchannel('A')
                 for row in range(24):
                     for frame in range(8):
                         if alpha.crop((frame*size,row*size,(frame+1)*size,(row+1)*size)).getbbox() is None:
-                            raise ValueError(f'Blank Grounded-2026 actor frame: {key}/{row}/{frame}')
-            skipped.append({'key':key,'reason':'Grounded-2026 runtime actor source owns this key; historical Atelier actor bytes are inactive'})
+                            raise ValueError(f'Blank Wayfarer actor frame: {key}/{row}/{frame}')
+            skipped.append({'key':key,'reason':'Wayfarer runtime actor source owns this key; historical Atelier actor bytes are inactive'})
             continue
         source=safe_path(library,key)
         if key not in entries or not source.is_file():
@@ -82,7 +82,7 @@ def plan(library:Path,output:Path,keys:list[str])->tuple[list[tuple[str,Path,str
 
 def retire_authored_hero(output:Path)->None:
     # The former single-sheet hero is historical source only. Player appearance
-    # now always composes the Grounded-2026 body/hair/equipment rig.
+    # now always composes the Wayfarer body/hair/equipment rig.
     safe_path(output,'people/hero').unlink(missing_ok=True)
 
 
@@ -107,10 +107,10 @@ def integrate(library:Path,output:Path,keys:list[str])->dict:
         raise ValueError('An actor key unexpectedly entered the historical Atelier copy path')
     report={'schema':3,'source':'atelier/Assets','source_manifest_sha256':hashlib.sha256((library/'manifest.json').read_bytes()).hexdigest(),
             'integrated':len(selected),'groups':counts,'coverage':coverage,'skipped':skipped,
-            'actor_runtime_source':'Grounded-2026 procedural construction','actor_historical_fallbacks':0,
+            'actor_runtime_source':'Wayfarer original joint construction','actor_historical_fallbacks':0,
             'historical_actor_bytes_active':False,'catalog_ids_changed':False,'independent_gear_ladder_imported':False,
             'visual_approval':'not_granted_by_integrity_checks','assets':[{'key':key,'sha256':digest} for key,_,digest in selected]}
     (output/'atelier-integration.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     (output/'ATELIER_CREDITS.txt').write_text((library/'CREDITS.txt').read_text(encoding='utf-8'),encoding='utf-8')
-    print('ATELIER INTEGRATION:',len(selected),'historical non-actor catalog assets;',counts,'; runtime coverage:',coverage,'; generated/inactive skips:',len(skipped),'; Grounded-2026 actor fallbacks: 0',flush=True)
+    print('ATELIER INTEGRATION:',len(selected),'historical non-actor catalog assets;',counts,'; runtime coverage:',coverage,'; generated/inactive skips:',len(skipped),'; Wayfarer actor fallbacks: 0',flush=True)
     return report

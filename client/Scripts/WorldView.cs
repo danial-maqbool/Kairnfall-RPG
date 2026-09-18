@@ -41,6 +41,12 @@ public partial class WorldView : Control
         public Point Facing = new(0, 1);
         public double LastMoved;
         public double WalkPhase;
+        public double RenderSpeed;
+        public double IdlePhase;
+        public bool Moving;
+        public bool Player;
+        public long CueSequence;
+        public int ActionDirection;
         public int FacingDirection;
         public double Health;
         public double LastAttack;
@@ -62,7 +68,7 @@ public partial class WorldView : Control
 
     public void ClearSession()
     {
-        Snapshot = null; Loot.Clear(); tracks.Clear(); interactions.Clear(); numbers.Clear(); lastZone = ""; TargetId = ""; Waypoint = null;
+        Snapshot = null; Loot.Clear(); tracks.Clear(); interactions.Clear(); numbers.Clear(); npcGestures.Clear(); combatBursts.Clear(); impactUntil = 0; impactStrength = 0; lastZone = ""; TargetId = ""; Waypoint = null;
     }
 
     public void Accept(TransportPacket packet)
@@ -70,30 +76,34 @@ public partial class WorldView : Control
         if (packet.Snapshot is not { } snapshot) return;
         if (snapshot.Self.Zone != lastZone)
         {
-            tracks.Clear(); numbers.Clear(); TargetId = ""; Waypoint = null;
+            tracks.Clear(); numbers.Clear(); npcGestures.Clear(); combatBursts.Clear(); impactUntil = 0; impactStrength = 0; TargetId = ""; Waypoint = null;
             Camera = snapshot.Self.Position; lastZone = snapshot.Self.Zone;
         }
         Snapshot = snapshot; sinceSnapshot = 0;
         Loot = packet.Loot ?? [];
-        Track(snapshot.Self.Id, snapshot.Self.Position, snapshot.Self.Facing, snapshot.Self.Health);
-        foreach (var player in snapshot.Players) Track(player.Id, player.Position, player.Facing, player.Health);
+        Track(snapshot.Self.Id, snapshot.Self.Position, snapshot.Self.Facing, snapshot.Self.Health, true);
+        foreach (var player in snapshot.Players) Track(player.Id, player.Position, player.Facing, player.Health, true);
         foreach (var creature in snapshot.Creatures)
         {
+            bool existing = tracks.ContainsKey(creature.Id);
             var track = Track(creature.Id, creature.Position, creature.Facing, creature.Health);
-            if (creature.NextAttack > track.LastAttack + .01 && creature.Health > 0)
+            if (!existing) track.LastAttack = creature.NextAttack;
+            if (existing && creature.NextAttack > track.LastAttack + .01 && creature.Health > 0)
             {
                 track.LastAttack = creature.NextAttack;
                 Animate(creature.Id, 2, .6);
             }
         }
+        AcceptPresentation(snapshot);
     }
 
-    private ActorTrack Track(string id, Point position, Point facing, double health)
+    private ActorTrack Track(string id, Point position, Point facing, double health, bool player = false)
     {
         if (!tracks.TryGetValue(id, out var track))
         {
-            track = new ActorTrack { Position = position, Target = position, Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10 };
+            track = new ActorTrack { Position = position, Target = position, Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), ActionDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10, Player = player, IdlePhase = IdleOffset(id) };
             tracks[id] = track;
+            if (health <= 0) { track.State = 5; track.StateStart = Clock - ActorMotion.CorpseCollapseSeconds; track.StateUntil = Clock + 6; }
         }
         if (track.Target.Distance(position) > .008) track.LastMoved = Clock;
         if (Math.Abs(track.Health - health) >= .8)
@@ -111,8 +121,11 @@ public partial class WorldView : Control
 
     public void Animate(string id, int state, double duration)
     {
-        if (!tracks.TryGetValue(id, out var track)) return;
-        track.State = state; track.StateStart = Clock; track.StateUntil = Clock + duration;
+        if (!tracks.TryGetValue(id, out var track) || !double.IsFinite(duration) || duration <= 0) return;
+        int current = Clock < track.StateUntil ? track.State : 0;
+        if (!ActorMotion.MayInterrupt(current, state, track.Health > 0)) return;
+        track.ActionDirection = track.FacingDirection;
+        track.State = state; track.StateStart = Clock; track.StateUntil = Clock + Math.Min(duration, 6);
     }
 
     public void CombatNote(Point at, string text, Color color)
@@ -156,15 +169,7 @@ public partial class WorldView : Control
         if (Data is null || Assets is null) return;
         var zone = Data.Zone(ZoneId);
         if (lastZone != zone.Id && Snapshot is null) { Camera = zone.Spawn; lastZone = zone.Id; }
-        foreach (var track in tracks.Values)
-        {
-            var previousPosition = track.Position;
-            double weight = 1 - Math.Exp(-18 * delta);
-            if (track.Position.Distance(track.Target) > 6) track.Position = track.Target;
-            else track.Position = new Point(track.Position.X + (track.Target.X - track.Position.X) * weight, track.Position.Y + (track.Target.Y - track.Position.Y) * weight);
-            double travelled = previousPosition.Distance(track.Position);
-            track.WalkPhase = travelled > 6 ? 0 : SpritePoseRules.AdvanceWalk(track.WalkPhase, travelled);
-        }
+        foreach (var track in tracks.Values) AdvanceTrack(track, delta);
         if (Snapshot is { } snapshot && tracks.TryGetValue(snapshot.Self.Id, out var self)) Camera = self.Position;
         numbers.RemoveAll(x => Clock - x.Started > 1.3);
         combatBursts.RemoveAll(x => Clock - x.Started > .65);
@@ -195,12 +200,13 @@ public partial class WorldView : Control
     private int Direction(Point p) => Math.Abs(p.X) > Math.Abs(p.Y) ? p.X < 0 ? 1 : 2 : p.Y < 0 ? 3 : 0;
     private (int State, int Direction, int Frame, Point Position) Pose(string id, Point at)
     {
-        if (!tracks.TryGetValue(id, out var t)) return (0, 0, (int)(Clock * 6) % 8, at);
-        int state = t.Health <= 0 ? 5 : Clock < t.StateUntil ? t.State : Clock - t.LastMoved < .35 ? 1 : 0;
-        int frame = state is 2 or 3 or 4 or 5
+        if (!tracks.TryGetValue(id, out var t)) return (0, 0, (int)(Clock * 5 + IdleOffset(id)) % 8, at);
+        int state = t.Health <= 0 ? 5 : Clock < t.StateUntil ? t.State : t.Moving ? Running(id) ? 8 : 1 : 0;
+        int frame = ActorMotion.IsAction(state)
             ? SpritePoseRules.ActionFrame(state, Clock - t.StateStart, t.StateUntil - t.StateStart)
-            : state == 1 ? (int)t.WalkPhase : (int)(Clock * 5) % 8;
-        return (state, t.FacingDirection, frame, t.Position);
+            : state is 1 or 8 ? (int)t.WalkPhase : (int)(Clock * 5 + t.IdlePhase) % 8;
+        int direction = ActorMotion.IsAction(state) ? t.ActionDirection : t.FacingDirection;
+        return (state, direction, frame, t.Position);
     }
 
     public override void _Draw()
@@ -399,7 +405,7 @@ public partial class WorldView : Control
             case "npc":
                 var npc = (NpcDef)visual.Value!;
                 Shadow(feet);
-                Assets.DrawFrame(this, "npcs/" + npc.Role, feet, 0, npc.Position.X > Camera.X + 2 ? 1 : npc.Position.X < Camera.X - 2 ? 2 : 0, (int)(Clock * 5) % 8);
+                DrawNpc(npc, feet);
                 if (ShowNames && npc.Position.Distance(Camera) < 7)
                 {
                     Nameplate(npc.Position, npc.Name, new Color("f1e2c7"), -59, 12);
@@ -445,13 +451,13 @@ public partial class WorldView : Control
             case "player":
                 var player = (PublicPlayer)visual.Value!; var pp = Pose(player.Id, player.Position);
                 if(player.Health>0) Shadow(feet);
-                Assets.DrawPerson(this, player.Appearance, player.Equipment, feet, player.Health<=0?5:pp.State, pp.Direction, player.Health<=0?7:pp.Frame);
+                Assets.DrawPerson(this, player.Appearance, player.Equipment, feet, pp.State, pp.Direction, pp.Frame, LocomotionFrame(player.Id), Running(player.Id));
                 if (ShowNames) Nameplate(player.Position, (player.Health<=0?"DOWNED · ":"")+player.Name + " · " + player.Level, player.Health<=0?Ui.Danger:new Color("a3c9df"), -61, 10);
                 break;
             case "self":
                 var character = (Character)visual.Value!; var self = Pose(character.Id, character.Position);
                 if (character.Health > 0) Shadow(feet);
-                Assets.DrawPerson(this, character.Appearance, PixelAssets.VisibleEquipment(character), feet, self.State, self.Direction, self.Frame);
+                Assets.DrawPerson(this, character.Appearance, PixelAssets.VisibleEquipment(character), feet, self.State, self.Direction, self.Frame, LocomotionFrame(character.Id), Running(character.Id));
                 foreach (var status in character.Statuses.Where(x => x.Until > RealmTime)) DrawStatus(feet, status);
                 break;
         }

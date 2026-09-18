@@ -1,0 +1,88 @@
+using Godot;
+using Kairnfall.Core;
+using Point = Kairnfall.Core.Point;
+
+namespace Kairnfall.Client;
+
+public partial class WorldView
+{
+    private readonly Dictionary<string, NpcGesture> npcGestures = [];
+    private sealed record NpcGesture(int Direction, double Started, double Until);
+
+    private static double IdleOffset(string id)
+    {
+        uint hash = 2166136261;
+        foreach (char letter in id) hash = unchecked((hash ^ letter) * 16777619);
+        return (hash % 8000) / 1000.0;
+    }
+
+    private void AdvanceTrack(ActorTrack track, double delta)
+    {
+        if (!double.IsFinite(delta) || delta <= 0) return;
+        var previous = track.Position;
+        double remaining = previous.Distance(track.Target);
+        if (remaining > 6)
+        {
+            track.Position = track.Target; track.WalkPhase = 0; track.RenderSpeed = 0; track.Moving = false;
+            return;
+        }
+        double weight = 1 - Math.Exp(-24 * delta);
+        track.Position = remaining < .004 ? track.Target : new Point(
+            previous.X + (track.Target.X - previous.X) * weight,
+            previous.Y + (track.Target.Y - previous.Y) * weight);
+        double travelled = previous.Distance(track.Position);
+        track.RenderSpeed = travelled / delta;
+        track.Moving = travelled > .001;
+        if (track.Moving) track.WalkPhase = SpritePoseRules.AdvanceWalk(track.WalkPhase, travelled);
+    }
+
+    private int LocomotionFrame(string id)
+        => tracks.TryGetValue(id, out var track) && track.Moving && track.Health > 0 ? (int)track.WalkPhase : -1;
+    private bool Running(string id)
+        => tracks.TryGetValue(id, out var track) && track.Player && track.Health > 0
+           && (track.RenderSpeed > 6.2 || track.State == 8 && Clock < track.StateUntil);
+
+    private void AcceptPresentation(Snapshot snapshot)
+    {
+        var visible = snapshot.Players.Select(p => p.Id).Concat(snapshot.Creatures.Select(c => c.Id)).ToHashSet(StringComparer.Ordinal);
+        visible.Add(snapshot.Self.Id);
+        foreach (var id in tracks.Keys.Where(id => !visible.Contains(id)).ToArray()) tracks.Remove(id);
+        foreach (var id in npcGestures.Where(x => x.Value.Until <= Clock).Select(x => x.Key).ToArray()) npcGestures.Remove(id);
+        if (snapshot.ActorCues is not { } cues) return;
+        foreach (var cue in cues.Take(128))
+        {
+            if (cue is null || string.IsNullOrEmpty(cue.Actor)) continue;
+            if (!tracks.TryGetValue(cue.Actor, out var track) || !track.Player || cue.Sequence <= track.CueSequence) continue;
+            track.CueSequence = cue.Sequence;
+            if (!ActorMotion.CueIsCurrent(cue, snapshot.Time) || track.Health <= 0) continue;
+            int current = Clock < track.StateUntil ? track.State : 0;
+            if (!ActorMotion.MayInterrupt(current, cue.State, true)) continue;
+            double elapsed = Math.Max(0, snapshot.Time - cue.Started);
+            track.State = cue.State;
+            track.StateStart = Clock - elapsed;
+            track.StateUntil = track.StateStart + cue.Duration;
+            track.ActionDirection = SpritePoseRules.Direction(cue.Facing, track.FacingDirection);
+            if (!string.IsNullOrEmpty(cue.Npc) && Data.Npcs.FirstOrDefault(n => n.Id == cue.Npc && n.Zone == snapshot.Self.Zone) is { } npc)
+            {
+                int facing = SpritePoseRules.Direction(npc.Position.Direction(track.Target), 0);
+                npcGestures[npc.Id] = new NpcGesture(facing, track.StateStart, track.StateUntil);
+            }
+        }
+    }
+
+    private void DrawNpc(NpcDef npc, Vector2 feet)
+    {
+        if (npcGestures.TryGetValue(npc.Id, out var gesture) && gesture.Until > Clock)
+        {
+            int frame = SpritePoseRules.ActionFrame(6, Clock - gesture.Started, gesture.Until - gesture.Started);
+            Assets.DrawFrame(this, "npcs/" + npc.Role, feet, 6, gesture.Direction, frame);
+            return;
+        }
+        // A nearby person, not the camera, supplies the attention direction.
+        int direction = 0;
+        if (Snapshot is { } snapshot && snapshot.Self.Health > 0 && snapshot.Self.Position.Distance(npc.Position) <= 3)
+            direction = SpritePoseRules.Direction(npc.Position.Direction(snapshot.Self.Position), 0);
+        int idle = (int)(Clock * 5 + IdleOffset(npc.Id)) % PixelAssets.Frames;
+        Assets.DrawFrame(this, "npcs/" + npc.Role, feet, 0, direction, idle);
+    }
+}

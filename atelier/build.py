@@ -33,8 +33,8 @@ OUT = HERE / 'Assets'
 CATALOG = ROOT / 'content' / 'catalog.json'
 
 GROUPS = ('terrain', 'props', 'buildings', 'resources', 'chests', 'items', 'structures',
-          'abilities', 'skills', 'people', 'equipment', 'npcs', 'mobs', 'gear',
-          'gear_worn', 'audio')
+          'abilities', 'skills', 'gear', 'audio')
+RETIRED_ACTOR_GROUPS = frozenset(('people','equipment','npcs','mobs','gear_worn'))
 
 _DATA = None
 
@@ -52,6 +52,8 @@ def catalog():
 
 def plan(groups):
     """Every asset this library owns, as (group, key, payload) tuples."""
+    if set(groups) & RETIRED_ACTOR_GROUPS:
+        raise ValueError('Atelier actor generation is retired. Use tools/build_game_assets.py and art/wayfarer instead.')
     # Terrain and indexing are independent of game content. Avoid requiring a
     # generated catalogue for these self-contained library operations.
     dependent = {'buildings', 'resources', 'items', 'structures', 'abilities',
@@ -120,6 +122,7 @@ ANIMATED = {'people', 'equipment', 'npcs', 'mobs', 'gear_worn'}
 def render(task):
     """Draw one asset and write it. Runs in a worker process."""
     group, key, payload = task
+    if group in RETIRED_ACTOR_GROUPS: raise ValueError('Retired actor renderer: '+group)
     path = OUT / (key + ('.wav' if group == 'audio' else '.png'))
     path.parent.mkdir(parents=True, exist_ok=True)
     if group == 'audio':
@@ -175,6 +178,7 @@ def manifest():
     for path in sorted(OUT.rglob('*.png')):
         key = path.relative_to(OUT).with_suffix('').as_posix()
         group = key.split('/', 1)[0]
+        if group in RETIRED_ACTOR_GROUPS: raise ValueError('Retired actor raster reappeared: '+key)
         with Image.open(path) as image:
             if image.mode != 'RGBA':
                 raise ValueError('Not RGBA: ' + key)
@@ -193,7 +197,12 @@ def manifest():
     return entries
 
 
-CREDITS = """Kairnfall Atelier art library.
+CREDITS = """Kairnfall Atelier non-actor art library.
+
+Actor sprites and authored masters were retired by the Wayfarer migration.
+They are not generated, indexed, copied or available as a runtime fallback.
+The original historical source remains recoverable in Git history.
+
 
 Every image and sound in this directory is generated from the source in
 atelier/forge by the build script atelier/build.py. There is no third party

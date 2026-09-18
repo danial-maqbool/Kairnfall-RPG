@@ -206,6 +206,10 @@ def _weapon_kind(item):
 
 
 def _weapon(p,j,item):
+    j=dict(j)
+    if j['state'] in ('interact','craft'):
+        j['hand_r']=(j['hip'][0]-7*j['sign'],j['hip'][1]-5)
+        j['angle']=155*j['sign'] if _weapon_kind(item) not in ('staff','spear','bow','crossbow') else -15*j['sign']
     kind=_weapon_kind(item); material=item.get('material','iron'); c=palette(METALS.get(material,'a5b9c7'))
     wood=WOODS.get(material,'896040'); gold=palette('c7a461'); hand=j['hand_r']; x,y=hand
     angle=j['angle']; angle=math.radians(angle)
@@ -213,7 +217,7 @@ def _weapon(p,j,item):
     def at(along,across=0): return (x+ux*along+nx*across,y+uy*along+ny*across)
     if kind in ('bow','crossbow'):
         # Both string and riser are attached to the shared hands, never an icon pivot.
-        s=j['sign']; draw=(0,1,3,5,1,0,0,0)[j['frame']] if j['state']=='attack' else 0
+        s=j['sign']; draw=(0,1,3,5,1,0,0,0)[j['frame']] if j['state'] in ('attack','bow_attack','crossbow_attack') else 0
         if j['collapse']>.6:
             p.line([(x-12*s,y-2),(x-7*s,y-5),(x-1*s,y-4),(x+2*s,y-1)],wood,3)
             p.line([(x-12*s,y-2),(x+2*s,y-1)],'cabc95'); return
@@ -222,15 +226,15 @@ def _weapon(p,j,item):
             p.line([(x+4*s,y-9),(x+8*s,y-2),(x+6*s,y+7)],c[3],3)
             p.line([(x+4*s,y-9),(x+2*s,y-1),(x+6*s,y+7)],'d7caa3')
         else:
-            tips=[(x-2*s,y-14),(x+4*s,y-9),(x+6*s,y-2),(x+4*s,y+6),(x-2*s,y+11)]
+            tips=[(x-4*s,y-14),(x+2*s,y-9),(x+3*s,y-3),(x,y),(x+3*s,y+4),(x+s,y+9),(x-4*s,y+12)]
             p.line(tips,INK,4); p.line(tips,wood,2)
             p.line([(a-s,b) for a,b in tips[1:4]],shade(wood,1.3))
-            pull=(x-(3+draw)*s,y-1)
+            pull=j['hand_l'] if j['state']=='bow_attack' else (x-(3+draw)*s,y-1)
             p.line([tips[0],pull,tips[-1]],'d6caa4')
-            if j['state']=='attack' and j['frame'] in (1,2,3):
+            if j['state'] in ('attack','bow_attack') and j['frame'] in (1,2,3):
                 p.line([(pull[0]-3*s,pull[1]),(x+10*s,y-1)],'e6dcc0')
                 p.poly([(x+12*s,y-1),(x+8*s,y-3),(x+8*s,y+1)],c[4])
-            p.line([(x+5*s,y-3),(x+5*s,y+1)],'6d4632',3)
+            p.line([(x,y-2),(x,y+2)],'6d4632',3)
         return
     # Foreshortening keeps a complete point and fittings inside the cell at contact.
     length={'sword':21,'dagger':12,'axe':20,'mace':19,'spear':26,'staff':25,'wand':15}[kind]
@@ -276,6 +280,8 @@ def _weapon(p,j,item):
 
 
 def _shield(p,j,item):
+    j=dict(j)
+    if j['state'] in ('interact','craft'): j['hand_l']=(j['hip'][0]+3*j['sign'],j['hip'][1]-4)
     x,y=j['hand_l']; base=clothing_base(item); c=palette(base); s=j['sign']
     if j['collapse']>.6:
         p.poly([(x-7,y-4),(x+4,y-5),(x+8,y-1),(x+2,y+1),(x-6,y)],c[2]); p.line([(x-5,y-3),(x+3,y-4)],c[4]); return
@@ -385,6 +391,7 @@ def equipment_frame(item,state,frame,direction,*unused):
 
 
 def npc_frame(role,state,frame,direction):
+    if role=='fletcher' and state=='attack': state='bow_attack'
     identity=seed('wayfarer:'+role); body=identity%2; skin=(identity//3)%6
     im=body_frame(body,skin,state,frame,direction)
     color=ROLE_COLORS.get(role,'7e7769')
@@ -406,7 +413,9 @@ def npc_frame(role,state,frame,direction):
     layers={'body':im,'hair':hair_frame(hair_style,hair_color,state,frame,direction)}
     layers.update({slot:armour_frame(item,state,frame,direction) for slot,item in items.items()})
     result=canvas()
-    for layer in layer_order(direction):
+    order=layer_order(direction)
+    if state in ('interact','craft'): order=['weapon','offhand']+[k for k in order if k not in ('weapon','offhand')]
+    for layer in order:
         if layer in layers: result.alpha_composite(layers[layer])
     p=Pixel(result); j=rig(state,frame,direction,body); nx,ny=j['neck']; hx,hy=j['hip']
     if role in ('blacksmith','weaponsmith','innkeeper','tanner','carpenter','woodworker') and j['collapse']<.5:

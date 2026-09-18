@@ -39,6 +39,6 @@ public partial class GameRoot
             });
             button.Name="WorldPixelScale_"+scale;row.AddChild(button);
         }
-        rows.AddChild(Ui.Label("The Atelier art pack uses the existing item identities and animation grid. Independent gear/gear_worn records do not replace your saved equipment.",13,Ui.Muted,true));
+        rows.AddChild(Ui.Label("Wayfarer characters preserve your saved appearance and equipment identities. Compatible Atelier world artwork remains separate; retired character sprites are not loaded.",13,Ui.Muted,true));
     }
 }

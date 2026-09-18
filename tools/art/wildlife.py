@@ -10,7 +10,7 @@ from PIL import Image
 from .common import Pixel, canvas, palette, shade, seed, INK, ELEMENT_COLORS
 from .characters import body_frame, hair_frame, armour_frame, layer_order, SKINS
 from .character_motion import rig, STATES
-from atelier.forge.beasts import describe, FAMILIES
+from .creature_anatomy import describe, FAMILIES
 
 SUPPORTED=frozenset(FAMILIES)
 
@@ -133,7 +133,7 @@ def _quadruped(b,s,m):
         b.limb(hip,knee,s.leg_width+1,tone);b.limb(knee,foot,s.leg_width,tone)
         b.ellipsoid((foot[0]+.7,foot[1],foot[2]+.6),1.6,1.2,.7,'403a34' if s.digit=='hoof' else tone)
     far_side=-1 if b.direction in (0,2) else 1
-    for front in (False,True):leg(front,far_side,True)
+    for front in ((False,) if s.legs==2 and s.wings else (False,True)):leg(front,far_side,True)
     _tail(b,s,m,rear+drive,center+1)
     b.ellipsoid((drive-1,0,center),length*.50,s.girth*.73,s.girth*.83,coat)
     b.ellipsoid((shoulder+drive-1,0,center+1),s.girth*.85,s.girth*.75,s.girth*.9,coat)
@@ -154,7 +154,7 @@ def _quadruped(b,s,m):
             xx=rear+length*(.22+k*.16)+drive
             if s.pattern in ('stripes','bands'):b.line([(xx,-s.girth*.52,center+2),(xx+1,-s.girth*.7,center-1)],tone,1.6)
             else:b.line([(xx,-s.girth*.68,center+1),(xx+2,-s.girth*.66,center+1)],tone,1.7)
-    for front in (False,True):leg(front,-far_side,False)
+    for front in ((False,) if s.legs==2 and s.wings else (False,True)):leg(front,-far_side,False)
     headx=shoulder+s.neck*.5+drive
     headz=center+s.neck*.42+2-m['charge']+dead*-4
     b.limb((shoulder+drive,0,center),(headx,0,headz),s.neck_width+2,coat)
@@ -179,6 +179,7 @@ def _quadruped(b,s,m):
 def _wings(b,s,m,root,span):
     x,y,z=root; beat=math.sin(m['phase'])*4 if m['state'] in ('walk','attack') else m['charge']*4
     span*=1-m['collapse']*.7
+    if m['state'] in ('idle','hit','death'): span*=.42; beat=-3
     for side in (-1,1):
         tip=(x-4,y+side*span,z+beat+2)
         wrist=(x+3,y+side*span*.6,z+beat+5)
@@ -223,6 +224,15 @@ def _many_legs(b,s,m,count):
             if m['collapse']>.5:knee=(along-2,side*(span-3),3);foot=(along-4,side*(span-4),2)
             b.limb(root,knee,1.6,s.coat);b.limb(knee,foot,1.2,s.coat)
     b.ellipsoid((-3+m['drive'],0,z),s.length*.36,s.girth,s.girth*.65,s.coat)
+    if s.shell:
+        shell=s.accent or 'b49476';sx=-5+m['drive']*.35;sz=z+3-m['collapse']*2
+        b.ellipsoid((sx,0,sz),6.5,6,6,shell)
+        for side in (-1,1):
+            points=[]
+            for k in range(11):
+                a=k*math.pi/3;r=max(.5,4-k*.30)
+                points.append((sx+math.cos(a)*r,side*5.5,sz+math.sin(a)*r))
+            b.line(points,shade(shell,.65),1.1)
     b.ellipsoid((s.length*.27+m['drive'],0,z),s.head+1,s.head,s.head*.7,s.accent or shade(s.coat,.8))
     hx=s.length*.27+m['drive']
     for side in (-1,1):
@@ -230,9 +240,9 @@ def _many_legs(b,s,m,count):
         b.line([(hx+2,side*2,z),(hx+4,side*4,z-1),(hx+5,side*2,z-2)],'a2947c',1.4)
     if s.archetype=='crustacean':
         for side in (-1,1):
-            end=(hx+7+m['drive'],side*8,z+2)
+            end=(hx+7+m['drive']+m['charge']*1.5,side*(8+m['charge']*2),z+2+m['charge']*4)
             b.limb((hx,side*3,z),end,2.7,s.coat)
-            b.poly([end,(end[0]+4,end[1]-2,z+3),(end[0]+5,end[1],z+2),(end[0]+3,end[1]+3,z)],s.coat)
+            b.poly([end,(end[0]+4,end[1]-2,end[2]+1),(end[0]+5,end[1],end[2]),(end[0]+3,end[1]+3,end[2]-2)],s.coat)
     elif s.archetype=='arachnid':
         for side in (-1,1):b.line([(hx+1,side,z),(hx+3,side*2,z-3)],'ded3af',1.3)
     else:
@@ -306,35 +316,44 @@ def _construct(b,s,m):
 
 def _mineral(b,s,m):
     dead=m['collapse']; charge=m['charge']; phase=m['phase'];tone=s.accent or s.coat
+    shift=m['drive']
+    lift=abs(math.sin(phase))*2.5 if m['state']=='walk' else 0
     for k in range(5):
-        angle=k*math.tau/5; height=(8+(k%3)*4)*(1-dead*.8)+charge*3
-        x=math.cos(angle)*(5+math.sin(phase+k)*m['stride']); y=math.sin(angle)*5
+        angle=k*math.tau/5; height=(8+(k%3)*4)*(1-dead*.8)+charge*3+lift*(.65 if k%2 else 1)
+        x=shift+math.cos(angle)*(5+math.sin(phase+k)*m['stride']*2); y=math.sin(angle)*5+math.cos(phase+k)*m['stride']*2
         b.poly([(x-3,y-2,2),(x+3,y-2,2),(x+2,y+2,3),(x,y,height),(x-2,y+2,3)],tone)
         b.line([(x-2,y-1,3),(x,y,height-1)],shade(tone,1.3))
-    b.poly([(-4,-3,3),(5,-3,3),(4,4,3),(0,0,18*(1-dead*.7)+charge*3),(-4,3,3)],s.coat)
-    b.line([(0,-3,4),(0,0,17*(1-dead*.7)+charge*3)],s.glow or shade(tone,1.4),1.5)
+    b.poly([(-4,-3,3),(5,-3,3),(4,4,3),(shift*.45,0,18*(1-dead*.7)+charge*3+lift),(-4,3,3)],s.coat)
+    b.line([(0,-3,4),(shift*.45,0,17*(1-dead*.7)+charge*3+lift)],s.glow or shade(tone,1.4),1.5)
 
 
 def _plant(b,s,m):
-    dead=m['collapse']; z=s.height*(1-dead*.8); x=m['drive']; phase=m['phase']
+    dead=m['collapse']; z=s.height*(1-dead*.8)+m['charge']*3; x=m['drive']+m['charge']*2; phase=m['phase']
     for side in (-1,1):
         wave=math.sin(phase+side)*3 if m['state']=='walk' else 0
         b.limb((x,side*3,z*.6),(x-2+wave,side*7,0),3.5,s.coat)
         b.limb((x,side*2,z*.75),(x+wave,side*8,z*.55+m['charge']*5),2.6,s.coat)
     b.limb((x,0,3),(x,0,z),s.girth+1,s.coat)
-    if s.family_key=='myconid' or 'mushroom' in s.family_key:
-        b.ellipsoid((x,0,z+1),9,8,4,s.accent or 'ab655b')
+    if s.family_key in ('myconid','fungus') or 'mushroom' in s.family_key:
+        b.ellipsoid((x,0,z+1),9+m['charge']*2,8+m['charge']*2,4+m['charge'],s.accent or 'ab655b')
         for k in range(4):b.dot((x+(k-2)*2,-4,z+3+(k%2)), 'd0b58a')
     else:
         for k in range(7):
-            angle=k*math.tau/7; yy=math.sin(angle)*7;xx=x+math.cos(angle)*7
+            angle=k*math.tau/7; reach=7+m['charge']*3; yy=math.sin(angle)*reach;xx=x+math.cos(angle)*reach
             b.limb((x,0,z*.7),(xx,yy,z+1),1.5,s.coat)
             b.poly([(xx-3,yy,z),(xx,yy+2,z+7),(xx+4,yy,z+1),(xx,yy-2,z-2)],s.accent or '628348')
+    if m['charge']:
+        for side in (-1,1):
+            shoulder=(x,side*2,z*.68)
+            elbow=(x+3,side*(5+m['charge']*3),z*.65+m['charge']*4)
+            hand=(x+6,side*(7+m['charge']*3),z*.62+m['charge']*7)
+            b.limb(shoulder,elbow,2.7,s.coat);b.limb(elbow,hand,1.8,s.coat)
+            b.poly([hand,(hand[0]+2,hand[1]+side*2,hand[2]+3),(hand[0]-1,hand[1]+side*3,hand[2]+1)],s.accent or '628348')
     for side in (-1,1):b.dot((x+3,side*2,z*.7),s.eye)
 
 
 def _mimic(b,s,m):
-    gape=max(0,m['drive']*.9)+m['charge']*3;dead=m['collapse']
+    gape=abs(m['drive']*.9)+m['charge']*3;dead=m['collapse']
     w=8; h=8*(1-dead*.65)
     b.poly([(-w,-6,1),(w,-6,1),(w,-6,h),(-w,-6,h)],s.coat)
     b.poly([(w,-6,1),(w,6,1),(w,6,h),(w,-6,h)],shade(s.coat,.75))
@@ -374,11 +393,156 @@ def _humanoid(definition,s,state,n,d):
         for dx in (-2,2):p.rect((x+dx-1,y-1,x+dx,y+1),'3a3540')
         p.line([(x-2,y+3),(x+2,y+3)],'625b50')
     elif family=='pirate':
-        p.line([(x-5,y-2),(x+5,y-2)],'883e42',2);p.rect((x+1,y-1,x+3,y+1),'252632')
+        # Tricorn, bandanna and eyepatch; not a colour-only human silhouette.
+        if j['collapse']>.6:
+            p.poly([(x-8,y-1),(x-5,y-4),(x+4,y-3),(x+8,y),(x+6,y+1),(x-7,y+1)],'393c48')
+        else:
+            p.poly([(x-8,y-3),(x-6,y-8),(x,y-7),(x+6,y-8),(x+8,y-3),(x+3,y-4),(x,y-2),(x-3,y-4)],'393c48')
+            p.line([(x-6,y-6),(x-2,y-5),(x+2,y-5),(x+6,y-6)],'b79c68')
+        if not j['back']:
+            p.line([(x-5,y-2),(x+5,y-2)],'883e42',2);p.rect((x+1,y-1,x+3,y+1),'252632')
+    elif family=='ghoul':
+        for hand in ('hand_l','hand_r'):
+            hx,hy=j[hand]
+            for claw in (-1,1):p.line([(hx+claw,hy+1),(hx+claw*2,hy+4)],'c9cfb0')
     if definition.get('boss'):
         # Boss ink is rebuilt on a larger canvas; scale the joint-authored pixel grid uniformly.
         return out.resize((128,128),Image.Resampling.NEAREST)
     return out
+
+
+
+def _amphibian(b,s,m):
+    dead=m['collapse'];x=m['drive'];z=4+s.girth*.45*(1-dead)+m['charge']*2
+    for side in (-1,1):
+        kick=math.sin(m['phase']+(0 if side<0 else math.pi))*3 if m['state']=='walk' else 0
+        b.limb((x-3,side*3,z),(x-7+kick,side*6,3),4,s.coat)
+        b.limb((x-7+kick,side*6,3),(x-2,side*8,0),2.3,s.coat)
+        b.limb((x+3,side*3,z),(x+6+kick*.4,side*5,0),2,s.coat)
+        for toe in (-1,0,1):b.line([(x+6,side*5,0),(x+8,side*(5+toe),0)],shade(s.coat,1.2))
+    b.ellipsoid((x-1,0,z),s.length*.43,s.girth*.95,s.girth*.62,s.coat)
+    b.ellipsoid((x+4,0,z+1),s.head+2,s.head+1,s.head*.7,s.coat)
+    for side in (-1,1):
+        b.ellipsoid((x+4,side*3,z+4),1.6,1.5,1.5,shade(s.coat,1.25))
+        b.dot((x+5,side*3,z+4),s.eye if dead<.8 else '464138')
+    b.line([(x+6,-3,z),(x+8,0,z-1),(x+6,3,z)],shade(s.coat,.6))
+    if m['state']=='attack' and m['frame'] in (3,4):b.line([(x+8,0,z),(x+13,0,z-1)],'c48283',1.4)
+
+
+def _aquatic(b,s,m):
+    dead=m['collapse'];x=m['drive'];wave=math.sin(m['phase'])*(3 if m['state']=='walk' else .5)
+    z=5+s.girth*(1-dead)*.55+m['charge']*2
+    b.ellipsoid((x,0,z),s.length*.45,s.girth*.58,s.girth*.8,s.coat)
+    rear=x-s.length*.4
+    b.poly([(rear,0,z),(rear-7,wave,z+6*(1-dead)),(rear-5,wave,z),(rear-7,wave,z-5*(1-dead))],s.accent or shade(s.coat,.8))
+    b.poly([(x-3,0,z+s.girth*.6),(x,0,z+s.girth+5),(x+4,0,z+s.girth*.6)],s.accent or shade(s.coat,1.2))
+    for side in (-1,1):
+        b.poly([(x+2,side*2,z),(x-2,side*(7+m['charge']),z-3),(x+4,side*3,z-1)],s.accent or shade(s.coat,.8))
+        b.dot((x+s.length*.30,side*s.girth*.5,z+1),s.eye if dead<.8 else '35353a')
+    b.line([(x+s.length*.22,-s.girth*.45,z+2),(x+s.length*.22,-s.girth*.5,z-2)],shade(s.coat,.6))
+
+
+
+def _snail(b,s,m):
+    """A muscular foot, retractile eyestalks and a carried shell, not a static shell icon."""
+    dead=m['collapse'];charge=m['charge'];phase=m['phase']
+    glide=math.sin(phase) if m['state']=='walk' else 0
+    drive=m['drive'];body=s.coat;shell=s.accent or 'a78d6a'
+    # The front of the foot rolls into contact as the rear releases it.
+    foot=[(-10,-3,0),(-8,-4,1),(2,-4,1),(8+drive,-2,1),(10+drive,0,1),
+          (8+drive,2,1),(2,4,1),(-8,4,1)]
+    b.poly([(x,y+(glide*.7 if x<0 else -glide*.7),z) for x,y,z in foot],body)
+    b.line([(-8,-3,1),(0,-3,1),(8+drive,-1,1)],shade(body,1.3),1.5)
+    shell_z=8+abs(glide)*1.1-dead*1.7
+    shell_y=glide*.9
+    b.ellipsoid((-2+drive*.18,shell_y,shell_z),7,6,7*(1-dead*.1),shell)
+    # A spiral on each visible shell side follows the shell, preserving material identity.
+    for side in (-1,1):
+        points=[]
+        for k in range(13):
+            a=k*math.pi/3;radius=max(.5,4.8-k*.32)
+            points.append((-2+drive*.18+math.cos(a)*radius,shell_y+side*5.6,shell_z+math.sin(a)*radius))
+        b.line(points,shade(shell,.62),1.1)
+    rise=(1-dead)*(2+charge*3+max(0,-drive)*.4)
+    neck=(7+drive,0,4+rise+glide*.8)
+    b.limb((3+drive*.3,0,2),neck,4.4,body)
+    b.ellipsoid(neck,3.2,3.0,2.6,body)
+    for side in (-1,1):
+        root=(neck[0]+1,side*1.3,neck[2]+1)
+        tip=(neck[0]+2-charge*2+glide,side*(3.5+charge*2),neck[2]+5*(1-dead)+charge*2)
+        b.limb(root,tip,1.5,body)
+        b.ellipsoid(tip,1.2,1.1,1.1,shade(body,1.3))
+        b.dot((tip[0]+.5,tip[1],tip[2]+.4),s.eye if dead<.8 else '51473b')
+        b.line([(neck[0]+1,side,neck[2]-1),(neck[0]+3,side*3,neck[2]-2)],shade(body,.8))
+    if m['state']=='attack' and m['frame'] in (3,4):
+        b.line([(neck[0]+2,-1,neck[2]-1),(neck[0]+4,0,neck[2]-2),(neck[0]+2,1,neck[2]-1)],'b88d82',2)
+
+
+
+def _manta(b,s,m):
+    """A broad diamond disk with undulating pectoral fins and a single whip tail."""
+    dead=m['collapse'];drive=m['drive'];charge=m['charge'];phase=m['phase']
+    beat=(math.sin(phase)*3 if m['state']=='walk' else charge*3)+drive*.3
+    z=5*(1-dead)+1;span=12+charge*2-dead*2;x=drive
+    tone=s.coat
+    for side in (-1,1):
+        b.poly([(x+6,side*1,z),(x+1,side*span,z+beat*(1-dead)),(x-8,side*5,z-1),(x-6,0,z)],tone)
+        b.line([(x+5,side*2,z+.5),(x+1,side*(span-1),z+beat*(1-dead)),(x-7,side*5,z-.5)],shade(tone,1.25))
+        b.poly([(x+4,side*2,z+.7),(x+1,side*7,z+beat*.5),(x-5,side*4,z)],shade(tone,1.1),None)
+    b.ellipsoid((x,0,z),7,3.4,1.6,tone)
+    tail=[(x-6,0,z),(x-11,math.sin(phase)*1.1,z-1),(x-16,math.sin(phase-.7)*2,z-1),(x-19,math.sin(phase-1)*2.5,z)]
+    b.line(tail,shade(tone,.65),1.5)
+    for side in (-1,1):
+        b.line([(x+5,side*2,z),(x+8,side*3,z),(x+9,side*2,z+.5)],shade(tone,1.15),1.8)
+        b.dot((x+4,side*3,z+1),s.eye if dead<.8 else '343440')
+        for k in range(3):b.dot((x-k*2,side*(4+k),z+.7+beat*.15),s.accent or shade(tone,1.35))
+    b.line([(x+6,-1,z-.5),(x+7,0,z-1),(x+6,1,z-.5)],shade(tone,.55))
+
+
+def _cuttle(b,s,m):
+    """Tapered mantle, rippling fin skirt, eight arms and two feeding tentacles."""
+    dead=m['collapse'];phase=m['phase'];drive=m['drive'];charge=m['charge'];x=drive
+    z=4+2*(1-dead)+charge*2
+    wave=math.sin(phase)*1.7 if m['state']=='walk' else drive*.25
+    for side in (-1,1):
+        rim=[(x-9,0,z),(x-6,side*4,z+wave),(x-2,side*6,z-wave),(x+3,side*5,z+wave),(x+6,side*3,z)]
+        b.poly(rim,s.accent or shade(s.coat,1.2))
+        b.line(rim,shade(s.coat,1.3))
+    b.ellipsoid((x-2,0,z),8,4.2,3.7*(1-dead*.5),s.coat)
+    for k in range(4):b.line([(x-6+k*2,-2,z+2),(x-5+k*2,2,z+2)],s.accent or shade(s.coat,.72))
+    b.ellipsoid((x+5,0,z),3.4,3.6,2.7,s.coat)
+    for side in (-1,1):b.dot((x+5,side*3.2,z+1),s.eye if dead<.8 else '36363a')
+    for arm in range(8):
+        spread=(arm-3.5)*1.65*(1-dead*.5)
+        ripple=math.sin(phase+arm*.7)*(1.3 if m['state']=='walk' else .4)+charge*1.2
+        root=(x+7,(arm-3.5)*.65,z-1)
+        mid=(x+10+ripple,spread,z-1+charge)
+        tip=(x+12+math.cos(arm)*1.2+drive*.4,spread*.9,1+charge*2)
+        b.limb(root,mid,1.6,s.coat);b.limb(mid,tip,1.1,s.accent or shade(s.coat,1.2))
+    extension=2+(max(0,drive)*1.4 if m['state']=='attack' else charge*3)
+    for side in (-1,1):
+        root=(x+7,side*1.2,z)
+        # A horizontal feeding strike stays above the south-facing cell boundary.
+        tip=(min(23,x+12+extension),side*2,5+charge*2)
+        b.line([root,(x+11,side*3,z-1),tip],shade(s.coat,1.12),1.4)
+        b.ellipsoid(tip,1.6,1,.7,s.accent or s.coat)
+
+
+def _scorpion(b,s,m):
+    """Eight walking legs, paired pincers and an articulated stinging metasoma."""
+    _many_legs(b,s,m,8)
+    dead=m['collapse'];phase=m['phase'];charge=m['charge'];drive=m['drive']
+    z=s.girth+4*(1-dead)
+    wag=math.sin(phase)*1.2 if m['state']=='walk' else 0
+    bend=drive*.65+charge*2
+    points=[(-8+drive*.3,0,z),(-12,0,z+2*(1-dead)),(-13,0,z+7*(1-dead)),
+            (-10+bend,wag,z+12*(1-dead)+charge),(-5+bend,wag,z+14*(1-dead)+charge),
+            (-2+max(0,drive),wag,z+10*(1-dead)+charge)]
+    for index,(a,c) in enumerate(zip(points,points[1:])):
+        b.limb(a,c,3.1-index*.32,s.coat)
+        b.ellipsoid(c,1.5,1.3,1.2,shade(s.coat,1.12))
+    tip=points[-1]
+    b.poly([tip,(tip[0]+3,tip[1],tip[2]-3),(tip[0]+1,tip[1]+1,tip[2]-1)],s.accent or 'd1ae75')
 
 
 def frame(definition,state,number,direction):
@@ -390,10 +554,18 @@ def frame(definition,state,number,direction):
     size=128 if definition.get('boss') else 64
     extent=max(s.length+s.tail_length+s.head+s.muzzle+8,s.height+s.leg+s.head+14,s.girth*4+16)
     b=Brush(size,direction,extent)
-    if s.archetype in ('quadruped','primate','amphibian','drake'):_quadruped(b,s,m)
+    if s.archetype in ('quadruped','primate','drake'):_quadruped(b,s,m)
+    elif s.archetype=='amphibian':_amphibian(b,s,m)
     elif s.archetype=='bird':_bird(b,s,m)
-    elif s.archetype in ('arachnid','insect','crustacean'):_many_legs(b,s,m,8 if s.archetype=='arachnid' else 10 if s.archetype=='crustacean' else 6)
-    elif s.archetype in ('serpent','worm','aquatic'):_serpent(b,s,m)
+    elif s.family_key=='scorpion':_scorpion(b,s,m)
+    elif s.archetype in ('arachnid','insect','crustacean'):_many_legs(b,s,m,4 if s.shell else 8 if s.archetype in ('arachnid','crustacean') else 6)
+    elif s.archetype in ('serpent','worm'):
+        if s.shell:_snail(b,s,m)
+        else:_serpent(b,s,m)
+    elif s.archetype=='aquatic':
+        if s.family_key=='manta':_manta(b,s,m)
+        elif s.family_key=='cuttle':_cuttle(b,s,m)
+        else:_aquatic(b,s,m)
     elif s.archetype in ('spirit','elemental'):_spirit(b,s,m)
     elif s.archetype=='construct':_construct(b,s,m)
     elif s.archetype=='mineral':_mineral(b,s,m)
