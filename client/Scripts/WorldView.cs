@@ -362,7 +362,19 @@ public partial class WorldView : Control
     private void DrawVisual(ZoneDef zone, Visual visual)
     {
         Vector2 feet = Pixels(visual.At).Round();
-        if (visual.Id == TargetId) DrawArc(feet, 12, 0, MathF.Tau, 24, Ui.Gold, 1.5f);
+        if (visual.Id == TargetId)
+        {
+            Color targetColor = Ui.Gold;
+            if (visual.Kind == "creature" && Snapshot is { } targetSnapshot)
+            {
+                double reach = ExperienceRules.WeaponRange(targetSnapshot.Self, Data);
+                double distance = targetSnapshot.Self.Position.Distance(visual.At);
+                targetColor = distance <= reach + .001 ? Ui.Success
+                    : distance <= reach + ExperienceRules.SelectedTargetGrace ? Ui.Gold : Ui.Danger;
+            }
+            float pulse = 12 + 1.2f * (.5f + .5f * MathF.Sin((float)Clock * 6f));
+            DrawArc(feet, pulse, 0, MathF.Tau, 24, targetColor, 1.7f);
+        }
         switch (visual.Kind)
         {
             case "event":
