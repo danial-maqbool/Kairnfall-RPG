@@ -1,3 +1,15 @@
+## Active workstream: Combat feel and encounter presentation
+
+Status date: **2026-09-18**. Verified implementation baseline: **`06776f6b0de7dbe02cab30a9e236e730c377de2e`**. Evidence: `docs/handoff/CURRENT_EVIDENCE.json`. Release status: **NOT APPROVED — human acceptance remains.**
+
+Repository-side combat feel/readability work is complete on `main`. The client now has a 0.25-second authoritative basic-attack buffer, a 0.35-second ability buffer that preserves the original target/aim, explicit-target retention, threat-aware automatic target priority, bounded short approach, authoritative target/range/pressure feedback, urgent telegraph presentation, and corrected hit-feedback attribution. Damage, cooldown resolution, encounter balance, authored content, saves, and server combat handlers are unchanged.
+
+All required exact-head workflows passed at `06776f6b0de7dbe02cab30a9e236e730c377de2e`. See `docs/COMBAT_FEEL.md` and `docs/handoff/COMBAT_FEEL_VERIFICATION.md`. Human owner play remains required for subjective responsiveness, combat weight, balance feel, visual quality, audio mix, and physical hardware behavior.
+
+The Wayfarer character replacement and first-hour sections below are retained as historical verified context.
+
+---
+
 ## Active workstream: Wayfarer character replacement
 
 Status date: **2026-09-18**. Verified implementation baseline: **`16f2798edc6b90791548b5bf551eab6433ac9277`**. Evidence: `docs/handoff/CURRENT_EVIDENCE.json`. Release status: **NOT APPROVED — human acceptance remains.**
