@@ -10,6 +10,7 @@ on:
       - 'atelier/**'
       - 'content_src/**'
       - 'client/Tests/VisualPresentationContract.*'
+      - 'src/release-candidate.trigger'
 permissions:
   contents: read
 concurrency:
@@ -61,9 +62,9 @@ jobs:
           python tools/build_content.py
           dotnet build client/Kairnfall.Client.csproj -c Debug 2>&1 | tee artifacts/experience/visual/logs/build.log
           python -m unittest discover -s tests/handoff -p 'test_visual*.py' -v 2>&1 | tee artifacts/experience/visual/logs/art-tests.log
-          python -m unittest atelier.tests.test_refined_body_batch01 -v 2>&1 | tee artifacts/experience/visual/logs/refined-body.log
-          python atelier/build.py --only people --jobs 1 2>&1 | tee artifacts/experience/visual/logs/refined-body-build.log
-          git diff --exit-code -- atelier/Assets/people atelier/Assets/manifest.json
+          python -m unittest discover -s tests/handoff -p 'test_atelier_integration.py' -v 2>&1 | tee artifacts/experience/visual/logs/actor-ownership.log
+          python tools/check_character_source.py 2>&1 | tee artifacts/experience/visual/logs/character-source.log
+          git diff --exit-code -- tools/art art/wayfarer/retired-actors.json
           python tools/build_game_assets.py 2>&1 | tee artifacts/experience/visual/logs/assets.log
           python tools/complete_skill_icons.py
           python tools/visual_acceptance_preflight.py 2>&1 | tee artifacts/experience/visual/logs/structural.log
