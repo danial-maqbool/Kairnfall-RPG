@@ -47,6 +47,18 @@ public static class CombatReadabilityRules
         };
     }
 
+    public static string TargetSummary(Character self,Creature creature,MobDef definition,double reach)
+    {
+        if(self is null||creature is null||definition is null||!self.Position.Finite||!creature.Position.Finite
+            ||!double.IsFinite(reach)||reach<0)return "";
+        double max=Math.Max(1,definition.Health);
+        int health=(int)Math.Clamp(Math.Ceiling(creature.Health/max*100),0,100);
+        double distance=self.Position.Distance(creature.Position);
+        string range=distance<=reach+.001?"IN RANGE":distance<=reach+1.75?"CLOSE GAP":"OUT OF RANGE";
+        string pressure=creature.Target==self.Id?" · ATTACKING YOU":"";
+        return $"{health}% · {range} {distance:0.0}{pressure}";
+    }
+
     public static string TelegraphLabel(Telegraph telegraph)
     {
         string label=EnemyCombatRules.IsKnownAttack(telegraph.Skill)?EnemyCombatRules.AttackLabel(telegraph.Skill):Words(telegraph.Skill);
