@@ -34,22 +34,46 @@ def main():
            'source_sha256':{name:sha(ROOT/name) for name in SOURCES},
            'artistic_approval':False,'assets':entries}
     expected={e['key']+'.png' for e in entries}
-    problems=[]
+    if any(not isinstance(e.get('pixel_sha256'),str) or len(e['pixel_sha256'])!=64 for e in entries):
+        raise SystemExit('Generated actor manifest is missing canonical pixel hashes.')
+    problems=[];stored={}
     if args.write:
         pack.mkdir(parents=True,exist_ok=True)
         for old in pack.rglob('*.png'):
             if old.relative_to(pack).as_posix() not in expected:old.unlink()
+    else:
+        manifest_path=pack/'manifest.json'
+        if not manifest_path.is_file():
+            problems.append('Committed actor manifest is missing.')
+        else:
+            committed=json.loads(manifest_path.read_text(encoding='utf-8'))
+            committed_meta=dict(committed);stored_entries=committed_meta.pop('assets',[])
+            expected_meta=dict(value);expected_meta.pop('assets',None)
+            if committed_meta!=expected_meta:problems.append('Committed actor manifest/source metadata differs.')
+            if not isinstance(stored_entries,list):
+                problems.append('Committed actor manifest has an invalid asset list.')
+            else:
+                for saved in stored_entries:
+                    if not isinstance(saved,dict) or not isinstance(saved.get('key'),str) or saved['key'] in stored:
+                        problems.append('Committed actor manifest has invalid or duplicate asset entries.');continue
+                    stored[saved['key']]=saved
+                if set(stored)!={e['key'] for e in entries}:problems.append('Committed actor manifest asset keys differ.')
     for entry in entries:
         relative=entry['key']+'.png';src=source/relative;dest=pack/relative
         if not src.is_file() or sha(src)!=entry['sha256']:raise SystemExit('Unverified generated input: '+relative)
         if args.write:
             dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,dest)
-        elif not dest.is_file() or sha(dest)!=entry['sha256']:problems.append('Committed atlas differs: '+relative)
+        else:
+            saved=stored.get(entry['key'])
+            if not dest.is_file():problems.append('Committed atlas is missing: '+relative);continue
+            if saved is None:continue
+            if any(saved.get(field)!=entry.get(field) for field in ('width','height','animated','state_count','pixel_sha256')):
+                problems.append('Committed atlas pixels or geometry differ: '+relative);continue
+            if sha(dest)!=saved.get('sha256'):problems.append('Committed atlas file checksum differs: '+relative)
     if args.write:
         (pack/'manifest.json').write_text(json.dumps(value,indent=2)+'\n',encoding='utf-8')
         (pack/'CREDITS.txt').write_text('Kairnfall Wayfarer actor pack.\nOriginal project-generated artwork from the source paths recorded in manifest.json.\nNo prior actor raster or promotional concept sheet is sampled by the active renderers.\nExisting catalogue identities, shared colour primitives and species anatomy descriptions are retained as data.\nBase sheets: six states, four directions, eight frames. Motion sheets: one action, four directions, eight frames.\nPNG integrity and reproducibility are technical checks, not independent artistic or release approval.\n',encoding='utf-8')
     else:
-        if not (pack/'manifest.json').is_file() or json.loads((pack/'manifest.json').read_text())!=value:problems.append('Committed actor manifest/source hashes differ.')
         present={p.relative_to(pack).as_posix() for p in pack.rglob('*.png')}
         if present!=expected:problems.append('The committed pack contains missing or obsolete atlas files.')
     if problems:raise SystemExit('\n'.join(problems))
