@@ -149,7 +149,7 @@ def hair_frame(style,color,state,frame,direction):
             p.line([(x-6,y+2),(x-10,y+3)],c[3])
         if style==5: p.ellipse((x-8,y-4,x-3,y+1),c[2],INK)
         return im
-    sway=j['cloth']
+    sway=j['cloth']; gait=round(j['stride']*2) if state=='walk' else 0
     if style in (1,2,4):
         if j['back']:
             p.poly([(x-5,y-1),(x+5,y-1),(x+5+sway,y+9),(x+2+sway,y+13),(x-3+sway,y+12),(x-5,y+6)],c[1])
@@ -177,6 +177,9 @@ def hair_frame(style,color,state,frame,direction):
     p.poly([(x-4,y-5),(x-1,y-7),(x+2,y-6),(x,y-4),(x-3,y-3)],c[3],None)
     p.line([(x-3,y-5),(x,y-6),(x+2,y-5)],c[4])
     p.line([(x+3,y-5),(x+4,y-3)],c[1])
+    if state=='walk' and style in (0,3,5):
+        edge=4*s
+        p.line([(x+edge+gait,y-2),(x+edge+gait,y+2)],c[3],2)
     if style==5:
         p.ellipse((x-4,y-12,x+3,y-6),c[2],INK)
         p.line([(x-2,y-10),(x+1,y-9)],c[4]); p.line([(x-2,y-7),(x+2,y-7)],'b99861')
@@ -362,6 +365,9 @@ def armour_frame(item,state,frame,direction):
                 p.line([(x,y-7),(x,y-3)],c[4])
         if j['back']:
             p.poly([(x-5,y-2),(x+5,y-2),(x+4,y+3),(x,y+5),(x-4,y+3)],c[2]); p.line([(x-3,y),(x+2,y+1)],c[4])
+        if state=='walk':
+            gait=round(j['stride']*2)
+            p.line([(x-2+gait,y-5),(x+1+gait,y-5)],c[5] if metal else c[4],2)
     elif slot=='cloak':
         if j['collapse']>.5:
             p.poly([(nx-3,ny-3),(nx+3,ny-2),(hx-8,hy+3),(hx-12,hy+2),(hx-5,hy-3)],c[2]); p.line([(nx-2,ny-2),(hx-8,hy+1)],c[4])
