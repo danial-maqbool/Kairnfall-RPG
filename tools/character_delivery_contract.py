@@ -40,6 +40,7 @@ TEMPORARY_PATHS = (
     '.github/workflows/character-commit-diagnostic.yml',
     '.github/workflows/character-publish-diagnostic.yml',
     '.github/workflows/2d-humanoid-assets.yml',
+    '.github/workflows/character-pack-refresh.yml',
 )
 SOURCES = {'tools/art/characters.py', 'tools/art/character_motion.py',
            'tools/art/wildlife.py', 'tools/art/creature_anatomy.py',
