@@ -63,9 +63,10 @@ public static class ExperienceRules
     {
         var list = creatures.ToArray();
         double range = WeaponRange(self, data);
-        var current = list.FirstOrDefault(x => x.Id == selected
-            && CanTarget(self, x, data, range + SelectedTargetGrace, true));
-        return current ?? ChooseTarget(self, list, data, "", range);
+        if (selected != "")
+            return list.FirstOrDefault(x => x.Id == selected
+                && CanTarget(self, x, data, range + SelectedTargetGrace, true));
+        return ChooseTarget(self, list, data, "", range);
     }
 
     public static string TargetProblem(Character self, Creature creature, Catalog data, double range)
