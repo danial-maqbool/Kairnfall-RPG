@@ -398,7 +398,9 @@ public partial class GameRoot
             var afterTarget = current.Creatures.FirstOrDefault(x => x.Id == selectedTarget);
             if (beforeTarget is not null && afterTarget is not null && afterTarget.Health < beforeTarget.Health - .5)
             {
-                World.CombatImpact(afterTarget.Position, 2.1f); audio?.PlayWeaponImpact(current.Self,Data); audio?.PlayCreature(Data.Mob(afterTarget.Template),afterTarget.Health<=0);
+                // Snapshot health deltas do not expose a trustworthy damage source. Show the
+                // observed impact and creature reaction without claiming the local weapon caused it.
+                World.CombatImpact(afterTarget.Position, 2.1f); audio?.PlayCreature(Data.Mob(afterTarget.Template),afterTarget.Health<=0);
             }
         }
         double beforeResource = double.IsFinite(previous.Self.ClassResource) ? previous.Self.ClassResource : 0;
