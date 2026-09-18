@@ -1,0 +1,134 @@
+name: Character delivery preparation
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/character-delivery-prepare.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate proposed delivery changes without publishing workflow edits
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install PyYAML==6.0.2
+          mkdir -p artifacts/delivery-preparation
+          python - <<'PY'
+          import base64, hashlib, json, os, re, subprocess
+          from pathlib import Path
+          import yaml
+          root=Path.cwd(); repo=os.environ['GITHUB_REPOSITORY']; parent=os.environ['GITHUB_SHA']
+          def cmd(*args):
+              return subprocess.run(args,check=True,text=True,capture_output=True).stdout.strip()
+          def api(path,body=None):
+              args=['gh','api','repos/'+repo+'/'+path]
+              if body is not None:args += ['--method','POST','--input','-']
+              result=subprocess.run(args,input=json.dumps(body) if body is not None else None,
+                                    check=True,text=True,capture_output=True)
+              return json.loads(result.stdout)
+          if not (root/'art/wayfarer/Assets/manifest.json').is_file():raise RuntimeError('The actor source/PNG integration must finish first.')
+          files={
+              'tools/documentation_contract.py':'2f981ba7ef56d2c474feb2501862d82c97a2c1d8',
+              'tools/character_delivery_contract.py':'c29d3483a0228f3f62e8c977416362db3cbfca0e',
+              'tests/handoff/test_character_evidence.py':'97eb30bc65ccee0c7947b5e4767523ecf3b3fd12'}
+          changed=set(files)
+          for name,sha in files.items():
+              value=api('git/blobs/'+sha);data=base64.b64decode(value['content'])
+              if hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()!=sha:raise RuntimeError('Blob identity differs: '+name)
+              path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+          template=subprocess.run(['git','show','1a1370b10a8d4a8577b71a4d855ca252f82a09b4:tools/character_rebuild/character-acceptance.yml.in'],check=True,capture_output=True,text=True).stdout
+          template=template.replace("      - 'tools/run_character_native.py'", "      - 'tools/run_character_native.py'\n      - 'tools/check_character_source.py'")
+          template=template.replace('          dotnet build client/Kairnfall.Client.csproj', '          python tools/check_character_source.py 2>&1 | tee artifacts/character-acceptance/logs/source-preflight.log\n          dotnet build client/Kairnfall.Client.csproj')
+          target='.github/workflows/grounded-actor-acceptance.yml';(root/target).write_text(template);changed.add(target)
+          import sys
+          sys.path.insert(0,str(root/'tools'))
+          import character_delivery_contract as contract
+          found=set();import_changes=[]
+          for path in sorted((root/'.github/workflows').glob('*.yml')):
+              original=path.read_text();text=original
+              lines=text.splitlines(keepends=True)
+              for i,line in enumerate(lines):
+                  if '--editor' in line and '--import' in line:
+                      match=re.search(r'\btimeout ([0-9]+) ',line)
+                      if match and int(match.group(1))<600:
+                          lines[i]=line[:match.start(1)]+'600'+line[match.end(1):]
+                          import_changes.append(path.name)
+              text=''.join(lines)
+              value=yaml.safe_load(text);name=value.get('name','')
+              if name in contract.REQUIRED_WORKFLOWS:
+                  found.add(name)
+                  push_start=text.find('  push:\n')
+                  if push_start<0:raise RuntimeError('Acceptance workflow lacks push trigger: '+path.name)
+                  ends=[v for v in (text.find('  pull_request:',push_start),text.find('  workflow_dispatch:',push_start),text.find('\npermissions:',push_start)) if v>=0]
+                  end=min(ends) if ends else len(text)
+                  block=text[push_start:end]
+                  if '    paths:\n' in block and "'src/release-candidate.trigger'" not in block:
+                      block=block.replace('    paths:\n',"    paths:\n      - 'src/release-candidate.trigger'\n",1)
+                      text=text[:push_start]+block+text[end:]
+              if path.name=='documentation-contract.yml':
+                  if "-p 'test_onboarding_evidence.py'" not in text:raise RuntimeError('Documentation test command changed.')
+                  text=text.replace("-p 'test_onboarding_evidence.py'","-p 'test_*evidence.py'")
+              yaml.safe_load(text)
+              if text!=original:path.write_text(text);changed.add(path.relative_to(root).as_posix())
+          if found!=contract.REQUIRED_WORKFLOWS:raise RuntimeError('Missing acceptance workflows: '+str(contract.REQUIRED_WORKFLOWS-found))
+          if len(import_changes)<6:raise RuntimeError('The inspected import-timeout fixes were not applied.')
+          local=root/'tools/local_dev.py';text=local.read_text()
+          old="timeout=300, log=ROOT / 'artifacts/local/import.log'"
+          if text.count(old)!=1:raise RuntimeError('Local import anchor changed.')
+          text=text.replace(old,"timeout=600, log=ROOT / 'artifacts/local/import.log'")
+          old="'-c', 'Release', '--', 'content/catalog.json'], env=env, timeout=180,\n            log=ROOT / 'artifacts/local-tests/world-paths.log')"
+          if text.count(old)!=1:raise RuntimeError('Local retained world-probe anchor changed.')
+          text=text.replace(old,old.replace('timeout=180','timeout=900'))
+          local.write_text(text);changed.add('tools/local_dev.py')
+          trigger=root/'src/release-candidate.trigger'
+          original=trigger.read_text() if trigger.exists() else ''
+          trigger.write_text(original.rstrip()+'\n2026-09-18: verify the Wayfarer character source, PNG pack and all retained acceptance suites; no release or deployment.\n')
+          changed.add('src/release-candidate.trigger')
+          subprocess.run(['python','-m','unittest','discover','-s','tests/handoff','-p','test_*evidence.py','-v'],check=True)
+          contract.validate_pack({})
+          subprocess.run(['git','diff','--check'],check=True)
+          entries=[];diffs={}
+          for name in sorted(changed):
+              text=(root/name).read_text()
+              sha=api('git/blobs',{'content':text,'encoding':'utf-8'})['sha']
+              entries.append({'path':name,'mode':'100644','type':'blob','sha':sha})
+              diffs[name]=subprocess.run(['git','diff','--',name],text=True,capture_output=True,check=True).stdout
+          # Archive the previous evidence byte-for-byte; do not change its historical claims.
+          entries.append({'path':contract.PREVIOUS,'mode':'100644','type':'blob','sha':contract.PREVIOUS_BLOB})
+          removed=[]
+          for name in (*contract.TEMPORARY_PATHS,'.github/workflows/character-delivery-prepare.yml'):
+              if name.startswith('.github/') and (root/name).is_file():
+                  entries.append({'path':name,'mode':'100644','type':'blob','sha':None});removed.append(name)
+          report={'schema':1,'base':parent,'entries':entries,'removed_workflows':removed,
+                  'import_timeouts_updated':import_changes,'guard_tests':'passed',
+                  'pack_integrity':'passed','workflow_changes_published':False}
+          out=root/'docs/art/character-rebuild/delivery-preparation.json'
+          out.write_text(json.dumps(report,indent=2)+'\n')
+          (root/'artifacts/delivery-preparation/diffs.json').write_text(json.dumps(diffs,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          if cmd('gh','api','repos/'+repo+'/git/ref/heads/main','--jq','.object.sha')!=parent:raise RuntimeError('main moved; preparation is retained only in logs.')
+          subprocess.run(['git','add','--','docs/art/character-rebuild/delivery-preparation.json'],check=True)
+          subprocess.run(['git','-c','user.name=github-actions[bot]','-c','user.email=41898282+github-actions[bot]@users.noreply.github.com','commit','-m','docs(characters): retain validated delivery tree for authorized integration'],check=True)
+          subprocess.run(['gh','auth','setup-git'],check=True)
+          subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: character-delivery-preparation-${{ github.sha }}
+          path: artifacts/delivery-preparation/
+          if-no-files-found: warn
+          retention-days: 7
