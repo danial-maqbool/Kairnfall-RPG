@@ -21,7 +21,7 @@ def main():
     args=parser.parse_args(); output=args.output.resolve()
     if not output.is_relative_to(ROOT/'artifacts'): raise SystemExit('Review output must remain under artifacts.')
     output.mkdir(parents=True,exist_ok=True)
-    source=args.source_root.resolve(); sys.path.insert(0,str(source/'tools'))
+    source=args.source_root.resolve(); sys.path.insert(0,str(source)); sys.path.insert(0,str(source/'tools'))
     from art.people import body_frame,hair_frame,equipment_frame,npc_frame
     from art.items import icon
     from art.environment_pack import prop,building,PROPS
