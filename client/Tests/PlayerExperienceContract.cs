@@ -81,6 +81,8 @@ public partial class PlayerExperienceContract : Node
             Require(ExperienceRules.ChooseTarget(self, [dead], data, "", 2) is null, "Dead creatures cannot be selected");
             var distant = Wire.Copy(target); distant.Position = self.Position.Add(new Point(20, 0));
             Require(!ExperienceRules.CanTarget(self, distant, data, 2), "Out-of-range creatures are rejected");
+            Require(ExperienceRules.ChooseEngagementTarget(self, [target, distant], data, distant.Id) is null,
+                "An explicit target beyond the short approach range is never silently replaced by another creature");
             var foreign = Wire.Copy(target); foreign.Zone = "other-zone";
             Require(!ExperienceRules.CanTarget(self, foreign, data, 2), "Other regions cannot be targeted");
             var blocked = Enumerable.Range(0, zone.Width).SelectMany(x => Enumerable.Range(0, zone.Height).Select(y => new Point(x + .5, y + .5)))
