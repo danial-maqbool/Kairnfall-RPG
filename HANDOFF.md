@@ -1,3 +1,13 @@
+## Active workstream: Combat feel and encounter presentation
+
+Status date: **2026-09-18**. Verified implementation baseline: **`06776f6b0de7dbe02cab30a9e236e730c377de2e`**. Machine-readable truth: `docs/handoff/CURRENT_EVIDENCE.json`. Release status: **NOT APPROVED — human acceptance remains.**
+
+Repository-side combat responsiveness/readability work is complete: bounded basic-attack buffering, queued-ability target/aim locking, sticky explicit targets, threat-aware automatic targeting, authoritative target/range feedback, urgent telegraph presentation, bounded approach behavior, and corrected damage-feedback attribution. No combat balance, authored content, save, server-handler, publication, deployment, or production-infrastructure changes were made. Exact run evidence is in `docs/handoff/COMBAT_FEEL_VERIFICATION.md`; implementation details are in `docs/COMBAT_FEEL.md`.
+
+The Wayfarer character replacement section below remains a completed historical workstream and its ledger is archived verbatim at `docs/handoff/CHARACTER_EVIDENCE_2026-09-18.json`.
+
+---
+
 ## Active workstream: Wayfarer character replacement
 
 Status date: **2026-09-18**. Verified implementation baseline: **`16f2798edc6b90791548b5bf551eab6433ac9277`**. Machine-readable truth: `docs/handoff/CURRENT_EVIDENCE.json`. Release status: **NOT APPROVED — human acceptance remains.**
