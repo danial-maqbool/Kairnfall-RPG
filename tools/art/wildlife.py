@@ -176,6 +176,46 @@ def _quadruped(b,s,m):
     if s.wings:_wings(b,s,m,(shoulder-4+drive,0,center+2),13)
 
 
+def _bear_grounding(b,s,m):
+    """Finish plantigrade bear contact on the shared 55px ground baseline."""
+    if b.size != 64:return
+    b.image.paste((0,0,0,0),(0,57,b.size,b.size))
+    c=palette(s.coat)
+    if m['collapse']>.6:
+        b.p.poly([(18,52),(23,49),(43,49),(49,52),(47,55),(20,55)],c[2],c[0])
+        b.p.line([(22,53),(45,53)],c[4],2)
+        return
+    if b.direction in (0,3):
+        offset=11 if s.family_key=='polar_bear' else 13
+        for x in (32-offset,32+offset):
+            b.p.poly([(x-3,43),(x+3,43),(x+4,51),(x+6,53),(x+5,55),(x-5,55),(x-6,53),(x-4,51)],c[2],c[0])
+            b.p.line([(x-2,44),(x-2,52)],c[4])
+            b.p.line([(x-4,54),(x+4,54)],c[1])
+    else:
+        for x in (22,42):
+            b.p.poly([(x-3,47),(x+3,47),(x+4,51),(x+7,53),(x+6,55),(x-6,55),(x-7,53),(x-4,51)],c[2],c[0])
+            b.p.line([(x-2,48),(x-2,52)],c[4])
+            b.p.line([(x-5,54),(x+5,54)],c[1])
+
+
+def _quartz_spider_crystals(b,s,m):
+    """Angular mineral growths change the quartz spider's joints and silhouette."""
+    if b.size != 64:return
+    c=palette(s.accent or 'd4e0ea');shift=(-1,1,0,0)[b.direction]
+    shards=(
+        [(17+shift,42),(20+shift,28),(26+shift,40)],
+        [(26,38),(32,22),(37,39)],
+        [(39-shift,41),(48-shift,27),(47-shift,44)],
+        [(20,47),(14,43),(22,38)],
+        [(43,47),(52,42),(45,37)],
+    )
+    for points in shards:
+        b.p.poly(points,c[2],c[0]);a=points[0];tip=points[1]
+        b.p.line([(a[0]+1,a[1]-1),(tip[0],tip[1]+2)],c[4])
+    for x,y in ((15,48),(49,48),(19,52),(45,52)):
+        b.p.poly([(x-3,y),(x,y-4),(x+3,y),(x+1,y+2),(x-2,y+2)],c[2],c[0])
+
+
 def _wings(b,s,m,root,span):
     x,y,z=root; beat=math.sin(m['phase'])*4 if m['state'] in ('walk','attack') else m['charge']*4
     span*=1-m['collapse']*.7
@@ -554,11 +594,15 @@ def frame(definition,state,number,direction):
     size=128 if definition.get('boss') else 64
     extent=max(s.length+s.tail_length+s.head+s.muzzle+8,s.height+s.leg+s.head+14,s.girth*4+16)
     b=Brush(size,direction,extent)
-    if s.archetype in ('quadruped','primate','drake'):_quadruped(b,s,m)
+    if s.archetype in ('quadruped','primate','drake'):
+        _quadruped(b,s,m)
+        if s.family_key in ('bear','polar_bear'):_bear_grounding(b,s,m)
     elif s.archetype=='amphibian':_amphibian(b,s,m)
     elif s.archetype=='bird':_bird(b,s,m)
     elif s.family_key=='scorpion':_scorpion(b,s,m)
-    elif s.archetype in ('arachnid','insect','crustacean'):_many_legs(b,s,m,4 if s.shell else 8 if s.archetype in ('arachnid','crustacean') else 6)
+    elif s.archetype in ('arachnid','insect','crustacean'):
+        _many_legs(b,s,m,4 if s.shell else 8 if s.archetype in ('arachnid','crustacean') else 6)
+        if s.family_key=='quartz_spider':_quartz_spider_crystals(b,s,m)
     elif s.archetype in ('serpent','worm'):
         if s.shell:_snail(b,s,m)
         else:_serpent(b,s,m)
