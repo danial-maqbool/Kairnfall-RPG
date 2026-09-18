@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish only a fully passing character candidate with a same-head fast-forward guard."""
+"""Publish a passing source/art candidate; workflow edits use the authorized integration separately."""
 from pathlib import Path
 import json
 import os
@@ -23,7 +23,8 @@ def main():
     if not all(v.get('passed') is True for v in (report,native,source)):raise RuntimeError('Candidate evidence is not passing.')
     if run('git','diff','--name-only','--','content_src',capture=True).strip():raise RuntimeError('Character work cannot rewrite the game catalogue.')
     report.update(candidate_parent=parent,candidate_run_id=int(os.environ['GITHUB_RUN_ID']),
-                  native_viewports=native['rendered_viewports'],delivery_head_ci='pending exact-head verification')
+                  native_viewports=native['rendered_viewports'],delivery_head_ci='pending exact-head verification',
+                  workflow_integration='pending authorized connector commit')
     docs=ROOT/'docs/art/character-rebuild'
     (docs/'integration-report.json').write_text(json.dumps(report,indent=2)+'\n')
     (docs/'native-candidate.json').write_text(json.dumps(native,indent=2)+'\n')
@@ -45,25 +46,29 @@ def main():
         'The new character and creature source, complete runtime atlases, additional action sheets, authority cues and native rendering tests are integrated. '
         'Prior actor PNGs and authored masters are deleted from the working tree; Git history and saves are retained.\n\n'
         'The accepted candidate is recorded in `docs/art/character-rebuild/integration-report.json`. Native viewport samples are retained in `docs/art/character-rebuild/native/`. '
-        'Permanent Linux and Windows character acceptance must pass at the delivery head before the task is marked verified. '
+        'Permanent workflow installation and Linux/Windows delivery-head verification remain pending. '
         'Compilation and structural checks do not establish independent artistic approval, ordinary-account play quality or release readiness.\n\n'
         'Rebuild with `python tools/build_content.py`, `python tools/check_character_source.py`, `python tools/build_game_assets.py`, '
         '`python tools/complete_skill_icons.py`, `python tools/validate_character_assets.py`, and `python tools/build_wayfarer_pack.py`. '
         'The pack command compares committed pixels; its `--write` option is an explicit source-authoring operation, not validation.\n')
     for name in ('HANDOFF.md','docs/SESSION_STATUS.md'):
         path=ROOT/name
-        path.write_text('## Active workstream: Wayfarer character replacement\n\nCharacter replacement is integrated; delivery-head verification is in progress. '
+        path.write_text('## Active workstream: Wayfarer character replacement\n\nCharacter replacement source is integrated; workflow cleanup and delivery-head verification are in progress. '
                        'Read `docs/CHARACTER_REBUILD.md` and `docs/art/character-rebuild/integration-report.json`. '
                        'The previous first-hour evidence below is historical and does not certify the new character implementation.\n\n---\n\n'+path.read_text())
-    for name in ('.github/workflows/character-rebuild-stage.yml','.github/workflows/character-rebuild-apply.yml',
-                 '.github/workflows/character-commit-diagnostic.yml','tools/character_rebuild_stage.py'):
-        path=ROOT/name
-        if path.exists():path.unlink()
+    # GITHUB_TOKEN has contents:write, not workflows:write. Preserve the desired
+    # workflow diff as evidence, but never include workflow edits in this commit.
+    evidence=ROOT/'artifacts/character-candidate'
+    (evidence/'workflow-integration.patch').write_text(run('git','diff','--','.github/workflows',capture=True))
+    desired=ROOT/'.github/workflows/character-acceptance.yml'
+    if desired.is_file():shutil.copyfile(desired,evidence/'character-acceptance.yml')
+    temporary=ROOT/'tools/character_rebuild_stage.py'
+    if temporary.exists():temporary.unlink()
     shutil.rmtree(ROOT/'tools/character_rebuild')
     run('git','diff','--check')
     run('git','config','user.name','github-actions[bot]')
     run('git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
-    allowed=['.github/workflows','tools/art','tools/check_character_source.py','tools/build_game_assets.py',
+    allowed=['tools/art','tools/check_character_source.py','tools/build_game_assets.py',
              'tools/integrate_atelier.py','tools/validate_game_assets.py','tools/validate_grounded_actor_assets.py',
              'tools/validate_character_assets.py','tools/build_wayfarer_pack.py','tools/run_character_native.py',
              'tools/character_probe','tools/character_rebuild','tools/character_rebuild_stage.py',
@@ -76,20 +81,20 @@ def main():
              'Kairnfall.slnx','art/wayfarer','atelier/Assets','atelier/authored','atelier/build.py',
              'atelier/coverage.json','atelier/README.md','foundry','docs/art/character-rebuild',
              'docs/CHARACTER_REBUILD.md','docs/ART_DIRECTION.md','docs/SESSION_STATUS.md','HANDOFF.md']
-    # Missing optional preview directories are not valid pathspecs. Tracked deletions still must be staged.
     paths=[name for name in allowed if (ROOT/name).exists() or run('git','ls-files','--',name,capture=True).strip()]
     if not paths:raise RuntimeError('No candidate paths to stage.')
     run('git','add','--all','--',*paths)
     changed=run('git','diff','--cached','--name-only',capture=True).splitlines()
     if not any(name.startswith('art/wayfarer/Assets/people/') for name in changed):raise RuntimeError('Runtime actor PNGs were not staged.')
     if not any(name.startswith('atelier/Assets/people/') for name in changed):raise RuntimeError('Old actor removal was not staged.')
-    if any(name.startswith(('.local/','artifacts/','content_src/')) for name in changed):raise RuntimeError('An unauthorized path entered the candidate commit.')
+    if any(name.startswith(('.github/','.local/','artifacts/','content_src/')) for name in changed):raise RuntimeError('An unauthorized path entered the source-only candidate commit.')
     run('git','diff','--cached','--check')
     run('git','commit','-m','feat(characters): replace legacy sprites, rebuild motions and synchronize public actions')
+    revision=run('git','rev-parse','HEAD',capture=True).strip()
+    (evidence/'candidate-revision.txt').write_text(revision+'\n')
     run('gh','auth','setup-git')
     run('git','push','origin','HEAD:main')
-    revision=run('git','rev-parse','HEAD',capture=True).strip()
-    (ROOT/'artifacts/character-candidate/published-revision.txt').write_text(revision+'\n')
+    (evidence/'published-revision.txt').write_text(revision+'\n')
     print('CHARACTER_RUNTIME_PUBLISHED:',revision,'files:',len(changed),flush=True)
 
 if __name__=='__main__':main()
