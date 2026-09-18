@@ -72,6 +72,7 @@ internal static class TargetKeyChecks
                 "Menus, focus loss and hard combat stops clear queued attack intent");
             data.Self.Cooldowns.Remove("attack");
             game.World.Accept(new TransportPacket {Snapshot=data});
+            Member("selectedTarget").SetValue(game,b.Id); Member("selectedTargetKind").SetValue(game,"creature"); game.World.TargetId=b.Id;
             Read<LineEdit>("chatInput").GrabFocus(); await Frame(); await Tap();
             check(Read<string>("selectedTarget")==b.Id,"Typing retains GUI navigation without targeting a creature");
             host.GetViewport().GuiReleaseFocus();
