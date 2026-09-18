@@ -112,10 +112,14 @@ internal static class ClassCombatIdentityChecks
             string audio=File.ReadAllText(Path.Combine(root,"client/Scripts/ClientAudio.cs"));
             Need(experience.Contains("ClassResourceHud",StringComparison.Ordinal)&&experience.Contains("READY",StringComparison.Ordinal),"Class meter is not visible in the combat HUD.");
             Need(game.Contains("AbilityBufferSeconds = .35",StringComparison.Ordinal)&&game.Contains("TickAbilityBuffer",StringComparison.Ordinal),"Short ability input buffer is absent.");
+            Need(game.Contains("queuedAbilityTargetKind",StringComparison.Ordinal)&&game.Contains("queuedAbilityAim",StringComparison.Ordinal)
+                &&game.Contains("replayQueued",StringComparison.Ordinal),"Queued abilities do not preserve their original target and aim intent.");
             Need(experience.Contains("BasicAttackBuffered",StringComparison.Ordinal)&&experience.Contains("BasicAttackBufferSeconds",StringComparison.Ordinal),
                 "Short basic-attack input buffering is absent.");
             Need(game.Contains("TargetProblem",StringComparison.Ordinal)&&game.Contains("Selected target is no longer available.",StringComparison.Ordinal),
                 "Explicit offensive ability targeting can silently fall through.");
+            Need(!experience.Contains("PlayWeaponImpact(current.Self",StringComparison.Ordinal),
+                "Observed target damage falsely claims the local player's weapon as its source.");
             Need(world.Contains("CombatImpact",StringComparison.Ordinal)&&world.Contains("ClassBurst",StringComparison.Ordinal),"Impact shake/class burst presentation is absent.");
             Need(audio.Contains("class_ready",StringComparison.Ordinal)&&audio.Contains("class_release",StringComparison.Ordinal)&&audio.Contains("impact",StringComparison.Ordinal),"Combat feedback audio cues are absent.");
         });
