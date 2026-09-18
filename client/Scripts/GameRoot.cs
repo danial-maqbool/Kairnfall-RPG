@@ -262,6 +262,24 @@ public partial class GameRoot : Control
     private const double AbilityBufferSeconds = .35;
     private int queuedHotbar = -1;
     private double queuedAbilityUntil;
+    private string queuedAbilityTargetKind = "", queuedAbilityTarget = "";
+    private Point queuedAbilityAim;
+
+    private void ClearAbilityBuffer()
+    {
+        queuedHotbar = -1; queuedAbilityUntil = 0;
+        queuedAbilityTargetKind = ""; queuedAbilityTarget = ""; queuedAbilityAim = default;
+    }
+
+    private void QueueAbilityIntent(int index, double duration, bool announce)
+    {
+        queuedHotbar = index;
+        queuedAbilityUntil = Time.GetTicksMsec() / 1000.0 + duration;
+        queuedAbilityTargetKind = selectedTargetKind;
+        queuedAbilityTarget = selectedTarget;
+        queuedAbilityAim = World.ScreenToWorld(GetGlobalMousePosition());
+        if (announce) Notify("Queued " + Data.Ability(hotbar[index]).Name + ".");
+    }
 
     private void UseHotbar(int index) => TryUseHotbar(index, true);
     private void TryUseHotbar(int index, bool allowQueue)
@@ -275,31 +293,31 @@ public partial class GameRoot : Control
         {
             if (allowQueue && readyIn > 0 && readyIn <= AbilityBufferSeconds)
             {
-                queuedHotbar = index; queuedAbilityUntil = Time.GetTicksMsec() / 1000.0 + AbilityBufferSeconds + .12;
-                Notify("Queued " + ability.Name + ".");
+                QueueAbilityIntent(index, AbilityBufferSeconds + .12, true);
                 return;
             }
             Notify(problem); return;
         }
         if (actionBusy)
         {
-            if (allowQueue)
-            {
-                queuedHotbar = index; queuedAbilityUntil = Time.GetTicksMsec() / 1000.0 + AbilityBufferSeconds;
-            }
+            if (allowQueue) QueueAbilityIntent(index, AbilityBufferSeconds, false);
             return;
         }
-        queuedHotbar = -1;
-        var point = World.ScreenToWorld(GetGlobalMousePosition());
-        string targetId = selectedTargetKind is "creature" or "player" ? selectedTarget : "";
+
+        bool replayQueued = !allowQueue && queuedHotbar == index;
+        string intentKind = replayQueued ? queuedAbilityTargetKind : selectedTargetKind;
+        string intentTarget = replayQueued ? queuedAbilityTarget : selectedTarget;
+        var point = replayQueued ? queuedAbilityAim : World.ScreenToWorld(GetGlobalMousePosition());
+        string targetId = intentKind is "creature" or "player" ? intentTarget : "";
+        ClearAbilityBuffer();
         if (ability.Kind is "heal" or "shield" or "buff" or "stealth" or "summon" or "purge")
         {
-            if (ability.Kind != "heal" || selectedTargetKind != "player") { targetId = snapshot.Self.Id; point = snapshot.Self.Position; }
+            if (ability.Kind != "heal" || intentKind != "player") { targetId = snapshot.Self.Id; point = snapshot.Self.Position; }
         }
         else if (ability.Kind is "strike" or "projectile" or "interrupt" or "drain" or "dot")
         {
             Creature? target = null;
-            if (selectedTargetKind == "creature" && targetId != "")
+            if (intentKind == "creature" && targetId != "")
             {
                 target = snapshot.Creatures.FirstOrDefault(x => x.Id == targetId);
                 if (target is null) { Notify("Selected target is no longer available."); return; }
@@ -323,9 +341,10 @@ public partial class GameRoot : Control
     {
         if (queuedHotbar < 0 || Snapshot is not { } snapshot) return;
         double now = Time.GetTicksMsec() / 1000.0;
-        if (!GameplayInputAllowed || now > queuedAbilityUntil)
+        if (!GameplayInputAllowed || now > queuedAbilityUntil || queuedHotbar >= hotbar.Length
+            || string.IsNullOrEmpty(hotbar[queuedHotbar]))
         {
-            queuedHotbar = -1; return;
+            ClearAbilityBuffer(); return;
         }
         var ability = Data.Ability(hotbar[queuedHotbar]);
         if (!actionBusy && ExperienceRules.AbilityReadyIn(snapshot.Self, ability, snapshot.Time) <= .02
