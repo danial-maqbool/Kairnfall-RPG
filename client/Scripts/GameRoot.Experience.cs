@@ -106,10 +106,16 @@ public partial class GameRoot
         if (problem != "") { StopCombatInput(); Notify(problem); return; }
         if (target is null)
         {
-            StopCombatInput();
-            Notify(selectedTargetKind == "creature"
-                ? "Selected target is beyond the short attack approach."
-                : "No hostile creature is within weapon range.");
+            ClearBasicAttackBuffer();
+            if (!held)
+            {
+                ReleaseBasicAttack();
+                Notify(selectedTargetKind == "creature"
+                    ? "Selected target is beyond the short attack approach."
+                    : "No hostile creature is within weapon range.");
+            }
+            // Holding attack remains armed without sending an empty-target request.
+            // A later authoritative snapshot may expose a valid nearby target.
             return;
         }
         double now = Time.GetTicksMsec() / 1000.0;
