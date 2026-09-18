@@ -60,6 +60,21 @@ public partial class PlayerExperienceContract : Node
             string aggressive = data.Mobs.First(x => x.Ai is not "passive" and not "fleeing").Id;
             var target = new Creature { Id = "target", Template = aggressive, Zone = self.Zone, Position = near, Home = near, Health = 10 };
             Require(ExperienceRules.ChooseTarget(self, [target], data, "", 2)?.Id == target.Id, "Space can choose a nearby hostile without a mouse target");
+            var pressure = Wire.Copy(target); pressure.Id = "pressure"; pressure.Target = self.Id;
+            var idleThreat = Wire.Copy(target); idleThreat.Id = "idle-threat";
+            Require(ExperienceRules.ChooseTarget(self, [idleThreat, pressure], data, "", 2)?.Id == pressure.Id,
+                "Automatic targeting prioritizes a hostile already attacking the player");
+            double weaponReach = ExperienceRules.WeaponRange(self, data);
+            var stickyPosition = Enumerable.Range(-30, 61).SelectMany(x => Enumerable.Range(-30, 61).Select(y => self.Position.Add(new Point(x * .1, y * .1))))
+                .Where(x => x.Distance(self.Position) > weaponReach + .1 && x.Distance(self.Position) <= weaponReach + ExperienceRules.SelectedTargetGrace)
+                .First(x => WorldMap.Fits(zone, x) && WorldMap.LineOfSight(zone, self.Position, x));
+            var sticky = Wire.Copy(target); sticky.Id = "sticky"; sticky.Position = stickyPosition;
+            Require(ExperienceRules.ChooseEngagementTarget(self, [target, sticky], data, sticky.Id)?.Id == sticky.Id,
+                "A selected enemy inside the short approach grace is not silently replaced by a nearer target");
+            Require(ExperienceRules.TargetProblem(self, sticky, data, weaponReach).Contains("reach", StringComparison.Ordinal),
+                "Out-of-range explicit targets get an actionable range explanation");
+            Require(ExperienceRules.BasicAttackBufferSeconds is >= .2 and <= .35,
+                "Basic attack buffering remains short enough to improve input timing without predicting combat");
             var pet = Wire.Copy(target); pet.Id = "pet"; pet.Owner = self.Id;
             Require(ExperienceRules.ChooseTarget(self, [pet], data, pet.Id, 2) is null, "Owned companions cannot be attack targets");
             var dead = Wire.Copy(target); dead.Health = 0;
