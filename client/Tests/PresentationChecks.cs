@@ -125,6 +125,13 @@ internal static class PresentationChecks
         typeof(GameRoot).GetMethod("UpdateMobControls", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(game, null);
         check(attack.Text.Contains("1.2s", StringComparison.Ordinal), "Basic attack control renders authoritative cooldown time");
         check(attack.TooltipText.Contains("tile reach", StringComparison.Ordinal), "Basic attack control exposes weapon reach");
+        typeof(GameRoot).GetMethod("TickExperience", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(game, new object[] { .11 });
+        check(attack.Text.Contains("1.2s", StringComparison.Ordinal), "Regular HUD ticks do not overwrite authoritative attack cooldown text");
+        typeof(GameRoot).GetField("basicAttackBufferedTarget", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(game, elite.Id);
+        typeof(GameRoot).GetField("basicAttackBufferedUntil", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(game, Time.GetTicksMsec() / 1000.0 + .2);
+        typeof(GameRoot).GetMethod("UpdateMobControls", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(game, null);
+        check(attack.Text.Contains("QUEUED", StringComparison.Ordinal), "A near-ready buffered basic attack is visible in the native combat HUD");
+        typeof(GameRoot).GetMethod("StopCombatInput", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(game, null);
 
         var interrupted = Wire.Copy(snap); interrupted.Time = 20.2; interrupted.Telegraphs.Clear(); interrupted.Creatures[0].Health -= 5;
         world.Accept(new TransportPacket { Snapshot = interrupted });
