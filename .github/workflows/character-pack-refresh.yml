@@ -1,0 +1,64 @@
+name: Refresh Wayfarer actor pack
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/art/**'
+      - 'tools/build_game_assets.py'
+      - 'tools/build_wayfarer_pack.py'
+      - 'tools/validate_character_assets.py'
+      - 'tests/handoff/test_visual_art.py'
+      - 'tests/handoff/test_atelier_integration.py'
+      - '.github/workflows/character-pack-refresh.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: character-pack-refresh
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate source and rebuild actor assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py
+          python -m unittest discover -s tests/handoff -p 'test_visual_art.py' -v
+          python -m unittest discover -s tests/handoff -p 'test_atelier_integration.py' -v
+          python tools/check_character_source.py
+          python tools/build_game_assets.py
+          python tools/complete_skill_icons.py
+          python tools/validate_game_assets.py
+          python tools/validate_character_assets.py
+      - name: Refresh verified committed actor pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build_wayfarer_pack.py --write
+          python tools/build_wayfarer_pack.py
+          git diff --check
+          current="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$current" = "$GITHUB_SHA" || { echo 'main moved; refusing concurrent pack publication'; exit 1; }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- art/wayfarer/Assets
+          git diff --cached --quiet && { echo 'Wayfarer pack already current.'; exit 0; }
+          git commit -m 'chore(characters): refresh verified Wayfarer atlases'
+          git push origin HEAD:main
