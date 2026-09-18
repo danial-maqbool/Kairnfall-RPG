@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'src/release-candidate.trigger'
       - 'src/**'
       - 'client/**'
       - 'tests/Kairnfall.SecurityTests/**'

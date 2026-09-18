@@ -3,6 +3,7 @@ on:
   push:
     branches: [main, 'team/acceptance-10-windows-package']
     paths:
+      - 'src/release-candidate.trigger'
       - 'client/**'
       - 'src/**'
       - 'content/**'

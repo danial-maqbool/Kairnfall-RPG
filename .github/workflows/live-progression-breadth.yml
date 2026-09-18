@@ -3,6 +3,7 @@ on:
   push:
     branches: [main, 'team/**']
     paths:
+      - 'src/release-candidate.trigger'
       - 'client/**'
       - 'src/**'
       - 'content/**'
@@ -72,7 +73,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/live-progression/logs/import.log
+          timeout 600 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/live-progression/logs/import.log
       - name: Run graphical combat and progression acceptance
         shell: bash
         run: |

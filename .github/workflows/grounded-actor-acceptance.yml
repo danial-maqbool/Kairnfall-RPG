@@ -1,41 +1,60 @@
-name: Grounded actor acceptance
+name: Character sprite acceptance
 on:
   push:
     branches: [main]
     paths:
-      - 'atelier/forge/grounded_*.py'
-      - 'tools/art/people.py'
-      - 'tools/art/fauna.py'
-      - 'tools/integrate_atelier.py'
+      - 'tools/art/**'
       - 'tools/build_game_assets.py'
-      - 'tools/validate_game_assets.py'
-      - 'tools/validate_grounded_actor_assets.py'
-      - 'content_src/**'
+      - 'tools/build_wayfarer_pack.py'
+      - 'tools/validate*assets.py'
+      - 'tools/integrate_atelier.py'
+      - 'tools/character_probe/**'
+      - 'tools/run_character_native.py'
+      - 'tools/check_character_source.py'
+      - 'art/wayfarer/**'
       - 'client/Scripts/PixelAssets.cs'
+      - 'client/Scripts/SpritePoseRules.cs'
       - 'client/Scripts/WorldView*.cs'
-      - 'client/Scripts/PageLayoutProfiles.cs'
-      - 'client/Tests/VisualPresentationContract.*'
+      - 'client/Scripts/GameRoot.cs'
+      - 'client/Tests/*PresentationContract.*'
+      - 'src/Kairnfall.Core/ActorPresentation.cs'
+      - 'src/Kairnfall.Core/Models.cs'
+      - 'src/Kairnfall.Core/RealmEngine.cs'
+      - 'src/Kairnfall.Core/ReconnectRecovery.cs'
+      - 'content_src/**'
       - 'src/release-candidate.trigger'
       - '.github/workflows/grounded-actor-acceptance.yml'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: grounded-actor-${{ github.ref }}
+  group: character-sprites-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   verify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            godot: linux
+          - os: windows-latest
+            godot: windows
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 55
     env:
       PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_NOLOGO: '1'
       LIBGL_ALWAYS_SOFTWARE: '1'
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -43,57 +62,36 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Rebuild exact actor runtime pack
-        shell: bash
+      - name: Rebuild and verify the committed actor source
         run: |
           set -euo pipefail
-          mkdir -p artifacts/grounded-actors/logs artifacts/grounded-actors/screenshots
+          mkdir -p artifacts/character-acceptance/logs
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          git rev-parse HEAD > artifacts/grounded-actors/revision.txt
+          git rev-parse HEAD > artifacts/character-acceptance/revision.txt
           python -m pip install Pillow==12.0.0
-          python tools/build_content.py 2>&1 | tee artifacts/grounded-actors/logs/content.log
-          dotnet build client/Kairnfall.Client.csproj -c Debug 2>&1 | tee artifacts/grounded-actors/logs/client-build.log
-          python tools/build_game_assets.py 2>&1 | tee artifacts/grounded-actors/logs/assets.log
-          python tools/complete_skill_icons.py 2>&1 | tee artifacts/grounded-actors/logs/skill-icons.log
-          python tools/validate_game_assets.py 2>&1 | tee artifacts/grounded-actors/logs/general-validation.log
-          python tools/validate_grounded_actor_assets.py 2>&1 | tee artifacts/grounded-actors/logs/actor-validation.log
-          python tools/get_godot.py --os linux 2>&1 | tee artifacts/grounded-actors/logs/godot.log
-      - name: Measure actor runtime footprint
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          root=Path('client/Assets')
-          groups=('people','equipment','npcs','mobs')
-          sizes={group:sum(p.stat().st_size for p in (root/group).glob('*.png')) for group in groups}
-          counts={group:len(list((root/group).glob('*.png'))) for group in groups}
-          report={'revision':Path('artifacts/grounded-actors/revision.txt').read_text().strip(),'bytes':sizes,'counts':counts,
-                  'totalActorBytes':sum(sizes.values()),'visualApproval':'not implied by measurement'}
-          Path('artifacts/grounded-actors/footprint.json').write_text(json.dumps(report,indent=2)+'\n')
-          print(json.dumps(report,indent=2))
-          PY
-      - name: Inspect native-size actor presentation
-        shell: bash
-        env:
-          KAIRNFALL_SCREENSHOTS: ${{ github.workspace }}/artifacts/grounded-actors/screenshots
+          python tools/build_content.py 2>&1 | tee artifacts/character-acceptance/logs/content.log
+          python tools/check_character_source.py 2>&1 | tee artifacts/character-acceptance/logs/source-preflight.log
+          dotnet build client/Kairnfall.Client.csproj -c Debug 2>&1 | tee artifacts/character-acceptance/logs/client-build.log
+          dotnet run --project tools/character_probe -c Release -- content/catalog.json 2>&1 | tee artifacts/character-acceptance/logs/authority-and-clock.log
+          python tools/build_game_assets.py 2>&1 | tee artifacts/character-acceptance/logs/assets.log
+          python tools/complete_skill_icons.py
+          python tools/validate_game_assets.py 2>&1 | tee artifacts/character-acceptance/logs/general-validation.log
+          python tools/validate_character_assets.py 2>&1 | tee artifacts/character-acceptance/logs/character-validation.log
+          python tools/build_wayfarer_pack.py 2>&1 | tee artifacts/character-acceptance/logs/committed-pack.log
+          python tools/get_godot.py --os '${{ matrix.godot }}' 2>&1 | tee artifacts/character-acceptance/logs/godot.log
+      - name: Execute native rendering and animation fixtures
         run: |
           set -euo pipefail
-          timeout 180 "$GODOT_BIN" --headless --editor --path client --import > artifacts/grounded-actors/logs/import.log 2>&1
-          timeout 240 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/VisualPresentationContract.tscn > artifacts/grounded-actors/logs/native-visual.log 2>&1
-          for log in import native-visual; do
-            if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' "artifacts/grounded-actors/logs/$log.log"; then exit 1; fi
-          done
-          test -s artifacts/grounded-actors/screenshots/02-player-walk.png
-          test -s artifacts/grounded-actors/screenshots/03-player-attack.png
-          test -s artifacts/grounded-actors/screenshots/04-player-cast.png
-          test -s artifacts/grounded-actors/screenshots/equipment-state-5-frame-7.png
-          test -s artifacts/grounded-actors/screenshots/mobs-state-5-frame-7.png
-          grep -F 'VISUAL_PRESENTATION_CONTRACT:' artifacts/grounded-actors/logs/native-visual.log
+          python tools/run_character_native.py --output artifacts/character-acceptance
+          git diff --check
+          git diff --exit-code -- art/wayfarer tools/art client/Scripts src/Kairnfall.Core
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: grounded-actors-${{ github.sha }}
-          path: artifacts/grounded-actors/
+          name: character-sprites-${{ matrix.os }}-${{ github.sha }}
+          path: |
+            artifacts/character-acceptance/
+            artifacts/test-results/character-assets.json
+            artifacts/test-results/asset-structure.json
           retention-days: 14
           if-no-files-found: error

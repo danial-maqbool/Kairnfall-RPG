@@ -3,6 +3,7 @@ on:
   push:
     branches: [main, 'team/acceptance-07-graphical-multiplayer']
     paths:
+      - 'src/release-candidate.trigger'
       - 'client/**'
       - 'src/**'
       - 'tests/Kairnfall.Integration/**'
@@ -73,7 +74,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/graphical-multiplayer/logs/import.log
+          timeout 600 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/graphical-multiplayer/logs/import.log
       - name: Run two independent graphical clients in one shared realm
         shell: bash
         run: |

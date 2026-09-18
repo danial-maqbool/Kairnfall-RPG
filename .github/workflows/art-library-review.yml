@@ -2,7 +2,7 @@ name: Art library source and visual verification
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/art-library-review.yml', 'atelier/**', 'foundry/**']
+    paths: ['.github/workflows/art-library-review.yml', 'atelier/**', 'foundry/**', 'src/release-candidate.trigger']
 permissions:
   contents: read
 concurrency:

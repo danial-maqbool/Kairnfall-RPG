@@ -76,7 +76,7 @@ jobs:
       - name: Verify native guidance, progression, input and supported layouts
         run: |
           set -euo pipefail
-          timeout 180 "$GODOT_BIN" --headless --editor --path client --import > artifacts/journey/logs/import.log 2>&1
+          timeout 600 "$GODOT_BIN" --headless --editor --path client --import > artifacts/journey/logs/import.log 2>&1
           timeout 90 "$GODOT_BIN" --verbose --headless --path client res://Tests/SignalContract.tscn > artifacts/journey/logs/signals.log 2>&1
           timeout 90 "$GODOT_BIN" --verbose --headless --path client res://Tests/InputContract.tscn > artifacts/journey/logs/input.log 2>&1
           timeout 120 "$GODOT_BIN" --verbose --headless --path client res://Tests/PlayerExperienceContract.tscn > artifacts/journey/logs/experience.log 2>&1

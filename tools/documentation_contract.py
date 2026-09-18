@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate synchronized onboarding/art/UI evidence against Git history and real Actions runs."""
+"""Validate synchronized evidence against Git history and real Actions runs."""
 from __future__ import annotations
 import hashlib
 import json
@@ -11,6 +11,8 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = 'danial-maqbool/Kairnfall-RPG'
+# Retain the previous workstream's validator and regression API. The entry point
+# routes the character replacement to its stricter pack/platform contract below.
 WORKSTREAM = 'new-player-experience'
 RELEASE_STATUS = 'NOT APPROVED — human acceptance remains.'
 TASK22_BLOB = 'f6623a46db658f3f8c9ef3656a74722583380233'
@@ -116,6 +118,9 @@ def latest_implementation_commit() -> str:
 
 def main() -> int:
     evidence = json.loads((ROOT / 'docs/handoff/CURRENT_EVIDENCE.json').read_text(encoding='utf-8'))
+    if evidence.get('currentTask') == 'character-rebuild':
+        from character_delivery_contract import validate
+        return validate(evidence)
     baseline = validate_metadata(evidence)
     require(latest_implementation_commit() == baseline, 'Implementation evidence is stale.')
     git('merge-base', '--is-ancestor', baseline, 'HEAD')

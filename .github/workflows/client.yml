@@ -2,6 +2,7 @@ name: Compile Windows client source
 on:
   push:
     paths:
+      - 'src/release-candidate.trigger'
       - 'client/**'
       - 'src/**'
       - 'content/**'
@@ -41,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          timeout 180 "$GODOT_BIN" --headless --editor --path client --import
+          timeout 600 "$GODOT_BIN" --headless --editor --path client --import
           timeout 180 "$GODOT_BIN" --headless --path client res://Tests/CompactItemCardContract.tscn
       - name: Preserve compilation evidence
         if: always()

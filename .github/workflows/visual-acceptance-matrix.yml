@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          timeout 180 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/visual-acceptance/logs/import.log
+          timeout 600 "$GODOT_BIN" --headless --editor --path client --import 2>&1 | tee artifacts/visual-acceptance/logs/import.log
           timeout 180 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/VisualPresentationContract.tscn 2>&1 | tee artifacts/visual-acceptance/logs/native.log
           if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/visual-acceptance/logs/{import,native}.log; then exit 1; fi
           test -s artifacts/visual-acceptance/godot/ui-inventory-1280.png

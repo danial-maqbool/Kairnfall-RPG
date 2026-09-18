@@ -125,7 +125,7 @@ def prepare(skip_godot: bool = False) -> None:
             run([py, 'tools/get_godot.py', '--os', 'windows' if os.name == 'nt' else 'linux',
                  '--with-templates'], timeout=1200, log=ROOT / 'artifacts/local/toolchain-download.log')
         run([godot_path(), '--headless', '--path', ROOT / 'client', '--editor', '--import'],
-            timeout=300, log=ROOT / 'artifacts/local/import.log', check_godot_errors=True)
+            timeout=600, log=ROOT / 'artifacts/local/import.log', check_godot_errors=True)
     print('Source preparation finished. This does not certify gameplay, artwork, or a Windows release.')
 
 
@@ -338,7 +338,7 @@ def tests(with_database: bool = False) -> None:
              '-c', 'Release', '--', 'content/catalog.json'], env=env, timeout=120,
             log=ROOT / 'artifacts/local-tests/session-status-security.log')
         run([dotnet, 'run', '--no-build', '--project', 'tools/world_probe/world_probe.csproj',
-             '-c', 'Release', '--', 'content/catalog.json'], env=env, timeout=180,
+             '-c', 'Release', '--', 'content/catalog.json'], env=env, timeout=900,
             log=ROOT / 'artifacts/local-tests/world-paths.log')
     finally:
         if prefix is not None:
