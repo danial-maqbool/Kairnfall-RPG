@@ -18,9 +18,9 @@ internal static class CombatReadabilityChecks
             Need(CombatReadabilityRules.StatusLabel("stun")=="STUNNED"&&CombatReadabilityRules.IsCrowdControl("root"),"Crowd-control labels are not stable.");
             var self=new Character{Id="summary-self",Zone="wayfarers_rest",Position=new(10,10),Health=100};
             var definition=data.Mobs.First(x=>x.Id=="field_rat");
-            var target=new Creature{Id="summary-target",Template=definition.Id,Zone=self.Zone,Position=new(11,10),Health=definition.Health*.49,Target=self.Id};
+            var target=new Creature{Id="summary-target",Template=definition.Id,Zone=self.Zone,Position=new(11,10),Health=definition.Health*.5,Target=self.Id};
             string summary=CombatReadabilityRules.TargetSummary(self,target,definition,1.6);
-            Need(summary.Contains("49%",StringComparison.Ordinal)&&summary.Contains("IN RANGE",StringComparison.Ordinal)
+            Need(summary.Contains("50%",StringComparison.Ordinal)&&summary.Contains("IN RANGE",StringComparison.Ordinal)
                 &&summary.Contains("ATTACKING YOU",StringComparison.Ordinal),"Selected-target summary is not grounded in authoritative health, distance and threat.");
             target.Position=new(12,10);
             Need(CombatReadabilityRules.TargetSummary(self,target,definition,1.6).Contains("CLOSE GAP",StringComparison.Ordinal),
