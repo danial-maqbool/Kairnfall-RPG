@@ -36,6 +36,21 @@ public partial class CharacterPresentationContract : Node
             GetWindow().Size = new Vector2I(1920, 1080);
             GetWindow().ContentScaleSize = new Vector2I(1920, 1080);
             var assets = new PixelAssets(); var data = PixelAssets.LoadCatalog();
+            var estimatedVelocity = MotionPresentationRules.EstimateVelocity(new Point(0, 0), new Point(.4, 0), .1, new Point(0, 0));
+            Check(estimatedVelocity.X > 2 && estimatedVelocity.X < 4.1 && Math.Abs(estimatedVelocity.Y) < .001,
+                "Snapshot velocity estimation smooths a 10 Hz authoritative movement sample");
+            var led = MotionPresentationRules.VisualTarget(new Point(1, 1), new Point(6, 0), .09);
+            Check(led.X > 1 && led.X <= 1 + MotionPresentationRules.MaxLeadTiles + .0001,
+                "Visual extrapolation is positive and bounded by the presentation-only lead cap");
+            Check(MotionPresentationRules.SnapshotFreshness(.12) == 1
+                && MotionPresentationRules.SnapshotFreshness(.18) is > 0 and < 1
+                && MotionPresentationRules.SnapshotFreshness(.25) == 0,
+                "Snapshot extrapolation fades to zero after a short network stall");
+            var snapped2 = MotionPresentationRules.SnapWorldPixel(new Vector2(10.24f, 20.26f), 2);
+            var snapped3 = MotionPresentationRules.SnapWorldPixel(new Vector2(10.24f, 20.26f), 3);
+            Check(Math.Abs(snapped2.X * 2 - MathF.Round(snapped2.X * 2)) < .0001f
+                && Math.Abs(snapped3.Y * 3 - MathF.Round(snapped3.Y * 3)) < .0001f,
+                "Dynamic actor coordinates align to final screen pixels at 2x and 3x zoom");
             var realm = new RealmEngine(data);
             var self = realm.CreateCharacter("native-motion-a", "Native Motion", "vanguard", new());
             var other = realm.CreateCharacter("native-motion-b", "Native Observer", "vanguard", new());
@@ -68,14 +83,21 @@ public partial class CharacterPresentationContract : Node
             await Capture("character-remote-corpse");
             remote.Health = remote.MaxHealth; snapshot.ActorCues.Clear(); world.Accept(new TransportPacket { Snapshot = snapshot });
             Check(Pose(world, other.Id, other.Position).State != 5, "Respawn clears the terminal corpse state");
+            world._Process(.10);
             remote.Position = remote.Position.Add(new Point(.3, 0)); world.Accept(new TransportPacket { Snapshot = snapshot });
-            world._Process(1.0 / 60);
-            Check(Pose(world, other.Id, other.Position).State is 1 or 8, "Actual rendered travel starts locomotion");
+            world._Process(.05);
+            var firstInterpolated = Pose(world, other.Id, other.Position);
+            world._Process(.04);
+            var secondInterpolated = Pose(world, other.Id, other.Position);
+            Check(firstInterpolated.State is 1 or 8 && secondInterpolated.Position.X > firstInterpolated.Position.X,
+                "Rendered travel advances continuously between authoritative snapshots");
+            Check(secondInterpolated.Position.X > remote.Position.X,
+                "Bounded visual lead bridges the 100 ms snapshot gap without changing authoritative position");
             world.Animate(other.Id, 2, .6); world._Process(1.0 / 60);
             int locomotion = (int)typeof(WorldView).GetMethod("LocomotionFrame", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(world, [other.Id])!;
             Check(locomotion >= 0 && Pose(world, other.Id, other.Position).State == 2, "Leg motion continues beneath an upper-body action");
             for (int i = 0; i < 120; i++) world._Process(1.0 / 60);
-            Check(Pose(world, other.Id, other.Position).State == 0, "Stationary actors return to idle without a fixed walking tail");
+            Check(Pose(world, other.Id, other.Position).State == 0, "Stationary actors return to idle after stale visual velocity fades");
             snapshot.Players.Clear(); world.Accept(new TransportPacket { Snapshot = snapshot });
             var tracks = (System.Collections.IDictionary)typeof(WorldView).GetField("tracks", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(world)!;
             Check(!tracks.Contains(other.Id), "Actors leaving visibility do not retain stale animation tracks");
