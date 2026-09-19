@@ -1,58 +1,35 @@
 ## Active workstream: Measured smoothness, performance, camera and gameplay polish
 
-Status date: **2026-09-20**. Verified Checkpoint 0 implementation baseline: **`7175292ed9521c718c99c9fbbccc80b54374d9af`**. Machine-readable truth: `docs/handoff/CURRENT_EVIDENCE.json`. Release status: **NOT APPROVED — human acceptance remains.**
+Status date: **2026-09-20**. Verified Checkpoint 1 implementation baseline: **`aa0df594bc8baa9405019b447c3226bc5904c012`**. Machine-readable truth: `docs/handoff/CURRENT_EVIDENCE.json`. Release status: **NOT APPROVED — human acceptance remains.**
 
-Checkpoint 0 is complete repository-side. It reconciles the inherited smoothness work with exact-head delivery evidence, archives the previous combat ledger byte-for-byte, and adds a smoothness-specific evidence validator plus adversarial regressions. The inherited motion changes at `1a4704fee2194bf3b9c51eb28b6e7408a7c1e72e` remain intact; Checkpoint 0 changes no gameplay source, movement speed, combat balance, tick frequency, rewards, saves, publication, deployment, or production infrastructure.
+Checkpoint 1 is complete repository-side. Opt-in bounded client diagnostics and a deterministic/native timing matrix now distinguish frame pacing, snapshot timing, motion error, world drawing, HUD work, panel stamp/refresh cost, managed allocation/GC scope, resource misses/loading, visible actors, draw submissions and memory indicators. The permanent Linux/Windows workflow is `Client performance and motion diagnostics`.
 
-All 15 required workflows passed at exact implementation SHA `7175292ed9521c718c99c9fbbccc80b54374d9af`, including the Linux/Windows character-native matrix. Exact run and artifact IDs are in `docs/handoff/SMOOTHNESS_VERIFICATION.md`. The pre-sync documentation run failed only because `CURRENT_EVIDENCE.json` still named the historical combat implementation; the synchronized evidence now describes this workstream and retains exact-SHA/live-run/platform/source-footprint/release-boundary checks.
+All 15 retained acceptance workflows plus the new diagnostic workflow passed at exact implementation SHA `aa0df594bc8baa9405019b447c3226bc5904c012`. Character acceptance passed Linux and Windows native jobs; the performance workflow also passed Linux and Windows jobs. Exact run and artifact IDs are in `docs/handoff/PERFORMANCE_DIAGNOSTICS_VERIFICATION.md`.
 
-Checkpoint 0 makes no FPS or performance-improvement claim. The accepted 60 FPS goal corresponds to a 16.7 ms frame budget but has not yet been measured on owner Windows GPU hardware. The next authorized action is Checkpoint 1: bounded, opt-in frame-pacing and motion diagnostics with comparable cold/warm fixture baselines.
+Three graphical Windows reference runs on the owner Acer Nitro ANV15-51 / RTX 4060 Laptop GPU at 1280×720 separated cold and warm behavior. Warm-cache frame p95 was 10.00 / 13.33 / 11.64 ms with no >33.3 ms frames. Cold first-use p99 was 126.40 / 97.45 / 100.00 ms. Inventory `PageStamp` p95 was 8.393 / 12.178 / 12.289 ms, and Skills first-use requested 60 uncached textures. These measurements rank the next optimization targets; they do not establish a universal 60 FPS guarantee.
+
+Checkpoint 1 changes no gameplay behavior, movement speed, tick cadence, combat balance, rewards, saves, publication, deployment or production infrastructure. The next authorized action is **Checkpoint 2 — Apply the smallest measured frame-time wins**, beginning with panel-specific change detection and targeted hot-path presentation/resource caching.
 
 ---
+
+## Historical workstream: Smoothness evidence reconciliation — Checkpoint 0
+
+Checkpoint 0 implementation: `7175292ed9521c718c99c9fbbccc80b54374d9af`; delivery: `6e76af928af21c8ed7e1d14fd9fe59093174d228`. Historical machine-readable ledger: `docs/handoff/SMOOTHNESS_CHECKPOINT0_EVIDENCE_2026-09-20.json`. It remains byte-for-byte archived under blob `79779ce75560c5dd98132827181e8f56f35e1f70`.
 
 ## Historical workstream: Combat feel and encounter presentation
 
-Status date: **2026-09-18**. Verified implementation baseline: **`06776f6b0de7dbe02cab30a9e236e730c377de2e`**. Historical delivery SHA: **`bc9561846cd480c1e899190cb9b6f2df75a30176`**. Historical ledger: `docs/handoff/COMBAT_EVIDENCE_2026-09-18.json`.
-
-Repository-side combat responsiveness/readability work remains preserved: bounded basic-attack buffering, queued-ability target/aim locking, sticky explicit targets, threat-aware automatic targeting, authoritative target/range feedback, urgent telegraph presentation, bounded approach behavior, and corrected damage-feedback attribution. Implementation details remain in `docs/COMBAT_FEEL.md` and historical verification remains in `docs/handoff/COMBAT_FEEL_VERIFICATION.md`.
-
----
+Implementation `06776f6b0de7dbe02cab30a9e236e730c377de2e`; delivery `bc9561846cd480c1e899190cb9b6f2df75a30176`. Historical evidence remains at `docs/handoff/COMBAT_EVIDENCE_2026-09-18.json`, `docs/COMBAT_FEEL.md`, and `docs/handoff/COMBAT_FEEL_VERIFICATION.md`.
 
 ## Historical workstream: Wayfarer character replacement
 
-Status date: **2026-09-18**. Verified implementation baseline: **`16f2798edc6b90791548b5bf551eab6433ac9277`**. Historical evidence remains in `docs/handoff/CHARACTER_EVIDENCE_2026-09-18.json` and `docs/handoff/CHARACTER_VERIFICATION.md`.
-
-Wayfarer remains the active actor source with the previously accepted 6,745 committed actor sheets, 415,040 validated frame cells, zero historical actor fallbacks, and permanent Linux/Windows character acceptance. Checkpoint 0 did not rebuild or replace the character pack.
-
----
-
-# Kairnfall RPG — current handoff
+Verified implementation `16f2798edc6b90791548b5bf551eab6433ac9277`; evidence remains in `docs/handoff/CHARACTER_EVIDENCE_2026-09-18.json` and `docs/handoff/CHARACTER_VERIFICATION.md`. Wayfarer remains the active actor pipeline with zero historical actor fallback requirement.
 
 ## Historical workstream: New-player experience
 
-Status date: **2026-09-16**. Verified implementation baseline: **`7b11027ba913781443871ece56c8ab13008408d5`**. Historical verification remains in `docs/handoff/NEW_PLAYER_VERIFICATION.md`.
-
-The first-hour pass remains implemented and preserved: Bren Gale → two Field Rats → exactly-once class-compatible Rare Roadwarden weapon plus potion ingredients → player-controlled Inventory equip → ordinary Healing Potion craft → return to Bren and handoff into the persistent world. All eight classes retain distinct compatible reward identities, persisted authoritative progress, rollback/replay protection, mandatory reward recovery, reconnect/restart handling, and established-character exclusion.
-
-The retained UI and first-hour regressions still cover the prior modal/focus/input/accessibility protections, supported Windows layouts/scales, keyboard and mouse paths, focus restoration, overflow, settings persistence, stale-state cleanup, and non-color-only error treatment.
-
-## Verification
-
-Checkpoint 0 exact run IDs, artifact identifiers, historical-integrity checks, native platform coverage, and limitations are recorded in `docs/handoff/SMOOTHNESS_VERIFICATION.md` and `docs/handoff/CURRENT_EVIDENCE.json`.
-
-The current verification policy intentionally distinguishes:
-- implementation SHA `7175292ed9521c718c99c9fbbccc80b54374d9af`, which contains the evidence validator/tests/archive;
-- the later documentation-only synchronization SHA, which must leave that implementation baseline unchanged; and
-- owner-hardware/subjective gates, which repository automation cannot certify.
+Verified implementation `7b11027ba913781443871ece56c8ab13008408d5`; evidence remains in `docs/handoff/NEW_PLAYER_VERIFICATION.md`. The first-hour progression, all eight classes, authoritative persistence/replay protection, UI/focus/input safeguards and DPI support remain preserved.
 
 ## Continuation boundary
 
-Continue with **Checkpoint 1 — Establish repeatable performance and motion measurements**. Do not skip directly to caching, camera easing, gameplay feel tuning, or world polish without measured evidence. Preserve server authority, snapshot coalescing, durable acknowledgement, saves, first-hour progression, Wayfarer assets, combat buffering, target retention, input rebinding/modal behavior, chat typing/focus restoration, and DPI support.
+Continue with Checkpoint 2 only. Preserve server authority, snapshot coalescing, durable acknowledgements, saves, first-hour progression, Wayfarer assets, combat buffering/target retention, keyboard rebinding, modal blocking, chat typing/focus restoration and DPI support. Keep `main` as the only persistent branch. Do not release, deploy, tag, rewrite history or delete saves.
 
-Keep `main` as the only persistent branch. Do not create PRs/issues, release, deploy, tag, alter production infrastructure, reset history, delete saves, or treat CI software rendering as Windows GPU performance.
-
-## Release boundary
-
-No release, publication, deployment, release tag or production-infrastructure change was authorized or performed. CI packages are test artifacts.
-
-Human acceptance remains open for owner Windows performance/smoothness, camera/input feel after those checkpoints, independent visual review, audio listening, ordinary-account multiplayer/world walkthrough, physical Windows DPI/hardware input, owner-machine package launch where required, and production-scale validation before any capacity claim.
+No release, publication, deployment, release tag or production-infrastructure change has been authorized or performed. CI packages remain test artifacts.
