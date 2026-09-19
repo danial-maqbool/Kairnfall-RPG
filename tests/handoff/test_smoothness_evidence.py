@@ -199,6 +199,117 @@ class SmoothnessEvidenceTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             contract.validate_metadata(changed)
 
+    def checkpoint1_evidence(self):
+        evidence = deepcopy(self.evidence)
+        evidence.update({
+            'checkpoint': contract.CHECKPOINT1,
+            'checkpointStartingMain': contract.CHECKPOINT1_STARTING_MAIN,
+            'historicalCheckpoint0Evidence': contract.CHECKPOINT0_ARCHIVE,
+            'repositorySideCheckpoint1Complete': True,
+            'gameplayBehaviorChangedInCheckpoint1': False,
+            'performanceImprovementClaimed': False,
+            'diagnosticsEvidence': {
+                'optIn': True,
+                'boundedHistory': 4096,
+                'perFrameConsoleOutput': False,
+                'synchronousPerFrameFileWrites': False,
+                'nativeScenarios': 10,
+                'syntheticMotionSchedules': 36,
+                'renderRatesFps': [30, 60, 120, 144],
+                'windowsLocalGpuMeasured': True,
+                'windowsGpuPerformanceApproved': False,
+                'sixtyFpsApproved': False,
+            },
+            'performanceWorkflow': {
+                'name': contract.PERFORMANCE_WORKFLOW,
+                'runId': 999,
+                'headSha': self.sha,
+                'conclusion': 'success',
+                'nativePlatforms': ['linux', 'windows'],
+                'artifactIds': [1001, 1002],
+            },
+        })
+        return evidence
+
+    def test_checkpoint1_complete_metadata_is_valid(self):
+        evidence = self.checkpoint1_evidence()
+        self.assertEqual(contract.validate_metadata(evidence), self.sha)
+
+    def test_checkpoint1_rejects_fake_target_or_diagnostics_claims(self):
+        for key, value in (
+            ('repositorySideCheckpoint1Complete', False),
+            ('gameplayBehaviorChangedInCheckpoint1', True),
+            ('performanceImprovementClaimed', True),
+            ('performanceTargetClaimed', True),
+            ('checkpointStartingMain', 'b' * 40),
+            ('historicalCheckpoint0Evidence', 'other.json'),
+        ):
+            evidence = self.checkpoint1_evidence()
+            evidence[key] = value
+            with self.assertRaises(RuntimeError):
+                contract.validate_metadata(evidence)
+        for key, value in (
+            ('optIn', False),
+            ('boundedHistory', 0),
+            ('perFrameConsoleOutput', True),
+            ('synchronousPerFrameFileWrites', True),
+            ('nativeScenarios', 9),
+            ('syntheticMotionSchedules', 35),
+            ('renderRatesFps', [60]),
+            ('windowsLocalGpuMeasured', False),
+            ('windowsGpuPerformanceApproved', True),
+            ('sixtyFpsApproved', True),
+        ):
+            evidence = self.checkpoint1_evidence()
+            evidence['diagnosticsEvidence'][key] = value
+            with self.assertRaises(RuntimeError):
+                contract.validate_metadata(evidence)
+
+    def test_checkpoint1_rejects_stale_duplicate_failed_or_partial_performance_run(self):
+        mutations = (
+            ('name', 'Other workflow'),
+            ('runId', True),
+            ('headSha', 'b' * 40),
+            ('conclusion', 'failure'),
+            ('nativePlatforms', ['linux']),
+            ('artifactIds', [1001]),
+            ('artifactIds', [1001, 1001]),
+        )
+        for key, value in mutations:
+            evidence = self.checkpoint1_evidence()
+            evidence['performanceWorkflow'][key] = value
+            with self.assertRaises(RuntimeError):
+                contract.validate_metadata(evidence)
+        evidence = self.checkpoint1_evidence()
+        evidence['performanceWorkflow']['runId'] = evidence['implementationWorkflows'][0]['runId']
+        with self.assertRaises(RuntimeError):
+            contract.validate_metadata(evidence)
+
+    def test_performance_matrix_requires_linux_windows_completed_success(self):
+        jobs = [
+            {'name': 'diagnostics (ubuntu-latest, linux)',
+             'status': 'completed', 'conclusion': 'success'},
+            {'name': 'diagnostics (windows-latest, windows)',
+             'status': 'completed', 'conclusion': 'success'},
+        ]
+        contract.validate_performance_jobs(jobs)
+        for changed in (
+            [],
+            jobs[:1],
+            [jobs[0], deepcopy(jobs[0])],
+        ):
+            with self.assertRaises(RuntimeError):
+                contract.validate_performance_jobs(changed)
+        for status, conclusion in (
+            ('in_progress', None),
+            ('completed', 'skipped'),
+            ('completed', 'failure'),
+        ):
+            changed = deepcopy(jobs)
+            changed[1].update(status=status, conclusion=conclusion)
+            with self.assertRaises(RuntimeError):
+                contract.validate_performance_jobs(changed)
+
 
 if __name__ == '__main__':
     unittest.main()

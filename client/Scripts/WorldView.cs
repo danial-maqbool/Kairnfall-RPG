@@ -9,6 +9,7 @@ public readonly record struct WorldTarget(string Kind, string Id, string Name, P
 public partial class WorldView : Control
 {
     public PixelAssets Assets { get; set; } = null!;
+    public ClientPerformanceDiagnostics Diagnostics { get; set; } = ClientPerformanceDiagnostics.Disabled;
     public Catalog Data { get; set; } = null!;
     public Snapshot? Snapshot { get; private set; }
     public List<LootPile> Loot { get; private set; } = [];
@@ -56,6 +57,8 @@ public partial class WorldView : Control
         public double StateStart;
         public double StateUntil;
         public int State;
+        public Point DiagnosticPreviousPosition;
+        public bool DiagnosticPositionReady;
     }
     private sealed record FloatingNumber(Point At, string Text, Color Color, double Started);
     private sealed record CombatBurst(Point At, Color Color, double Started, float Strength);
@@ -77,6 +80,8 @@ public partial class WorldView : Control
     public void Accept(TransportPacket packet)
     {
         if (packet.Snapshot is not { } snapshot) return;
+        long performanceStarted = Diagnostics.StartTimer();
+        Diagnostics.RecordSnapshot(snapshot.Time);
         if (snapshot.Self.Zone != lastZone)
         {
             tracks.Clear(); numbers.Clear(); npcGestures.Clear(); combatBursts.Clear(); impactUntil = 0; impactStrength = 0; TargetId = ""; Waypoint = null;
@@ -98,6 +103,7 @@ public partial class WorldView : Control
             }
         }
         AcceptPresentation(snapshot);
+        Diagnostics.RecordDuration(ClientPerfPhase.SnapshotAccept, performanceStarted);
     }
 
     private ActorTrack Track(string id, Point position, Point facing, double health, bool player = false)
@@ -190,10 +196,38 @@ public partial class WorldView : Control
     public override void _Process(double delta)
     {
         Clock += delta; sinceSnapshot += delta;
+        Diagnostics.RecordFrame(delta, Snapshot is null ? null : sinceSnapshot);
         if (Data is null || Assets is null) return;
         var zone = Data.Zone(ZoneId);
         if (lastZone != zone.Id && Snapshot is null) { Camera = zone.Spawn; lastZone = zone.Id; }
+        long motionStarted = Diagnostics.StartTimer();
         foreach (var track in tracks.Values) AdvanceTrack(track, delta);
+        Diagnostics.RecordDuration(ClientPerfPhase.MotionAdvance, motionStarted);
+        if (Diagnostics.Enabled)
+        {
+            double errorTotal = 0, errorMax = 0;
+            int reversals = 0, actorCount = 0;
+            foreach (var track in tracks.Values)
+            {
+                double error = track.Position.Distance(track.Target);
+                errorTotal += error; errorMax = Math.Max(errorMax, error); actorCount++;
+                if (track.DiagnosticPositionReady)
+                {
+                    double dx = track.Position.X - track.DiagnosticPreviousPosition.X;
+                    double dy = track.Position.Y - track.DiagnosticPreviousPosition.Y;
+                    double travelled = Math.Sqrt(dx * dx + dy * dy);
+                    double speed = track.SnapshotVelocity.Distance(new Point(0, 0));
+                    if (travelled > .0005 && speed > .05)
+                    {
+                        double cosine = (dx * track.SnapshotVelocity.X + dy * track.SnapshotVelocity.Y) / (travelled * speed);
+                        if (cosine < -.25) reversals++;
+                    }
+                }
+                track.DiagnosticPreviousPosition = track.Position;
+                track.DiagnosticPositionReady = true;
+            }
+            Diagnostics.RecordMotion(actorCount == 0 ? 0 : errorTotal / actorCount, errorMax, reversals, actorCount);
+        }
         if (Snapshot is { } snapshot && tracks.TryGetValue(snapshot.Self.Id, out var self)) Camera = self.Position;
         numbers.RemoveAll(x => Clock - x.Started > 1.3);
         combatBursts.RemoveAll(x => Clock - x.Started > .65);
@@ -238,6 +272,8 @@ public partial class WorldView : Control
     public override void _Draw()
     {
         if (Data is null || Assets is null) return;
+        long drawStarted = Diagnostics.StartTimer();
+        Diagnostics.BeginDrawFrame();
         var zone = Data.Zone(ZoneId);
         PrepareSurface(zone);
         Zoom = Math.Clamp(Zoom, 1, 3);
@@ -260,7 +296,11 @@ public partial class WorldView : Control
             uint hash = WorldMap.Hash(x, y, zone.Seed);
             int variant = terrain is Terrain.Water or Terrain.Lava ? (int)(Clock * 3) % 4 : (int)(hash % 4);
             var texture = Assets.Texture("terrain/" + terrain.ToString().ToLowerInvariant() + "_" + variant);
-            if (texture is not null) DrawTextureRect(texture, new Rect2(x * Tile, y * Tile, Tile, Tile), false);
+            if (texture is not null)
+            {
+                DrawTextureRect(texture, new Rect2(x * Tile, y * Tile, Tile, Tile), false);
+                Diagnostics.RecordDrawCall();
+            }
             DrawSurfaceEdge(zone, x, y);
             string? decoration = Decoration(zone, terrain, hash, x, y);
             var at = new Point(x + .5, y + .75);
@@ -356,6 +396,9 @@ public partial class WorldView : Control
         }
         DrawSetTransform(Vector2.Zero);
         if (WeatherEnabled && zone.Layer == "Surface" && zone.Kind != "interior") DrawWeather(zone);
+        int visibleActorCount = visuals.Count(v => v.Kind is "creature" or "player" or "self");
+        Diagnostics.RecordScene(visibleActorCount, visuals.Count);
+        Diagnostics.RecordDuration(ClientPerfPhase.WorldDraw, drawStarted);
     }
 
     private bool IsWithinCameraBounds(Point p, double margin)

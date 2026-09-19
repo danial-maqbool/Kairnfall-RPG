@@ -8,6 +8,7 @@ namespace Kairnfall.Client;
 public partial class GameRoot : Control
 {
     public PixelAssets Assets { get; private set; } = new();
+    public ClientPerformanceDiagnostics Diagnostics { get; private set; } = ClientPerformanceDiagnostics.FromEnvironment();
     public Catalog Data { get; private set; } = null!;
     public GameConnection? Connection { get; private set; }
     public WorldView World { get; private set; } = null!;
@@ -64,7 +65,8 @@ public partial class GameRoot : Control
                 GetWindow().Mode = Window.ModeEnum.Fullscreen;
             InstallBindings();
             Data = PixelAssets.LoadCatalog();
-            World = new WorldView { Assets = Assets, Data = Data }; AddChild(World);
+            Assets.Diagnostics = Diagnostics;
+            World = new WorldView { Assets = Assets, Data = Data, Diagnostics = Diagnostics }; AddChild(World);
             interfaceRoot = new Control { MouseFilter = MouseFilterEnum.Ignore };
             AddChild(interfaceRoot); interfaceRoot.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             frontend = new Control { MouseFilter = MouseFilterEnum.Ignore };
@@ -181,11 +183,22 @@ public partial class GameRoot : Control
         uiClock += delta;
         if (uiClock > .2)
         {
-            uiClock = 0; UpdateHud();
+            uiClock = 0;
+            long hudStarted = Diagnostics.StartTimer();
+            UpdateHud();
+            Diagnostics.RecordDuration(ClientPerfPhase.HudUpdate, hudStarted);
             if (refreshPage is not null && !Input.IsMouseButtonPressed(MouseButton.Left))
             {
+                long stampStarted = Diagnostics.StartTimer();
                 string stamp = PageStamp();
-                if (stamp != lastPageStamp) { lastPageStamp = stamp; refreshPage(); }
+                Diagnostics.RecordDuration(ClientPerfPhase.PanelStamp, stampStarted);
+                if (stamp != lastPageStamp)
+                {
+                    lastPageStamp = stamp;
+                    long refreshStarted = Diagnostics.StartTimer();
+                    refreshPage();
+                    Diagnostics.RecordDuration(ClientPerfPhase.PanelRefresh, refreshStarted);
+                }
             }
         }
         if (notice is not null && Time.GetTicksMsec() / 1000.0 > noticeUntil) notice.Text = "";

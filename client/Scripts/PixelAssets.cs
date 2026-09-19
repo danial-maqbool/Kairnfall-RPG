@@ -7,6 +7,7 @@ namespace Kairnfall.Client;
 
 public sealed class PixelAssets
 {
+    public ClientPerformanceDiagnostics Diagnostics { get; set; } = ClientPerformanceDiagnostics.Disabled;
     private readonly Dictionary<string, Texture2D> textures = [];
     private readonly Dictionary<string, AtlasTexture> frames = [];
     private readonly HashSet<string> missing = [];
@@ -17,14 +18,25 @@ public sealed class PixelAssets
     public Texture2D? Texture(string key)
     {
         if (!Regex.IsMatch(key, @"\A[a-zA-Z0-9_/-]+\z")) throw new InvalidDataException("Unsafe asset identifier.");
-        if (textures.TryGetValue(key, out var found)) return found;
-        if (missing.Contains(key)) return null;
+        if (textures.TryGetValue(key, out var found))
+        {
+            Diagnostics.RecordTextureLookup(true, false, false, false, 0);
+            return found;
+        }
+        if (missing.Contains(key))
+        {
+            Diagnostics.RecordTextureLookup(false, true, false, true, 0);
+            return null;
+        }
+        long resourceStarted = Diagnostics.StartTimer();
         string path = "res://Assets/" + key + ".png";
         if (!ResourceLoader.Exists(path))
         {
+            Diagnostics.RecordTextureLookup(false, false, true, true, resourceStarted);
             missing.Add(key); GD.PushError("Required art is missing: " + path); return null;
         }
         var texture = GD.Load<Texture2D>(path);
+        Diagnostics.RecordTextureLookup(false, false, true, texture is null, resourceStarted);
         if (texture is null) { missing.Add(key); return null; }
         textures.Add(key, texture);
         return texture;
@@ -41,7 +53,9 @@ public sealed class PixelAssets
         int size = texture.GetWidth() / Frames;
         direction = Math.Clamp(direction, 0, 3); frame = Math.Clamp(frame, 0, Frames - 1);
         string cache = address.Key + ":" + address.State + ":" + direction + ":" + frame;
-        if (!frames.TryGetValue(cache, out var result))
+        bool cacheHit = frames.TryGetValue(cache, out var result);
+        Diagnostics.RecordAtlasLookup(cacheHit);
+        if (!cacheHit)
         {
             result = new AtlasTexture { Atlas = texture, Region = new Rect2(frame * size, (address.State * 4 + direction) * size, size, size) };
             frames[cache] = result;
@@ -65,6 +79,7 @@ public sealed class PixelAssets
             (address.State * 4 + Math.Clamp(direction, 0, 3)) * size + top, size, bottom - top);
         var destination = new Rect2(feet - SpritePoseRules.Anchor(size) + new Vector2(0, top), new Vector2(size, bottom - top));
         canvas.DrawTextureRectRegion(texture, destination, source, tint ?? Colors.White);
+        Diagnostics.RecordDrawCall();
     }
 
     // Upper-body actions and grounded locomotion are independent presentation tracks.

@@ -71,7 +71,11 @@ public partial class WorldView
         int mask = surfaceEdges[x,y];
         if (mask == 0) return;
         var texture = Assets.Texture("terrain/grass_edge_" + mask);
-        if (texture is not null) DrawTexture(texture, new Vector2(x * Tile, y * Tile));
+        if (texture is not null)
+        {
+            DrawTexture(texture, new Vector2(x * Tile, y * Tile));
+            Diagnostics.RecordDrawCall();
+        }
     }
 
     private void GatherFurnishings(ZoneDef zone)
@@ -91,5 +95,6 @@ public partial class WorldView
         if (texture is null) return;
         // One source pixel per logical world pixel. Do not stretch the floor footprint.
         DrawTexture(texture, new Vector2(furnishing.X * Tile, furnishing.Y * Tile - furnishing.Rise));
+        Diagnostics.RecordDrawCall();
     }
 }
