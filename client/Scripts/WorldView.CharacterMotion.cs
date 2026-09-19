@@ -4,6 +4,48 @@ using Point = Kairnfall.Core.Point;
 
 namespace Kairnfall.Client;
 
+public static class MotionPresentationRules
+{
+    public const double SnapshotLeadSeconds = .09;
+    public const double MaxLeadTiles = .35;
+    public const double TeleportDistance = 6;
+
+    public static Point EstimateVelocity(Point previousTarget, Point target, double sampleSeconds, Point previousVelocity)
+    {
+        if (!previousTarget.Finite || !target.Finite || !previousVelocity.Finite
+            || !double.IsFinite(sampleSeconds) || sampleSeconds < .035 || sampleSeconds > .35)
+            return new Point(0, 0);
+        double shift = previousTarget.Distance(target);
+        if (shift > 2) return new Point(0, 0);
+        if (shift < .01) return previousVelocity.Scale(.20);
+        var raw = new Point((target.X - previousTarget.X) / sampleSeconds, (target.Y - previousTarget.Y) / sampleSeconds);
+        double speed = raw.Distance(new Point(0, 0));
+        if (!raw.Finite || speed > 12) return new Point(0, 0);
+        var blended = new Point(previousVelocity.X * .45 + raw.X * .55, previousVelocity.Y * .45 + raw.Y * .55);
+        double blendedSpeed = blended.Distance(new Point(0, 0));
+        return blendedSpeed <= 12 ? blended : blended.Scale(12 / blendedSpeed);
+    }
+
+    public static Point VisualTarget(Point authoritative, Point velocity, double snapshotAge)
+    {
+        if (!authoritative.Finite || !velocity.Finite || !double.IsFinite(snapshotAge)) return authoritative;
+        double speed = velocity.Distance(new Point(0, 0));
+        if (speed < .02 || speed > 12) return authoritative;
+        double seconds = Math.Clamp(snapshotAge, 0, SnapshotLeadSeconds);
+        double lead = Math.Min(MaxLeadTiles, speed * seconds);
+        return authoritative.Add(velocity.Scale(lead / speed));
+    }
+
+    public static double SmoothingWeight(double delta)
+        => !double.IsFinite(delta) || delta <= 0 ? 0 : 1 - Math.Exp(-18 * Math.Min(delta, .1));
+
+    public static Vector2 SnapWorldPixel(Vector2 worldPixels, float zoom)
+    {
+        zoom = Math.Clamp(zoom, 1, 3);
+        return (worldPixels * zoom).Round() / zoom;
+    }
+}
+
 public partial class WorldView
 {
     private readonly Dictionary<string, NpcGesture> npcGestures = [];
@@ -20,20 +62,36 @@ public partial class WorldView
     {
         if (!double.IsFinite(delta) || delta <= 0) return;
         var previous = track.Position;
-        double remaining = previous.Distance(track.Target);
-        if (remaining > 6)
+        double authoritativeRemaining = previous.Distance(track.Target);
+        if (authoritativeRemaining > MotionPresentationRules.TeleportDistance)
         {
-            track.Position = track.Target; track.WalkPhase = 0; track.RenderSpeed = 0; track.Moving = false;
+            track.Position = track.Target; track.SnapshotVelocity = new Point(0, 0);
+            track.WalkPhase = 0; track.RenderSpeed = 0; track.Moving = false;
             return;
         }
-        double weight = 1 - Math.Exp(-24 * delta);
-        track.Position = remaining < .004 ? track.Target : new Point(
-            previous.X + (track.Target.X - previous.X) * weight,
-            previous.Y + (track.Target.Y - previous.Y) * weight);
+
+        double sourceSpeed = track.SnapshotVelocity.Distance(new Point(0, 0));
+        var visualTarget = MotionPresentationRules.VisualTarget(track.Target, track.SnapshotVelocity, Clock - track.LastSnapshotAt);
+        double visualRemaining = previous.Distance(visualTarget);
+        if (authoritativeRemaining < .006 && sourceSpeed < .06)
+        {
+            track.Position = track.Target; track.RenderSpeed = 0; track.Moving = false;
+            return;
+        }
+
+        double weight = MotionPresentationRules.SmoothingWeight(delta);
+        track.Position = visualRemaining < .003 ? visualTarget : new Point(
+            previous.X + (visualTarget.X - previous.X) * weight,
+            previous.Y + (visualTarget.Y - previous.Y) * weight);
         double travelled = previous.Distance(track.Position);
-        track.RenderSpeed = travelled / delta;
-        track.Moving = travelled > .001;
-        if (track.Moving) track.WalkPhase = SpritePoseRules.AdvanceWalk(track.WalkPhase, travelled);
+        double instantSpeed = travelled / delta;
+        double speedWeight = 1 - Math.Exp(-12 * Math.Min(delta, .1));
+        track.RenderSpeed += (instantSpeed - track.RenderSpeed) * speedWeight;
+        bool keepMoving = track.RenderSpeed > .055 || visualRemaining > .012 || sourceSpeed > .08;
+        bool startMoving = track.RenderSpeed > .12 && (visualRemaining > .012 || sourceSpeed > .12);
+        track.Moving = track.Moving ? keepMoving : startMoving;
+        if (track.Moving && travelled > .0001)
+            track.WalkPhase = SpritePoseRules.AdvanceWalk(track.WalkPhase, travelled);
     }
 
     private int LocomotionFrame(string id)
