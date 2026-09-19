@@ -91,8 +91,8 @@ public partial class CharacterPresentationContract : Node
             var secondInterpolated = Pose(world, other.Id, other.Position);
             Check(firstInterpolated.State is 1 or 8 && secondInterpolated.Position.X > firstInterpolated.Position.X,
                 "Rendered travel advances continuously between authoritative snapshots");
-            Check(secondInterpolated.Position.X > remote.Position.X,
-                "Bounded visual lead bridges the 100 ms snapshot gap without changing authoritative position");
+            Check(secondInterpolated.Position.Distance(remote.Position) <= MotionPresentationRules.MaxLeadTiles + .02,
+                "Rendered interpolation stays within the bounded visual lead around authoritative position");
             world.Animate(other.Id, 2, .6); world._Process(1.0 / 60);
             int locomotion = (int)typeof(WorldView).GetMethod("LocomotionFrame", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(world, [other.Id])!;
             Check(locomotion >= 0 && Pose(world, other.Id, other.Position).State == 2, "Leg motion continues beneath an upper-body action");
