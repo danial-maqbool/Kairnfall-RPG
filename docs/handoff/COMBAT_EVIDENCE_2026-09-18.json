@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "statusDate": "2026-09-18",
+  "currentTask": "combat-feel-pass",
+  "repository": "danial-maqbool/Kairnfall-RPG",
+  "persistentBranches": [
+    "main"
+  ],
+  "startingMain": "7658fdf0d505d886bc0058565eea5c7e9f907dc0",
+  "implementationBaseline": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+  "repositorySideCombatFeelImplemented": true,
+  "serverAuthoritative": true,
+  "oldSavesCompatible": true,
+  "temporaryToolingRemoved": true,
+  "clientPredictsDamage": false,
+  "combatBalanceChanged": false,
+  "authorization": {
+    "implementationAuthorized": true,
+    "publicationAuthorized": false,
+    "deploymentAuthorized": false,
+    "productionInfrastructureChanged": false
+  },
+  "releaseStatus": "NOT APPROVED — human acceptance remains.",
+  "publicationReady": false,
+  "releasePublished": false,
+  "deployed": false,
+  "humanCombatFeelApproval": false,
+  "historicalCharacterEvidence": "docs/handoff/CHARACTER_EVIDENCE_2026-09-18.json",
+  "preservedCharacterBaseline": "16f2798edc6b90791548b5bf551eab6433ac9277",
+  "basicAttackBufferSeconds": 0.25,
+  "abilityBufferSeconds": 0.35,
+  "selectedTargetGrace": 1.75,
+  "combatEvidence": {
+    "bufferedBasicAttack": true,
+    "lockedQueuedAbilityIntent": true,
+    "stickyExplicitTargets": true,
+    "threatAwareAutoTarget": true,
+    "authoritativeTargetSummary": true,
+    "urgentTelegraphPresentation": true,
+    "accurateDamageAttributionBoundary": true
+  },
+  "implementationFootprint": {
+    "authoredContentChanged": false,
+    "serverImplementationChanged": false,
+    "authoritativeCoreChanges": [
+      "src/Kairnfall.Core/CombatReadability.cs"
+    ],
+    "clientCombatFiles": [
+      "client/Scripts/ExperienceRules.cs",
+      "client/Scripts/GameRoot.Experience.cs",
+      "client/Scripts/GameRoot.MobControls.cs",
+      "client/Scripts/GameRoot.cs",
+      "client/Scripts/CombatReadabilityOverlay.cs",
+      "client/Scripts/WorldView.cs"
+    ]
+  },
+  "implementationWorkflows": [
+    {
+      "name": "Transaction security regression",
+      "runId": 35336451370,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Compile Windows client source",
+      "runId": 35336451361,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Live progression breadth",
+      "runId": 35336451398,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Windows package acceptance",
+      "runId": 35336451385,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Graphical multiplayer acceptance",
+      "runId": 35336451404,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Load acceptance",
+      "runId": 35336451444,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build and verify",
+      "runId": 35336451316,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Task 13 adversarial acceptance",
+      "runId": 35336451396,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Release operations acceptance",
+      "runId": 35336451412,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Transaction integrity on Windows and Linux",
+      "runId": 35336451378,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "New-player journey",
+      "runId": 35336451358,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Character sprite acceptance",
+      "runId": 35336451435,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Visual acceptance matrix",
+      "runId": 35336451418,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Windows display and input acceptance",
+      "runId": 35336451388,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Audio acceptance",
+      "runId": 35336451291,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    }
+  ],
+  "supplementalImplementationWorkflows": [
+    {
+      "name": "Review exact visual candidate",
+      "runId": 35336451382,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Art library source and visual verification",
+      "runId": 35336451415,
+      "headSha": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+      "conclusion": "success"
+    }
+  ],
+  "preSyncDocumentation": {
+    "runId": 35336451417,
+    "conclusion": "failure",
+    "reason": "Expected stale-ledger rejection before combat documentation synchronization."
+  },
+  "humanOnlyGates": [
+    "Owner Windows combat-feel playthrough for responsiveness, weight and target-selection preference",
+    "Normal-play class and encounter balance assessment; this pass intentionally changed no balance values",
+    "Independent visual/art review of the combined combat presentation in ordinary play",
+    "Audio listening approval for combat mix and repeated-action fatigue",
+    "Physical Windows DPI and hardware-input inspection on owner hardware",
+    "Full ordinary-account multiplayer/world walkthrough",
+    "Production-scale validation before any capacity claim"
+  ],
+  "releaseApproval": {
+    "status": "NOT APPROVED — human acceptance remains.",
+    "combatFeel": false,
+    "art": false,
+    "audio": false,
+    "scale": false,
+    "performance": false
+  },
+  "deliveryVerificationPolicy": "Documentation-only delivery commits retain combat implementation baseline 06776f6b0de7dbe02cab30a9e236e730c377de2e. The live documentation contract verifies all 15 required Actions runs against GitHub and enforces that the combat pass did not modify authored content, server implementation, or authoritative combat resolution."
+}

@@ -118,6 +118,9 @@ def latest_implementation_commit() -> str:
 
 def main() -> int:
     evidence = json.loads((ROOT / 'docs/handoff/CURRENT_EVIDENCE.json').read_text(encoding='utf-8'))
+    if evidence.get('currentTask') == 'smoothness-performance-polish':
+        from smoothness_delivery_contract import validate
+        return validate(evidence)
     if evidence.get('currentTask') == 'combat-feel-pass':
         from combat_delivery_contract import validate
         return validate(evidence)
