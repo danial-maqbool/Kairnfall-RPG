@@ -12,6 +12,7 @@ on:
       - 'client/Tests/NativeTestLifetime.cs'
       - 'tools/build_content.py'
       - 'tools/build_game_assets.py'
+      - 'tools/complete_skill_icons.py'
       - 'tools/get_godot.py'
       - '.github/workflows/performance-diagnostics.yml'
   workflow_dispatch:
@@ -63,6 +64,7 @@ jobs:
           python -m pip install Pillow==12.0.0
           python tools/build_content.py
           python tools/build_game_assets.py
+          python tools/complete_skill_icons.py
           dotnet build client/Kairnfall.Client.csproj -c Debug
           python tools/get_godot.py --os '${{ matrix.godot }}'
 
