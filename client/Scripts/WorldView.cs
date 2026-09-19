@@ -43,6 +43,8 @@ public partial class WorldView : Control
         public double WalkPhase;
         public double RenderSpeed;
         public double IdlePhase;
+        public Point SnapshotVelocity;
+        public double LastSnapshotAt;
         public bool Moving;
         public bool Player;
         public long CueSequence;
@@ -101,20 +103,27 @@ public partial class WorldView : Control
     {
         if (!tracks.TryGetValue(id, out var track))
         {
-            track = new ActorTrack { Position = position, Target = position, Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), ActionDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10, Player = player, IdlePhase = IdleOffset(id) };
+            track = new ActorTrack { Position = position, Target = position, Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), ActionDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10, Player = player, IdlePhase = IdleOffset(id), LastSnapshotAt = Clock };
             tracks[id] = track;
             if (health <= 0) { track.State = 5; track.StateStart = Clock - ActorMotion.CorpseCollapseSeconds; track.StateUntil = Clock + 6; }
         }
-        if (track.Target.Distance(position) > .008) track.LastMoved = Clock;
+        double targetShift = track.Target.Distance(position);
+        if (targetShift > .008) track.LastMoved = Clock;
+        double sampleSeconds = Clock - track.LastSnapshotAt;
+        if (targetShift > MotionPresentationRules.TeleportDistance)
+            track.SnapshotVelocity = new Point(0, 0);
+        else
+            track.SnapshotVelocity = MotionPresentationRules.EstimateVelocity(track.Target, position, sampleSeconds, track.SnapshotVelocity);
+        track.LastSnapshotAt = Clock;
         if (Math.Abs(track.Health - health) >= .8)
         {
             bool hurt = health < track.Health;
             numbers.Add(new FloatingNumber(position, (hurt ? "−" : "+") + Math.Abs(Math.Round(health - track.Health)).ToString(), hurt ? new Color("edb08a") : Ui.Success, Clock));
             if (hurt) Animate(id, health <= 0 ? 5 : 4, health <= 0 ? 6 : .3);
         }
-        if (track.Health > 0 && health <= 0) Animate(id, 5, 6);
+        if (track.Health > 0 && health <= 0) { Animate(id, 5, 6); track.SnapshotVelocity = new Point(0, 0); }
         track.FacingDirection = SpritePoseRules.Direction(facing, track.FacingDirection);
-        if (track.Health <= 0 && health > 0) { track.StateUntil = 0; track.State = 0; }
+        if (track.Health <= 0 && health > 0) { track.StateUntil = 0; track.State = 0; track.SnapshotVelocity = new Point(0, 0); }
         track.Target = position; track.Facing = facing; track.Health = health;
         return track;
     }
@@ -185,7 +194,8 @@ public partial class WorldView : Control
         float zoom = Math.Clamp(Zoom, 1, 3);
         return new Point((point.X - origin.X) / zoom / Tile, (point.Y - origin.Y) / zoom / Tile);
     }
-    public Vector2 WorldToScreen(Point point) => origin + new Vector2((float)point.X * Tile, (float)point.Y * Tile) * Zoom;
+    public Vector2 WorldToScreen(Point point)
+        => (origin + new Vector2((float)point.X * Tile, (float)point.Y * Tile) * Zoom).Round();
 
     public WorldTarget? Pick(Vector2 screen)
     {
@@ -197,6 +207,7 @@ public partial class WorldView : Control
     public IEnumerable<WorldTarget> Targets => interactions;
 
     private static Vector2 Pixels(Point p) => new((float)p.X * Tile, (float)p.Y * Tile);
+    private Vector2 SnappedPixels(Point p) => MotionPresentationRules.SnapWorldPixel(Pixels(p), Zoom);
     private int Direction(Point p) => Math.Abs(p.X) > Math.Abs(p.Y) ? p.X < 0 ? 1 : 2 : p.Y < 0 ? 3 : 0;
     private (int State, int Direction, int Frame, Point Position) Pose(string id, Point at)
     {
@@ -319,12 +330,12 @@ public partial class WorldView : Control
             float progress = Math.Clamp(elapsed / .65f, 0, 1);
             float radius = 7 + progress * 22 * burst.Strength / 3.4f;
             Color color = burst.Color; color.A = 1 - progress;
-            DrawArc(Pixels(burst.At), radius, 0, MathF.Tau, 28, color, 1.5f);
+            DrawArc(SnappedPixels(burst.At), radius, 0, MathF.Tau, 28, color, 1.5f);
         }
         foreach (var number in numbers)
         {
             float elapsed = (float)(Clock - number.Started);
-            var position = Pixels(number.At) + new Vector2(0, -44 - elapsed * 22);
+            var position = SnappedPixels(number.At) + new Vector2(0, -44 - elapsed * 22);
             Color color = number.Color; color.A = Math.Clamp(1.3f - elapsed, 0, 1);
             Text(position, number.Text, color, 12);
         }
@@ -361,7 +372,7 @@ public partial class WorldView : Control
 
     private void DrawVisual(ZoneDef zone, Visual visual)
     {
-        Vector2 feet = Pixels(visual.At).Round();
+        Vector2 feet = SnappedPixels(visual.At);
         if (visual.Id == TargetId)
         {
             Color targetColor = Ui.Gold;
@@ -498,7 +509,7 @@ public partial class WorldView : Control
     }
     private void Nameplate(Point at, string text, Color color, float offset, int size = 10)
     {
-        var position = Pixels(at) + new Vector2(0, offset);
+        var position = SnappedPixels(at) + new Vector2(0, offset);
         var font = ThemeDB.FallbackFont;
         float width = Math.Min(240, font.GetStringSize(text, HorizontalAlignment.Left, -1, size).X);
         DrawRect(new Rect2(position - new Vector2(width / 2 + 3, font.GetAscent(size)),
@@ -517,7 +528,7 @@ public partial class WorldView : Control
     };
     private void DrawTelegraph(Telegraph effect)
     {
-        var center = Pixels(effect.Position); var color = ElementColor(effect.Element);
+        var center = SnappedPixels(effect.Position); var color = ElementColor(effect.Element);
         float urgency = (float)CombatReadabilityRules.TelegraphUrgency(effect, RealmTime);
         float pulse = urgency * (.35f + .35f * (.5f + .5f * MathF.Sin((float)Clock * 22f)));
         float outline = 1.5f + pulse;
