@@ -45,6 +45,7 @@ public partial class WorldView : Control
         public double IdlePhase;
         public Point SnapshotVelocity;
         public double LastSnapshotAt;
+        public double LastTargetAt;
         public bool Moving;
         public bool Player;
         public long CueSequence;
@@ -103,20 +104,31 @@ public partial class WorldView : Control
     {
         if (!tracks.TryGetValue(id, out var track))
         {
-            track = new ActorTrack { Position = position, Target = position, Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), ActionDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10, Player = player, IdlePhase = IdleOffset(id), LastSnapshotAt = Clock };
+            track = new ActorTrack { Position = position, Target = position, Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), ActionDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10, Player = player, IdlePhase = IdleOffset(id), LastSnapshotAt = Clock, LastTargetAt = Clock };
             tracks[id] = track;
             if (health <= 0) { track.State = 5; track.StateStart = Clock - ActorMotion.CorpseCollapseSeconds; track.StateUntil = Clock + 6; }
         }
         double targetShift = track.Target.Distance(position);
         if (targetShift > .008) track.LastMoved = Clock;
-        double sampleSeconds = Clock - track.LastSnapshotAt;
         if (targetShift > MotionPresentationRules.TeleportDistance)
+        {
             track.SnapshotVelocity = new Point(0, 0);
-        else if (targetShift >= .01 || Clock - track.LastMoved > .16)
+            track.LastTargetAt = Clock;
+        }
+        else if (targetShift >= .01)
+        {
+            // Measure from the last authoritative position change, not merely the
+            // previous packet: creature AI moves at 5 Hz while packets arrive at 10 Hz.
+            double sampleSeconds = Clock - track.LastTargetAt;
             track.SnapshotVelocity = MotionPresentationRules.EstimateVelocity(track.Target, position, sampleSeconds, track.SnapshotVelocity);
-        // Creature AI advances at 5 Hz while snapshots arrive at 10 Hz. Preserve the
-        // last measured velocity across one unchanged snapshot instead of alternating
-        // between moving and idle presentation every other network frame.
+            track.LastTargetAt = Clock;
+        }
+        else if (Clock - track.LastMoved > .16)
+        {
+            double sampleSeconds = Clock - track.LastSnapshotAt;
+            track.SnapshotVelocity = MotionPresentationRules.EstimateVelocity(track.Target, position, sampleSeconds, track.SnapshotVelocity);
+        }
+        // Preserve measured velocity across a single unchanged interstitial snapshot.
         track.LastSnapshotAt = Clock;
         if (Math.Abs(track.Health - health) >= .8)
         {
