@@ -112,8 +112,11 @@ public partial class WorldView : Control
         double sampleSeconds = Clock - track.LastSnapshotAt;
         if (targetShift > MotionPresentationRules.TeleportDistance)
             track.SnapshotVelocity = new Point(0, 0);
-        else
+        else if (targetShift >= .01 || Clock - track.LastMoved > .16)
             track.SnapshotVelocity = MotionPresentationRules.EstimateVelocity(track.Target, position, sampleSeconds, track.SnapshotVelocity);
+        // Creature AI advances at 5 Hz while snapshots arrive at 10 Hz. Preserve the
+        // last measured velocity across one unchanged snapshot instead of alternating
+        // between moving and idle presentation every other network frame.
         track.LastSnapshotAt = Clock;
         if (Math.Abs(track.Health - health) >= .8)
         {
