@@ -7,6 +7,8 @@ namespace Kairnfall.Client;
 public static class MotionPresentationRules
 {
     public const double SnapshotLeadSeconds = .09;
+    public const double SnapshotFreshSeconds = .12;
+    public const double SnapshotStaleSeconds = .24;
     public const double MaxLeadTiles = .35;
     public const double TeleportDistance = 6;
 
@@ -26,13 +28,21 @@ public static class MotionPresentationRules
         return blendedSpeed <= 12 ? blended : blended.Scale(12 / blendedSpeed);
     }
 
+    public static double SnapshotFreshness(double snapshotAge)
+    {
+        if (!double.IsFinite(snapshotAge) || snapshotAge < 0 || snapshotAge >= SnapshotStaleSeconds) return 0;
+        if (snapshotAge <= SnapshotFreshSeconds) return 1;
+        return (SnapshotStaleSeconds - snapshotAge) / (SnapshotStaleSeconds - SnapshotFreshSeconds);
+    }
+
     public static Point VisualTarget(Point authoritative, Point velocity, double snapshotAge)
     {
         if (!authoritative.Finite || !velocity.Finite || !double.IsFinite(snapshotAge)) return authoritative;
         double speed = velocity.Distance(new Point(0, 0));
-        if (speed < .02 || speed > 12) return authoritative;
+        double freshness = SnapshotFreshness(snapshotAge);
+        if (speed < .02 || speed > 12 || freshness <= 0) return authoritative;
         double seconds = Math.Clamp(snapshotAge, 0, SnapshotLeadSeconds);
-        double lead = Math.Min(MaxLeadTiles, speed * seconds);
+        double lead = Math.Min(MaxLeadTiles, speed * seconds) * freshness;
         return authoritative.Add(velocity.Scale(lead / speed));
     }
 
@@ -70,8 +80,9 @@ public partial class WorldView
             return;
         }
 
-        double sourceSpeed = track.SnapshotVelocity.Distance(new Point(0, 0));
-        var visualTarget = MotionPresentationRules.VisualTarget(track.Target, track.SnapshotVelocity, Clock - track.LastSnapshotAt);
+        double snapshotAge = Clock - track.LastSnapshotAt;
+        double sourceSpeed = track.SnapshotVelocity.Distance(new Point(0, 0)) * MotionPresentationRules.SnapshotFreshness(snapshotAge);
+        var visualTarget = MotionPresentationRules.VisualTarget(track.Target, track.SnapshotVelocity, snapshotAge);
         double visualRemaining = previous.Distance(visualTarget);
         if (authoritativeRemaining < .006 && sourceSpeed < .06)
         {
