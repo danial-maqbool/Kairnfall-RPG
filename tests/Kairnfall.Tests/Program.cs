@@ -291,6 +291,10 @@ Test("Chest ownership and cooldown prevent repeated loot",()=>
 });
 Test("Arcanist and Templar basic attacks are server-authoritative ranged projectiles",()=>
 {
+    Check(data.Abilities.Any(x=>x.Class=="arcanist"&&x.Kind=="projectile"&&x.Range>BasicAttackRules.CasterRange),
+        "Arcanist basic range must remain below dedicated long-range projectile spells.");
+    Check(data.Abilities.Any(x=>x.Class=="templar"&&x.Range>=BasicAttackRules.CasterRange),
+        "Templar basic range must remain within the authored support/offense spell band.");
     foreach(string classId in new[]{"arcanist","templar"})
     {
         var r=NewRealm(); var p=NewPlayer(r,"Ranged "+classId,classId); p.Stamina=1000;

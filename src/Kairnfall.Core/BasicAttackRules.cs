@@ -5,6 +5,8 @@ public readonly record struct BasicAttackProfile(double Range, bool Projectile, 
 /// <summary>Authoritative delivery profile for the ordinary Spacebar/basic attack.</summary>
 public static class BasicAttackRules
 {
+    // Six tiles sits inside the authored 5-8 tile caster/support spell band;
+    // dedicated 8-tile projectiles still outrange this ordinary basic attack.
     public const double CasterRange = 6.0;
 
     public static BasicAttackProfile Profile(Character player, ItemDef? weapon, Element damageElement)

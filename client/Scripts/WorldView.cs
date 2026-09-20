@@ -85,8 +85,18 @@ public partial class WorldView : Control
 
     public void SetLocalMovementIntent(Vector2 direction)
     {
-        if (!float.IsFinite(direction.X) || !float.IsFinite(direction.Y)) { localMovementIntent = Vector2.Zero; return; }
+        if (!float.IsFinite(direction.X) || !float.IsFinite(direction.Y)) direction = Vector2.Zero;
+        bool wasMoving = localMovementIntent.LengthSquared() > .0001f;
         localMovementIntent = direction.LengthSquared() > 1 ? direction.Normalized() : direction;
+        if (wasMoving && localMovementIntent.LengthSquared() <= .0001f
+            && Snapshot is { } snapshot && tracks.TryGetValue(snapshot.Self.Id, out var local))
+        {
+            // A real local stop must not re-use stale velocity if movement is
+            // tapped again before the next authoritative position sample.
+            local.SnapshotVelocity = new Point(0, 0);
+            local.UnchangedAuthoritativeSamples = 2;
+            local.LastSnapshotAt = Clock;
+        }
     }
 
     private bool LocalMovementExpected => localMovementIntent.LengthSquared() > .0001f;
