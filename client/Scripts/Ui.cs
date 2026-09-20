@@ -1,0 +1,200 @@
+using Godot;
+using Kairnfall.Core;
+
+namespace Kairnfall.Client;
+
+public static class Ui
+{
+    public const string BaseFontSizeMeta = "kairnfall_base_font_size";
+    public static readonly Color Ink = new("171512"), Panel = new("27231d"), Raised = new("3a3228"), Gold = new("d1b87c"), Text = new("ece4cf"), Muted = new("b2ab99"), Danger = new("e39782"), Success = new("b2cb91");
+    public static readonly Color[] RarityColors = [new("c1c5bd"), new("8abd8b"), new("81b0d3"), new("b099d4"), new("dbad69"), new("d5808c"), new("e7d99b")];
+    public static float TextScale { get; private set; } = 1f;
+    public static float ConfigureTextScale(double value)
+    {
+        TextScale = double.IsFinite(value) ? (float)Math.Clamp(value, .9, 1.25) : 1f;
+        return TextScale;
+    }
+    public static int ScaledFont(int size) => Math.Max(10, (int)Math.Round(size * TextScale));
+    public static Color RarityColor(Rarity rarity) => RarityColors[Math.Clamp((int)rarity, 0, RarityColors.Length - 1)];
+    public static Color ElementColor(Element element) => element switch
+    {
+        Element.Fire => new("e39b63"), Element.Frost => new("97d2db"), Element.Lightning => new("e2d98a"), Element.Nature => new("9ac77d"),
+        Element.Poison => new("b6cc78"), Element.Arcane => new("b49ad9"), Element.Radiant => new("f0e0ae"), Element.Shadow => new("a38ebb"), _ => new("ceb49d")
+    };
+    public static string ElementGlyph(Element element) => element switch
+    {
+        Element.Fire => "F", Element.Frost => "I", Element.Lightning => "L", Element.Nature => "N", Element.Poison => "P",
+        Element.Arcane => "A", Element.Radiant => "R", Element.Shadow => "S", _ => ""
+    };
+    public static string Words(string text) => System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(text.Replace('_', ' '));
+
+    public static StyleBoxFlat Box(Color color, Color? border = null, int padding = 10)
+    {
+        var box = new StyleBoxFlat { BgColor = color, BorderColor = border ?? new Color("4f5e60"), ContentMarginLeft = padding, ContentMarginRight = padding, ContentMarginTop = padding, ContentMarginBottom = padding };
+        box.SetBorderWidthAll(1);
+        box.SetCornerRadiusAll(3);
+        return box;
+    }
+
+    public static Theme BuildTheme()
+    {
+        var theme = new Theme { DefaultFontSize = ScaledFont(16) };
+        theme.SetColor("font_color", "Label", Text);
+        theme.SetColor("font_color", "Button", Text);
+        theme.SetColor("font_hover_color", "Button", Colors.White);
+        theme.SetColor("font_pressed_color", "Button", Gold);
+        theme.SetColor("font_disabled_color", "Button", new Color("64787a"));
+        theme.SetStylebox("normal", "Button", Box(Raised));
+        theme.SetStylebox("hover", "Button", Box(new Color("504333"), Gold));
+        theme.SetStylebox("pressed", "Button", Box(Ink, Gold));
+        theme.SetStylebox("disabled", "Button", Box(new Color("211e19"), new Color("494133")));
+        theme.SetStylebox("focus", "Button", Box(new Color(0, 0, 0, 0), Gold, 0));
+        theme.SetStylebox("panel", "PanelContainer", Box(Panel, new Color("78664a"), 16));
+        theme.SetStylebox("normal", "LineEdit", Box(Ink, new Color("566c70")));
+        theme.SetStylebox("focus", "LineEdit", Box(Ink, Gold));
+        theme.SetColor("font_color", "LineEdit", Text);
+        theme.SetColor("caret_color", "LineEdit", Gold);
+        theme.SetColor("font_placeholder_color", "LineEdit", Muted);
+        theme.SetStylebox("normal", "TextEdit", Box(Ink));
+        theme.SetColor("default_color", "RichTextLabel", Text);
+        theme.SetColor("font_color", "OptionButton", Text);
+        theme.SetStylebox("normal", "OptionButton", Box(Raised));
+        theme.SetStylebox("hover", "OptionButton", Box(Raised, Gold));
+        theme.SetStylebox("panel", "PopupMenu", Box(Panel));
+        theme.SetColor("font_color", "PopupMenu", Text);
+        theme.SetStylebox("panel", "TooltipPanel", Box(Ink, Gold));
+        theme.SetColor("font_color", "TooltipLabel", Text);
+        theme.SetFontSize("font_size", "TooltipLabel", ScaledFont(15));
+        theme.SetStylebox("background", "ProgressBar", Box(Ink, new Color("536366"), 0));
+        theme.SetStylebox("fill", "ProgressBar", Box(new Color("8b4548"), new Color("ac6761"), 0));
+        theme.SetConstant("separation", "VBoxContainer", 8);
+        theme.SetConstant("separation", "HBoxContainer", 8);
+        theme.SetConstant("h_separation", "GridContainer", 7);
+        theme.SetConstant("v_separation", "GridContainer", 7);
+        return theme;
+    }
+
+    public static Label Label(string text, int size = 16, Color? color = null, bool wrap = false)
+    {
+        var label = new Label { Text = text, MouseFilter = Control.MouseFilterEnum.Ignore };
+        label.SetMeta(BaseFontSizeMeta, size);
+        label.AddThemeFontSizeOverride("font_size", ScaledFont(size));
+        label.AddThemeColorOverride("font_color", color ?? Text);
+        if (wrap) { label.AutowrapMode = TextServer.AutowrapMode.WordSmart; label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; }
+        return label;
+    }
+    public static Button Button(string text, Action action, bool disabled = false)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        return new ActionButton
+        {
+            Text = text,
+            Disabled = disabled,
+            PressedAction = action,
+            CustomMinimumSize = new Vector2(0, 36),
+            MouseDefaultCursorShape = Control.CursorShape.PointingHand
+        };
+    }
+    public static LineEdit Edit(string placeholder, string text = "", bool secret = false)
+        => new() { PlaceholderText = placeholder, Text = text, Secret = secret, MaxLength = 128, CustomMinimumSize = new Vector2(0, 38), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+    public static VBoxContainer Column(Node parent, bool expand = false)
+    {
+        var box = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        if (expand) box.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        parent.AddChild(box); return box;
+    }
+    public static HBoxContainer Row(Node parent)
+    {
+        var box = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        parent.AddChild(box); return box;
+    }
+    public static ScrollContainer Scroll(Node parent, Vector2 minimum)
+    {
+        var scroll = new ScrollContainer { CustomMinimumSize = minimum, FollowFocus = true, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        parent.AddChild(scroll); return scroll;
+    }
+    public static void Clear(Node parent)
+    {
+        foreach (Node child in parent.GetChildren()) { parent.RemoveChild(child); child.QueueFree(); }
+    }
+    public static TextureRect Image(Texture2D? texture, int size)
+        => new() { Texture = texture, CustomMinimumSize = new Vector2(size, size), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, TextureFilter = CanvasItem.TextureFilterEnum.Nearest, MouseFilter = Control.MouseFilterEnum.Ignore };
+    public static ProgressBar Bar(Color color, int width = 230)
+    {
+        var bar = new ProgressBar { CustomMinimumSize = new Vector2(width, 15), ShowPercentage = false, MaxValue = 100 };
+        bar.AddThemeStyleboxOverride("fill", Box(color, color.Lightened(.15f), 0));
+        return bar;
+    }
+}
+
+public partial class ItemSlot : Control
+{
+    public Texture2D? Icon { get; set; }
+    public Item? Item { get; set; }
+    public string Bag { get; set; } = "inventory";
+    public Element ItemElement { get; set; } = Element.Physical;
+    public bool Equipped { get; set; }
+    public bool Selected { get; set; }
+    public Action? Clicked { get; set; }
+    public Action<string, string>? Dropped { get; set; }
+    public override void _Ready()
+    {
+        CustomMinimumSize = new Vector2(62, 62);
+        MouseDefaultCursorShape = CursorShape.PointingHand;
+        TextureFilter = TextureFilterEnum.Nearest;
+        FocusMode = FocusModeEnum.All;
+        FocusEntered += QueueRedraw;
+        FocusExited += QueueRedraw;
+    }
+    public override void _Draw()
+    {
+        Color border = HasFocus() || Selected ? Ui.Gold : Item is null ? new Color("425359") : Ui.RarityColor(Item.Rarity);
+        DrawStyleBox(Ui.Box(Ui.Ink, border, 0), new Rect2(Vector2.Zero, Size));
+        if (Icon is not null) DrawTextureRect(Icon, PixelPresentation.InventoryIconRect(Size,Icon.GetSize()), false);
+        if (ItemElement != Element.Physical)
+        {
+            var badge = new Rect2(Size.X - 18, 3, 15, 15);
+            DrawRect(badge, Ui.Ink); DrawRect(badge, Ui.ElementColor(ItemElement), false, 1);
+            DrawString(ThemeDB.FallbackFont, new Vector2(badge.Position.X + 4, badge.Position.Y + 12), Ui.ElementGlyph(ItemElement), HorizontalAlignment.Left, -1, 10, Ui.ElementColor(ItemElement));
+        }
+        if (Equipped) DrawString(ThemeDB.FallbackFont, new Vector2(4, 14), "E", HorizontalAlignment.Left, -1, 11, Ui.Gold);
+        if (Item is { Quantity: > 1 })
+        {
+            string count = Item.Quantity.ToString();
+            DrawStringOutline(ThemeDB.FallbackFont, new Vector2(4, Size.Y - 4), count, HorizontalAlignment.Right, Size.X - 8, 13, 3, Ui.Ink);
+            DrawString(ThemeDB.FallbackFont, new Vector2(4, Size.Y - 4), count, HorizontalAlignment.Right, Size.X - 8, 13, Ui.Text);
+        }
+    }
+    protected virtual void ActivateFromKeyboard() => Clicked?.Invoke();
+    private static bool IsKeyboardActivation(InputEvent @event)
+        => @event is InputEventKey { Pressed: true, Echo: false } key
+            && (key.Keycode is Key.Enter or Key.Space || key.PhysicalKeycode is Key.Enter or Key.Space);
+    public override void _Input(InputEvent @event)
+    {
+        // Custom Controls do not consistently receive native/synthetic key events
+        // through _GuiInput. Own one focused activation path before gameplay input.
+        if (!HasFocus() || !IsKeyboardActivation(@event)) return;
+        ActivateFromKeyboard();
+        GetViewport().SetInputAsHandled();
+    }
+    public override void _GuiInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+        {
+            GrabFocus(); Clicked?.Invoke(); AcceptEvent();
+        }
+    }
+    public override Variant _GetDragData(Vector2 position)
+    {
+        if (Item is null) return default;
+        var preview = Ui.Image(Icon, 48); SetDragPreview(preview);
+        return new Godot.Collections.Dictionary { ["item"] = Item.Id, ["bag"] = Bag };
+    }
+    public override bool _CanDropData(Vector2 position, Variant data)
+        => Dropped is not null && data.VariantType == Variant.Type.Dictionary && data.AsGodotDictionary().ContainsKey("item") && data.AsGodotDictionary().ContainsKey("bag");
+    public override void _DropData(Vector2 position, Variant data)
+    {
+        if (!_CanDropData(position, data)) return;
+        var value = data.AsGodotDictionary(); Dropped?.Invoke(value["item"].AsString(), value["bag"].AsString());
+    }
+}

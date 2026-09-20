@@ -1,0 +1,43 @@
+name: Prepare isolated development tools
+on:
+  push:
+    paths:
+      - 'tools/toolchain.request'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain the exact public toolchain and CC0 source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p bridge/dotnet bridge/godot bridge/licenses bridge/nuget bridge/art-source
+          curl --fail --location --retry 3 https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+          bash /tmp/dotnet-install.sh --version 10.0.400 --install-dir "$PWD/bridge/dotnet"
+          curl --fail --location --retry 3 https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_mono_linux_x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d bridge/godot
+          curl --fail --location --retry 3 https://github.com/crawl/tiles/archive/a6ea1655db5c044829d9eea19a232fa6fcac87b0.zip -o /tmp/cc0-tiles.zip
+          unzip -q /tmp/cc0-tiles.zip -d bridge/art-source
+          cat > bridge/restore.csproj <<'XML'
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Npgsql" Version="10.0.3" /></ItemGroup></Project>
+          XML
+          DOTNET_ROOT="$PWD/bridge/dotnet" NUGET_PACKAGES="$PWD/bridge/nuget" bridge/dotnet/dotnet restore bridge/restore.csproj
+          cat > bridge/godot-restore.csproj <<'XML'
+          <Project Sdk="Godot.NET.Sdk/4.7.2"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>
+          XML
+          DOTNET_ROOT="$PWD/bridge/dotnet" NUGET_PACKAGES="$PWD/bridge/nuget" bridge/dotnet/dotnet restore bridge/godot-restore.csproj
+          rm -rf bridge/obj bridge/bin
+          printf '%s\n' 'Development tools only. Not a game release.' 'Godot 4.7.2 .NET; .NET SDK 10.0.400; Npgsql 10.0.3.' 'The Crawl CC0 export requires its README, artist list, and exclusion list.' > bridge/README.txt
+          tar -czf kairnfall-dev-tools.tar.gz bridge
+          sha256sum kairnfall-dev-tools.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kairnfall-development-tools
+          path: kairnfall-dev-tools.tar.gz
+          retention-days: 1
+          compression-level: 0

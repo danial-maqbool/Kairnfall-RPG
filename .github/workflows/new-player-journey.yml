@@ -1,0 +1,130 @@
+name: New-player journey
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: new-player-journey-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports: ['127.0.0.1:5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      KAIRNFALL_TEST_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_DB_TESTS: '1'
+      KAIRNFALL_ALLOW_LOCAL_HTTP: '1'
+      ASPNETCORE_ENVIRONMENT: Testing
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record exact source and build
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/journey/logs artifacts/journey/screenshots
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD | tee artifacts/journey/revision.txt
+          python -m pip install Pillow==12.0.0
+          python tools/build_content.py | tee artifacts/journey/logs/content.log
+          dotnet build Kairnfall.slnx -c Release | tee artifacts/journey/logs/build.log
+          dotnet build client/Kairnfall.Client.csproj -c Debug | tee artifacts/journey/logs/client-build.log
+      - name: Run the standalone journey and retained authority regressions
+        run: |
+          set -euo pipefail
+          dotnet run --no-build --project tools/new_player_probe -c Release -- content/catalog.json | tee artifacts/journey/logs/journey.log
+          dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json | tee artifacts/journey/logs/core.log
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release | tee artifacts/journey/logs/review.log
+          dotnet run --project tests/Kairnfall.SecurityTests/Kairnfall.SecurityTests.csproj -c Release -- content/catalog.json | tee artifacts/journey/logs/security.log
+          dotnet run --no-build --project tools/security_probe/SecurityProbe.csproj -c Release -- content/catalog.json | tee artifacts/journey/logs/security-probe.log
+          dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee artifacts/journey/logs/world.log
+          dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release | tee artifacts/journey/logs/network.log
+          dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database | tee artifacts/journey/logs/database.log
+          python -m unittest discover -s tests/handoff -p 'test_*.py' -v 2>&1 | tee artifacts/journey/logs/handoff.log
+      - name: Reconstruct assets and verified Godot editor
+        run: |
+          set -euo pipefail
+          python tools/build_game_assets.py | tee artifacts/journey/logs/assets.log
+          python tools/complete_skill_icons.py | tee artifacts/journey/logs/skill-icons.log
+          python tools/validate_game_assets.py | tee artifacts/journey/logs/asset-validation.log
+          python tools/get_godot.py --os linux 2>&1 | tee artifacts/journey/logs/editor.log
+      - name: Verify native guidance, progression, input and supported layouts
+        run: |
+          set -euo pipefail
+          timeout 600 "$GODOT_BIN" --headless --editor --path client --import > artifacts/journey/logs/import.log 2>&1
+          timeout 90 "$GODOT_BIN" --verbose --headless --path client res://Tests/SignalContract.tscn > artifacts/journey/logs/signals.log 2>&1
+          timeout 90 "$GODOT_BIN" --verbose --headless --path client res://Tests/InputContract.tscn > artifacts/journey/logs/input.log 2>&1
+          timeout 120 "$GODOT_BIN" --verbose --headless --path client res://Tests/PlayerExperienceContract.tscn > artifacts/journey/logs/experience.log 2>&1
+          timeout 120 "$GODOT_BIN" --verbose --headless --path client res://Tests/ControlRulesContract.tscn > artifacts/journey/logs/control-rules.log 2>&1
+          timeout 120 "$GODOT_BIN" --verbose --headless --path client res://Tests/XpHudAcceptanceContract.tscn > artifacts/journey/logs/xp-hud.log 2>&1
+          for log in import signals input experience control-rules xp-hud; do
+            if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' "artifacts/journey/logs/$log.log"; then exit 1; fi
+          done
+      - name: Verify native gameplay and persisted guidance against a disposable realm
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+          KAIRNFALL_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_visual;Username=kairnfall_test;Password=disposable-ci-database-only
+          ASPNETCORE_URLS: http://127.0.0.1:5077
+          KAIRNFALL_SCREENSHOTS: ${{ github.workspace }}/artifacts/journey/screenshots
+        run: |
+          set -euo pipefail
+          docker exec "$PG_CONTAINER" psql -U kairnfall_test -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE kairnfall_visual;'
+          dotnet src/Kairnfall.Server/bin/Release/net10.0/Kairnfall.Server.dll > artifacts/journey/logs/server.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true' EXIT
+          for n in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:5077/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:5077/health
+          timeout 120 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy -- --smoke > artifacts/journey/logs/live-client.log 2>&1
+          for image in 01-world 02-inventory 03-skills 04-map; do test -s "artifacts/journey/screenshots/$image.png"; done
+          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/journey/logs/live-client.log; then exit 1; fi
+          timeout 240 xvfb-run -a -s '-screen 0 1920x1080x24' "$GODOT_BIN" --verbose --path client --rendering-method gl_compatibility --audio-driver Dummy res://Tests/LiveExperienceContract.tscn > artifacts/journey/logs/live-experience.log 2>&1
+          if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' artifacts/journey/logs/live-experience.log; then exit 1; fi
+      - name: Bounded diagnostic evidence
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('artifacts/journey')
+          revision = root / 'revision.txt'
+          print('EXACT_SOURCE:', revision.read_text().strip() if revision.exists() else 'NOT PRODUCED')
+          for path in sorted((root / 'logs').glob('*.log')):
+              lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
+              markers = [line for line in lines if any(key in line for key in ('CONTRACT:', 'RESULT:', 'JOURNEY', 'ERROR:', 'Unhandled exception', 'failed;', 'failed=','Traceback'))]
+              print('\n=== ' + path.name + ' ===')
+              print('\n'.join((markers[-30:] if markers else lines[-10:]))[-10000:])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: new-player-journey-${{ github.sha }}
+          path: artifacts/journey/
+          retention-days: 14
+          if-no-files-found: error

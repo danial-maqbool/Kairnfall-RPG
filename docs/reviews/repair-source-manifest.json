@@ -1,0 +1,18 @@
+{
+  "base_commit": "5ea0ff9753e3aeabfad4610b25c839d38d49c0df",
+  "original_blobs": {
+    "src/Kairnfall.Core/Models.cs": "4b8c6792b44ebd38382a51c60a0e497a6ef4138c",
+    "src/Kairnfall.Core/Mechanics.cs": "f0e651766b8810c7276f4d74373821723fe92061",
+    "src/Kairnfall.Core/RealmCombat.cs": "997ec7dc57b30a4aa3a3d0ceabb91121740d1a33",
+    "src/Kairnfall.Core/RealmEngine.cs": "ada64928b080314bb2537e942d1a457d873d3eec",
+    "src/Kairnfall.Server/RealmStore.cs": "69643d7a0dc1ba22a08f41d726aea0691ef5d571"
+  },
+  "result_blobs": {
+    "src/Kairnfall.Core/Models.cs": "dd7f2bac3b03498b747b0512746ecee2b0a7983b",
+    "src/Kairnfall.Core/Mechanics.cs": "698cbf88110b06fac4b21d2e1cf2e36f261d83c3",
+    "src/Kairnfall.Core/RealmCombat.cs": "889b1c546788b9422d9af36ba6dccad000338edd",
+    "src/Kairnfall.Core/RealmEngine.cs": "ab90732ca089c5f7edfe48b3c9950c0494c11d01",
+    "src/Kairnfall.Server/RealmStore.cs": "f2b15d5f155d4caf7b49b5ea83e135292475884e"
+  },
+  "note": "This records source provenance. Test outcomes are in workflow artifacts, not inferred from this file."
+}

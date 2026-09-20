@@ -1,0 +1,22 @@
+{
+  "validation_revision": 1,
+  "actor_runtime_source": "Wayfarer original joint construction",
+  "checks": 872995,
+  "base_sheets": 1245,
+  "additional_motion_sheets": 5500,
+  "actor_sheets": 6745,
+  "frame_cells_checked": 415040,
+  "meaningful_motion_checks": 17292,
+  "historical_hashes_replaced": 1245,
+  "actor_historical_fallbacks": 0,
+  "errors": [],
+  "passed": true,
+  "artistic_approval": false,
+  "native_rendering": "not_asserted_by_this_validator",
+  "release_approval": false,
+  "candidate_parent": "1a1370b10a8d4a8577b71a4d855ca252f82a09b4",
+  "candidate_run_id": 35290292846,
+  "native_viewports": 263,
+  "delivery_head_ci": "pending exact-head verification",
+  "workflow_integration": "pending authorized connector commit"
+}

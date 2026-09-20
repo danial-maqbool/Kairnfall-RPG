@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "checkpoint_kind": "local_testing_handoff_not_game_release",
+  "base_main": "c5d80d60f5803958da0a76a61f9aae436f49c310",
+  "server_transaction_fixes": "PR #21, retained from main without replacement",
+  "asset_sources": "38cce77630dbd0a29b71722a4ee9d9e5af5d2e46",
+  "asset_source_selection": "tools subtree from PR #20; no older server or tests copied",
+  "native_button_fix": "f326b9aa87e1f1f5ee143d03d4756813e0165b0c",
+  "native_button_files": ["client/Scripts/ActionButton.cs", "client/Scripts/Ui.cs", "client/Tests/SignalContract.cs", "client/Tests/SignalContract.tscn"],
+  "godot_downloader_source": "3483da3db1a62425634a6538d9d1f2cfbf85139a",
+  "canonical_asset_builder": "tools/build_game_assets.py",
+  "canonical_asset_validator": "tools/validate_game_assets.py",
+  "generated_binary_policy": "Regenerate from checked-in source. Do not depend on expiring Actions artifact URLs.",
+  "full_game_acceptance": "not_established",
+  "sprite_visual_acceptance": "not_approved",
+  "windows_packaged_runtime_acceptance": "not_established"
+}

@@ -1,0 +1,180 @@
+name: Release operations acceptance
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/release-candidate.trigger'
+      - 'src/**'
+      - 'client/**'
+      - 'tools/operations/**'
+      - 'tools/package_probe/**'
+      - 'tools/new_player_probe/**'
+      - 'tools/documentation_contract.py'
+      - 'tests/handoff/test_onboarding_evidence.py'
+      - 'docs/handoff/CURRENT_EVIDENCE.json'
+      - 'content/**'
+      - 'content_src/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-operations-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  database-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_ops
+          POSTGRES_PASSWORD: disposable-ops-ci-only
+          POSTGRES_DB: kairnfall_ops_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_ops -d kairnfall_ops_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SOURCE_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_ops_test;Username=kairnfall_ops;Password=disposable-ops-ci-only;SSL Mode=Disable
+      RESTORE_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_restore_test;Username=kairnfall_ops;Password=disposable-ops-ci-only;SSL Mode=Disable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Generate content and compile operational candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/release-operations
+          python3 tools/build_content.py | tee artifacts/release-operations/content.log
+          dotnet build src/Kairnfall.Server/Kairnfall.Server.csproj -c Release | tee artifacts/release-operations/server-build.log
+          dotnet build tools/package_probe/Kairnfall.PackageProbe.csproj -c Release | tee artifacts/release-operations/probe-build.log
+          dotnet build tools/operations/Kairnfall.Operations.csproj -c Release | tee artifacts/release-operations/operations-build.log
+      - name: Bind PostgreSQL 18 dump and restore clients from the service container
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PG_CONTAINER=${{ job.services.postgres.id }}" >> "$GITHUB_ENV"
+          dump_wrapper="$RUNNER_TEMP/kairnfall-pg-dump18"
+          restore_wrapper="$RUNNER_TEMP/kairnfall-pg-restore18"
+          cat > "$dump_wrapper" <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker exec -i -e PGHOST=127.0.0.1 -e PGPORT=5432 -e PGDATABASE="$PGDATABASE" -e PGUSER="$PGUSER" -e PGPASSWORD="$PGPASSWORD" "$PG_CONTAINER" pg_dump "$@"
+          SH
+          cat > "$restore_wrapper" <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker exec -i -e PGHOST=127.0.0.1 -e PGPORT=5432 -e PGDATABASE="$PGDATABASE" -e PGUSER="$PGUSER" -e PGPASSWORD="$PGPASSWORD" "$PG_CONTAINER" pg_restore "$@"
+          SH
+          chmod +x "$dump_wrapper" "$restore_wrapper"
+          echo "KAIRNFALL_PG_DUMP=$dump_wrapper" >> "$GITHUB_ENV"
+          echo "KAIRNFALL_PG_RESTORE=$restore_wrapper" >> "$GITHUB_ENV"
+      - name: Run backup restore rollback and fail-closed operations drill
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_dll="$GITHUB_WORKSPACE/src/Kairnfall.Server/bin/Release/net10.0/Kairnfall.Server.dll"
+          probe="dotnet run --no-build --project tools/package_probe/Kairnfall.PackageProbe.csproj -c Release --"
+          ops="dotnet run --no-build --project tools/operations/Kairnfall.Operations.csproj -c Release --"
+          before="$RUNNER_TEMP/ops-before.json"
+          after="$RUNNER_TEMP/ops-after.json"
+          dump="$GITHUB_WORKSPACE/artifacts/release-operations/realm.dump"
+          server_pid=''
+
+          start_server() {
+            local db="$1" port="$2" log="$3"
+            KAIRNFALL_DB="$db" KAIRNFALL_ALLOW_LOCAL_HTTP=1 ASPNETCORE_ENVIRONMENT=Testing ASPNETCORE_URLS="http://127.0.0.1:$port" \
+              dotnet "$server_dll" >"$log" 2>&1 &
+            server_pid=$!
+            for _ in $(seq 1 100); do
+              if ! kill -0 "$server_pid" 2>/dev/null; then wait "$server_pid" || true; echo "Server exited before readiness; see $log" >&2; return 1; fi
+              if curl --silent --fail "http://127.0.0.1:$port/health" >/dev/null; then return 0; fi
+              sleep .2
+            done
+            echo "Server did not become ready; see $log" >&2; return 1
+          }
+          stop_server() {
+            local pid="$server_pid"
+            kill -TERM "$pid"
+            for _ in $(seq 1 75); do
+              if ! kill -0 "$pid" 2>/dev/null; then wait "$pid" || true; server_pid=''; return 0; fi
+              sleep .2
+            done
+            echo "Server failed to stop gracefully within 15 seconds." >&2
+            kill -KILL "$pid" 2>/dev/null || true
+            wait "$pid" || true
+            return 1
+          }
+          cleanup() { if [ -n "$server_pid" ] && kill -0 "$server_pid" 2>/dev/null; then kill -KILL "$server_pid" || true; fi; }
+          trap cleanup EXIT
+
+          start_server "$SOURCE_DB" 5093 artifacts/release-operations/source-before.log
+          $probe create http://127.0.0.1:5093 "$before" | tee artifacts/release-operations/probe-before.log
+          stop_server
+
+          KAIRNFALL_DB="$SOURCE_DB" $ops backup "$dump" | tee artifacts/release-operations/backup.log
+          $ops verify "$dump" | tee artifacts/release-operations/verify.log
+
+          start_server "$SOURCE_DB" 5093 artifacts/release-operations/source-after.log
+          $probe create http://127.0.0.1:5093 "$after" | tee artifacts/release-operations/probe-after.log
+          stop_server
+
+          docker exec "$PG_CONTAINER" createdb -U kairnfall_ops kairnfall_restore_test
+          KAIRNFALL_DB="$RESTORE_DB" $ops restore "$dump" | tee artifacts/release-operations/restore.log
+
+          start_server "$RESTORE_DB" 5094 artifacts/release-operations/restored.log
+          $probe reconnect http://127.0.0.1:5094 "$before" | tee artifacts/release-operations/reconnect-before.log
+          if $probe reconnect http://127.0.0.1:5094 "$after" >artifacts/release-operations/reconnect-after-unexpected.log 2>&1; then
+            echo 'Post-backup account unexpectedly survived rollback restore.' >&2; exit 1
+          fi
+
+          KAIRNFALL_DB="$RESTORE_DB" KAIRNFALL_ALLOW_LOCAL_HTTP=1 ASPNETCORE_ENVIRONMENT=Testing ASPNETCORE_URLS=http://127.0.0.1:5095 \
+            dotnet "$server_dll" >artifacts/release-operations/duplicate-writer.log 2>&1 &
+          duplicate_pid=$!
+          for _ in $(seq 1 50); do if ! kill -0 "$duplicate_pid" 2>/dev/null; then break; fi; sleep .2; done
+          if kill -0 "$duplicate_pid" 2>/dev/null; then kill -KILL "$duplicate_pid" || true; wait "$duplicate_pid" || true; echo 'Second authoritative writer did not fail closed.' >&2; exit 1; fi
+          wait "$duplicate_pid" || true
+          grep -F 'Another server already owns this realm database' artifacts/release-operations/duplicate-writer.log >/dev/null
+          curl --silent --fail http://127.0.0.1:5094/health >/dev/null
+          stop_server
+
+          docker exec "$PG_CONTAINER" psql -U kairnfall_ops -d kairnfall_restore_test -v ON_ERROR_STOP=1 -c 'INSERT INTO schema_versions(version) VALUES(2);' >/dev/null
+          KAIRNFALL_DB="$RESTORE_DB" KAIRNFALL_ALLOW_LOCAL_HTTP=1 ASPNETCORE_ENVIRONMENT=Testing ASPNETCORE_URLS=http://127.0.0.1:5096 \
+            dotnet "$server_dll" >artifacts/release-operations/future-schema.log 2>&1 &
+          incompatible_pid=$!
+          for _ in $(seq 1 50); do if ! kill -0 "$incompatible_pid" 2>/dev/null; then break; fi; sleep .2; done
+          if kill -0 "$incompatible_pid" 2>/dev/null; then kill -KILL "$incompatible_pid" || true; wait "$incompatible_pid" || true; echo 'Server accepted an unsupported future schema.' >&2; exit 1; fi
+          wait "$incompatible_pid" || true
+          grep -F 'Unsupported database schema history [1,2]' artifacts/release-operations/future-schema.log >/dev/null
+          docker exec "$PG_CONTAINER" psql -U kairnfall_ops -d kairnfall_restore_test -v ON_ERROR_STOP=1 -c 'DELETE FROM schema_versions WHERE version=2;' >/dev/null
+
+          start_server "$RESTORE_DB" 5097 artifacts/release-operations/restored-after-schema-test.log
+          $probe reconnect http://127.0.0.1:5097 "$before" | tee artifacts/release-operations/reconnect-final.log
+          stop_server
+
+          tampered="$GITHUB_WORKSPACE/artifacts/release-operations/tampered.dump"
+          cp "$dump" "$tampered"; cp "$dump.json" "$tampered.json"; cp "$dump.sha256" "$tampered.sha256"
+          printf 'tamper' >> "$tampered"
+          if $ops verify "$tampered" >artifacts/release-operations/tamper-unexpected.log 2>&1; then echo 'Tampered backup passed verification.' >&2; exit 1; fi
+          rm -f "$tampered" "$tampered.json" "$tampered.sha256" "$dump"
+          if grep -R -F 'disposable-ops-ci-only' artifacts/release-operations --include='*.log'; then echo 'Database credential leaked into operational logs.' >&2; exit 1; fi
+          echo 'RELEASE_OPERATIONS_ACCEPTANCE: readiness, graceful stop, backup checksum, fresh restore, rollback boundary, duplicate-writer rejection, future-schema rejection, and reconnect recovery passed.' | tee artifacts/release-operations/acceptance.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-operations-${{ github.sha }}
+          path: |
+            artifacts/release-operations/*.log
+            artifacts/release-operations/*.json
+            artifacts/release-operations/*.sha256
+          retention-days: 14
+          if-no-files-found: error

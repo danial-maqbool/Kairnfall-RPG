@@ -1,0 +1,67 @@
+name: Task 13 adversarial acceptance
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: task13-adversarial-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  adversarial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KAIRNFALL_TEST_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_DB_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Generate deterministic content
+        run: |
+          mkdir -p artifacts/logs artifacts/test-results
+          python3 tools/build_content.py | tee artifacts/logs/task13-content.log
+      - name: Compile audited source and test projects
+        run: dotnet build Kairnfall.slnx -c Release | tee artifacts/logs/task13-build.log
+      - name: Run Task 13 adversarial acceptance scenarios
+        run: dotnet run --no-build --project tests/IndependentQA/IndependentQA.csproj -c Release -- content/catalog.json | tee artifacts/logs/task13-adversarial.log
+      - name: Re-run transaction consent and privacy security regressions
+        run: dotnet run --no-build --project tests/Kairnfall.SecurityTests/Kairnfall.SecurityTests.csproj -c Release -- content/catalog.json | tee artifacts/logs/task13-security.log
+      - name: Re-run gameplay and malformed-input review suite
+        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release | tee artifacts/logs/task13-review.log
+      - name: Re-run world reachability, persistence, and social checks
+        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee artifacts/logs/task13-world.log
+      - name: Re-run authoritative concurrency checks
+        run: dotnet run --no-build --project tools/concurrency_probe/Kairnfall.ConcurrencyProbe.csproj -c Release -- content/catalog.json | tee artifacts/logs/task13-concurrency.log
+      - name: Re-run PostgreSQL and real-network integration checks
+        run: dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release | tee artifacts/logs/task13-network.log
+      - name: Re-run isolated PostgreSQL save-conflict checks
+        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database | tee artifacts/logs/task13-database.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: task13-adversarial-evidence-${{ github.sha }}
+          path: |
+            artifacts/test-results/
+            artifacts/logs/
+          retention-days: 7
+          if-no-files-found: error

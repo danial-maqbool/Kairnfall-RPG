@@ -1,0 +1,50 @@
+name: Transaction integrity on Windows and Linux
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/release-candidate.trigger'
+      - 'src/**'
+      - 'client/**'
+      - 'tests/Kairnfall.SecurityTests/**'
+      - 'tools/security_probe/**'
+      - 'tools/new_player_probe/**'
+      - 'tools/documentation_contract.py'
+      - 'tests/handoff/test_onboarding_evidence.py'
+      - 'docs/handoff/CURRENT_EVIDENCE.json'
+      - '.github/workflows/**'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: transaction-integrity-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  security:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: python tools/build_content.py
+      - name: Run transaction security regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/security
+          dotnet run --project tests/Kairnfall.SecurityTests -c Release -- content/catalog.json | tee artifacts/security/results.log
+          dotnet run --project tools/security_probe/SecurityProbe.csproj -c Release -- content/catalog.json | tee artifacts/security/session-status.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: transaction-integrity-${{ matrix.os }}-${{ github.sha }}
+          path: artifacts/security/
+          retention-days: 14

@@ -1,0 +1,222 @@
+{
+  "schema": 1,
+  "statusDate": "2026-09-20",
+  "currentTask": "smoothness-performance-polish",
+  "checkpoint": 0,
+  "repository": "danial-maqbool/Kairnfall-RPG",
+  "persistentBranches": [
+    "main"
+  ],
+  "startingMain": "1a4704fee2194bf3b9c51eb28b6e7408a7c1e72e",
+  "inheritedSmoothnessRevision": "1a4704fee2194bf3b9c51eb28b6e7408a7c1e72e",
+  "implementationBaseline": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+  "preservedCombatBaseline": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
+  "preservedCombatDelivery": "bc9561846cd480c1e899190cb9b6f2df75a30176",
+  "historicalCombatEvidence": "docs/handoff/COMBAT_EVIDENCE_2026-09-18.json",
+  "historicalCombatEvidenceBlob": "cf1a93b5cd2481dcc1de86ec10c72469d3828fc0",
+  "repositorySideCheckpoint0Complete": true,
+  "serverAuthoritative": true,
+  "oldSavesCompatible": true,
+  "temporaryToolingRemoved": true,
+  "gameplaySourceChangedInCheckpoint0": false,
+  "combatBalanceChanged": false,
+  "movementSpeedChanged": false,
+  "tickFrequencyChanged": false,
+  "publicationReady": false,
+  "releasePublished": false,
+  "deployed": false,
+  "performanceTargetClaimed": false,
+  "authorization": {
+    "implementationAuthorized": true,
+    "publicationAuthorized": false,
+    "deploymentAuthorized": false,
+    "productionInfrastructureChanged": false
+  },
+  "releaseStatus": "NOT APPROVED — human acceptance remains.",
+  "nativeAcceptancePlatforms": [
+    "linux",
+    "windows"
+  ],
+  "implementationWorkflows": [
+    {
+      "name": "Transaction security regression",
+      "runId": 35469863332,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": []
+    },
+    {
+      "name": "Compile Windows client source",
+      "runId": 35469876533,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592941561
+      ]
+    },
+    {
+      "name": "Live progression breadth",
+      "runId": 35469878585,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592048370
+      ]
+    },
+    {
+      "name": "Windows package acceptance",
+      "runId": 35469880577,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10591943555
+      ]
+    },
+    {
+      "name": "Graphical multiplayer acceptance",
+      "runId": 35469882629,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592527660
+      ]
+    },
+    {
+      "name": "Load acceptance",
+      "runId": 35469863375,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10591739405
+      ]
+    },
+    {
+      "name": "Build and verify",
+      "runId": 35469863335,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592352440,
+        10592267720
+      ]
+    },
+    {
+      "name": "Task 13 adversarial acceptance",
+      "runId": 35469863344,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592637242
+      ]
+    },
+    {
+      "name": "Release operations acceptance",
+      "runId": 35469863431,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592961215
+      ]
+    },
+    {
+      "name": "Transaction integrity on Windows and Linux",
+      "runId": 35469863325,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592961158,
+        10592167709
+      ]
+    },
+    {
+      "name": "New-player journey",
+      "runId": 35469863323,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592348125
+      ]
+    },
+    {
+      "name": "Character sprite acceptance",
+      "runId": 35469885192,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592038696,
+        10591993750
+      ]
+    },
+    {
+      "name": "Visual acceptance matrix",
+      "runId": 35469887730,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592952154
+      ]
+    },
+    {
+      "name": "Windows display and input acceptance",
+      "runId": 35469890700,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592173292
+      ]
+    },
+    {
+      "name": "Audio acceptance",
+      "runId": 35469892924,
+      "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+      "conclusion": "success",
+      "artifactIds": [
+        10592462086
+      ]
+    }
+  ],
+  "preSyncDocumentation": {
+    "runId": 35469863304,
+    "headSha": "7175292ed9521c718c99c9fbbccc80b54374d9af",
+    "conclusion": "failure",
+    "reason": "Expected pre-synchronization rejection: active CURRENT_EVIDENCE.json still named the historical combat implementation. All 34 evidence regression tests passed before the stale-ledger guard rejected it."
+  },
+  "inheritedSmoothnessVerification": {
+    "priorHead": "1a4704fee2194bf3b9c51eb28b6e7408a7c1e72e",
+    "successfulPushWorkflows": 14,
+    "documentationRunId": 35409060481,
+    "documentationConclusion": "failure",
+    "documentationReason": "Combat implementation evidence is stale.",
+    "changedClientPaths": [
+      "client/Scripts/WorldView.CharacterMotion.cs",
+      "client/Scripts/WorldView.cs",
+      "client/Tests/CharacterPresentationContract.cs"
+    ]
+  },
+  "checkpoint0Footprint": [
+    "docs/handoff/COMBAT_EVIDENCE_2026-09-18.json",
+    "tests/handoff/test_smoothness_evidence.py",
+    "tools/documentation_contract.py",
+    "tools/smoothness_delivery_contract.py"
+  ],
+  "humanOnlyGates": [
+    "Owner Windows performance and smoothness acceptance on reported target hardware",
+    "Owner Windows camera and input-feel acceptance after the later camera/control checkpoints",
+    "Independent visual and readability review in ordinary play",
+    "Audio listening approval",
+    "Physical Windows DPI and hardware-input inspection on owner hardware",
+    "Full ordinary-account multiplayer/world walkthrough",
+    "Production-scale validation before any capacity claim"
+  ],
+  "releaseApproval": {
+    "status": "NOT APPROVED — human acceptance remains.",
+    "performance": false,
+    "smoothness": false,
+    "camera": false,
+    "gameplayFeel": false,
+    "art": false,
+    "audio": false,
+    "scale": false
+  },
+  "nextAction": "Checkpoint 1: add bounded repeatable client frame-pacing and motion diagnostics, then establish comparable baselines before optimization."
+}

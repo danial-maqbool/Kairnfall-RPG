@@ -1,0 +1,111 @@
+name: Build and verify
+on:
+  push:
+    branches: [main, 'team/**']
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kairnfall_test
+          POSTGRES_PASSWORD: disposable-ci-database-only
+          POSTGRES_DB: kairnfall_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kairnfall_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KAIRNFALL_TEST_DB: Host=127.0.0.1;Port=5432;Database=kairnfall_test;Username=kairnfall_test;Password=disposable-ci-database-only
+      KAIRNFALL_ALLOW_DB_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Generate and validate deterministic content
+        run: |
+          mkdir -p artifacts/logs artifacts/test-results
+          python3 tools/build_content.py | tee artifacts/logs/content.log
+      - name: Compile every implemented project
+        run: dotnet build Kairnfall.slnx -c Release | tee artifacts/logs/build.log
+      - name: Run existing core regression suite
+        run: dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json | tee artifacts/logs/core.log
+      - name: Run gameplay and malformed-input regressions
+        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release | tee artifacts/logs/review-core.log
+      - name: Validate walkable world destinations and old-save geometry recovery
+        run: dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee artifacts/logs/world.log
+      - name: Run authoritative multiplayer concurrency regressions
+        run: dotnet run --no-build --project tools/concurrency_probe/Kairnfall.ConcurrencyProbe.csproj -c Release -- content/catalog.json | tee artifacts/logs/concurrency.log
+      - name: Run PostgreSQL and real-network integration suite
+        run: dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release | tee artifacts/logs/network.log
+      - name: Run isolated PostgreSQL save-conflict tests
+        run: dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database | tee artifacts/logs/review-database.log
+      - name: Preserve exact source and test evidence
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          root = Path('.')
+          folders = ['src','tests','tools','content_src','content','client','docs','.github']
+          with zipfile.ZipFile('kairnfall-source.zip', 'w', zipfile.ZIP_DEFLATED) as out:
+              for folder in folders:
+                  for path in (root/folder).rglob('*'):
+                      if path.is_file() and not any(p in {'bin','obj','.godot','__pycache__'} for p in path.parts):
+                          out.write(path, path.as_posix())
+              for pattern in ['*.props','*.json','*.slnx','*.ps1','*.yml','LICENSE','README.md','AGENTS.md','.gitignore','.env.example']:
+                  for path in root.glob(pattern):
+                      if path.is_file():
+                          out.write(path, path.as_posix())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-and-test-evidence-${{ github.sha }}
+          path: |
+            kairnfall-source.zip
+            artifacts/test-results/
+            artifacts/logs/
+          retention-days: 7
+          if-no-files-found: error
+  windows-core:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build and run the core suites through the Windows test script
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/logs | Out-Null
+          ./Test-Kairnfall.ps1 *>&1 | Tee-Object -FilePath artifacts/logs/windows-core.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-core-evidence-${{ github.sha }}
+          path: |
+            artifacts/test-results/
+            artifacts/logs/
+          retention-days: 7
+          if-no-files-found: error

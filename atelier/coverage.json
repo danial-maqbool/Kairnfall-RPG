@@ -1,0 +1,18 @@
+{
+  "groups": {
+    "abilities": 132,
+    "buildings": 164,
+    "chests": 14,
+    "gear": 616,
+    "items": 1426,
+    "props": 23,
+    "resources": 41,
+    "skills": 60,
+    "structures": 5,
+    "terrain": 52
+  },
+  "png_files": 2533,
+  "animation_sheets": 0,
+  "audio_files": 22,
+  "artistic_review": "pending"
+}

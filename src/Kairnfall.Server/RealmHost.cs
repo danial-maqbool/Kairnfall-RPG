@@ -1,0 +1,326 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Net.WebSockets;
+using System.Text.Json;
+using System.Threading.Channels;
+using Kairnfall.Core;
+
+namespace Kairnfall.Server;
+
+public sealed class RealmHost(Catalog catalog, RealmStore store, AccountStore accounts, IHostApplicationLifetime lifetime, ILogger<RealmHost> logger) : BackgroundService
+{
+    private sealed record SnapshotFrame(byte[] RealmJson, string[] Active, Peer[] Peers);
+    private readonly SemaphoreSlim gate = new(1, 1);
+    private readonly SemaphoreSlim persistGate = new(1, 1);
+    private readonly ConcurrentDictionary<string, Peer> peers = new();
+    private readonly Queue<double> tickDurations = new();
+    private readonly Channel<SnapshotFrame> snapshotFrames = Channel.CreateBounded<SnapshotFrame>(new BoundedChannelOptions(1)
+    {
+        SingleReader = true,
+        SingleWriter = true,
+        FullMode = BoundedChannelFullMode.DropOldest
+    });
+    private RealmEngine? engine;
+    private volatile bool ready;
+    private long ticks, overruns, commits, mutationGeneration, persistedGeneration;
+    private double lastPeriodicSave;
+    private DateTimeOffset nextSessionCheck = DateTimeOffset.UtcNow.AddSeconds(30);
+    public bool Ready => ready;
+    private RealmEngine Engine => engine ?? throw new InvalidOperationException("The realm has not started.");
+    private CancellationToken PersistenceToken => lifetime?.ApplicationStopping ?? CancellationToken.None;
+
+    public override async Task StartAsync(CancellationToken cancel)
+    {
+        await store.InitializeAsync(cancel);
+        var saved = await store.LoadAsync(cancel);
+        engine = new RealmEngine(catalog, saved?.State);
+        if (saved is not null) engine.Loot = saved.Loot;
+        engine.RecoverLegacyLootPositions();
+        engine.ResetTransientConnectionState();
+        PersistenceIntegrity.RequireValid(engine);
+        ValidatePersistentState(engine);
+        await store.SaveAsync(engine, cancel); commits++;
+        ready = true;
+        logger.LogInformation("Realm ready. Protocol {Protocol}; revision {Revision}; {Zones} connected zones.", Wire.Version, engine.State.Revision, catalog.Zones.Count);
+        await base.StartAsync(cancel);
+    }
+    private static void ValidatePersistentState(RealmEngine realm)
+    {
+        var errors = Items.Validate(realm.State, realm.Data);
+        var ids = new HashSet<string>();
+        foreach (var character in realm.State.Characters.Values)
+        {
+            foreach (var item in character.Inventory.Concat(character.Bank)) { ids.Add(item.Id); foreach (var rune in item.Runes) ids.Add(rune.Id); }
+            var zone = realm.Data.Zones.FirstOrDefault(x => x.Id == character.Zone);
+            if (zone is null || !WorldMap.Fits(zone, character.Position) || !double.IsFinite(character.Health) || !double.IsFinite(character.Mana) || !double.IsFinite(character.Stamina)) errors.Add("Invalid persisted character position or statistics: " + character.Id);
+        }
+        foreach (var auction in realm.State.Auctions.Values) { ids.Add(auction.Item.Id); foreach (var rune in auction.Item.Runes) ids.Add(rune.Id); }
+        foreach (var pile in realm.Loot.Values)
+        {
+            if (pile.Gold < 0 || pile.Gold > Items.GoldCap) errors.Add("Invalid persisted loot gold.");
+            foreach (var item in pile.Items)
+            {
+                var definition = realm.Data.Items.FirstOrDefault(x => x.Id == item.Template);
+                if (definition is null || item.Quantity < 1 || item.Quantity > definition.StackMax || !ids.Add(item.Id)) errors.Add("Invalid or duplicated persisted loot item.");
+                foreach (var rune in item.Runes) if (!ids.Add(rune.Id)) errors.Add("Duplicated persisted rune.");
+            }
+        }
+        if (errors.Count > 0) throw new InvalidDataException(string.Join("\n", errors));
+    }
+    private void RequireReady() { if (!ready) throw new RuleException("The realm is not available. Reconnect after the server recovers."); }
+    public async Task<T> ReadAsync<T>(Func<RealmEngine, T> read, CancellationToken cancel)
+    {
+        await gate.WaitAsync(cancel);
+        try { RequireReady(); return read(Engine); }
+        finally { gate.Release(); }
+    }
+    public async Task<T> WriteAsync<T>(Func<RealmEngine, T> write, CancellationToken cancel)
+    {
+        await gate.WaitAsync(cancel);
+        try { RequireReady(); var result = write(Engine); await PersistAsync(PersistenceToken); return result; }
+        catch (RuleException) { throw; }
+        catch (OperationCanceledException) when (PersistenceToken.IsCancellationRequested) { throw; }
+        catch (Exception error) { FailClosed(error); throw new RuleException("The server could not confirm the operation. Reconnect before retrying."); }
+        finally { gate.Release(); }
+    }
+    private async Task PersistAsync(CancellationToken cancel)
+    {
+        ValidatePersistentState(Engine);
+        await store.SaveAsync(Engine, cancel); commits++; lastPeriodicSave = Engine.State.Time;
+        Volatile.Write(ref persistedGeneration, Volatile.Read(ref mutationGeneration));
+    }
+    private async Task EnsurePersistedAsync(long generation, CancellationToken cancel)
+    {
+        if (Volatile.Read(ref persistedGeneration) >= generation) return;
+        await persistGate.WaitAsync(cancel);
+        try
+        {
+            if (Volatile.Read(ref persistedGeneration) >= generation) return;
+            // Give simultaneously-arriving commands a tiny window to finish their fast,
+            // authoritative in-memory mutation. The first waiter then checkpoints all
+            // generations reached so far in one full realm snapshot. Every caller still
+            // waits for a durable checkpoint containing its own generation before success
+            // can be acknowledged.
+            await Task.Delay(5, cancel);
+            await gate.WaitAsync(cancel);
+            try
+            {
+                RequireReady();
+                if (Volatile.Read(ref persistedGeneration) < generation) await PersistAsync(cancel);
+            }
+            finally { gate.Release(); }
+        }
+        finally { persistGate.Release(); }
+    }
+    private void FailClosed(Exception error)
+    {
+        ready = false;
+        logger.LogCritical(error, "The authoritative realm stopped because state could not be verified or persisted. No success acknowledgement was sent for the failed operation.");
+        foreach (var peer in peers.Values) peer.Abort();
+        lifetime.StopApplication();
+    }
+    public async Task<Peer> AttachAsync(WebSocket socket, AccountSession session, string character, CancellationToken cancel)
+    {
+        await gate.WaitAsync(cancel);
+        try
+        {
+            RequireReady();
+            if (session.Expires <= DateTimeOffset.UtcNow) throw new RuleException("Your session expired. Sign in again.");
+            var player = Engine.Player(character);
+            if (player.Account != session.AccountId) throw new RuleException("This character does not belong to the signed-in account.");
+            if (peers.ContainsKey(character) || peers.Values.Any(x => x.Session.AccountId == session.AccountId)) throw new RuleException("This account already has an active character connection.");
+            var peer = new Peer(socket, session, character);
+            if (!peers.TryAdd(character, peer)) throw new RuleException("This character is already connected.");
+            Engine.Active.Add(character); SendSnapshot(peer); return peer;
+        }
+        finally { gate.Release(); }
+    }
+    public async Task HandleCommandAsync(Peer peer, GameCommand command, CancellationToken cancel)
+    {
+        if (command.Kind is null || command.Target is null || command.Item is null || command.Arg is null || command.RequestId is null)
+        { peer.Enqueue(new() { Kind = "error", Error = "Command fields cannot be null." }); return; }
+        if (!peer.AcceptRate(command.Kind)) { peer.Enqueue(new() { Kind = "error", Error = "Too many commands. Reduce the input rate." }); return; }
+        CommandResult? result = null;
+        long generation = 0;
+        try
+        {
+            await gate.WaitAsync(cancel);
+            try
+            {
+                RequireReady();
+                if (!peers.TryGetValue(peer.CharacterId, out var current) || !ReferenceEquals(current, peer)) throw new RuleException("This connection is no longer active.");
+                // Check after acquiring the gate: queued commands must not retain
+                // authority across expiry or connection revocation.
+                if (peer.Closed.IsCancellationRequested || peer.Session.Expires <= DateTimeOffset.UtcNow)
+                {
+                    peer.Abort();
+                    return;
+                }
+                result = Engine.Execute(peer.CharacterId, command);
+                if (command.Kind == "move")
+                {
+                    if (!result.Ok) peer.Enqueue(new() { Kind = "result", Result = result });
+                    return;
+                }
+                if (result.Ok) generation = ++mutationGeneration;
+            }
+            finally { gate.Release(); }
+
+            // Once an authoritative mutation succeeds, its durability belongs to the realm,
+            // not the socket that submitted it. A disconnect may suppress the acknowledgement,
+            // but it must not cancel the checkpoint or stop the entire realm.
+            if (generation > 0) await EnsurePersistedAsync(generation, PersistenceToken);
+
+            await gate.WaitAsync(cancel);
+            try
+            {
+                RequireReady();
+                if (peers.TryGetValue(peer.CharacterId, out var current) && ReferenceEquals(current, peer))
+                {
+                    peer.Enqueue(new() { Kind = "result", Result = result });
+                    FlushChat();
+                    SendSnapshot(peer);
+                }
+                else FlushChat();
+            }
+            finally { gate.Release(); }
+        }
+        catch (RuleException error) { peer.Enqueue(new() { Kind = "error", Error = error.Message }); }
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (PersistenceToken.IsCancellationRequested) { }
+        catch (Exception error) { FailClosed(error); }
+    }
+    private void SendSnapshot(Peer peer) => peer.Enqueue(SnapshotPackets.Create(Engine, peer.CharacterId));
+    private void QueueSnapshotFrame()
+    {
+        // Freeze one consistent authoritative realm image while holding the state lock.
+        // The expensive per-peer visibility/projection work happens on the detached copy.
+        var json = JsonSerializer.SerializeToUtf8Bytes(new RealmSave { State = Engine.State, Loot = Engine.Loot }, Wire.Json);
+        snapshotFrames.Writer.TryWrite(new SnapshotFrame(json, Engine.Active.ToArray(), peers.Values.ToArray()));
+    }
+    private async Task SnapshotLoopAsync(CancellationToken cancel)
+    {
+        try
+        {
+            while (await snapshotFrames.Reader.WaitToReadAsync(cancel))
+            {
+                SnapshotFrame? frame = null;
+                while (snapshotFrames.Reader.TryRead(out var next)) frame = next;
+                if (frame is null) continue;
+                var save = JsonSerializer.Deserialize<RealmSave>(frame.RealmJson, Wire.Json) ?? throw new InvalidDataException("Frozen snapshot state could not be decoded.");
+                foreach (var character in save.State.Characters.Values)
+                {
+                    character.Account = "";
+                    character.Receipts.Clear();
+                }
+                var frozen = new RealmEngine(catalog, save.State) { Loot = save.Loot };
+                foreach (var id in frame.Active) frozen.Active.Add(id);
+                foreach (var peer in frame.Peers)
+                {
+                    if (peer.Closed.IsCancellationRequested || !frozen.State.Characters.ContainsKey(peer.CharacterId)) continue;
+                    peer.Enqueue(SnapshotPackets.CreateFrozen(frozen, peer.CharacterId));
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
+        catch (Exception error) { FailClosed(error); }
+    }
+    private void FlushChat()
+    {
+        foreach (var message in Engine.OutgoingChat)
+            foreach (var peer in peers.Values)
+                if (Engine.CanReceiveChat(peer.CharacterId, message)) peer.Enqueue(new() { Kind = "chat", Chat = message });
+        Engine.OutgoingChat.Clear();
+    }
+    public async Task DetachAsync(Peer peer, CancellationToken cancel)
+    {
+        var persistenceCancel = PersistenceToken;
+        peer.Abort(); await gate.WaitAsync(persistenceCancel);
+        try
+        {
+            if (peers.TryGetValue(peer.CharacterId, out var current) && ReferenceEquals(current, peer))
+            {
+                peers.TryRemove(peer.CharacterId, out _);
+                if (engine is not null) Engine.Disconnect(peer.CharacterId);
+                if (ready) await PersistAsync(persistenceCancel);
+            }
+        }
+        catch (OperationCanceledException) when (persistenceCancel.IsCancellationRequested) { }
+        catch (Exception error) { FailClosed(error); }
+        finally { gate.Release(); }
+    }
+    public void RevokeConnections(string fingerprint)
+    {
+        foreach (var peer in peers.Values.Where(x => x.Session.TokenFingerprint == fingerprint)) peer.Abort();
+    }
+    public void RevokeAccountConnections(string account)
+    {
+        foreach (var peer in peers.Values.Where(x => x.Session.AccountId == account)) peer.Abort();
+    }
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
+        var snapshotTask = SnapshotLoopAsync(stoppingToken);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                var watch = Stopwatch.StartNew(); await gate.WaitAsync(stoppingToken);
+                try
+                {
+                    if (!ready) break;
+                    Engine.Tick(.05); ticks++;
+                    // Commands still persist before acknowledgement. Tick-originated state is
+                    // batched to the existing periodic checkpoint so dynamic world updates do
+                    // not turn every simulation change into a blocking database transaction.
+                    if (Engine.State.Time - lastPeriodicSave >= 5) await PersistAsync(stoppingToken);
+                    FlushChat(); if (ticks % 2 == 0) QueueSnapshotFrame();
+                }
+                finally { gate.Release(); }
+                double elapsed = watch.Elapsed.TotalMilliseconds;
+                lock (tickDurations)
+                {
+                    tickDurations.Enqueue(elapsed); if (tickDurations.Count > 1200) tickDurations.Dequeue(); if (elapsed > 50) overruns++;
+                }
+                if (DateTimeOffset.UtcNow >= nextSessionCheck)
+                {
+                    nextSessionCheck = DateTimeOffset.UtcNow.AddSeconds(30);
+                    foreach (var peer in peers.Values) if (!await accounts.IsSessionValidAsync(peer.Session, stoppingToken)) peer.Abort();
+                }
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+        catch (Exception error) { FailClosed(error); }
+        finally
+        {
+            snapshotFrames.Writer.TryComplete();
+            try { await snapshotTask; }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+        }
+    }
+    public object Diagnostics()
+    {
+        lock (tickDurations)
+        {
+            var values = tickDurations.Order().ToArray();
+            return new { ready, protocol = Wire.Version, online = peers.Count, ticks, overruns, commits,
+                tickAverageMs = values.Length == 0 ? 0 : Math.Round(values.Average(), 3),
+                tickP95Ms = values.Length == 0 ? 0 : Math.Round(values[Math.Min(values.Length - 1, (int)(values.Length * .95))], 3) };
+        }
+    }
+    public override async Task StopAsync(CancellationToken cancel)
+    {
+        bool wasReady = ready; ready = false;
+        foreach (var peer in peers.Values) peer.Abort();
+        await base.StopAsync(cancel); await gate.WaitAsync(cancel);
+        try
+        {
+            if (engine is not null && wasReady)
+            {
+                foreach (var id in Engine.Active.ToList()) Engine.Disconnect(id);
+                await store.SaveAsync(Engine, cancel);
+            }
+        }
+        finally { gate.Release(); await store.DisposeAsync(); }
+    }
+}

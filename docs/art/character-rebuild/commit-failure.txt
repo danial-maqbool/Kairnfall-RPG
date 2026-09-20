@@ -1,0 +1,56 @@
+Candidate run: 35274882082; parent d24d23f2db65f210946dc88a531e6665ab29c45c
+
+FILE: integrate/11_Commit only the tested replacement and remove temporary tooling.txt
+﻿2026-09-17T21:28:32.7477221Z ##[group]Run set -euo pipefail
+2026-09-17T21:28:32.7477513Z [36;1mset -euo pipefail[0m
+2026-09-17T21:28:32.7478015Z [36;1mtest "$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA" || { echo 'main moved; refusing to overwrite concurrent work'; exit 1; }[0m
+2026-09-17T21:28:32.7478532Z [36;1mpython - <<'PY'[0m
+2026-09-17T21:28:32.7478724Z [36;1mimport json, os, shutil[0m
+2026-09-17T21:28:32.7478928Z [36;1mfrom pathlib import Path[0m
+2026-09-17T21:28:32.7479501Z [36;1mreport=json.loads(Path('artifacts/test-results/character-assets.json').read_text())[0m
+2026-09-17T21:28:32.7480158Z [36;1mnative=json.loads(Path('artifacts/character-candidate/native-result.json').read_text())[0m
+2026-09-17T21:28:32.7480677Z [36;1mif not report['passed'] or not native['passed']:raise SystemExit('Candidate evidence is not passing.')[0m
+2026-09-17T21:28:32.7481119Z [36;1mreport['candidate_parent']=os.environ['GITHUB_SHA'][0m
+2026-09-17T21:28:32.7481434Z [36;1mreport['candidate_run_id']=os.environ['GITHUB_RUN_ID'][0m
+2026-09-17T21:28:32.7481779Z [36;1mreport['native_viewports']=native['rendered_viewports'][0m
+2026-09-17T21:28:32.7482107Z [36;1mreport['delivery_head_ci']='pending exact-head verification'[0m
+2026-09-17T21:28:32.7482562Z [36;1mPath('docs/art/character-rebuild/integration-report.json').write_text(json.dumps(report,indent=2)+'\n')[0m
+2026-09-17T21:28:32.7483018Z [36;1mstage=Path('docs/art/character-rebuild/stage-report.json')[0m
+2026-09-17T21:28:32.7483481Z [36;1mvalue=json.loads(stage.read_text());value['runtimeIntegrated']=True;stage.write_text(json.dumps(value,indent=2)+'\n')[0m
+2026-09-17T21:28:32.7486245Z [36;1mtext='# Wayfarer character replacement\n\nThe new character and creature source, complete runtime atlases, additional action sheets, authority cues and native rendering tests are integrated. Prior actor PNGs and authored masters are deleted from the working tree; Git history and saves are retained.\n\nThe accepted candidate is recorded in `integration-report.json`. Permanent Linux and Windows character acceptance must pass at the delivery head before the task is marked verified. Compilation and structural checks do not establish independent artistic approval, ordinary-account play quality or release readiness.\n\nUse `python tools/build_content.py`, `python tools/check_character_source.py`, `python tools/build_game_assets.py`, `python tools/complete_skill_icons.py`, `python tools/validate_character_assets.py`, and `python tools/build_wayfarer_pack.py` to rebuild and verify. The last command compares against committed atlases; `--write` is an explicit source-authoring operation, not a validation step.\n'[0m
+2026-09-17T21:28:32.7488924Z [36;1mPath('docs/CHARACTER_REBUILD.md').write_text(text)[0m
+2026-09-17T21:28:32.7489229Z [36;1mfor name in ('HANDOFF.md','docs/SESSION_STATUS.md'):[0m
+2026-09-17T21:28:32.7490671Z [36;1m    path=Path(name);path.write_text('## Active workstream: Wayfarer character replacement\n\nCharacter replacement is integrated; delivery-head verification is in progress. Read `docs/CHARACTER_REBUILD.md` and `docs/art/character-rebuild/integration-report.json`. The previous first-hour evidence below is historical and does not certify the new character implementation.\n\n---\n\n'+path.read_text())[0m
+2026-09-17T21:28:32.7492031Z [36;1mfor name in ('.github/workflows/character-rebuild-stage.yml','.github/workflows/character-rebuild-apply.yml','tools/character_rebuild_stage.py'):[0m
+2026-09-17T21:28:32.7492520Z [36;1m    Path(name).unlink()[0m
+2026-09-17T21:28:32.7492755Z [36;1mshutil.rmtree('tools/character_rebuild')[0m
+2026-09-17T21:28:32.7492981Z [36;1mPY[0m
+2026-09-17T21:28:32.7493142Z [36;1mgit diff --check[0m
+2026-09-17T21:28:32.7493358Z [36;1mgit config user.name 'github-actions[bot]'[0m
+2026-09-17T21:28:32.7493694Z [36;1mgit config user.email '41898282+github-actions[bot]@users.noreply.github.com'[0m
+2026-09-17T21:28:32.7496698Z [36;1mgit add --all -- .github/workflows tools/art tools/check_character_source.py tools/build_game_assets.py tools/integrate_atelier.py tools/validate_game_assets.py tools/validate_grounded_actor_assets.py tools/validate_character_assets.py tools/build_wayfarer_pack.py tools/run_character_native.py tools/character_probe tools/character_rebuild tools/character_rebuild_stage.py client/Scripts/PixelAssets.cs client/Scripts/SpritePoseRules.cs client/Scripts/WorldView.cs client/Scripts/WorldView.CharacterMotion.cs client/Scripts/GameRoot.cs client/Scripts/PixelPresentation.cs client/Tests/CharacterPresentationContract.cs client/Tests/CharacterPresentationContract.tscn src/Kairnfall.Core/ActorPresentation.cs src/Kairnfall.Core/Models.cs src/Kairnfall.Core/RealmEngine.cs src/Kairnfall.Core/ReconnectRecovery.cs Kairnfall.slnx art/wayfarer atelier/Assets atelier/authored atelier/build.py atelier/coverage.json atelier/README.md foundry/Assets foundry/previews foundry/coverage.json docs/art/character-rebuild docs/CHARACTER_REBUILD.md docs/ART_DIRECTION.md docs/SESSION_STATUS.md HANDOFF.md[0m
+2026-09-17T21:28:32.7500125Z [36;1mgit diff --cached --check[0m
+2026-09-17T21:28:32.7500502Z [36;1mgit commit -m 'feat(characters): replace legacy sprites, rebuild motions and synchronize public actions'[0m
+2026-09-17T21:28:32.7500888Z [36;1mgh auth setup-git[0m
+2026-09-17T21:28:32.7501085Z [36;1mgit push origin HEAD:main[0m
+2026-09-17T21:28:32.7501383Z [36;1mgit rev-parse HEAD > artifacts/character-candidate/published-revision.txt[0m
+2026-09-17T21:28:32.7534094Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-09-17T21:28:32.7534360Z env:
+2026-09-17T21:28:32.7534515Z   PYTHONUTF8: 1
+2026-09-17T21:28:32.7534696Z   PYTHONDONTWRITEBYTECODE: 1
+2026-09-17T21:28:32.7534896Z   DOTNET_CLI_TELEMETRY_OPTOUT: 1
+2026-09-17T21:28:32.7535084Z   DOTNET_NOLOGO: 1
+2026-09-17T21:28:32.7535253Z   LIBGL_ALWAYS_SOFTWARE: 1
+2026-09-17T21:28:32.7535480Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-17T21:28:32.7535802Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-09-17T21:28:32.7536131Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-17T21:28:32.7536422Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-17T21:28:32.7536704Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-17T21:28:32.7536997Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-09-17T21:28:32.7537254Z   DOTNET_ROOT: /usr/share/dotnet
+2026-09-17T21:28:32.7537719Z   GODOT_BIN: /home/runner/work/Kairnfall-RPG/Kairnfall-RPG/.tools/godot/Godot_v4.7.2-stable_mono_linux_x86_64/Godot_v4.7.2-stable_mono_linux.x86_64
+2026-09-17T21:28:32.7540541Z   GH_TOKEN: ***
+2026-09-17T21:28:32.7540723Z ##[endgroup]
+2026-09-17T21:28:34.1035963Z fatal: pathspec 'foundry/previews' did not match any files
+2026-09-17T21:28:34.1051128Z ##[error]Process completed with exit code 128.
+
