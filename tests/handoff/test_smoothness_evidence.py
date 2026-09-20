@@ -382,6 +382,79 @@ class SmoothnessEvidenceTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 contract.validate_metadata(evidence)
 
+    def checkpoint3_evidence(self):
+        evidence = self.checkpoint2_evidence()
+        evidence.update({
+            'checkpoint': contract.CHECKPOINT3,
+            'checkpointStartingMain': contract.CHECKPOINT3_STARTING_MAIN,
+            'historicalCheckpoint2Evidence': contract.CHECKPOINT2_ARCHIVE,
+            'repositorySideCheckpoint3Complete': True,
+            'gameplayBehaviorChangedInCheckpoint3': True,
+            'performanceImprovementClaimed': False,
+            'performanceTargetClaimed': False,
+            'movementContinuityImprovementClaimed': True,
+            'movementEvidence': {
+                'comparisonKind': 'same-process legacy-vs-candidate',
+                'renderRatesFps': [30, 60, 120, 144],
+                'syntheticMotionSchedules': 48,
+                'nativeScenarios': 11,
+                'legacyFalseStopFramesByFps': [1, 0, 1, 0],
+                'candidateFalseStopFramesByFps': [0, 0, 0, 0],
+                'legacyLongestFalseStopMsByFps': [33.3, 0, 8.3, 0],
+                'candidateLongestFalseStopMsByFps': [0, 0, 0, 0],
+                'candidateP95ErrorTiles144': 0.17,
+                'candidateMaxErrorTiles144': 0.23,
+                'candidateMaxForwardLeadTiles144': 0.20,
+                'candidateFinalErrorTiles144': 0,
+                'nativeFalseStopFramesWindows': 0,
+                'nativeLongestFalseStopMsWindows': 0,
+            },
+            'rangedBasicAttackEvidence': {
+                'classes': ['arcanist', 'templar'],
+                'rangeTiles': 6.0,
+                'serverAuthoritative': True,
+                'targetedProjectile': True,
+                'meleeClassesRemainMelee': True,
+                'basicDamageFormulaChanged': False,
+                'attackCooldownFormulaChanged': False,
+                'visualElements': {'arcanist': 'Arcane', 'templar': 'Radiant'},
+            },
+        })
+        return evidence
+
+    def test_checkpoint3_complete_metadata_is_valid(self):
+        evidence = self.checkpoint3_evidence()
+        self.assertEqual(contract.validate_metadata(evidence), self.sha)
+
+    def test_checkpoint3_rejects_fake_motion_or_ranged_basic_evidence(self):
+        for key, value in (
+            ('repositorySideCheckpoint3Complete', False),
+            ('gameplayBehaviorChangedInCheckpoint3', False),
+            ('movementContinuityImprovementClaimed', False),
+            ('checkpointStartingMain', 'b' * 40),
+            ('historicalCheckpoint2Evidence', 'other.json'),
+        ):
+            evidence = self.checkpoint3_evidence()
+            evidence[key] = value
+            with self.assertRaises(RuntimeError):
+                contract.validate_metadata(evidence)
+        evidence = self.checkpoint3_evidence()
+        evidence['movementEvidence']['candidateFalseStopFramesByFps'] = [2, 2, 2, 2]
+        with self.assertRaises(RuntimeError):
+            contract.validate_metadata(evidence)
+        evidence = self.checkpoint3_evidence()
+        evidence['movementEvidence']['candidateLongestFalseStopMsByFps'] = [0, 0, 0, 80]
+        with self.assertRaises(RuntimeError):
+            contract.validate_metadata(evidence)
+        evidence = self.checkpoint3_evidence()
+        evidence['rangedBasicAttackEvidence']['serverAuthoritative'] = False
+        with self.assertRaises(RuntimeError):
+            contract.validate_metadata(evidence)
+        evidence = self.checkpoint3_evidence()
+        evidence['rangedBasicAttackEvidence']['basicDamageFormulaChanged'] = True
+        with self.assertRaises(RuntimeError):
+            contract.validate_metadata(evidence)
+
 
 if __name__ == '__main__':
     unittest.main()

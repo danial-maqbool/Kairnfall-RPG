@@ -24,15 +24,19 @@ TITLE = 'Measured smoothness, performance, camera and gameplay polish'
 CHECKPOINT = 0
 CHECKPOINT1 = 1
 CHECKPOINT2 = 2
+CHECKPOINT3 = 3
 STARTING_MAIN = '1a4704fee2194bf3b9c51eb28b6e7408a7c1e72e'
 CHECKPOINT1_STARTING_MAIN = '6e76af928af21c8ed7e1d14fd9fe59093174d228'
 CHECKPOINT2_STARTING_MAIN = 'efd418c4233802e91f5e0dd861b73119addb850d'
+CHECKPOINT3_STARTING_MAIN = '192c8b50ce6ecac11e6327189af6208dd26c7944'
 PREVIOUS = 'docs/handoff/COMBAT_EVIDENCE_2026-09-18.json'
 PREVIOUS_BLOB = 'cf1a93b5cd2481dcc1de86ec10c72469d3828fc0'
 CHECKPOINT0_ARCHIVE = 'docs/handoff/SMOOTHNESS_CHECKPOINT0_EVIDENCE_2026-09-20.json'
 CHECKPOINT0_ARCHIVE_BLOB = '79779ce75560c5dd98132827181e8f56f35e1f70'
 CHECKPOINT1_ARCHIVE = 'docs/handoff/SMOOTHNESS_CHECKPOINT1_EVIDENCE_2026-09-20.json'
 CHECKPOINT1_ARCHIVE_BLOB = '10654d5d0d4605c7f9708faccb8b7cfd13257efb'
+CHECKPOINT2_ARCHIVE = 'docs/handoff/SMOOTHNESS_CHECKPOINT2_EVIDENCE_2026-09-20.json'
+CHECKPOINT2_ARCHIVE_BLOB = '43df0bc5281a8f969268d38f32c57c943c70c412'
 PRESERVED_COMBAT_BASELINE = '06776f6b0de7dbe02cab30a9e236e730c377de2e'
 PRESERVED_COMBAT_DELIVERY = 'bc9561846cd480c1e899190cb9b6f2df75a30176'
 PERFORMANCE_WORKFLOW = 'Client performance and motion diagnostics'
@@ -60,6 +64,11 @@ CHECKPOINT2_DOCS = (
     'HANDOFF.md',
     'docs/SESSION_STATUS.md',
     'docs/handoff/PERFORMANCE_OPTIMIZATION_VERIFICATION.md',
+)
+CHECKPOINT3_DOCS = (
+    'HANDOFF.md',
+    'docs/SESSION_STATUS.md',
+    'docs/handoff/MOVEMENT_RANGED_BASIC_VERIFICATION.md',
 )
 CHECKPOINT0_ALLOWED_PATHS = frozenset({
     'tools/documentation_contract.py',
@@ -89,6 +98,28 @@ CHECKPOINT2_ALLOWED_PATHS = frozenset({
     'tools/smoothness_delivery_contract.py',
     'tests/handoff/test_smoothness_evidence.py',
     CHECKPOINT1_ARCHIVE,
+})
+CHECKPOINT3_ALLOWED_PATHS = frozenset({
+    '.github/workflows/performance-diagnostics.yml',
+    'client/Scripts/ClientPerformanceDiagnostics.cs',
+    'client/Scripts/CombatReadabilityOverlay.cs',
+    'client/Scripts/ExperienceRules.cs',
+    'client/Scripts/GameRoot.cs',
+    'client/Scripts/GameRoot.Experience.cs',
+    'client/Scripts/GameRoot.Hud.cs',
+    'client/Scripts/GameRoot.MobControls.cs',
+    'client/Scripts/WorldView.CharacterMotion.cs',
+    'client/Scripts/WorldView.cs',
+    'client/Tests/ControlRulesContract.cs',
+    'client/Tests/LiveExperienceContract.cs',
+    'client/Tests/PerformanceMotionDiagnosticsContract.cs',
+    'client/Tests/PlayerExperienceContract.cs',
+    'src/Kairnfall.Core/BasicAttackRules.cs',
+    'src/Kairnfall.Core/Models.cs',
+    'src/Kairnfall.Core/RealmCombat.cs',
+    'tests/Kairnfall.Tests/Program.cs',
+    'tools/smoothness_delivery_contract.py',
+    'tests/handoff/test_smoothness_evidence.py',
 })
 PRESERVED_SMOOTHNESS_PATHS = frozenset({
     'client/Scripts/WorldView.CharacterMotion.cs',
@@ -297,6 +328,74 @@ def validate_checkpoint2_metadata(e: dict) -> str:
     return baseline
 
 
+def validate_checkpoint3_metadata(e: dict) -> str:
+    baseline = validate_common(e)
+    require(e.get('checkpoint') == CHECKPOINT3,
+            'Current smoothness evidence does not describe checkpoint 3.')
+    require(e.get('startingMain') == STARTING_MAIN,
+            'Overall smoothness starting main changed.')
+    require(e.get('checkpointStartingMain') == CHECKPOINT3_STARTING_MAIN,
+            'Checkpoint 3 starting main changed.')
+    require(e.get('historicalCheckpoint2Evidence') == CHECKPOINT2_ARCHIVE,
+            'Checkpoint 2 archive reference drifted.')
+    require(e.get('repositorySideCheckpoint3Complete') is True,
+            'Checkpoint 3 completion is not explicit.')
+    require(e.get('gameplayBehaviorChangedInCheckpoint3') is True,
+            'Checkpoint 3 must explicitly record its authorized gameplay behavior changes.')
+    require(e.get('performanceImprovementClaimed') is False
+            and e.get('performanceTargetClaimed') is False,
+            'Checkpoint 3 cannot turn motion continuity into a broad frame-performance claim.')
+    require(e.get('movementContinuityImprovementClaimed') is True,
+            'Checkpoint 3 must record the measured movement continuity improvement.')
+
+    motion = e.get('movementEvidence', {})
+    require(motion.get('comparisonKind') == 'same-process legacy-vs-candidate'
+            and motion.get('renderRatesFps') == [30, 60, 120, 144]
+            and motion.get('syntheticMotionSchedules') == 48
+            and motion.get('nativeScenarios') == 11,
+            'Checkpoint 3 movement matrix is incomplete.')
+    legacy_stops = motion.get('legacyFalseStopFramesByFps')
+    candidate_stops = motion.get('candidateFalseStopFramesByFps')
+    legacy_longest = motion.get('legacyLongestFalseStopMsByFps')
+    candidate_longest = motion.get('candidateLongestFalseStopMsByFps')
+    for values in (legacy_stops, candidate_stops, legacy_longest, candidate_longest):
+        require(isinstance(values, list) and len(values) == 4
+                and all(isinstance(value, (int, float)) and not isinstance(value, bool)
+                        and value >= 0 for value in values),
+                'Checkpoint 3 false-stop evidence must contain four numeric render-rate samples.')
+    require(sum(candidate_stops) < sum(legacy_stops),
+            'Checkpoint 3 must reduce interstitial false-stop frames versus the retained legacy rules.')
+    require(max(candidate_longest) <= 50,
+            'Checkpoint 3 candidate contains a sustained false-stop interval.')
+    require(isinstance(motion.get('candidateP95ErrorTiles144'), (int, float))
+            and motion['candidateP95ErrorTiles144'] >= 0
+            and isinstance(motion.get('candidateMaxErrorTiles144'), (int, float))
+            and motion['candidateMaxErrorTiles144'] <= 0.5
+            and isinstance(motion.get('candidateMaxForwardLeadTiles144'), (int, float))
+            and motion['candidateMaxForwardLeadTiles144'] <= 0.47
+            and isinstance(motion.get('candidateFinalErrorTiles144'), (int, float))
+            and motion['candidateFinalErrorTiles144'] <= 0.03,
+            'Checkpoint 3 position/convergence evidence is missing or exceeds the accepted bounds.')
+    require(type(motion.get('nativeFalseStopFramesWindows')) is int
+            and motion['nativeFalseStopFramesWindows'] >= 0
+            and isinstance(motion.get('nativeLongestFalseStopMsWindows'), (int, float))
+            and motion['nativeLongestFalseStopMsWindows'] <= 50,
+            'Checkpoint 3 Windows native continuity evidence is invalid.')
+
+    ranged = e.get('rangedBasicAttackEvidence', {})
+    require(ranged.get('classes') == ['arcanist', 'templar']
+            and ranged.get('rangeTiles') == 6.0
+            and ranged.get('serverAuthoritative') is True
+            and ranged.get('targetedProjectile') is True
+            and ranged.get('meleeClassesRemainMelee') is True
+            and ranged.get('basicDamageFormulaChanged') is False
+            and ranged.get('attackCooldownFormulaChanged') is False
+            and ranged.get('visualElements') == {'arcanist': 'Arcane', 'templar': 'Radiant'},
+            'Checkpoint 3 ranged-basic attack evidence is incomplete or changes unauthorized combat rules.')
+    validate_performance_workflow(e, baseline)
+    return baseline
+
+
 def validate_metadata(e: dict) -> str:
     checkpoint = e.get('checkpoint')
     if checkpoint == CHECKPOINT:
@@ -305,6 +404,8 @@ def validate_metadata(e: dict) -> str:
         return validate_checkpoint1_metadata(e)
     if checkpoint == CHECKPOINT2:
         return validate_checkpoint2_metadata(e)
+    if checkpoint == CHECKPOINT3:
+        return validate_checkpoint3_metadata(e)
     raise RuntimeError('Unsupported smoothness checkpoint evidence.')
 
 
@@ -329,9 +430,12 @@ def validate_source_boundary(e: dict, baseline: str) -> None:
     elif checkpoint == CHECKPOINT1:
         checkpoint_start = CHECKPOINT1_STARTING_MAIN
         allowed = CHECKPOINT1_ALLOWED_PATHS
-    else:
+    elif checkpoint == CHECKPOINT2:
         checkpoint_start = CHECKPOINT2_STARTING_MAIN
         allowed = CHECKPOINT2_ALLOWED_PATHS
+    else:
+        checkpoint_start = CHECKPOINT3_STARTING_MAIN
+        allowed = CHECKPOINT3_ALLOWED_PATHS
     git('merge-base', '--is-ancestor', checkpoint_start, baseline)
     paths = {
         path for path in git('diff', '--name-only', checkpoint_start, baseline).splitlines()
@@ -340,7 +444,9 @@ def validate_source_boundary(e: dict, baseline: str) -> None:
     require(paths == allowed,
             f'Checkpoint {checkpoint} changed paths outside its accepted footprint: ' +
             ', '.join(sorted(paths ^ allowed)))
-    for protected in ('content_src', 'src/Kairnfall.Server', 'src/Kairnfall.Core'):
+    protected_roots = ('content_src', 'src/Kairnfall.Server') if checkpoint == CHECKPOINT3 else (
+        'content_src', 'src/Kairnfall.Server', 'src/Kairnfall.Core')
+    for protected in protected_roots:
         changed = {
             path for path in git(
                 'diff', '--name-only', checkpoint_start, baseline, '--', protected
@@ -360,6 +466,9 @@ def validate_archives(e: dict) -> None:
     if e['checkpoint'] >= CHECKPOINT2:
         require(sha1_blob(ROOT / CHECKPOINT1_ARCHIVE) == CHECKPOINT1_ARCHIVE_BLOB,
                 'Checkpoint 1 evidence changed instead of being archived byte-for-byte.')
+    if e['checkpoint'] >= CHECKPOINT3:
+        require(sha1_blob(ROOT / CHECKPOINT2_ARCHIVE) == CHECKPOINT2_ARCHIVE_BLOB,
+                'Checkpoint 2 evidence changed instead of being archived byte-for-byte.')
 
 
 def validate_inherited_smoothness() -> None:
@@ -383,7 +492,8 @@ def rows_from(e: dict) -> list[dict]:
 def validate_docs(e: dict, baseline: str) -> None:
     docs = (CHECKPOINT0_DOCS if e['checkpoint'] == CHECKPOINT
             else CHECKPOINT1_DOCS if e['checkpoint'] == CHECKPOINT1
-            else CHECKPOINT2_DOCS)
+            else CHECKPOINT2_DOCS if e['checkpoint'] == CHECKPOINT2
+            else CHECKPOINT3_DOCS)
     for relative in docs:
         text = (ROOT / relative).read_text(encoding='utf-8')
         for marker in (baseline, 'CURRENT_EVIDENCE.json', RELEASE_STATUS,
