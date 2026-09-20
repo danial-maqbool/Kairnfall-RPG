@@ -221,7 +221,7 @@ public partial class GameRoot
             double distance = self.Position.Distance(target.Position);
             targetText.Text = (definition.Boss ? "BOSS · " : definition.Elite ? "ELITE · " : "") + definition.Name + " · Level " + definition.Level;
             targetHealth.MaxValue = definition.Health; targetHealth.Value = target.Health;
-            bool reachable = ExperienceRules.CanTarget(self, target, Data, ExperienceRules.WeaponRange(self, Data), true);
+            bool reachable = ExperienceRules.CanTarget(self, target, Data, ExperienceRules.BasicAttackRange(self, Data), true);
             targetDetail.Text = $"{Math.Ceiling(target.Health):0} / {definition.Health:0} health · {distance:0.0} tiles · " + (reachable ? "In weapon range" : "Out of range or blocked");
             double practice = ChallengeProgression.SkillPractice(overallLevel, definition.Level);
             double credit = ChallengeProgression.EnemyCredit(overallLevel, definition.Level) * ChallengeProgression.OverallRate(overallLevel);

@@ -54,7 +54,7 @@ public partial class GameRoot
         if (basicAttackButton is not null)
         {
             double attackLeft = Math.Max(0, snapshot.Self.Cooldowns.GetValueOrDefault("attack") - snapshot.Time);
-            double reach = ExperienceRules.WeaponRange(snapshot.Self, Data);
+            double reach = ExperienceRules.BasicAttackRange(snapshot.Self, Data);
             double cadence = ExperienceRules.AttackInterval(snapshot.Self, Data);
             double local = Time.GetTicksMsec() / 1000.0;
             bool queued = BasicAttackBuffered(local) && attackLeft > .02;

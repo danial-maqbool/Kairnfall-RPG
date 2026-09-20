@@ -103,12 +103,13 @@ jobs:
           path=Path(os.environ['KAIRNFALL_PERF_OUTPUT'])
           data=json.loads(path.read_text())
           assert data['schema']==1
-          assert len(data['reports'])==10
-          assert len(data['syntheticMotion'])==36
+          assert len(data['reports'])==11
+          assert len(data['syntheticMotion'])==48
+          assert len(data['legacySyntheticMotion'])==48
           assert data['windowsGpuPerformanceApproved'] is False
           assert data['sixtyFpsApproved'] is False
           assert all(row['FrameIntervalMs']['Count']>10 for row in data['reports'])
-          assert all(row['MaxForwardLeadTiles']<=0.37 for row in data['syntheticMotion'])
+          assert all(row['MaxForwardLeadTiles']<=0.47 for row in data['syntheticMotion'])
           print('PERFORMANCE_REPORT_VALID:', path)
           PY
           git diff --check

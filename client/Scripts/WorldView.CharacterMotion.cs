@@ -4,12 +4,31 @@ using Point = Kairnfall.Core.Point;
 
 namespace Kairnfall.Client;
 
+public static class ProjectilePresentationRules
+{
+    public static bool Travels(Telegraph effect)
+        => effect.Shape == "projectile" && effect.Target != "" && effect.Origin.Finite && effect.Position.Finite
+            && double.IsFinite(effect.Started) && double.IsFinite(effect.Resolves) && effect.Resolves > effect.Started;
+
+    public static double Progress(Telegraph effect, double realmTime)
+        => !Travels(effect) || !double.IsFinite(realmTime) ? 0
+            : Math.Clamp((realmTime - effect.Started) / (effect.Resolves - effect.Started), 0, 1);
+
+    public static Point Position(Telegraph effect, double realmTime)
+    {
+        double progress = Progress(effect, realmTime);
+        return new Point(
+            effect.Origin.X + (effect.Position.X - effect.Origin.X) * progress,
+            effect.Origin.Y + (effect.Position.Y - effect.Origin.Y) * progress);
+    }
+}
+
 public static class MotionPresentationRules
 {
-    public const double SnapshotLeadSeconds = .09;
-    public const double SnapshotFreshSeconds = .12;
-    public const double SnapshotStaleSeconds = .24;
-    public const double MaxLeadTiles = .35;
+    public const double SnapshotLeadSeconds = .20;
+    public const double SnapshotFreshSeconds = .20;
+    public const double SnapshotStaleSeconds = .30;
+    public const double MaxLeadTiles = .45;
     public const double TeleportDistance = 6;
 
     public static Point EstimateVelocity(Point previousTarget, Point target, double sampleSeconds, Point previousVelocity)
@@ -23,6 +42,8 @@ public static class MotionPresentationRules
         var raw = new Point((target.X - previousTarget.X) / sampleSeconds, (target.Y - previousTarget.Y) / sampleSeconds);
         double speed = raw.Distance(new Point(0, 0));
         if (!raw.Finite || speed > 12) return new Point(0, 0);
+        double alignment = previousVelocity.X * raw.X + previousVelocity.Y * raw.Y;
+        if (previousVelocity.Distance(new Point(0, 0)) > .05 && alignment < 0) return raw;
         var blended = new Point(previousVelocity.X * .45 + raw.X * .55, previousVelocity.Y * .45 + raw.Y * .55);
         double blendedSpeed = blended.Distance(new Point(0, 0));
         return blendedSpeed <= 12 ? blended : blended.Scale(12 / blendedSpeed);
@@ -81,8 +102,14 @@ public partial class WorldView
         }
 
         double snapshotAge = Clock - track.LastSnapshotAt;
+        bool localExpected = track.Local && LocalMovementExpected;
         double sourceSpeed = track.SnapshotVelocity.Distance(new Point(0, 0)) * MotionPresentationRules.SnapshotFreshness(snapshotAge);
         var visualTarget = MotionPresentationRules.VisualTarget(track.Target, track.SnapshotVelocity, snapshotAge);
+        if (track.Local && !localExpected)
+        {
+            sourceSpeed = 0;
+            visualTarget = track.Target;
+        }
         double visualRemaining = previous.Distance(visualTarget);
         if (authoritativeRemaining < .006 && sourceSpeed < .06)
         {

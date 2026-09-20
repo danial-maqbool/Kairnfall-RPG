@@ -438,8 +438,12 @@ public sealed class Telegraph
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Zone { get; set; } = "";
     public string Source { get; set; } = "";
+    public string Target { get; set; } = "";
+    public Point Origin { get; set; }
     public Point Position { get; set; }
     public Point Direction { get; set; }
+    public double Started { get; set; }
+    public Element? VisualElement { get; set; }
     public string Shape { get; set; } = "circle";
     public Element Element { get; set; }
     public double Radius { get; set; } = 2;

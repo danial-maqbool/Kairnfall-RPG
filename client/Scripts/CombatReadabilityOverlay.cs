@@ -65,7 +65,7 @@ public partial class CombatReadabilityOverlay : Control
         if(targetId!=""&&current.Creatures.FirstOrDefault(x=>x.Id==targetId) is { } target)
         {
             VisibleStatusCount+=target.Statuses.Count(x=>x.Until>current.Time&&CombatReadabilityRules.IsCrowdControl(x.Kind));
-            SelectedTargetSummary=CombatReadabilityRules.TargetSummary(current.Self,target,Data.Mob(target.Template),ExperienceRules.WeaponRange(current.Self,Data));
+            SelectedTargetSummary=CombatReadabilityRules.TargetSummary(current.Self,target,Data.Mob(target.Template),ExperienceRules.BasicAttackRange(current.Self,Data));
         }
         RevivePromptVisible=current.Players.Any(x=>CombatReadabilityRules.CanRevive(current.Self,x,current.Party,current.Time));
         cues.RemoveAll(x=>x.Until<=local);

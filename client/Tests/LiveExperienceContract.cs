@@ -242,7 +242,7 @@ public partial class LiveExperienceContract : Node
                     bool physical = Input.IsActionPressed("basic_attack");
                     string pageName = Field<string>(game, "currentPage");
                     double cooldown = Self.Cooldowns.GetValueOrDefault("attack") - game.Snapshot.Time;
-                    GD.Print($"COMBAT_TRACE elapsed={Now - began:0.00} health={creature.Health:0.0} distance={Self.Position.Distance(creature.Position):0.00} range={ExperienceRules.WeaponRange(Self, game.Data):0.00} held={held} physical={physical} page={pageName} stamina={Self.Stamina:0.0} cooldown={cooldown:0.00} sequence={Self.LastAction - sequence}");
+                    GD.Print($"COMBAT_TRACE elapsed={Now - began:0.00} health={creature.Health:0.0} distance={Self.Position.Distance(creature.Position):0.00} range={ExperienceRules.BasicAttackRange(Self, game.Data):0.00} held={held} physical={physical} page={pageName} stamina={Self.Stamina:0.0} cooldown={cooldown:0.00} sequence={Self.LastAction - sequence}");
                 }
                 return creature.Health <= 0;
             }, "Held Space did not resolve the normal starter encounter.", 15);

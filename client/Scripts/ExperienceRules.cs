@@ -21,6 +21,17 @@ public static class ExperienceRules
         return 1.6;
     }
 
+    public static double BasicAttackRange(Character self, Catalog data)
+    {
+        ItemDef? weapon = null;
+        if (self.Equipment.TryGetValue("weapon", out var id))
+        {
+            var item = self.Inventory.FirstOrDefault(x => x.Id == id);
+            if (item is not null) weapon = data.Item(item.Template);
+        }
+        return BasicAttackRules.Range(self, weapon);
+    }
+
     public static double AttackInterval(Character self, Catalog data)
     {
         var item = self.Equipment.TryGetValue("weapon", out var id)
@@ -62,7 +73,7 @@ public static class ExperienceRules
     public static Creature? ChooseEngagementTarget(Character self, IEnumerable<Creature> creatures, Catalog data, string selected)
     {
         var list = creatures.ToArray();
-        double range = WeaponRange(self, data);
+        double range = BasicAttackRange(self, data);
         if (selected != "")
             return list.FirstOrDefault(x => x.Id == selected
                 && CanTarget(self, x, data, range + SelectedTargetGrace, true));
@@ -107,7 +118,7 @@ public static class ExperienceRules
     {
         if (!double.IsFinite(remainingDistance) || remainingDistance <= 0) return [];
         double budget = Math.Min(2.5, remainingDistance);
-        double range = WeaponRange(self, data);
+        double range = BasicAttackRange(self, data);
         if (!CanTarget(self, creature, data, range + 1.75, true)) return [];
         double distance = self.Position.Distance(creature.Position);
         if (distance <= range) return [];

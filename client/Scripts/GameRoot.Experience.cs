@@ -162,7 +162,7 @@ public partial class GameRoot
             selectedTargetKind == "creature" ? selectedTarget : "");
         if (target is null) { ClearBasicAttackBuffer(); return; }
         selectedTargetKind = "creature"; selectedTarget = target.Id; World.TargetId = target.Id;
-        bool inRange = ExperienceRules.CanTarget(snapshot.Self, target, Data, ExperienceRules.WeaponRange(snapshot.Self, Data), true);
+        bool inRange = ExperienceRules.CanTarget(snapshot.Self, target, Data, ExperienceRules.BasicAttackRange(snapshot.Self, Data), true);
         if (!inRange)
         {
             if (Input.GetVector("move_left", "move_right", "move_up", "move_down").LengthSquared() > .01f)

@@ -18,23 +18,24 @@ public sealed partial class RealmEngine
             var instance=Items.Owned(p,weaponId); Need(instance.Durability>0,"Your weapon needs repair."); weapon=Data.Item(instance.Template); weaponItem=instance;
         }
         string skill=weapon?.Skill is {Length:>0} ws?ws:"unarmed_combat";
-        var mob=Hostile(p,target,weapon?.Range??1.6);
+        Element attackElement=weapon is null?Element.Physical:Items.ElementOf(weaponItem!,weapon);
+        var profile=BasicAttackRules.Profile(p,weapon,attackElement);
+        var mob=Hostile(p,target,profile.Range);
         Need(p.Stamina>=3,"Not enough stamina.");
         Need(!p.Statuses.Any(x=>x.Kind=="stun"&&x.Until>State.Time),"You are stunned.");
         Ready(p,"attack",Math.Max(0.25,(weapon?.Speed??0.8)/stats.AttackSpeed));
         bool stealthed=p.Statuses.Any(x=>x.Kind=="stealth"&&x.Until>State.Time);
         p.Stamina-=3; p.Facing=p.Position.Direction(mob.Position);
         playerTargets[p.Id]=mob.Id;
-        Element attackElement=weapon is null?Element.Physical:Items.ElementOf(weaponItem!,weapon);
         var classBonus=ClassCombatRules.PrepareBasicAttack(p,attackElement,stealthed);
         double raw=stats.Physical*CombatTrainingCurve.Physical(Progression.Level(p,skill))*classBonus.PowerMultiplier;
         if(p.Class=="berserker") raw*=1+0.25*(1-p.Health/stats.Health);
         if(CombatMath.Roll(stats.Crit)) raw*=stats.CritDamage;
         p.Stamina=Math.Min(stats.Stamina,p.Stamina+classBonus.StaminaRefund);
         p.Statuses.RemoveAll(x=>x.Kind=="stealth");
-        if(HandEquipment.IsProjectileWeapon(weapon))
+        if(profile.Projectile)
         {
-            State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=mob.Position,Direction=p.Facing,Shape="projectile",Skill=skill,Element=attackElement,Radius=0.8,Power=raw,Resolves=State.Time+Math.Min(0.6,p.Position.Distance(mob.Position)/15)});
+            State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Target=mob.Id,Origin=p.Position,Position=mob.Position,Direction=p.Facing,Shape="projectile",Skill=skill,Element=attackElement,VisualElement=profile.VisualElement,Radius=0.8,Power=raw,Started=State.Time,Resolves=State.Time+Math.Min(0.6,p.Position.Distance(mob.Position)/15)});
         }
         else HitCreature(p,mob,raw,attackElement,skill);
         return "";
@@ -380,6 +381,13 @@ public sealed partial class RealmEngine
             if(State.Characters.TryGetValue(t.Source,out var player))
             {
                 if(player.Health<=0||player.Zone!=t.Zone||!Data.Skills.Any(skill=>skill.Id==t.Skill)) continue;
+                if(t.Shape=="projectile"&&t.Target!="")
+                {
+                    if(State.Creatures.TryGetValue(t.Target,out var target)&&target.Health>0&&target.Owner==""&&target.Zone==t.Zone
+                        &&InTelegraph(t,target.Position)&&t.Origin.Finite&&WorldMap.LineOfSight(Data.Zone(t.Zone),t.Origin,target.Position))
+                        HitCreature(player,target,t.Power,t.Element,t.Skill);
+                    continue;
+                }
                 foreach(var mob in State.Creatures.Values.Where(x=>x.Health>0&&x.Owner==""&&x.Zone==t.Zone&&InTelegraph(t,x.Position)).ToList())
                     if(WorldMap.LineOfSight(Data.Zone(t.Zone),t.Position,mob.Position)) HitCreature(player,mob,t.Power,t.Element,t.Skill);
             }

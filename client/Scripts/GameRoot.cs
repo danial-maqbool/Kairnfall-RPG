@@ -149,6 +149,7 @@ public partial class GameRoot : Control
                 if (packet.Kind == "error") Notify(packet.Error, true);
             }
         }
+        World.SetLocalMovementIntent(Vector2.Zero);
         if (Online)
         {
             var self = Snapshot!.Self;
@@ -168,6 +169,7 @@ public partial class GameRoot : Control
             {
                 pendingInteraction = null; route.Clear(); input = Vector2.Zero; Activate(interaction);
             }
+            World.SetLocalMovementIntent(input);
             moveClock += delta;
             bool changed = (input - lastInput).LengthSquared() > .0001f;
             bool moving = input.LengthSquared() > .0001f;

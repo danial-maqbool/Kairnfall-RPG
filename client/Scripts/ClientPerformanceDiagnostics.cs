@@ -39,6 +39,9 @@ public sealed record ClientPerformanceReport(
     PerfMetric PositionErrorTiles,
     PerfMetric MaxPositionErrorTiles,
     long UnexpectedRenderedReversals,
+    PerfMetric LocalRenderedSpeedTilesPerSecond,
+    long FalseLocalStopFrames,
+    double LongestFalseLocalStopMs,
     PerfMetric VisibleActors,
     PerfMetric VisualRecords,
     PerfMetric DrawCalls,
@@ -110,6 +113,7 @@ public sealed class ClientPerformanceDiagnostics
     private readonly Series snapshotAge = new();
     private readonly Series positionError = new();
     private readonly Series maxPositionError = new();
+    private readonly Series localRenderedSpeed = new();
     private readonly Series visibleActors = new();
     private readonly Series visualRecords = new();
     private readonly Series drawCalls = new();
@@ -128,6 +132,9 @@ public sealed class ClientPerformanceDiagnostics
     private long duplicateAuthoritative;
     private long reversedAuthoritative;
     private long unexpectedRenderedReversals;
+    private long falseLocalStopFrames;
+    private double currentFalseLocalStopMs;
+    private double longestFalseLocalStopMs;
     private long textureHits;
     private long textureMisses;
     private long negativeTextureHits;
@@ -166,6 +173,7 @@ public sealed class ClientPerformanceDiagnostics
         snapshotAge.Clear();
         positionError.Clear();
         maxPositionError.Clear();
+        localRenderedSpeed.Clear();
         visibleActors.Clear();
         visualRecords.Clear();
         drawCalls.Clear();
@@ -182,6 +190,9 @@ public sealed class ClientPerformanceDiagnostics
         duplicateAuthoritative = 0;
         reversedAuthoritative = 0;
         unexpectedRenderedReversals = 0;
+        falseLocalStopFrames = 0;
+        currentFalseLocalStopMs = 0;
+        longestFalseLocalStopMs = 0;
         textureHits = textureMisses = negativeTextureHits = 0;
         resourceLoads = missingResources = 0;
         atlasHits = atlasMisses = 0;
@@ -243,6 +254,20 @@ public sealed class ClientPerformanceDiagnostics
             maxPositionError.Add(maxErrorTiles);
         }
         if (reversals > 0) unexpectedRenderedReversals += reversals;
+    }
+
+    public void RecordLocalMotion(double speedTilesPerSecond, bool movementExpected, double deltaSeconds)
+    {
+        if (!Enabled || !double.IsFinite(speedTilesPerSecond) || speedTilesPerSecond < 0
+            || !double.IsFinite(deltaSeconds) || deltaSeconds <= 0) return;
+        localRenderedSpeed.Add(speedTilesPerSecond);
+        if (movementExpected && speedTilesPerSecond < .05)
+        {
+            falseLocalStopFrames++;
+            currentFalseLocalStopMs += deltaSeconds * 1000;
+            longestFalseLocalStopMs = Math.Max(longestFalseLocalStopMs, currentFalseLocalStopMs);
+        }
+        else currentFalseLocalStopMs = 0;
     }
 
     public void BeginDrawFrame()
@@ -309,6 +334,9 @@ public sealed class ClientPerformanceDiagnostics
             positionError.Summary(),
             maxPositionError.Summary(),
             unexpectedRenderedReversals,
+            localRenderedSpeed.Summary(),
+            falseLocalStopFrames,
+            longestFalseLocalStopMs,
             visibleActors.Summary(),
             visualRecords.Summary(),
             drawCalls.Summary(),

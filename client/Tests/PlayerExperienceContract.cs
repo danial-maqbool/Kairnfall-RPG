@@ -64,7 +64,7 @@ public partial class PlayerExperienceContract : Node
             var idleThreat = Wire.Copy(target); idleThreat.Id = "idle-threat";
             Require(ExperienceRules.ChooseTarget(self, [idleThreat, pressure], data, "", 2)?.Id == pressure.Id,
                 "Automatic targeting prioritizes a hostile already attacking the player");
-            double weaponReach = ExperienceRules.WeaponRange(self, data);
+            double weaponReach = ExperienceRules.BasicAttackRange(self, data);
             var stickyPosition = Enumerable.Range(-30, 61).SelectMany(x => Enumerable.Range(-30, 61).Select(y => self.Position.Add(new Point(x * .1, y * .1))))
                 .Where(x => x.Distance(self.Position) > weaponReach + .1 && x.Distance(self.Position) <= weaponReach + ExperienceRules.SelectedTargetGrace)
                 .First(x => WorldMap.Fits(zone, x) && WorldMap.LineOfSight(zone, self.Position, x));

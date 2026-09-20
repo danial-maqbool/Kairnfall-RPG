@@ -30,6 +30,9 @@ public sealed record MotionScheduleResult(
     double MaxErrorTiles,
     double MaxForwardLeadTiles,
     int UnexpectedReversals,
+    int FalseStopFrames,
+    double LongestFalseStopMs,
+    int VelocityDiscontinuities,
     double FinalErrorTiles);
 
 /// <summary>
@@ -228,6 +231,63 @@ public partial class PerformanceMotionDiagnosticsContract : Node
         return Capture(game, "motion-start-stop-reversal");
     }
 
+    private async Task<ClientPerformanceReport> RunInterstitialContinuityNative(GameRoot game, Snapshot snapshot)
+    {
+        bool wasProcessing = game.IsProcessing();
+        game.SetProcess(false);
+        try
+        {
+            var zone = game.Data.Zone(snapshot.Self.Zone);
+            Point origin = snapshot.Self.Position;
+            Point direction = Enumerable.Range(0, 24)
+                .Select(step => step * Math.Tau / 24)
+                .Select(angle => new Point(Math.Cos(angle), Math.Sin(angle)))
+                .First(candidate => WorldMap.Move(zone, origin, candidate.Scale(2.4)).Distance(origin) >= 2.2);
+            game.World.SetLocalMovementIntent(new Vector2((float)direction.X, (float)direction.Y));
+
+            snapshot.Time += .1; snapshot.Revision++;
+            snapshot.Self.Position = WorldMap.Move(zone, origin, direction.Scale(.15));
+            snapshot.Self.Facing = direction;
+            game.World.Accept(new TransportPacket { Snapshot = Wire.Copy(snapshot) });
+            await RunForSeconds(.12);
+            snapshot.Time += .1; snapshot.Revision++;
+            snapshot.Self.Position = WorldMap.Move(zone, origin, direction.Scale(.30));
+            game.World.Accept(new TransportPacket { Snapshot = Wire.Copy(snapshot) });
+            await RunForSeconds(.12);
+
+            game.Diagnostics.Reset("motion-interstitial-continuity");
+            Point baseline = snapshot.Self.Position;
+            double nextPacket = 0;
+            int packets = 0;
+            await RunForSeconds(1.6, elapsed =>
+            {
+                if (elapsed + 1e-6 < nextPacket) return;
+                packets++;
+                snapshot.Time += .1; snapshot.Revision++;
+                if (packets % 2 == 0)
+                {
+                    double distance = packets * .1 * 1.25;
+                    snapshot.Self.Position = WorldMap.Move(zone, baseline, direction.Scale(distance));
+                }
+                snapshot.Self.Facing = direction;
+                game.World.Accept(new TransportPacket { Snapshot = Wire.Copy(snapshot) });
+                nextPacket += .1;
+            });
+            game.World.SetLocalMovementIntent(Vector2.Zero);
+            await RunForSeconds(.35);
+            var report = Capture(game, "motion-interstitial-continuity");
+            Require(packets >= 14, "Native interstitial fixture delivered alternating unchanged authoritative samples");
+            Require(report.FalseLocalStopFrames <= 3 && report.LongestFalseLocalStopMs <= 50,
+                "Native interstitial fixture avoids sustained false zero-velocity presentation");
+            return report;
+        }
+        finally
+        {
+            game.World.SetLocalMovementIntent(Vector2.Zero);
+            game.SetProcess(wasProcessing);
+        }
+    }
+
     private async Task<ClientPerformanceReport> RunPanelNative(GameRoot game, Snapshot snapshot, string page)
     {
         game.Diagnostics.Reset("panel-" + page.ToLowerInvariant());
@@ -263,22 +323,65 @@ public partial class PerformanceMotionDiagnosticsContract : Node
         public double LastTargetAt;
         public double RenderSpeed;
         public bool Moving;
+        public double LastAuthoritative;
+        public double LastTargetAuthoritative;
+        public int UnchangedSamples;
+        public double PreviousInstantSpeed;
+        public int FalseStopRun;
         public Point PreviousRendered;
         public bool PreviousReady;
     }
 
-    private static MotionScheduleResult Simulate(string scenario, int fps, IReadOnlyList<Delivered> samples)
+    private static Point LegacyEstimateVelocity(Point previousTarget, Point target, double sampleSeconds, Point previousVelocity)
+    {
+        if (!previousTarget.Finite || !target.Finite || !previousVelocity.Finite
+            || !double.IsFinite(sampleSeconds) || sampleSeconds < .035 || sampleSeconds > .35) return new Point(0, 0);
+        double shift = previousTarget.Distance(target);
+        if (shift > 2) return new Point(0, 0);
+        if (shift < .01) return previousVelocity.Scale(.20);
+        var raw = new Point((target.X - previousTarget.X) / sampleSeconds, (target.Y - previousTarget.Y) / sampleSeconds);
+        double speed = raw.Distance(new Point(0, 0));
+        if (!raw.Finite || speed > 12) return new Point(0, 0);
+        var blended = new Point(previousVelocity.X * .45 + raw.X * .55, previousVelocity.Y * .45 + raw.Y * .55);
+        double blendedSpeed = blended.Distance(new Point(0, 0));
+        return blendedSpeed <= 12 ? blended : blended.Scale(12 / blendedSpeed);
+    }
+
+    private static double LegacyFreshness(double age)
+        => !double.IsFinite(age) || age < 0 || age >= .24 ? 0 : age <= .12 ? 1 : (.24 - age) / .12;
+
+    private static Point LegacyVisualTarget(Point authoritative, Point velocity, double age)
+    {
+        double speed = velocity.Distance(new Point(0, 0)), freshness = LegacyFreshness(age);
+        if (!authoritative.Finite || !velocity.Finite || !double.IsFinite(age) || speed < .02 || speed > 12 || freshness <= 0) return authoritative;
+        double seconds = Math.Clamp(age, 0, .09);
+        double lead = Math.Min(.35, speed * seconds) * freshness;
+        return authoritative.Add(velocity.Scale(lead / speed));
+    }
+
+    private static bool ExpectedMoving(string scenario, double now)
+        => scenario switch
+        {
+            "continuous-straight" or "continuous-diagonal" or "interstitial" or "irregular"
+                or "duplicates" or "delayed-coalesced" or "stall" => now >= .35 && now < 2.7,
+            "long-idle-start" => now >= 1.45 && now < 2.7,
+            "movement-stop" => now >= .35 && now < 1.35,
+            "rapid-stop-start" => (now >= .35 && now < .85) || (now >= 1.15 && now < 2.7),
+            "direction-reversal" => now >= .35 && now < 2.7,
+            _ => false
+        };
+
+    private static MotionScheduleResult Simulate(string scenario, int fps, IReadOnlyList<Delivered> samples, bool legacy = false)
     {
         double dt = 1.0 / fps;
         var state = new MotionState
         {
-            Position = samples[0].Position,
-            Target = samples[0].Position,
-            LastSnapshotAt = samples[0].Delivery,
-            LastTargetAt = samples[0].Delivery
+            Position = samples[0].Position, Target = samples[0].Position,
+            LastSnapshotAt = samples[0].Delivery, LastTargetAt = samples[0].Delivery,
+            LastAuthoritative = samples[0].Authoritative, LastTargetAuthoritative = samples[0].Authoritative
         };
         var errors = new List<double>();
-        int index = 1, delivered = 1, reversals = 0, frames = 0;
+        int index = 1, delivered = 1, reversals = 0, frames = 0, falseStops = 0, discontinuities = 0, longestFalseRun = 0;
         double maxLead = 0;
         double end = Math.Max(3.2, samples[^1].Delivery + .8);
 
@@ -293,50 +396,65 @@ public partial class PerformanceMotionDiagnosticsContract : Node
             if (latest is { } sample)
             {
                 double shift = state.Target.Distance(sample.Position);
-                if (shift > MotionPresentationRules.TeleportDistance)
+                if (legacy)
                 {
-                    state.Velocity = new Point(0, 0);
-                    state.LastTargetAt = now;
-                }
-                else if (shift >= .01)
-                {
-                    double seconds = now - state.LastTargetAt;
-                    state.Velocity = MotionPresentationRules.EstimateVelocity(
-                        state.Target, sample.Position, seconds, state.Velocity);
-                    state.LastTargetAt = now;
+                    if (shift > MotionPresentationRules.TeleportDistance) { state.Velocity = new Point(0, 0); state.LastTargetAt = now; }
+                    else if (shift >= .01)
+                    {
+                        state.Velocity = LegacyEstimateVelocity(state.Target, sample.Position, now - state.LastTargetAt, state.Velocity);
+                        state.LastTargetAt = now;
+                    }
+                    else
+                    {
+                        double seconds = now - state.LastSnapshotAt;
+                        if (seconds > .16) state.Velocity = LegacyEstimateVelocity(state.Target, sample.Position, seconds, state.Velocity);
+                    }
+                    state.LastSnapshotAt = now;
                 }
                 else
                 {
-                    double seconds = now - state.LastSnapshotAt;
-                    if (seconds > .16)
-                        state.Velocity = MotionPresentationRules.EstimateVelocity(
-                            state.Target, sample.Position, seconds, state.Velocity);
+                    bool newer = sample.Authoritative > state.LastAuthoritative + 1e-7;
+                    if (shift > MotionPresentationRules.TeleportDistance)
+                    {
+                        state.Velocity = new Point(0, 0); state.LastTargetAt = state.LastSnapshotAt = now;
+                        state.LastTargetAuthoritative = sample.Authoritative; state.UnchangedSamples = 0;
+                    }
+                    else if (shift >= .01)
+                    {
+                        double authoritativeSeconds = sample.Authoritative - state.LastTargetAuthoritative;
+                        double seconds = authoritativeSeconds >= .035 && authoritativeSeconds <= .35
+                            ? authoritativeSeconds : now - state.LastTargetAt;
+                        state.Velocity = MotionPresentationRules.EstimateVelocity(state.Target, sample.Position, seconds, state.Velocity);
+                        state.LastTargetAt = state.LastSnapshotAt = now;
+                        state.LastTargetAuthoritative = sample.Authoritative; state.UnchangedSamples = 0;
+                    }
+                    else if (newer)
+                    {
+                        state.UnchangedSamples++;
+                        if (state.UnchangedSamples >= 2) { state.Velocity = new Point(0, 0); state.LastSnapshotAt = now; }
+                    }
+                    if (newer) state.LastAuthoritative = sample.Authoritative;
                 }
                 state.Target = sample.Position;
-                state.LastSnapshotAt = now;
             }
 
             var previous = state.Position;
             double remaining = previous.Distance(state.Target);
             if (remaining > MotionPresentationRules.TeleportDistance)
             {
-                state.Position = state.Target;
-                state.Velocity = new Point(0, 0);
-                state.RenderSpeed = 0;
-                state.Moving = false;
+                state.Position = state.Target; state.Velocity = new Point(0, 0); state.RenderSpeed = 0; state.Moving = false;
             }
             else
             {
                 double age = Math.Max(0, now - state.LastSnapshotAt);
                 double sourceSpeed = state.Velocity.Distance(new Point(0, 0))
-                    * MotionPresentationRules.SnapshotFreshness(age);
-                var visualTarget = MotionPresentationRules.VisualTarget(state.Target, state.Velocity, age);
+                    * (legacy ? LegacyFreshness(age) : MotionPresentationRules.SnapshotFreshness(age));
+                var visualTarget = legacy ? LegacyVisualTarget(state.Target, state.Velocity, age)
+                    : MotionPresentationRules.VisualTarget(state.Target, state.Velocity, age);
                 double visualRemaining = previous.Distance(visualTarget);
                 if (remaining < .006 && sourceSpeed < .06)
                 {
-                    state.Position = state.Target;
-                    state.RenderSpeed = 0;
-                    state.Moving = false;
+                    state.Position = state.Target; state.RenderSpeed = 0; state.Moving = false;
                 }
                 else
                 {
@@ -344,8 +462,7 @@ public partial class PerformanceMotionDiagnosticsContract : Node
                     state.Position = visualRemaining < .003 ? visualTarget : new Point(
                         previous.X + (visualTarget.X - previous.X) * weight,
                         previous.Y + (visualTarget.Y - previous.Y) * weight);
-                    double travelled = previous.Distance(state.Position);
-                    double instantSpeed = travelled / dt;
+                    double travelled = previous.Distance(state.Position), instantSpeed = travelled / dt;
                     double speedWeight = 1 - Math.Exp(-12 * Math.Min(dt, .1));
                     state.RenderSpeed += (instantSpeed - state.RenderSpeed) * speedWeight;
                     bool keep = state.RenderSpeed > .055 || visualRemaining > .012 || sourceSpeed > .08;
@@ -354,20 +471,24 @@ public partial class PerformanceMotionDiagnosticsContract : Node
                 }
             }
 
+            double travelledFrame = previous.Distance(state.Position), renderedSpeed = travelledFrame / dt;
+            bool expected = ExpectedMoving(scenario, now);
+            if (expected && renderedSpeed < .05) { falseStops++; state.FalseStopRun++; longestFalseRun = Math.Max(longestFalseRun, state.FalseStopRun); }
+            else state.FalseStopRun = 0;
+            if (frames > 0 && expected && Math.Abs(renderedSpeed - state.PreviousInstantSpeed) > 1.5) discontinuities++;
+            state.PreviousInstantSpeed = renderedSpeed;
+
             double error = state.Position.Distance(state.Target);
             errors.Add(error);
             double speed = state.Velocity.Distance(new Point(0, 0));
             if (speed > .05)
             {
-                double leadX = state.Position.X - state.Target.X;
-                double leadY = state.Position.Y - state.Target.Y;
-                double projected = (leadX * state.Velocity.X + leadY * state.Velocity.Y) / speed;
-                maxLead = Math.Max(maxLead, projected);
+                double leadX = state.Position.X - state.Target.X, leadY = state.Position.Y - state.Target.Y;
+                maxLead = Math.Max(maxLead, (leadX * state.Velocity.X + leadY * state.Velocity.Y) / speed);
             }
             if (state.PreviousReady)
             {
-                double dx = state.Position.X - state.PreviousRendered.X;
-                double dy = state.Position.Y - state.PreviousRendered.Y;
+                double dx = state.Position.X - state.PreviousRendered.X, dy = state.Position.Y - state.PreviousRendered.Y;
                 double distance = Math.Sqrt(dx * dx + dy * dy);
                 if (distance > .0005 && speed > .05)
                 {
@@ -375,23 +496,13 @@ public partial class PerformanceMotionDiagnosticsContract : Node
                     if (cosine < -.25) reversals++;
                 }
             }
-            state.PreviousRendered = state.Position;
-            state.PreviousReady = true;
-            frames++;
+            state.PreviousRendered = state.Position; state.PreviousReady = true; frames++;
         }
 
         var sorted = errors.Order().ToArray();
         double p95 = sorted[Math.Clamp((int)Math.Ceiling(sorted.Length * .95) - 1, 0, sorted.Length - 1)];
-        return new MotionScheduleResult(
-            scenario,
-            fps,
-            frames,
-            delivered,
-            p95,
-            errors.Max(),
-            maxLead,
-            reversals,
-            errors[^1]);
+        return new MotionScheduleResult(scenario, fps, frames, delivered, p95, errors.Max(), maxLead, reversals,
+            falseStops, longestFalseRun * dt * 1000, discontinuities, errors[^1]);
     }
 
     private static IReadOnlyList<Delivered> Schedule(string kind)
@@ -410,8 +521,16 @@ public partial class PerformanceMotionDiagnosticsContract : Node
             };
             double motionTime = kind == "long-idle-start" ? Math.Max(0, authoritative - 1.2) : authoritative;
             double x;
-            if (kind is "continuous-straight" or "continuous-diagonal")
-                x = 10 + authoritative * 1.25;
+            if (kind is "continuous-straight" or "continuous-diagonal" or "interstitial" or "irregular"
+                or "duplicates" or "delayed-coalesced" or "stall")
+                x = 10 + motionTime * 1.25;
+            else if (kind == "movement-stop")
+                x = 10 + Math.Min(motionTime, 1.4) * 1.5;
+            else if (kind == "rapid-stop-start")
+                x = motionTime < .9 ? 10 + motionTime * 1.5
+                    : motionTime < 1.05 ? 11.35 : 11.35 + (motionTime - 1.05) * 1.5;
+            else if (kind == "direction-reversal")
+                x = motionTime < 1.2 ? 10 + motionTime * 1.5 : 11.8 - (motionTime - 1.2) * 1.5;
             else
                 x = motionTime < .8 ? 10 + motionTime * 2
                     : motionTime < 1.2 ? 11.6
@@ -502,15 +621,16 @@ public partial class PerformanceMotionDiagnosticsContract : Node
         return new DiagnosticsOverheadResult(iterations, disabledNs, enabledNs, Math.Max(0, enabledNs - disabledNs));
     }
 
-    private static List<MotionScheduleResult> SyntheticMatrix()
+    private static List<MotionScheduleResult> SyntheticMatrix(bool legacy = false)
     {
         string[] scenarios =
         [
             "regular", "continuous-straight", "continuous-diagonal", "long-idle-start",
+            "movement-stop", "rapid-stop-start", "direction-reversal",
             "interstitial", "irregular", "duplicates", "delayed-coalesced", "stall"
         ];
         int[] rates = [30, 60, 120, 144];
-        return scenarios.SelectMany(s => rates.Select(fps => Simulate(s, fps, Schedule(s)))).ToList();
+        return scenarios.SelectMany(s => rates.Select(fps => Simulate(s, fps, Schedule(s), legacy))).ToList();
     }
 
     public override async void _Ready()
@@ -558,6 +678,7 @@ public partial class PerformanceMotionDiagnosticsContract : Node
 
             reports.Add(await RunStationaryCreatureMotionNative(game, snapshot));
             reports.Add(await RunMotionNative(game, snapshot));
+            reports.Add(await RunInterstitialContinuityNative(game, snapshot));
 
             snapshot = CombatSnapshot(data, self);
             game.Diagnostics.Reset("combat-telegraphs-labels");
@@ -596,6 +717,7 @@ public partial class PerformanceMotionDiagnosticsContract : Node
             }
 
             var matrix = SyntheticMatrix();
+            var legacyMatrix = SyntheticMatrix(true);
             var diagnosticsOverhead = DiagnosticsOverhead();
             var panelStampBenchmark = PanelStampBenchmark(game, snapshot);
             Require(diagnosticsOverhead.Iterations == 200_000 && double.IsFinite(diagnosticsOverhead.AddedNanosecondsPerIteration),
@@ -604,7 +726,13 @@ public partial class PerformanceMotionDiagnosticsContract : Node
                 "Inventory-specific stamp allocates less than the legacy broad JSON stamp");
             Require(panelStampBenchmark.CandidateMicrosecondsPerCall < panelStampBenchmark.LegacyMicrosecondsPerCall,
                 "Inventory-specific stamp is faster than the legacy broad JSON stamp in-process");
-            Require(matrix.Count == 36, "Synthetic matrix covers nine timing patterns at 30/60/120/144 FPS");
+            Require(matrix.Count == 48 && legacyMatrix.Count == 48, "Synthetic before/after matrix covers twelve timing patterns at 30/60/120/144 FPS");
+            Require(matrix.Where(x => x.Scenario == "interstitial").Sum(x => x.FalseStopFrames)
+                    < legacyMatrix.Where(x => x.Scenario == "interstitial").Sum(x => x.FalseStopFrames),
+                "Interstitial unchanged samples produce fewer false rendered stops than the previous presentation rules");
+            Require(matrix.Where(x => x.Scenario is "continuous-straight" or "continuous-diagonal" or "interstitial")
+                    .All(x => x.LongestFalseStopMs <= 40),
+                "Continuous and interstitial motion avoid perceptible false-stop runs");
             Require(matrix.All(x => double.IsFinite(x.MaxErrorTiles) && double.IsFinite(x.FinalErrorTiles)),
                 "Synthetic matrix remains finite across continuous, long-idle, irregular, duplicate, coalesced and stalled delivery");
             Require(matrix.All(x => x.MaxForwardLeadTiles <= MotionPresentationRules.MaxLeadTiles + .02),
@@ -627,6 +755,7 @@ public partial class PerformanceMotionDiagnosticsContract : Node
                 diagnosticsOverhead,
                 panelStampBenchmark,
                 reports,
+                legacySyntheticMotion = legacyMatrix,
                 syntheticMotion = matrix,
                 checks,
                 windowsGpuPerformanceApproved = false,

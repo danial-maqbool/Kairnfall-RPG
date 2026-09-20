@@ -33,6 +33,7 @@ public partial class WorldView : Control
     private readonly List<Visual> visuals = [];
     private readonly List<WorldTarget> interactions = [];
     private readonly Dictionary<string, string> selfVisibleEquipment = [];
+    private Vector2 localMovementIntent;
     private Vector2 origin;
     private const float Tile = WorldMap.TileSize;
 
@@ -50,6 +51,10 @@ public partial class WorldView : Control
         public double LastTargetAt;
         public bool Moving;
         public bool Player;
+        public bool Local;
+        public double LastAuthoritativeTime;
+        public double LastTargetAuthoritativeTime;
+        public int UnchangedAuthoritativeSamples;
         public long CueSequence;
         public int ActionDirection;
         public int FacingDirection;
@@ -75,8 +80,16 @@ public partial class WorldView : Control
 
     public void ClearSession()
     {
-        Snapshot = null; Loot.Clear(); tracks.Clear(); interactions.Clear(); selfVisibleEquipment.Clear(); numbers.Clear(); npcGestures.Clear(); combatBursts.Clear(); impactUntil = 0; impactStrength = 0; lastZone = ""; TargetId = ""; Waypoint = null;
+        Snapshot = null; Loot.Clear(); tracks.Clear(); interactions.Clear(); selfVisibleEquipment.Clear(); numbers.Clear(); npcGestures.Clear(); combatBursts.Clear(); impactUntil = 0; impactStrength = 0; lastZone = ""; TargetId = ""; Waypoint = null; localMovementIntent = Vector2.Zero;
     }
+
+    public void SetLocalMovementIntent(Vector2 direction)
+    {
+        if (!float.IsFinite(direction.X) || !float.IsFinite(direction.Y)) { localMovementIntent = Vector2.Zero; return; }
+        localMovementIntent = direction.LengthSquared() > 1 ? direction.Normalized() : direction;
+    }
+
+    private bool LocalMovementExpected => localMovementIntent.LengthSquared() > .0001f;
 
     public void Accept(TransportPacket packet)
     {
@@ -91,12 +104,12 @@ public partial class WorldView : Control
         Snapshot = snapshot; sinceSnapshot = 0;
         Loot = packet.Loot ?? [];
         PixelAssets.UpdateVisibleEquipment(snapshot.Self, selfVisibleEquipment);
-        Track(snapshot.Self.Id, snapshot.Self.Position, snapshot.Self.Facing, snapshot.Self.Health, true);
-        foreach (var player in snapshot.Players) Track(player.Id, player.Position, player.Facing, player.Health, true);
+        Track(snapshot.Self.Id, snapshot.Self.Position, snapshot.Self.Facing, snapshot.Self.Health, snapshot.Time, true, true);
+        foreach (var player in snapshot.Players) Track(player.Id, player.Position, player.Facing, player.Health, snapshot.Time, true);
         foreach (var creature in snapshot.Creatures)
         {
             bool existing = tracks.ContainsKey(creature.Id);
-            var track = Track(creature.Id, creature.Position, creature.Facing, creature.Health);
+            var track = Track(creature.Id, creature.Position, creature.Facing, creature.Health, snapshot.Time);
             if (!existing) track.LastAttack = creature.NextAttack;
             if (existing && creature.NextAttack > track.LastAttack + .01 && creature.Health > 0)
             {
@@ -108,36 +121,53 @@ public partial class WorldView : Control
         Diagnostics.RecordDuration(ClientPerfPhase.SnapshotAccept, performanceStarted);
     }
 
-    private ActorTrack Track(string id, Point position, Point facing, double health, bool player = false)
+    private ActorTrack Track(string id, Point position, Point facing, double health, double authoritativeTime, bool player = false, bool local = false)
     {
         if (!tracks.TryGetValue(id, out var track))
         {
-            track = new ActorTrack { Position = position, Target = position, Facing = facing, FacingDirection = SpritePoseRules.Direction(facing, 0), ActionDirection = SpritePoseRules.Direction(facing, 0), Health = health, LastMoved = -10, Player = player, IdlePhase = IdleOffset(id), LastSnapshotAt = Clock, LastTargetAt = Clock };
+            track = new ActorTrack
+            {
+                Position = position, Target = position, Facing = facing,
+                FacingDirection = SpritePoseRules.Direction(facing, 0), ActionDirection = SpritePoseRules.Direction(facing, 0),
+                Health = health, LastMoved = -10, Player = player, Local = local, IdlePhase = IdleOffset(id),
+                LastSnapshotAt = Clock, LastTargetAt = Clock,
+                LastAuthoritativeTime = authoritativeTime, LastTargetAuthoritativeTime = authoritativeTime
+            };
             tracks[id] = track;
             if (health <= 0) { track.State = 5; track.StateStart = Clock - ActorMotion.CorpseCollapseSeconds; track.StateUntil = Clock + 6; }
         }
+
         double targetShift = track.Target.Distance(position);
+        bool newerAuthoritative = double.IsFinite(authoritativeTime) && authoritativeTime > track.LastAuthoritativeTime + 1e-7;
         if (targetShift > .008) track.LastMoved = Clock;
         if (targetShift > MotionPresentationRules.TeleportDistance)
         {
             track.SnapshotVelocity = new Point(0, 0);
-            track.LastTargetAt = Clock;
+            track.LastTargetAt = track.LastSnapshotAt = Clock;
+            track.LastTargetAuthoritativeTime = authoritativeTime;
+            track.UnchangedAuthoritativeSamples = 0;
         }
         else if (targetShift >= .01)
         {
-            // Measure from the last authoritative position change, not merely the
-            // previous packet: creature AI moves at 5 Hz while packets arrive at 10 Hz.
-            double sampleSeconds = Clock - track.LastTargetAt;
+            double authoritativeSeconds = authoritativeTime - track.LastTargetAuthoritativeTime;
+            double sampleSeconds = double.IsFinite(authoritativeSeconds) && authoritativeSeconds >= .035 && authoritativeSeconds <= .35
+                ? authoritativeSeconds : Clock - track.LastTargetAt;
             track.SnapshotVelocity = MotionPresentationRules.EstimateVelocity(track.Target, position, sampleSeconds, track.SnapshotVelocity);
-            track.LastTargetAt = Clock;
+            track.LastTargetAt = track.LastSnapshotAt = Clock;
+            track.LastTargetAuthoritativeTime = authoritativeTime;
+            track.UnchangedAuthoritativeSamples = 0;
         }
-        else if (Clock - track.LastMoved > .16)
+        else if (newerAuthoritative)
         {
-            double sampleSeconds = Clock - track.LastSnapshotAt;
-            track.SnapshotVelocity = MotionPresentationRules.EstimateVelocity(track.Target, position, sampleSeconds, track.SnapshotVelocity);
+            track.UnchangedAuthoritativeSamples++;
+            if (track.UnchangedAuthoritativeSamples >= 2)
+            {
+                track.SnapshotVelocity = new Point(0, 0);
+                track.LastSnapshotAt = Clock;
+            }
         }
-        // Preserve measured velocity across a single unchanged interstitial snapshot.
-        track.LastSnapshotAt = Clock;
+        if (newerAuthoritative) track.LastAuthoritativeTime = authoritativeTime;
+
         if (Math.Abs(track.Health - health) >= .8)
         {
             bool hurt = health < track.Health;
@@ -147,7 +177,7 @@ public partial class WorldView : Control
         if (track.Health > 0 && health <= 0) { Animate(id, 5, 6); track.SnapshotVelocity = new Point(0, 0); }
         track.FacingDirection = SpritePoseRules.Direction(facing, track.FacingDirection);
         if (track.Health <= 0 && health > 0) { track.StateUntil = 0; track.State = 0; track.SnapshotVelocity = new Point(0, 0); }
-        track.Target = position; track.Facing = facing; track.Health = health;
+        track.Target = position; track.Facing = facing; track.Health = health; track.Player = player || track.Player; track.Local = local || track.Local;
         return track;
     }
 
@@ -219,6 +249,7 @@ public partial class WorldView : Control
                     double dy = track.Position.Y - track.DiagnosticPreviousPosition.Y;
                     double travelled = Math.Sqrt(dx * dx + dy * dy);
                     double speed = track.SnapshotVelocity.Distance(new Point(0, 0));
+                    if (track.Local) Diagnostics.RecordLocalMotion(travelled / delta, LocalMovementExpected, delta);
                     if (travelled > .0005 && speed > .05)
                     {
                         double cosine = (dx * track.SnapshotVelocity.X + dy * track.SnapshotVelocity.Y) / (travelled * speed);
@@ -438,7 +469,7 @@ public partial class WorldView : Control
             Color targetColor = Ui.Gold;
             if (visual.Kind == "creature" && Snapshot is { } targetSnapshot)
             {
-                double reach = ExperienceRules.WeaponRange(targetSnapshot.Self, Data);
+                double reach = ExperienceRules.BasicAttackRange(targetSnapshot.Self, Data);
                 double distance = targetSnapshot.Self.Position.Distance(visual.At);
                 targetColor = distance <= reach + .001 ? Ui.Success
                     : distance <= reach + ExperienceRules.SelectedTargetGrace ? Ui.Gold : Ui.Danger;
@@ -588,7 +619,18 @@ public partial class WorldView : Control
     };
     private void DrawTelegraph(Telegraph effect)
     {
-        var center = SnappedPixels(effect.Position); var color = ElementColor(effect.Element);
+        var center = SnappedPixels(effect.Position); var color = ElementColor(effect.VisualElement ?? effect.Element);
+        if (ProjectilePresentationRules.Travels(effect))
+        {
+            float progress = (float)ProjectilePresentationRules.Progress(effect, RealmTime);
+            var start = SnappedPixels(effect.Origin);
+            var bolt = start.Lerp(center, progress);
+            Color trail = color; trail.A = .5f;
+            DrawLine(start.Lerp(center, MathF.Max(0, progress - .18f)), bolt, trail, 2.2f);
+            DrawCircle(bolt, 3.6f, color);
+            DrawArc(bolt, 6.5f, 0, MathF.Tau, 18, new Color(color, .65f), 1.4f);
+            return;
+        }
         float urgency = (float)CombatReadabilityRules.TelegraphUrgency(effect, RealmTime);
         float pulse = urgency * (.35f + .35f * (.5f + .5f * MathF.Sin((float)Clock * 22f)));
         float outline = 1.5f + pulse;

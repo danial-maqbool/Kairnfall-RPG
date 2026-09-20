@@ -19,6 +19,24 @@ Character NewPlayer(RealmEngine r,string name="Test Player",string cls="vanguard
 }
 CommandResult Send(RealmEngine r,Character p,string kind,string target="",string item="",int amount=1,string arg="")=>r.Execute(p.Id,new(){Kind=kind,Target=target,Item=item,Amount=amount,Arg=arg,Sequence=r.Player(p.Id).LastAction+1});
 void MoveTo(RealmEngine r,Character p,NpcDef npc) { p.Zone=npc.Zone; p.Position=npc.Position; }
+Point RangedPoint(Character p,double distance)
+{
+    var zone=data.Zone(p.Zone);
+    for(int step=0;step<32;step++)
+    {
+        double angle=step*Math.Tau/32;
+        var point=p.Position.Add(new Point(Math.Cos(angle)*distance,Math.Sin(angle)*distance));
+        if(WorldMap.Fits(zone,point)&&WorldMap.LineOfSight(zone,p.Position,point)) return point;
+    }
+    throw new Exception("No ranged combat fixture point found.");
+}
+Creature RangedTarget(RealmEngine r,Character p,string id,double distance)
+{
+    var def=data.Mob("field_rat");
+    var target=new Creature{Id=id,Template=def.Id,Zone=p.Zone,Position=RangedPoint(p,distance),Health=def.Health};
+    target.Home=target.Position; target.Statuses.Add(new(){Kind="root",Until=1000,Power=1,Source=p.Id});
+    r.State.Creatures[id]=target; return target;
+}
 
 CreatureMotionCases.Run(Test,data);
 Test("Catalog references and world graph",()=>Check(data.Validate().Count==0,"Catalog validation failed."));
@@ -270,6 +288,45 @@ Test("Chest ownership and cooldown prevent repeated loot",()=>
     var r=NewRealm(); var p=NewPlayer(r); var chest=r.State.Chests.Values.First(x=>x.Kind=="weathered"&&x.Zone==p.Zone); p.Position=chest.Position;
     var first=Send(r,p,"chest",chest.Id); Check(first.Ok,first.Message); long gold=p.Gold;
     var second=Send(r,p,"chest",chest.Id); Check(!second.Ok&&r.Player(p.Id).Gold==gold,"Chest paid twice.");
+});
+Test("Arcanist and Templar basic attacks are server-authoritative ranged projectiles",()=>
+{
+    foreach(string classId in new[]{"arcanist","templar"})
+    {
+        var r=NewRealm(); var p=NewPlayer(r,"Ranged "+classId,classId); p.Stamina=1000;
+        var target=RangedTarget(r,p,classId+"-target",5.0);
+        var adjacent=RangedTarget(r,p,classId+"-adjacent",5.0);
+        adjacent.Position=target.Position.Add(new Point(.15,0)); adjacent.Home=adjacent.Position;
+        double targetHealth=target.Health, adjacentHealth=adjacent.Health;
+        var result=Send(r,p,"attack",target.Id); Check(result.Ok,result.Message);
+        Check(target.Health==targetHealth,"Ranged basic damage resolved before the authoritative projectile.");
+        var projectile=r.State.Telegraphs.Single(x=>x.Source==p.Id&&x.Target==target.Id&&x.Shape=="projectile");
+        Check(Math.Abs(p.Position.Distance(target.Position)-5.0)<.05,"Ranged fixture accidentally entered melee range.");
+        Check(projectile.Origin==p.Position&&projectile.Started==r.State.Time,"Projectile did not preserve its authoritative origin/time.");
+        Check(projectile.VisualElement==(classId=="arcanist"?Element.Arcane:Element.Radiant),"Class projectile visual language is incorrect.");
+        Check(!Send(r,p,"attack",target.Id).Ok,"Basic attack cooldown was bypassed.");
+        target=r.State.Creatures[target.Id]; adjacent=r.State.Creatures[adjacent.Id];
+        for(int i=0;i<12;i++) r.Tick(.05);
+        Check(target.Health<targetHealth,"Authoritative projectile did not resolve damage.");
+        Check(adjacent.Health==adjacentHealth,"Targeted basic projectile damaged an adjacent creature.");
+    }
+
+    var beyond=NewRealm(); var caster=NewPlayer(beyond,"Range Limit","arcanist"); caster.Stamina=1000;
+    var far=RangedTarget(beyond,caster,"far-caster-target",BasicAttackRules.CasterRange+.35);
+    Check(!Send(beyond,caster,"attack",far.Id).Ok,"Caster basic attack exceeded the intended maximum range.");
+
+    var deadRealm=NewRealm(); var deadCaster=NewPlayer(deadRealm,"Dead Target","arcanist"); deadCaster.Stamina=1000;
+    var dead=RangedTarget(deadRealm,deadCaster,"dead-caster-target",5.0); dead.Health=0;
+    Check(!Send(deadRealm,deadCaster,"attack",dead.Id).Ok,"Dead target was accepted.");
+
+    var crossRealm=NewRealm(); var crossCaster=NewPlayer(crossRealm,"Cross Zone","templar"); crossCaster.Stamina=1000;
+    var cross=RangedTarget(crossRealm,crossCaster,"cross-zone-target",5.0);
+    cross.Zone=data.Zones.First(x=>x.Id!=crossCaster.Zone).Id;
+    Check(!Send(crossRealm,crossCaster,"attack",cross.Id).Ok,"Cross-zone target was accepted.");
+
+    var meleeRealm=NewRealm(); var melee=NewPlayer(meleeRealm,"Melee Limit","vanguard"); melee.Stamina=1000;
+    var meleeFar=RangedTarget(meleeRealm,melee,"melee-far-target",5.0);
+    Check(!Send(meleeRealm,melee,"attack",meleeFar.Id).Ok,"Melee class basic attack was converted to ranged.");
 });
 Test("Basic combat can kill, award skills, and create owned loot",()=>
 {

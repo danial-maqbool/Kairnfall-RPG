@@ -63,7 +63,7 @@ public partial class ControlRulesContract : Node
     private async Task VerifySkillGuide(GameRoot game, Catalog data, Character self)
     {
         var actor = Wire.Copy(self); actor.Position = data.Zone(actor.Zone).Spawn;
-        double reach = ExperienceRules.WeaponRange(actor, data);
+        double reach = ExperienceRules.BasicAttackRange(actor, data);
         var approaching = new Creature { Id = "approach-fixture", Zone = actor.Zone, Template = "field_rat", Health = 100, Position = new Point(actor.Position.X + reach + .5, actor.Position.Y) };
         var approach = ExperienceRules.ApproachPath(actor, approaching, data);
         Require(approach.Count > 0, "A nearby moving target has a bounded approach route");
@@ -148,6 +148,29 @@ public partial class ControlRulesContract : Node
             Require(ExperienceRules.WeaponRange(bare, data) == 1.6, "Unarmed client range matches the server");
             Require(Math.Abs(ExperienceRules.AttackInterval(bare, data) - Math.Max(.25, .8 / CombatMath.Stats(bare, data).AttackSpeed)) < .00001,
                 "Unarmed cadence uses the server formula");
+            var arcanist = realm.CreateCharacter("control-arcanist", "Control Arcanist", "arcanist", new());
+            var templar = realm.CreateCharacter("control-templar", "Control Templar", "templar", new());
+            Require(Math.Abs(ExperienceRules.BasicAttackRange(arcanist, data) - BasicAttackRules.CasterRange) < .001,
+                "Arcanist Spacebar basic range uses the caster profile");
+            Require(Math.Abs(ExperienceRules.BasicAttackRange(templar, data) - BasicAttackRules.CasterRange) < .001,
+                "Templar Spacebar basic range uses the healer profile");
+            Require(ExperienceRules.BasicAttackRange(self, data) < 3, "Vanguard basic attack remains melee-range");
+            var rangedPoint = Enumerable.Range(0, 32)
+                .Select(step => step * Math.Tau / 32)
+                .Select(angle => arcanist.Position.Add(new Point(Math.Cos(angle) * 5, Math.Sin(angle) * 5)))
+                .First(point => WorldMap.Fits(data.Zone(arcanist.Zone), point)
+                    && WorldMap.LineOfSight(data.Zone(arcanist.Zone), arcanist.Position, point));
+            var rangedTarget = new Creature { Id = "ranged-basic-fixture", Template = "field_rat", Health = 20, Zone = arcanist.Zone, Position = rangedPoint };
+            Require(ExperienceRules.ApproachPath(arcanist, rangedTarget, data).Count == 0,
+                "Caster auto-approach stops once the target is inside ranged-basic distance");
+            var projectileCue = new Telegraph
+            {
+                Shape = "projectile", Target = rangedTarget.Id, Origin = new Point(1, 1), Position = new Point(5, 1),
+                Started = 10, Resolves = 10.4, VisualElement = Element.Arcane
+            };
+            Require(ProjectilePresentationRules.Travels(projectileCue), "Ranged basic presentation is a travelling projectile cue");
+            Require(ProjectilePresentationRules.Position(projectileCue, 10.2).Distance(new Point(3, 1)) < .001,
+                "Projectile presentation travels from authoritative attack origin toward the target");
             var gate = new AttackRequestGate(); int requests = 0;
             for (int i = 0; i < 600; i++) if (gate.TryTake(i / 120.0, 10, 0, true, 1.2)) requests++;
             Require(requests == 5, "A stale snapshot cannot turn a 1.2-second weapon into per-frame requests");
@@ -174,7 +197,7 @@ public partial class ControlRulesContract : Node
             Require(ExperienceRules.CycleTarget(self, [front, back], data, "") is null, "Tab excludes owned companions");
             front.Owner = "";
             Require(!ExperienceRules.CanTarget(self, front, data, double.NaN), "Invalid targeting distance fails closed");
-            double reach = ExperienceRules.WeaponRange(self, data);
+            double reach = ExperienceRules.BasicAttackRange(self, data);
             var nearby = Target("approach", reach + .75, 0);
             var path = ExperienceRules.ApproachPath(self, nearby, data);
             Require(path.Count > 0, "A selected nearby enemy has a short approach path");
