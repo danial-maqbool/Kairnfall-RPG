@@ -1,0 +1,41 @@
+name: Temporary exact-head acceptance dispatcher
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/acceptance-dispatch.yml'
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch retained path-filtered acceptance workflows
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          test "$current" = "$GITHUB_SHA"
+          workflows=(
+            audio-acceptance.yml
+            client.yml
+            visual-acceptance-matrix.yml
+            live-progression-breadth.yml
+            performance-diagnostics.yml
+            grounded-actor-acceptance.yml
+            windows-display-input.yml
+            graphical-multiplayer.yml
+            windows-package.yml
+            new-player-journey.yml
+          )
+          for workflow in "${workflows[@]}"; do
+            echo "dispatching $workflow at main=$GITHUB_SHA"
+            gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/dispatches" -f ref=main
+          done
