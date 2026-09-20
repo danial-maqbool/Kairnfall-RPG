@@ -23,12 +23,16 @@ WORKSTREAM = 'smoothness-performance-polish'
 TITLE = 'Measured smoothness, performance, camera and gameplay polish'
 CHECKPOINT = 0
 CHECKPOINT1 = 1
+CHECKPOINT2 = 2
 STARTING_MAIN = '1a4704fee2194bf3b9c51eb28b6e7408a7c1e72e'
 CHECKPOINT1_STARTING_MAIN = '6e76af928af21c8ed7e1d14fd9fe59093174d228'
+CHECKPOINT2_STARTING_MAIN = 'efd418c4233802e91f5e0dd861b73119addb850d'
 PREVIOUS = 'docs/handoff/COMBAT_EVIDENCE_2026-09-18.json'
 PREVIOUS_BLOB = 'cf1a93b5cd2481dcc1de86ec10c72469d3828fc0'
 CHECKPOINT0_ARCHIVE = 'docs/handoff/SMOOTHNESS_CHECKPOINT0_EVIDENCE_2026-09-20.json'
 CHECKPOINT0_ARCHIVE_BLOB = '79779ce75560c5dd98132827181e8f56f35e1f70'
+CHECKPOINT1_ARCHIVE = 'docs/handoff/SMOOTHNESS_CHECKPOINT1_EVIDENCE_2026-09-20.json'
+CHECKPOINT1_ARCHIVE_BLOB = '10654d5d0d4605c7f9708faccb8b7cfd13257efb'
 PRESERVED_COMBAT_BASELINE = '06776f6b0de7dbe02cab30a9e236e730c377de2e'
 PRESERVED_COMBAT_DELIVERY = 'bc9561846cd480c1e899190cb9b6f2df75a30176'
 PERFORMANCE_WORKFLOW = 'Client performance and motion diagnostics'
@@ -52,6 +56,11 @@ CHECKPOINT1_DOCS = (
     'docs/SESSION_STATUS.md',
     'docs/handoff/PERFORMANCE_DIAGNOSTICS_VERIFICATION.md',
 )
+CHECKPOINT2_DOCS = (
+    'HANDOFF.md',
+    'docs/SESSION_STATUS.md',
+    'docs/handoff/PERFORMANCE_OPTIMIZATION_VERIFICATION.md',
+)
 CHECKPOINT0_ALLOWED_PATHS = frozenset({
     'tools/documentation_contract.py',
     'tools/smoothness_delivery_contract.py',
@@ -70,6 +79,16 @@ CHECKPOINT1_ALLOWED_PATHS = frozenset({
     'tools/smoothness_delivery_contract.py',
     'tests/handoff/test_smoothness_evidence.py',
     CHECKPOINT0_ARCHIVE,
+})
+CHECKPOINT2_ALLOWED_PATHS = frozenset({
+    'client/Scripts/GameRoot.cs',
+    'client/Scripts/PixelAssets.cs',
+    'client/Scripts/WorldView.cs',
+    'client/Tests/InventoryRefreshChecks.cs',
+    'client/Tests/PerformanceMotionDiagnosticsContract.cs',
+    'tools/smoothness_delivery_contract.py',
+    'tests/handoff/test_smoothness_evidence.py',
+    CHECKPOINT1_ARCHIVE,
 })
 PRESERVED_SMOOTHNESS_PATHS = frozenset({
     'client/Scripts/WorldView.CharacterMotion.cs',
@@ -211,6 +230,11 @@ def validate_checkpoint1_metadata(e: dict) -> str:
             and diagnostic.get('sixtyFpsApproved') is False,
             'Diagnostics cannot promote a fixture into 60 FPS approval.')
 
+    validate_performance_workflow(e, baseline)
+    return baseline
+
+
+def validate_performance_workflow(e: dict, baseline: str) -> None:
     perf = e.get('performanceWorkflow', {})
     require(perf.get('name') == PERFORMANCE_WORKFLOW,
             'Performance workflow identity drifted.')
@@ -227,6 +251,49 @@ def validate_checkpoint1_metadata(e: dict) -> str:
             and len(set(artifact_ids)) == 2
             and all(type(value) is int and value > 0 for value in artifact_ids),
             'Performance workflow must record two unique native artifacts.')
+
+
+def validate_checkpoint2_metadata(e: dict) -> str:
+    baseline = validate_common(e)
+    require(e.get('checkpoint') == CHECKPOINT2,
+            'Current smoothness evidence does not describe checkpoint 2.')
+    require(e.get('startingMain') == STARTING_MAIN,
+            'Overall smoothness starting main changed.')
+    require(e.get('checkpointStartingMain') == CHECKPOINT2_STARTING_MAIN,
+            'Checkpoint 2 starting main changed.')
+    require(e.get('historicalCheckpoint1Evidence') == CHECKPOINT1_ARCHIVE,
+            'Checkpoint 1 archive reference drifted.')
+    require(e.get('repositorySideCheckpoint2Complete') is True,
+            'Checkpoint 2 completion is not explicit.')
+    require(e.get('gameplayBehaviorChangedInCheckpoint2') is False,
+            'Checkpoint 2 cannot change gameplay behavior.')
+    require(e.get('performanceImprovementClaimed') is True,
+            'Checkpoint 2 must record its measured targeted improvement.')
+    require(e.get('performanceTargetClaimed') is False,
+            'Checkpoint 2 cannot promote a targeted win into 60 FPS approval.')
+
+    optimization = e.get('optimizationEvidence', {})
+    require(optimization.get('metric') == 'inventory-panel-stamp'
+            and optimization.get('comparisonKind') == 'same-process legacy-vs-candidate',
+            'Checkpoint 2 must retain its like-for-like Inventory stamp comparison.')
+    require(type(optimization.get('iterations')) is int and optimization['iterations'] >= 1000,
+            'Checkpoint 2 benchmark sample count is insufficient.')
+    legacy_us = optimization.get('legacyMicrosecondsPerCall')
+    candidate_us = optimization.get('candidateMicrosecondsPerCall')
+    legacy_bytes = optimization.get('legacyAllocatedBytesPerCall')
+    candidate_bytes = optimization.get('candidateAllocatedBytesPerCall')
+    require(all(isinstance(value, (int, float)) and not isinstance(value, bool)
+                for value in (legacy_us, candidate_us, legacy_bytes, candidate_bytes)),
+            'Checkpoint 2 benchmark values must be numeric.')
+    require(legacy_us > candidate_us > 0,
+            'Checkpoint 2 must demonstrate a faster Inventory stamp.')
+    require(legacy_bytes > candidate_bytes >= 0,
+            'Checkpoint 2 must demonstrate lower Inventory stamp allocation.')
+    require(optimization.get('broadFramePercentageClaimed') is False,
+            'No broad frame-performance percentage may be inferred from the noisy native runs.')
+    require(optimization.get('coldLoadOptimizationDeferred') is True,
+            'Cold-load work must remain explicitly deferred when it was not optimized.')
+    validate_performance_workflow(e, baseline)
     return baseline
 
 
@@ -236,6 +303,8 @@ def validate_metadata(e: dict) -> str:
         return validate_checkpoint0_metadata(e)
     if checkpoint == CHECKPOINT1:
         return validate_checkpoint1_metadata(e)
+    if checkpoint == CHECKPOINT2:
+        return validate_checkpoint2_metadata(e)
     raise RuntimeError('Unsupported smoothness checkpoint evidence.')
 
 
@@ -257,9 +326,12 @@ def validate_source_boundary(e: dict, baseline: str) -> None:
     if checkpoint == CHECKPOINT:
         checkpoint_start = STARTING_MAIN
         allowed = CHECKPOINT0_ALLOWED_PATHS
-    else:
+    elif checkpoint == CHECKPOINT1:
         checkpoint_start = CHECKPOINT1_STARTING_MAIN
         allowed = CHECKPOINT1_ALLOWED_PATHS
+    else:
+        checkpoint_start = CHECKPOINT2_STARTING_MAIN
+        allowed = CHECKPOINT2_ALLOWED_PATHS
     git('merge-base', '--is-ancestor', checkpoint_start, baseline)
     paths = {
         path for path in git('diff', '--name-only', checkpoint_start, baseline).splitlines()
@@ -285,6 +357,9 @@ def validate_archives(e: dict) -> None:
     if e['checkpoint'] >= CHECKPOINT1:
         require(sha1_blob(ROOT / CHECKPOINT0_ARCHIVE) == CHECKPOINT0_ARCHIVE_BLOB,
                 'Checkpoint 0 evidence changed instead of being archived byte-for-byte.')
+    if e['checkpoint'] >= CHECKPOINT2:
+        require(sha1_blob(ROOT / CHECKPOINT1_ARCHIVE) == CHECKPOINT1_ARCHIVE_BLOB,
+                'Checkpoint 1 evidence changed instead of being archived byte-for-byte.')
 
 
 def validate_inherited_smoothness() -> None:
@@ -306,7 +381,9 @@ def rows_from(e: dict) -> list[dict]:
 
 
 def validate_docs(e: dict, baseline: str) -> None:
-    docs = CHECKPOINT0_DOCS if e['checkpoint'] == CHECKPOINT else CHECKPOINT1_DOCS
+    docs = (CHECKPOINT0_DOCS if e['checkpoint'] == CHECKPOINT
+            else CHECKPOINT1_DOCS if e['checkpoint'] == CHECKPOINT1
+            else CHECKPOINT2_DOCS)
     for relative in docs:
         text = (ROOT / relative).read_text(encoding='utf-8')
         for marker in (baseline, 'CURRENT_EVIDENCE.json', RELEASE_STATUS,
@@ -317,7 +394,7 @@ def validate_docs(e: dict, baseline: str) -> None:
     for row in rows_from(e):
         require(str(row['runId']) in verification and row['name'] in verification,
                 'Smoothness verification document omits a workflow.')
-    if e['checkpoint'] == CHECKPOINT1:
+    if e['checkpoint'] >= CHECKPOINT1:
         perf = e['performanceWorkflow']
         require(str(perf['runId']) in verification and perf['name'] in verification,
                 'Performance verification document omits the diagnostic workflow.')
@@ -340,7 +417,7 @@ def validate_live(e: dict, baseline: str) -> str:
             'Character sprite acceptance run is missing from live evidence.')
     validate_native_jobs(character_jobs)
 
-    if e['checkpoint'] == CHECKPOINT1:
+    if e['checkpoint'] >= CHECKPOINT1:
         perf = e['performanceWorkflow']
         actual = api(f'actions/runs/{perf["runId"]}', token)
         validate_remote_run(perf, actual, baseline)

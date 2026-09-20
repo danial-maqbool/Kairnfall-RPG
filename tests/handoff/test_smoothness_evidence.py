@@ -310,6 +310,78 @@ class SmoothnessEvidenceTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 contract.validate_performance_jobs(changed)
 
+    def checkpoint2_evidence(self):
+        evidence = self.checkpoint1_evidence()
+        evidence.update({
+            'checkpoint': contract.CHECKPOINT2,
+            'checkpointStartingMain': contract.CHECKPOINT2_STARTING_MAIN,
+            'historicalCheckpoint1Evidence': contract.CHECKPOINT1_ARCHIVE,
+            'repositorySideCheckpoint2Complete': True,
+            'gameplayBehaviorChangedInCheckpoint2': False,
+            'performanceImprovementClaimed': True,
+            'performanceTargetClaimed': False,
+            'optimizationEvidence': {
+                'metric': 'inventory-panel-stamp',
+                'comparisonKind': 'same-process legacy-vs-candidate',
+                'iterations': 5000,
+                'legacyMicrosecondsPerCall': 22.7,
+                'candidateMicrosecondsPerCall': 0.07,
+                'legacyAllocatedBytesPerCall': 7700,
+                'candidateAllocatedBytesPerCall': 56,
+                'broadFramePercentageClaimed': False,
+                'coldLoadOptimizationDeferred': True,
+            },
+        })
+        return evidence
+
+    def test_checkpoint2_complete_metadata_is_valid(self):
+        evidence = self.checkpoint2_evidence()
+        self.assertEqual(contract.validate_metadata(evidence), self.sha)
+
+    def test_checkpoint2_rejects_fake_completion_scope_or_target_claims(self):
+        for key, value in (
+            ('repositorySideCheckpoint2Complete', False),
+            ('gameplayBehaviorChangedInCheckpoint2', True),
+            ('performanceImprovementClaimed', False),
+            ('performanceTargetClaimed', True),
+            ('checkpointStartingMain', 'b' * 40),
+            ('historicalCheckpoint1Evidence', 'other.json'),
+        ):
+            evidence = self.checkpoint2_evidence()
+            evidence[key] = value
+            with self.assertRaises(RuntimeError):
+                contract.validate_metadata(evidence)
+
+    def test_checkpoint2_rejects_unproven_or_broad_performance_claims(self):
+        for key, value in (
+            ('metric', 'whole-client-fps'),
+            ('comparisonKind', 'different-machines'),
+            ('iterations', 10),
+            ('legacyMicrosecondsPerCall', 0.05),
+            ('candidateMicrosecondsPerCall', 30.0),
+            ('legacyAllocatedBytesPerCall', 50),
+            ('candidateAllocatedBytesPerCall', 8000),
+            ('broadFramePercentageClaimed', True),
+            ('coldLoadOptimizationDeferred', False),
+        ):
+            with self.subTest(key=key, value=value):
+                evidence = self.checkpoint2_evidence()
+                evidence['optimizationEvidence'][key] = value
+                with self.assertRaises(RuntimeError):
+                    contract.validate_metadata(evidence)
+
+    def test_checkpoint2_rejects_non_numeric_or_boolean_benchmark_values(self):
+        for key, value in (
+            ('legacyMicrosecondsPerCall', '22.7'),
+            ('candidateMicrosecondsPerCall', True),
+            ('legacyAllocatedBytesPerCall', None),
+            ('candidateAllocatedBytesPerCall', False),
+        ):
+            evidence = self.checkpoint2_evidence()
+            evidence['optimizationEvidence'][key] = value
+            with self.assertRaises(RuntimeError):
+                contract.validate_metadata(evidence)
+
 
 if __name__ == '__main__':
     unittest.main()

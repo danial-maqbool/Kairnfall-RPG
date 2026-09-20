@@ -17,7 +17,9 @@ public sealed class PixelAssets
 
     public Texture2D? Texture(string key)
     {
-        if (!Regex.IsMatch(key, @"\A[a-zA-Z0-9_/-]+\z")) throw new InvalidDataException("Unsafe asset identifier.");
+        // Every cache entry is inserted only after validation below. Established hot
+        // paths can therefore return cached or known-missing keys without re-running
+        // the regex on every draw.
         if (textures.TryGetValue(key, out var found))
         {
             Diagnostics.RecordTextureLookup(true, false, false, false, 0);
@@ -28,6 +30,7 @@ public sealed class PixelAssets
             Diagnostics.RecordTextureLookup(false, true, false, true, 0);
             return null;
         }
+        if (!Regex.IsMatch(key, @"\A[a-zA-Z0-9_/-]+\z")) throw new InvalidDataException("Unsafe asset identifier.");
         long resourceStarted = Diagnostics.StartTimer();
         string path = "res://Assets/" + key + ".png";
         if (!ResourceLoader.Exists(path))
@@ -115,14 +118,20 @@ public sealed class PixelAssets
         }
     }
 
-    public static Dictionary<string, string> VisibleEquipment(Character character)
+    public static void UpdateVisibleEquipment(Character character, Dictionary<string, string> result)
     {
-        var result = new Dictionary<string, string>();
+        result.Clear();
         foreach (var entry in character.Equipment)
         {
             var item = character.Inventory.FirstOrDefault(x => x.Id == entry.Value);
             if (item is not null) result[entry.Key] = item.Template;
         }
+    }
+
+    public static Dictionary<string, string> VisibleEquipment(Character character)
+    {
+        var result = new Dictionary<string, string>();
+        UpdateVisibleEquipment(character, result);
         return result;
     }
 

@@ -14,6 +14,7 @@ internal static class InventoryRefreshChecks
         FieldInfo Field(string name)=>typeof(GameRoot).GetField(name,Private)!;
         async Task Frame()=>await host.ToSignal(host.GetTree(),SceneTree.SignalName.ProcessFrame);
         void Refresh()=>((Action?)Field("refreshPage").GetValue(game))?.Invoke();
+        object Stamp()=>Call("PageStamp")!;
         EquipmentItemSlot Slot(string id)=>game.FindChildren("*","",true,false).OfType<EquipmentItemSlot>()
             .Single(slot=>!slot.IsQueuedForDeletion()&&slot.Item?.Id==id&&slot.Bag=="inventory");
         async Task Click(Control control)
@@ -45,6 +46,19 @@ internal static class InventoryRefreshChecks
                 self.Equipment.Clear();copper.Durability=100;potion.Quantity=2;
                 Snapshot();Field("selectedItem").SetValue(game,copper.Id);Field("selectedBag").SetValue(game,"inventory");
                 Call("OpenPage","Inventory");await Frame();await Frame();await Frame();
+                object initialStamp=Stamp();
+                var listings=(List<LfgListing>)Field("lfgListings").GetValue(game)!;
+                listings.Add(new LfgListing{Character="inventory-irrelevant",Name="Unrelated",Activity="group"});
+                check(Equals(Stamp(),initialStamp),"Inventory change detection ignores unrelated social-list churn");
+                listings.RemoveAll(x=>x.Character=="inventory-irrelevant");
+                self.SkillXp["swordsmanship"]+=1;Snapshot();
+                object skillStamp=Stamp();
+                check(!Equals(skillStamp,initialStamp),"Inventory change detection includes equipment-eligibility skill progress");
+                var station=new WorldNode{Id="inventory-station",Template="structure_rune_table",Zone=self.Zone,Position=self.Position,Owner=self.Id};
+                realm.State.Nodes[station.Id]=station;Snapshot();
+                object stationStamp=Stamp();
+                check(!Equals(stationStamp,skillStamp),"Inventory change detection includes nearby player-built station inputs");
+                realm.State.Nodes.Remove(station.Id);Snapshot();
                 var first=Slot(copper.Id);var second=Slot(bronze.Id);ulong firstId=first.GetInstanceId(),secondId=second.GetInstanceId();
                 await Click(second);
                 check(Slot(copper.Id).GetInstanceId()==firstId&&Slot(bronze.Id).GetInstanceId()==secondId,

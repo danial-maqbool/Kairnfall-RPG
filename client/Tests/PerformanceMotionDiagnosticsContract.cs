@@ -14,6 +14,13 @@ public sealed record DiagnosticsOverheadResult(
     double EnabledNanosecondsPerIteration,
     double AddedNanosecondsPerIteration);
 
+public sealed record PanelStampBenchmarkResult(
+    int Iterations,
+    double LegacyMicrosecondsPerCall,
+    double CandidateMicrosecondsPerCall,
+    long LegacyAllocatedBytesPerCall,
+    long CandidateAllocatedBytesPerCall);
+
 public sealed record MotionScheduleResult(
     string Scenario,
     int RenderFps,
@@ -421,6 +428,49 @@ public partial class PerformanceMotionDiagnosticsContract : Node
         return list;
     }
 
+    private static PanelStampBenchmarkResult PanelStampBenchmark(GameRoot game, Snapshot snapshot)
+    {
+        const int iterations = 5000;
+        string Legacy()
+            => JsonSerializer.Serialize(new
+            {
+                snapshot.Self.Inventory, snapshot.Self.Bank, snapshot.Self.Equipment, snapshot.Self.SkillXp,
+                snapshot.Self.Quests, snapshot.Self.Gold, snapshot.Self.Zone, Dead = snapshot.Self.Health <= 0,
+                snapshot.Trades, snapshot.Auctions, snapshot.Party, snapshot.Guild, snapshot.ShopStock, snapshot.Events
+            }, Wire.Json);
+        var method = typeof(GameRoot).GetMethod("InventoryPageStamp", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Inventory stamp method is unavailable.");
+        var Candidate = (Func<Snapshot, object>)method.CreateDelegate(typeof(Func<Snapshot, object>), game);
+        string legacyPrevious = Legacy();
+        object candidatePrevious = Candidate(snapshot);
+        object LegacyChange()
+        {
+            string current = Legacy();
+            return current != legacyPrevious;
+        }
+        object CandidateChange()
+        {
+            object current = Candidate(snapshot);
+            return !Equals(current, candidatePrevious);
+        }
+        for (int i = 0; i < 100; i++) { _ = LegacyChange(); _ = CandidateChange(); }
+
+        static (double Us, long Bytes) Measure(int count, Func<object> action)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            var watch = Stopwatch.StartNew();
+            for (int i = 0; i < count; i++) _ = action();
+            watch.Stop();
+            long allocated = Math.Max(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            return (watch.Elapsed.TotalMicroseconds / count, allocated / count);
+        }
+
+        var legacy = Measure(iterations, LegacyChange);
+        var candidate = Measure(iterations, CandidateChange);
+        return new PanelStampBenchmarkResult(
+            iterations, legacy.Us, candidate.Us, legacy.Bytes, candidate.Bytes);
+    }
+
     private static DiagnosticsOverheadResult DiagnosticsOverhead()
     {
         const int iterations = 200_000;
@@ -481,6 +531,10 @@ public partial class PerformanceMotionDiagnosticsContract : Node
             AddChild(game);
             await Frame(); await Frame();
             Require(game.Diagnostics.Enabled, "Performance diagnostics are explicitly enabled for the fixture");
+            bool unsafeAssetRejected=false;
+            try { game.Assets.Texture("../outside"); }
+            catch (InvalidDataException) { unsafeAssetRejected=true; }
+            Require(unsafeAssetRejected,"Cached texture fast paths retain unsafe-identifier rejection");
             var frontendControl = typeof(GameRoot).GetField("frontend", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .GetValue(game) as Control ?? throw new InvalidOperationException("Frontend control unavailable.");
             frontendControl.Hide();
@@ -543,8 +597,13 @@ public partial class PerformanceMotionDiagnosticsContract : Node
 
             var matrix = SyntheticMatrix();
             var diagnosticsOverhead = DiagnosticsOverhead();
+            var panelStampBenchmark = PanelStampBenchmark(game, snapshot);
             Require(diagnosticsOverhead.Iterations == 200_000 && double.IsFinite(diagnosticsOverhead.AddedNanosecondsPerIteration),
                 "Diagnostics overhead probe completed with bounded in-process sampling");
+            Require(panelStampBenchmark.CandidateAllocatedBytesPerCall < panelStampBenchmark.LegacyAllocatedBytesPerCall,
+                "Inventory-specific stamp allocates less than the legacy broad JSON stamp");
+            Require(panelStampBenchmark.CandidateMicrosecondsPerCall < panelStampBenchmark.LegacyMicrosecondsPerCall,
+                "Inventory-specific stamp is faster than the legacy broad JSON stamp in-process");
             Require(matrix.Count == 36, "Synthetic matrix covers nine timing patterns at 30/60/120/144 FPS");
             Require(matrix.All(x => double.IsFinite(x.MaxErrorTiles) && double.IsFinite(x.FinalErrorTiles)),
                 "Synthetic matrix remains finite across continuous, long-idle, irregular, duplicate, coalesced and stalled delivery");
@@ -566,6 +625,7 @@ public partial class PerformanceMotionDiagnosticsContract : Node
                 warmup = "Two native frames before scene setup; each named scenario resets diagnostics. Cold-first-use intentionally includes first texture loads.",
                 profilingOverhead = "Opt-in in-memory Stopwatch/GC sampling; no per-frame console or file writes. This fixture writes one JSON report at completion.",
                 diagnosticsOverhead,
+                panelStampBenchmark,
                 reports,
                 syntheticMotion = matrix,
                 checks,

@@ -49,7 +49,7 @@ public partial class GameRoot : Control
     private bool actionBusy, movementBusy, closing;
     private Vector2 lastInput;
     private readonly CancellationTokenSource lifetime = new();
-    private string lastPageStamp = "";
+    private object? lastPageStamp = "";
     private ClientAudio? audio;
     private bool smoke, smokeStarted;
 
@@ -190,9 +190,10 @@ public partial class GameRoot : Control
             if (refreshPage is not null && !Input.IsMouseButtonPressed(MouseButton.Left))
             {
                 long stampStarted = Diagnostics.StartTimer();
-                string stamp = PageStamp();
+                object stamp = PageStamp();
+                bool pageChanged = !Equals(stamp, lastPageStamp);
                 Diagnostics.RecordDuration(ClientPerfPhase.PanelStamp, stampStarted);
-                if (stamp != lastPageStamp)
+                if (pageChanged)
                 {
                     lastPageStamp = stamp;
                     long refreshStarted = Diagnostics.StartTimer();
@@ -382,14 +383,94 @@ public partial class GameRoot : Control
             hotbar[i] = abilities.FirstOrDefault(x => !hotbar.Contains(x.Id))?.Id ?? "";
         }
     }
-    private string PageStamp()
+    private sealed class InventoryRefreshStamp(
+        Snapshot snapshot, string page, string item, string bag, string npc)
     {
-        if (Snapshot is null) return "offline";
+        private readonly Snapshot snapshot = snapshot;
+        private readonly string page = page, item = item, bag = bag, npc = npc;
+
+        private static bool DictionaryEqual<TKey, TValue>(
+            IReadOnlyDictionary<TKey, TValue> left, IReadOnlyDictionary<TKey, TValue> right)
+            where TKey : notnull
+        {
+            if (left.Count != right.Count) return false;
+            foreach (var entry in left)
+                if (!right.TryGetValue(entry.Key, out var value)
+                    || !EqualityComparer<TValue>.Default.Equals(entry.Value, value)) return false;
+            return true;
+        }
+
+        private static bool ItemEqual(Item left, Item right)
+        {
+            if (left.Id != right.Id || left.Template != right.Template || left.Quantity != right.Quantity
+                || left.Rarity != right.Rarity || left.Element != right.Element || left.Sockets != right.Sockets
+                || left.Durability != right.Durability || !DictionaryEqual(left.SkillBonuses, right.SkillBonuses)
+                || left.Affixes.Count != right.Affixes.Count || left.Runes.Count != right.Runes.Count) return false;
+            for (int i = 0; i < left.Affixes.Count; i++)
+            {
+                var a = left.Affixes[i]; var b = right.Affixes[i];
+                if (a.Name != b.Name || a.Stat != b.Stat || a.Value != b.Value) return false;
+            }
+            for (int i = 0; i < left.Runes.Count; i++)
+                if (left.Runes[i].Id != right.Runes[i].Id || left.Runes[i].Template != right.Runes[i].Template) return false;
+            return true;
+        }
+
+        private static bool ItemsEqual(IReadOnlyList<Item> left, IReadOnlyList<Item> right)
+        {
+            if (left.Count != right.Count) return false;
+            for (int i = 0; i < left.Count; i++) if (!ItemEqual(left[i], right[i])) return false;
+            return true;
+        }
+
+        private static bool StationsEqual(Snapshot left, Snapshot right, string owner)
+        {
+            int leftCount = 0, rightCount = 0;
+            foreach (var node in left.Nodes)
+            {
+                if (node.Owner != owner || !node.Template.StartsWith("structure_", StringComparison.Ordinal)) continue;
+                leftCount++;
+                WorldNode? match = null;
+                foreach (var candidate in right.Nodes)
+                    if (candidate.Id == node.Id && candidate.Owner == owner
+                        && candidate.Template.StartsWith("structure_", StringComparison.Ordinal)) { match = candidate; break; }
+                if (match is null || match.Template != node.Template || match.Zone != node.Zone
+                    || match.Position.X != node.Position.X || match.Position.Y != node.Position.Y) return false;
+            }
+            foreach (var node in right.Nodes)
+                if (node.Owner == owner && node.Template.StartsWith("structure_", StringComparison.Ordinal)) rightCount++;
+            return leftCount == rightCount;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not InventoryRefreshStamp other || page != other.page || item != other.item
+                || bag != other.bag || npc != other.npc) return false;
+            var left = snapshot.Self; var right = other.snapshot.Self;
+            return left.Id == right.Id && left.Class == right.Class && left.Gold == right.Gold
+                && left.Zone == right.Zone && left.Position.X == right.Position.X && left.Position.Y == right.Position.Y
+                && (left.Health <= 0) == (right.Health <= 0) && left.Pet == right.Pet
+                && DictionaryEqual(left.Equipment, right.Equipment)
+                && DictionaryEqual(left.SkillXp, right.SkillXp)
+                && ItemsEqual(left.Inventory, right.Inventory) && ItemsEqual(left.Bank, right.Bank)
+                && StationsEqual(snapshot, other.snapshot, left.Id);
+        }
+
+        public override int GetHashCode() => 0;
+    }
+
+    private object InventoryPageStamp(Snapshot snapshot)
+        => new InventoryRefreshStamp(snapshot, currentPage, selectedItem, selectedBag, selectedNpc);
+
+    private object PageStamp()
+    {
+        if (Snapshot is not { } snapshot) return "offline";
+        if (currentPage is "Inventory" or "Bank") return InventoryPageStamp(snapshot);
         return currentPage + selectedItem + selectedBag + selectedRecipe + selectedQuest + selectedNpc + JsonSerializer.Serialize(new
         {
-            Snapshot.Self.Inventory, Snapshot.Self.Bank, Snapshot.Self.Equipment, Snapshot.Self.SkillXp,
-            Snapshot.Self.Quests, Snapshot.Self.Gold, Snapshot.Self.Zone, Dead = Snapshot.Self.Health <= 0,
-            Snapshot.Trades, Snapshot.Auctions, Snapshot.Party, Snapshot.Guild, Snapshot.ShopStock, Snapshot.Events,
+            snapshot.Self.Inventory, snapshot.Self.Bank, snapshot.Self.Equipment, snapshot.Self.SkillXp,
+            snapshot.Self.Quests, snapshot.Self.Gold, snapshot.Self.Zone, Dead = snapshot.Self.Health <= 0,
+            snapshot.Trades, snapshot.Auctions, snapshot.Party, snapshot.Guild, snapshot.ShopStock, snapshot.Events,
             invitations, friendInvitations, lfgListings, socialProfiles
         }, Wire.Json);
     }

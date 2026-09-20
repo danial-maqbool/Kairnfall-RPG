@@ -32,6 +32,7 @@ public partial class WorldView : Control
     private float impactStrength;
     private readonly List<Visual> visuals = [];
     private readonly List<WorldTarget> interactions = [];
+    private readonly Dictionary<string, string> selfVisibleEquipment = [];
     private Vector2 origin;
     private const float Tile = WorldMap.TileSize;
 
@@ -74,7 +75,7 @@ public partial class WorldView : Control
 
     public void ClearSession()
     {
-        Snapshot = null; Loot.Clear(); tracks.Clear(); interactions.Clear(); numbers.Clear(); npcGestures.Clear(); combatBursts.Clear(); impactUntil = 0; impactStrength = 0; lastZone = ""; TargetId = ""; Waypoint = null;
+        Snapshot = null; Loot.Clear(); tracks.Clear(); interactions.Clear(); selfVisibleEquipment.Clear(); numbers.Clear(); npcGestures.Clear(); combatBursts.Clear(); impactUntil = 0; impactStrength = 0; lastZone = ""; TargetId = ""; Waypoint = null;
     }
 
     public void Accept(TransportPacket packet)
@@ -89,6 +90,7 @@ public partial class WorldView : Control
         }
         Snapshot = snapshot; sinceSnapshot = 0;
         Loot = packet.Loot ?? [];
+        PixelAssets.UpdateVisibleEquipment(snapshot.Self, selfVisibleEquipment);
         Track(snapshot.Self.Id, snapshot.Self.Position, snapshot.Self.Facing, snapshot.Self.Health, true);
         foreach (var player in snapshot.Players) Track(player.Id, player.Position, player.Facing, player.Health, true);
         foreach (var creature in snapshot.Creatures)
@@ -538,7 +540,7 @@ public partial class WorldView : Control
             case "self":
                 var character = (Character)visual.Value!; var self = Pose(character.Id, character.Position);
                 if (character.Health > 0) Shadow(feet);
-                Assets.DrawPerson(this, character.Appearance, PixelAssets.VisibleEquipment(character), feet, self.State, self.Direction, self.Frame, LocomotionFrame(character.Id), Running(character.Id));
+                Assets.DrawPerson(this, character.Appearance, selfVisibleEquipment, feet, self.State, self.Direction, self.Frame, LocomotionFrame(character.Id), Running(character.Id));
                 foreach (var status in character.Statuses.Where(x => x.Until > RealmTime)) DrawStatus(feet, status);
                 break;
         }
