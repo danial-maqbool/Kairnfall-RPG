@@ -91,8 +91,9 @@ public partial class WorldView : Control
         if (wasMoving && localMovementIntent.LengthSquared() <= .0001f
             && Snapshot is { } snapshot && tracks.TryGetValue(snapshot.Self.Id, out var local))
         {
-            // A real local stop must not re-use stale velocity if movement is
-            // tapped again before the next authoritative position sample.
+            // A real local stop must not re-use stale presentation velocity if movement
+            // is tapped again before the next authoritative position sample. This never
+            // changes the authoritative position or the movement command sent to the server.
             local.SnapshotVelocity = new Point(0, 0);
             local.UnchangedAuthoritativeSamples = 2;
             local.LastSnapshotAt = Clock;

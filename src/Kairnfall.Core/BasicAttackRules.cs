@@ -2,7 +2,10 @@ namespace Kairnfall.Core;
 
 public readonly record struct BasicAttackProfile(double Range, bool Projectile, Element VisualElement);
 
-/// <summary>Authoritative delivery profile for the ordinary Spacebar/basic attack.</summary>
+/// <summary>
+/// Authoritative range/delivery profile for the ordinary Spacebar/basic attack.
+/// Damage and recovery continue to use the existing weapon/combat formulas.
+/// </summary>
 public static class BasicAttackRules
 {
     // Six tiles sits inside the authored 5-8 tile caster/support spell band;

@@ -291,6 +291,7 @@ Test("Chest ownership and cooldown prevent repeated loot",()=>
 });
 Test("Arcanist and Templar basic attacks are server-authoritative ranged projectiles",()=>
 {
+    Check(BasicAttackRules.CasterRange==6.0,"Caster basic profile range changed without an explicit test update.");
     Check(data.Abilities.Any(x=>x.Class=="arcanist"&&x.Kind=="projectile"&&x.Range>BasicAttackRules.CasterRange),
         "Arcanist basic range must remain below dedicated long-range projectile spells.");
     Check(data.Abilities.Any(x=>x.Class=="templar"&&x.Range>=BasicAttackRules.CasterRange),

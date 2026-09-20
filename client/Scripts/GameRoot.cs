@@ -169,6 +169,8 @@ public partial class GameRoot : Control
             {
                 pendingInteraction = null; route.Clear(); input = Vector2.Zero; Activate(interaction);
             }
+            // Feed the resolved manual/route intent only to presentation continuity;
+            // authoritative displacement still comes exclusively from server snapshots.
             World.SetLocalMovementIntent(input);
             moveClock += delta;
             bool changed = (input - lastInput).LengthSquared() > .0001f;
