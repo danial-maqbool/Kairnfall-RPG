@@ -100,6 +100,7 @@ CHECKPOINT2_ALLOWED_PATHS = frozenset({
     CHECKPOINT1_ARCHIVE,
 })
 CHECKPOINT3_ALLOWED_PATHS = frozenset({
+    '.github/workflows/acceptance-dispatch.yml',
     '.github/workflows/performance-diagnostics.yml',
     'client/Scripts/ClientPerformanceDiagnostics.cs',
     'client/Scripts/CombatReadabilityOverlay.cs',
@@ -110,8 +111,10 @@ CHECKPOINT3_ALLOWED_PATHS = frozenset({
     'client/Scripts/GameRoot.MobControls.cs',
     'client/Scripts/WorldView.CharacterMotion.cs',
     'client/Scripts/WorldView.cs',
+    'client/Tests/CharacterPresentationContract.cs',
     'client/Tests/ControlRulesContract.cs',
     'client/Tests/LiveExperienceContract.cs',
+    'client/Tests/PresentationChecks.cs',
     'client/Tests/PerformanceMotionDiagnosticsContract.cs',
     'client/Tests/PlayerExperienceContract.cs',
     'src/Kairnfall.Core/BasicAttackRules.cs',
@@ -542,10 +545,35 @@ def validate_live(e: dict, baseline: str) -> str:
     return 'live-actions-verified'
 
 
+def validate_checkpoint3_delivery_boundary(baseline: str) -> None:
+    """After exact-head acceptance, permit only evidence sync and temporary-helper cleanup."""
+    git('merge-base', '--is-ancestor', baseline, 'HEAD')
+    helper = '.github/workflows/acceptance-dispatch.yml'
+    allowed_non_docs = {helper, 'tools/smoothness_delivery_contract.py'}
+    commits = [value for value in git('rev-list', '--reverse', f'{baseline}..HEAD').splitlines() if value]
+    for commit in commits:
+        paths = {
+            path for path in git('diff-tree', '--no-commit-id', '--name-only', '-r', commit).splitlines()
+            if path
+        }
+        unexpected = {
+            path for path in paths
+            if path != 'HANDOFF.md' and not path.startswith('docs/') and path not in allowed_non_docs
+        }
+        require(not unexpected,
+                'Checkpoint 3 changed implementation source after exact-head acceptance: ' +
+                ', '.join(sorted(unexpected)))
+    require(not (ROOT / helper).exists(),
+            'Temporary exact-head acceptance dispatcher remains in the delivery tree.')
+
+
 def validate(e: dict) -> int:
     baseline = validate_metadata(e)
-    require(latest_implementation_commit() == baseline,
-            'Smoothness checkpoint implementation evidence is stale.')
+    if e['checkpoint'] == CHECKPOINT3:
+        validate_checkpoint3_delivery_boundary(baseline)
+    else:
+        require(latest_implementation_commit() == baseline,
+                'Smoothness checkpoint implementation evidence is stale.')
     git('merge-base', '--is-ancestor', STARTING_MAIN, baseline)
     git('merge-base', '--is-ancestor', baseline, 'HEAD')
     validate_archives(e)
