@@ -2,29 +2,29 @@
   "schema": 1,
   "statusDate": "2026-09-20",
   "currentTask": "smoothness-performance-polish",
-  "checkpoint": 1,
+  "checkpoint": 2,
   "repository": "danial-maqbool/Kairnfall-RPG",
   "persistentBranches": [
     "main"
   ],
   "startingMain": "1a4704fee2194bf3b9c51eb28b6e7408a7c1e72e",
-  "checkpointStartingMain": "6e76af928af21c8ed7e1d14fd9fe59093174d228",
-  "implementationBaseline": "aa0df594bc8baa9405019b447c3226bc5904c012",
-  "initialDiagnosticsImplementation": "1ae26e8ec5c13f5b97cd9ebc3cea976e3c3b13e2",
+  "checkpointStartingMain": "efd418c4233802e91f5e0dd861b73119addb850d",
+  "implementationBaseline": "4e81db842bb09c00b4565e4d2daedd45d254943a",
   "preservedCombatBaseline": "06776f6b0de7dbe02cab30a9e236e730c377de2e",
   "preservedCombatDelivery": "bc9561846cd480c1e899190cb9b6f2df75a30176",
   "historicalCombatEvidence": "docs/handoff/COMBAT_EVIDENCE_2026-09-18.json",
   "historicalCheckpoint0Evidence": "docs/handoff/SMOOTHNESS_CHECKPOINT0_EVIDENCE_2026-09-20.json",
-  "historicalCheckpoint0EvidenceBlob": "79779ce75560c5dd98132827181e8f56f35e1f70",
-  "repositorySideCheckpoint1Complete": true,
+  "historicalCheckpoint1Evidence": "docs/handoff/SMOOTHNESS_CHECKPOINT1_EVIDENCE_2026-09-20.json",
+  "historicalCheckpoint1EvidenceBlob": "10654d5d0d4605c7f9708faccb8b7cfd13257efb",
+  "repositorySideCheckpoint2Complete": true,
   "serverAuthoritative": true,
   "oldSavesCompatible": true,
   "temporaryToolingRemoved": true,
-  "gameplayBehaviorChangedInCheckpoint1": false,
+  "gameplayBehaviorChangedInCheckpoint2": false,
   "combatBalanceChanged": false,
   "movementSpeedChanged": false,
   "tickFrequencyChanged": false,
-  "performanceImprovementClaimed": false,
+  "performanceImprovementClaimed": true,
   "performanceTargetClaimed": false,
   "publicationReady": false,
   "releasePublished": false,
@@ -35,609 +35,234 @@
     "deploymentAuthorized": false,
     "productionInfrastructureChanged": false
   },
-  "releaseStatus": "NOT APPROVED — human acceptance remains.",
+  "releaseStatus": "NOT APPROVED \u2014 human acceptance remains.",
   "nativeAcceptancePlatforms": [
     "linux",
     "windows"
   ],
-  "diagnosticsEvidence": {
-    "optIn": true,
-    "boundedHistory": 4096,
-    "perFrameConsoleOutput": false,
-    "synchronousPerFrameFileWrites": false,
-    "nativeScenarios": 10,
-    "syntheticMotionSchedules": 36,
-    "renderRatesFps": [
-      30,
-      60,
-      120,
-      144
+  "optimizationEvidence": {
+    "metric": "inventory-panel-stamp",
+    "comparisonKind": "same-process legacy-vs-candidate",
+    "iterations": 5000,
+    "legacyMicrosecondsPerCall": 10.1389,
+    "candidateMicrosecondsPerCall": 5.91132,
+    "legacyAllocatedBytesPerCall": 7712,
+    "candidateAllocatedBytesPerCall": 192,
+    "broadFramePercentageClaimed": false,
+    "coldLoadOptimizationDeferred": true,
+    "exactWorkflowRunId": 35478205011,
+    "ownerWindowsRepetitions": 3,
+    "ownerLegacyMicrosecondsPerCall": [
+      7.97496,
+      10.36196,
+      9.10418
     ],
-    "windowsLocalGpuMeasured": true,
-    "windowsGpuPerformanceApproved": false,
-    "sixtyFpsApproved": false,
-    "allocationScope": "GC.GetTotalAllocatedBytes(false) process-wide managed-allocation delta between WorldView process frames; not renderer/GPU allocation.",
-    "drawCountScope": "Instrumented WorldView/PixelAssets texture and sprite submissions; excludes Godot internal/UI primitive draw calls.",
-    "warmup": "Two native frames before setup; each named scenario resets counters. cold-first-use intentionally includes first texture loads.",
-    "profilingOverheadAddedNanoseconds": [
-      118.5,
-      102.5,
-      103.4
-    ]
+    "ownerCandidateMicrosecondsPerCall": [
+      3.46016,
+      4.25952,
+      3.64972
+    ],
+    "ownerLegacyAllocatedBytesPerCall": [
+      7744,
+      7736,
+      7712
+    ],
+    "ownerCandidateAllocatedBytesPerCall": [
+      248,
+      248,
+      192
+    ],
+    "limitations": "Focused same-process Inventory-stamp comparison only; not a whole-client FPS percentage."
   },
-  "windowsLocalReference": {
-    "machine": "Acer Nitro ANV15-51",
-    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H; 10 cores / 16 logical processors",
-    "memoryBytes": 16869351424,
-    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
-    "gpuDriver": "32.0.15.9571 / OpenGL 595.71",
-    "integratedGpu": "Intel(R) UHD Graphics 31.0.101.4146",
-    "desktopResolution": "1920x1080",
-    "fixtureResolution": "1280x720",
-    "renderer": "Godot 4.7.2 .NET; gl_compatibility; OpenGL 3.3 NVIDIA",
-    "repetitions": 3,
-    "exactHead": "aa0df594bc8baa9405019b447c3226bc5904c012"
-  },
-  "windowsMeasurements": {
-    "coldFirstUse": {
-      "sampleCounts": [
-        86,
-        82,
-        82
-      ],
-      "frameP50Ms": [
-        10,
-        10.61,
-        9.72
-      ],
-      "frameP95Ms": [
-        17.85,
-        16.38,
-        16.67
-      ],
-      "frameP99Ms": [
-        126.4,
-        97.45,
-        100
-      ],
-      "maxMs": [
-        126.4,
-        97.45,
-        100
-      ],
-      "framesOver33_3Ms": [
-        2,
-        2,
-        2
-      ],
-      "framesOver50Ms": [
-        2,
-        1,
-        2
-      ],
-      "synchronousLoads": 7,
-      "resourceLoadP95Ms": [
-        16.841,
-        5.826,
-        6.783
-      ]
-    },
-    "warmCache": {
-      "sampleCounts": [
-        112,
-        90,
-        109
-      ],
-      "frameP50Ms": [
-        9.09,
-        11.67,
-        9.09
-      ],
-      "frameP95Ms": [
-        10,
-        13.33,
-        11.64
-      ],
-      "frameP99Ms": [
-        10,
-        20.04,
-        13.31
-      ],
-      "maxMs": [
-        10,
-        20.04,
-        15.3
-      ],
-      "framesOver33_3Ms": [
-        0,
-        0,
-        0
-      ],
-      "framesOver50Ms": [
-        0,
-        0,
-        0
-      ],
-      "worldDrawP95Ms": [
-        2.459,
-        3.468,
-        2.701
-      ],
-      "motionAdvanceP95Ms": [
-        0.008,
-        0.009,
-        0.009
-      ],
-      "managedAllocatedKiBPerFrameP95": [
-        320.4,
-        328.3,
-        316.2
-      ],
-      "synchronousLoads": 0
-    },
-    "denseLayeredActors": {
-      "sampleCounts": [
-        117,
-        98,
-        122
-      ],
-      "frameP95Ms": [
-        11.11,
-        13.22,
-        9.52
-      ],
-      "frameP99Ms": [
-        12.17,
-        15.42,
-        10.79
-      ],
-      "maxMs": [
-        17.02,
-        15.42,
-        12.88
-      ],
-      "visibleActorsP95": 49,
-      "drawSubmissionsP95": 2160,
-      "worldDrawP95Ms": [
-        1.974,
-        2.834,
-        1.903
-      ]
-    },
-    "stationaryPlayerMovingCreatures": {
-      "sampleCounts": [
-        166,
-        149,
-        162
-      ],
-      "frameP95Ms": [
-        9.52,
-        11.11,
-        10
-      ],
-      "frameP99Ms": [
-        10.12,
-        11.11,
-        10.42
-      ],
-      "maxMs": [
-        10.32,
-        11.11,
-        15.36
-      ]
-    },
-    "motionStartStopReversal": {
-      "sampleCounts": [
-        313,
-        287,
-        331
-      ],
-      "frameP95Ms": [
-        11.11,
-        13.89,
-        10.09
-      ],
-      "frameP99Ms": [
-        12.5,
-        15.48,
-        10.68
-      ],
-      "maxMs": [
-        21.98,
-        16.26,
-        14.06
-      ],
-      "positionErrorP95Tiles": [
-        0.0153,
-        0.0157,
-        0.0182
-      ],
-      "maxPositionErrorTiles": [
-        0.4889,
-        0.5108,
-        0.606
-      ],
-      "snapshotArrivalP50Ms": [
-        99.72,
-        99.9,
-        98.92
-      ],
-      "snapshotArrivalP95Ms": [
-        106.92,
-        105.86,
-        105.12
-      ],
-      "authoritativeSpacingP50Ms": [
-        100,
-        100,
-        100
-      ],
-      "authoritativeSpacingP95Ms": [
-        100,
-        100,
-        100
-      ],
-      "snapshotAgeP50Ms": [
-        54.55,
-        55.01,
-        54.01
-      ],
-      "snapshotAgeP95Ms": [
-        99.31,
-        100,
-        98.48
-      ],
-      "duplicateAuthoritativeSamples": [
-        0,
-        0,
-        0
-      ],
-      "reversedAuthoritativeSamples": [
-        0,
-        0,
-        0
-      ],
-      "visibleActorsP95": 49,
-      "drawSubmissionsP95": 2211,
-      "managedHeapMiBP95": [
-        39.3,
-        39.16,
-        38.42
-      ],
-      "gen0Collections": [
-        8,
-        7,
-        9
-      ],
-      "gen1Collections": [
-        0,
-        0,
-        0
-      ],
-      "gen2Collections": [
-        0,
-        0,
-        0
-      ]
-    },
-    "combatTelegraphsLabels": {
-      "frameP95Ms": [
-        21.48,
-        16.82,
-        20.98
-      ],
-      "frameP99Ms": [
-        31.38,
-        28.72,
-        27.08
-      ],
-      "maxMs": [
-        31.38,
-        28.72,
-        27.08
-      ],
-      "framesOver33_3Ms": [
-        0,
-        0,
-        0
-      ],
-      "worldDrawP95Ms": [
-        7.419,
-        3.465,
-        6.401
-      ]
-    },
-    "inventoryPanel": {
-      "frameP95Ms": [
-        12.11,
-        16.67,
-        15.55
-      ],
-      "frameP99Ms": [
-        33.33,
-        129.67,
-        46.12
-      ],
-      "maxMs": [
-        129.61,
-        129.67,
-        142.19
-      ],
-      "framesOver33_3Ms": [
-        2,
-        2,
-        2
-      ],
-      "framesOver50Ms": [
-        1,
-        2,
-        1
-      ],
-      "pageStampP95Ms": [
-        8.393,
-        12.178,
-        12.289
-      ],
-      "refreshP95Ms": [
-        6.94,
-        9.92,
-        8.828
-      ],
-      "synchronousLoads": 13
-    },
-    "craftingPanel": {
-      "frameP95Ms": [
-        13.89,
-        12.34,
-        16.67
-      ],
-      "maxMs": [
-        132.17,
-        113.53,
-        96.06
-      ],
-      "pageStampP95Ms": [
-        0.064,
-        0.059,
-        0.069
-      ],
-      "refreshP95Ms": [
-        2.234,
-        1.682,
-        2.104
-      ],
-      "synchronousLoads": 30
-    },
-    "skillsPanel": {
-      "frameP95Ms": [
-        10.15,
-        11.31,
-        13.89
-      ],
-      "maxMs": [
-        142.17,
-        143.3,
-        131.93
-      ],
-      "pageStampP95Ms": [
-        0.071,
-        0.062,
-        0.073
-      ],
-      "refreshP95Ms": [
-        0.145,
-        0.157,
-        0.19
-      ],
-      "synchronousLoads": 60
-    },
-    "interiorRoundtrip": {
-      "frameP95Ms": [
-        12.5,
-        10.42,
-        10.55
-      ],
-      "maxMs": [
-        27.82,
-        33.62,
-        15.75
-      ]
-    },
-    "syntheticWorstCase": {
-      "scenario": "interstitial",
-      "renderFps": 144,
-      "p95ErrorTiles": 0.23944169446750685,
-      "maxErrorTiles": 0.4524858382014596,
-      "maxForwardLeadTiles": 0.11866166517372889,
-      "finalErrorTiles": 0
-    }
-  },
-  "rankedBottlenecks": [
-    "First-use synchronous resource loads create the largest measured spikes: cold p99 97–126 ms; Skills opens 60 uncached skill textures and panel max 132–143 ms.",
-    "Inventory PageStamp serializes a broad unrelated state graph: stamp p95 8.39–12.29 ms plus refresh p95 6.94–9.92 ms.",
-    "Steady-state managed allocation is about 316–328 KiB/frame p95 while the warm world submits roughly two thousand instrumented texture/sprite draws per frame; targeted hot-path key/presentation caching is the next measured candidate.",
-    "Motion is stable under regular 10 Hz delivery (native position-error p95 0.015–0.018 tile) but interstitial unchanged samples are the worst synthetic timing case (0.239 tile p95 error at 144 FPS)."
-  ],
   "performanceWorkflow": {
     "name": "Client performance and motion diagnostics",
-    "runId": 35474314509,
-    "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+    "runId": 35478205011,
+    "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
     "conclusion": "success",
     "nativePlatforms": [
       "linux",
       "windows"
     ],
     "artifactIds": [
-      10594148339,
-      10594008225
+      10594659039,
+      10594464364
     ],
     "jobIds": [
-      105980805465,
-      105980805549
+      105991078073,
+      105991077954
     ]
   },
   "implementationWorkflows": [
     {
       "name": "Transaction security regression",
-      "runId": 35474314497,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204961,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": []
     },
     {
       "name": "Compile Windows client source",
-      "runId": 35474961984,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204976,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593682942
+        10594289104
       ]
     },
     {
       "name": "Live progression breadth",
-      "runId": 35474963688,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204963,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593333535
+        10594908609
       ]
     },
     {
       "name": "Windows package acceptance",
-      "runId": 35474965196,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204942,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593073936
+        10595306561
       ]
     },
     {
       "name": "Graphical multiplayer acceptance",
-      "runId": 35474966697,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204947,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593974360
+        10595331401
       ]
     },
     {
       "name": "Load acceptance",
-      "runId": 35474314495,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204977,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593878311
+        10594343985
       ]
     },
     {
       "name": "Build and verify",
-      "runId": 35474314498,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204941,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10594093169,
-        10593741968
+        10595156515,
+        10594638479
       ]
     },
     {
       "name": "Task 13 adversarial acceptance",
-      "runId": 35474314527,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204982,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10594113141
+        10594918131
       ]
     },
     {
       "name": "Release operations acceptance",
-      "runId": 35474314492,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204943,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10594157658
+        10594678387
       ]
     },
     {
       "name": "Transaction integrity on Windows and Linux",
-      "runId": 35474314489,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204971,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593933038,
-        10593462241
+        10595121371,
+        10594956717
       ]
     },
     {
       "name": "New-player journey",
-      "runId": 35474314501,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478205019,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593754295
+        10595466349
       ]
     },
     {
       "name": "Character sprite acceptance",
-      "runId": 35474968567,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204983,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10594485203,
-        10593648382
+        10595201974,
+        10594903634
       ]
     },
     {
       "name": "Visual acceptance matrix",
-      "runId": 35474970237,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478205052,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593789837
+        10595211751
       ]
     },
     {
       "name": "Windows display and input acceptance",
-      "runId": 35474971869,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478204946,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10594167757
+        10595490107
       ]
     },
     {
       "name": "Audio acceptance",
-      "runId": 35474973486,
-      "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+      "runId": 35478220518,
+      "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
       "conclusion": "success",
       "artifactIds": [
-        10593263054
+        10595351041
       ]
     }
   ],
   "preSyncDocumentation": {
-    "runId": 35474314510,
-    "headSha": "aa0df594bc8baa9405019b447c3226bc5904c012",
+    "runId": 35478204988,
+    "headSha": "4e81db842bb09c00b4565e4d2daedd45d254943a",
     "conclusion": "failure",
-    "reason": "Expected pre-synchronization rejection: CURRENT_EVIDENCE.json still named Checkpoint 0. All 38 evidence regression tests passed before the stale-ledger guard rejected it."
+    "reason": "Expected pre-synchronization rejection: CURRENT_EVIDENCE.json still named Checkpoint 1. All 42 evidence regression tests passed before the stale-ledger guard rejected it."
   },
-  "rejectedDiagnosticAttempt": {
-    "implementationSha": "1ae26e8ec5c13f5b97cd9ebc3cea976e3c3b13e2",
-    "runId": 35473643070,
-    "conclusion": "failure",
-    "reason": "Both native fixtures completed 47 checks, but the workflow failed because the Skills panel requested generated skill icons that were not prepared in that workflow. The repair added complete_skill_icons.py rather than suppressing missing-art errors."
-  },
-  "checkpoint1Footprint": [
-    ".github/workflows/performance-diagnostics.yml",
-    "client/Scripts/ClientPerformanceDiagnostics.cs",
+  "checkpoint2Footprint": [
     "client/Scripts/GameRoot.cs",
     "client/Scripts/PixelAssets.cs",
-    "client/Scripts/WorldView.Presentation.cs",
     "client/Scripts/WorldView.cs",
+    "client/Tests/InventoryRefreshChecks.cs",
     "client/Tests/PerformanceMotionDiagnosticsContract.cs",
-    "client/Tests/PerformanceMotionDiagnosticsContract.tscn",
-    "docs/handoff/SMOOTHNESS_CHECKPOINT0_EVIDENCE_2026-09-20.json",
+    "docs/handoff/SMOOTHNESS_CHECKPOINT1_EVIDENCE_2026-09-20.json",
     "tests/handoff/test_smoothness_evidence.py",
     "tools/smoothness_delivery_contract.py"
+  ],
+  "windowsLocalReference": {
+    "machine": "Acer Nitro ANV15-51",
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H; 10 cores / 16 logical processors",
+    "memoryBytes": 16869351424,
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "gpuDriver": "32.0.15.9571 / OpenGL 595.71",
+    "fixtureResolution": "1280x720",
+    "renderer": "Godot 4.7.2 .NET; gl_compatibility; OpenGL 3.3 NVIDIA",
+    "repetitions": 3,
+    "exactHead": "4e81db842bb09c00b4565e4d2daedd45d254943a"
+  },
+  "measurementInterpretation": [
+    "Inventory stamp p95 on owner Windows runs fell from 8.393/12.178/12.289 ms to 0.755/0.755/0.919 ms.",
+    "Exact Windows CI same-process benchmark measured 10.1389 to 5.91132 microseconds per call and 7712 to 192 allocated bytes per call.",
+    "Whole-frame results vary materially between repetitions; no whole-client frame-time percentage is claimed.",
+    "Checkpoint 2 PanelStamp timing includes equality comparison; non-Inventory PanelStamp phase values are not directly comparable with Checkpoint 1.",
+    "Cold first-use resource loading was measured but not optimized and remains deferred."
   ],
   "humanOnlyGates": [
     "Owner Windows performance and smoothness acceptance on reported target hardware",
@@ -649,7 +274,7 @@
     "Production-scale validation before any capacity claim"
   ],
   "releaseApproval": {
-    "status": "NOT APPROVED — human acceptance remains.",
+    "status": "NOT APPROVED \u2014 human acceptance remains.",
     "performance": false,
     "smoothness": false,
     "camera": false,
@@ -658,5 +283,140 @@
     "audio": false,
     "scale": false
   },
-  "nextAction": "Checkpoint 2: apply the smallest measured frame-time wins, beginning with panel-specific stamp reduction and hot-path presentation/resource caching; compare against the exact Checkpoint 1 Windows workload."
+  "nextAction": "Checkpoint 3: make authoritative and rendered actor positions, labels, picking, sample clocks, and telegraph presentation timing consistent without client-owned prediction.",
+  "windowsComparison": {
+    "baselineLedger": "docs/handoff/SMOOTHNESS_CHECKPOINT1_EVIDENCE_2026-09-20.json",
+    "ownerAfterExactHead": "4e81db842bb09c00b4565e4d2daedd45d254943a",
+    "repetitions": 3,
+    "inventoryPanelStampP95MsBefore": [
+      8.393,
+      12.178,
+      12.289
+    ],
+    "inventoryPanelStampP95MsAfter": [
+      0.755,
+      0.755,
+      0.919
+    ],
+    "inventoryFrameP95MsBefore": [
+      12.11,
+      16.67,
+      15.55
+    ],
+    "inventoryFrameP95MsAfter": [
+      16.67,
+      16.67,
+      15.32
+    ],
+    "inventoryFrameP99MsBefore": [
+      33.33,
+      129.67,
+      46.12
+    ],
+    "inventoryFrameP99MsAfter": [
+      22.67,
+      29.83,
+      27.6
+    ],
+    "warmFrameP95MsBefore": [
+      10,
+      13.33,
+      11.64
+    ],
+    "warmFrameP95MsAfter": [
+      20.42,
+      16.67,
+      13.03
+    ],
+    "denseFrameP95MsBefore": [
+      11.11,
+      13.22,
+      9.52
+    ],
+    "denseFrameP95MsAfter": [
+      12.99,
+      15.28,
+      12.15
+    ],
+    "combatFrameP95MsBefore": [
+      21.48,
+      16.82,
+      20.98
+    ],
+    "combatFrameP95MsAfter": [
+      11.63,
+      11.67,
+      13.99
+    ],
+    "craftingFrameP95MsBefore": [
+      13.89,
+      12.34,
+      16.67
+    ],
+    "craftingFrameP95MsAfter": [
+      18.19,
+      18.06,
+      16.67
+    ],
+    "skillsFrameP95MsBefore": [
+      10.15,
+      11.31,
+      13.89
+    ],
+    "skillsFrameP95MsAfter": [
+      15.04,
+      18.88,
+      12.5
+    ],
+    "interiorFrameP95MsBefore": [
+      12.5,
+      10.42,
+      10.55
+    ],
+    "interiorFrameP95MsAfter": [
+      9.46,
+      10.0,
+      9.09
+    ],
+    "motionFrameP95MsBefore": [
+      11.11,
+      13.89,
+      10.09
+    ],
+    "motionFrameP95MsAfter": [
+      14.71,
+      11.11,
+      12.12
+    ],
+    "motionPositionErrorP95TilesBefore": [
+      0.0153,
+      0.0157,
+      0.0182
+    ],
+    "motionPositionErrorP95TilesAfter": [
+      0.0143,
+      0.0196,
+      0.0119
+    ],
+    "warmWorldDrawP95MsAfter": [
+      2.523,
+      2.468,
+      2.005
+    ],
+    "denseWorldDrawP95MsAfter": [
+      2.533,
+      2.789,
+      2.108
+    ],
+    "coldSynchronousLoadsAfter": [
+      7,
+      7,
+      7
+    ],
+    "limitations": [
+      "Whole-frame results vary materially across repetitions; no broad percentage improvement is claimed.",
+      "Non-Inventory PanelStamp phase timing includes equality comparison after Checkpoint 2 and is not directly comparable to Checkpoint 1.",
+      "Cold first-use resource loading remains deferred."
+    ]
+  }
 }
