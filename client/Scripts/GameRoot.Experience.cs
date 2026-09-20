@@ -162,6 +162,8 @@ public partial class GameRoot
             selectedTargetKind == "creature" ? selectedTarget : "");
         if (target is null) { ClearBasicAttackBuffer(); return; }
         selectedTargetKind = "creature"; selectedTarget = target.Id; World.TargetId = target.Id;
+        // Client range gates approach/request timing only; RealmEngine revalidates the
+        // class-aware basic range, line of sight, cooldown and target before any damage.
         bool inRange = ExperienceRules.CanTarget(snapshot.Self, target, Data, ExperienceRules.BasicAttackRange(snapshot.Self, Data), true);
         if (!inRange)
         {

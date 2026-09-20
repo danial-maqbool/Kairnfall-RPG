@@ -4,7 +4,7 @@ public readonly record struct BasicAttackProfile(double Range, bool Projectile, 
 
 /// <summary>
 /// Authoritative range/delivery profile for the ordinary Spacebar/basic attack.
-/// Damage and recovery continue to use the existing weapon/combat formulas.
+/// Damage, stamina cost, training and recovery continue to use the existing weapon/combat formulas.
 /// </summary>
 public static class BasicAttackRules
 {
