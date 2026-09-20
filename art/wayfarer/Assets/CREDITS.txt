@@ -1,6 +1,0 @@
-Kairnfall Wayfarer actor pack.
-Original project-generated artwork from the source paths recorded in manifest.json.
-No prior actor raster or promotional concept sheet is sampled by the active renderers.
-Existing catalogue identities, shared colour primitives and species anatomy descriptions are retained as data.
-Base sheets: six states, four directions, eight frames. Motion sheets: one action, four directions, eight frames.
-PNG integrity and reproducibility are technical checks, not independent artistic or release approval.

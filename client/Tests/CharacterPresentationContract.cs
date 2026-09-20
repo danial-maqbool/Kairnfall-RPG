@@ -42,10 +42,11 @@ public partial class CharacterPresentationContract : Node
             var led = MotionPresentationRules.VisualTarget(new Point(1, 1), new Point(6, 0), .09);
             Check(led.X > 1 && led.X <= 1 + MotionPresentationRules.MaxLeadTiles + .0001,
                 "Visual extrapolation is positive and bounded by the presentation-only lead cap");
-            Check(MotionPresentationRules.SnapshotFreshness(.12) == 1
-                && MotionPresentationRules.SnapshotFreshness(.18) is > 0 and < 1
-                && MotionPresentationRules.SnapshotFreshness(.25) == 0,
-                "Snapshot extrapolation fades to zero after a short network stall");
+            double freshnessMidpoint = (MotionPresentationRules.SnapshotFreshSeconds + MotionPresentationRules.SnapshotStaleSeconds) / 2;
+            Check(MotionPresentationRules.SnapshotFreshness(MotionPresentationRules.SnapshotFreshSeconds) == 1
+                && MotionPresentationRules.SnapshotFreshness(freshnessMidpoint) is > 0 and < 1
+                && MotionPresentationRules.SnapshotFreshness(MotionPresentationRules.SnapshotStaleSeconds + .01) == 0,
+                "Snapshot extrapolation fades to zero after the configured short network stall window");
             var snapped2 = MotionPresentationRules.SnapWorldPixel(new Vector2(10.24f, 20.26f), 2);
             var snapped3 = MotionPresentationRules.SnapWorldPixel(new Vector2(10.24f, 20.26f), 3);
             Check(Math.Abs(snapped2.X * 2 - MathF.Round(snapped2.X * 2)) < .0001f
