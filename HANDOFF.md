@@ -1,31 +1,19 @@
 ## Active workstream: Measured smoothness, performance, camera and gameplay polish
 
-Status date: **2026-09-20**. Verified Checkpoint 2 implementation baseline: **4e81db842bb09c00b4565e4d2daedd45d254943a**. Machine-readable truth: docs/handoff/CURRENT_EVIDENCE.json. Release status: **NOT APPROVED — human acceptance remains.**
+Status date: **2026-09-21**. Verified Checkpoint 3 implementation: **5dc4d4209361279d534c02529d167f1de4ab2e54**. Machine-readable truth: docs/handoff/CURRENT_EVIDENCE.json. Release status: **NOT APPROVED — human acceptance remains.**
 
-Checkpoint 2 is complete repository-side. It narrows Inventory/Bank refresh detection to actual page dependencies, bypasses repeated texture-key validation only for already-validated cache entries, and updates the local visible-equipment presentation map on accepted snapshots instead of every draw. No gameplay behavior changed.
+The focused movement-stutter + ranged caster-basic-attack task is repository-side complete. The movement repair preserves bounded authoritative presentation velocity across short unchanged/interstitial snapshots while local movement intent remains active, handles reversals responsively, and clears visual lead immediately on real local stop. No client-owned authoritative position was introduced.
 
-Exact Windows CI same-process benchmark: Inventory stamp **10.1389 → 5.91132 µs/call** and **7,712 → 192 allocated bytes/call** over 5,000 iterations. Three owner Windows exact-head repetitions measured legacy **7.975 / 10.362 / 9.104 µs** versus candidate **3.460 / 4.260 / 3.650 µs**. Whole-frame results remain noisy and are not converted into a broad percentage claim. Cold first-use loading remains deferred.
+Measured same-process interstitial false-stop frames fell from **1 / 0 / 1 / 0** to **0 / 0 / 0 / 0** at 30/60/120/144 FPS. At 144 FPS the candidate records p95 rendered-authoritative error **0.168924 tile**, max error **0.220624 tile**, max forward lead **0.194442 tile**, and final error **0**. Windows native CI also recorded zero false-stop frames. This is a movement-continuity result, not a broad FPS claim.
 
-All 15 retained acceptance workflows plus Client performance and motion diagnostics passed at exact implementation SHA 4e81db842bb09c00b4565e4d2daedd45d254943a. Exact run/artifact IDs and before/after measurements are in docs/handoff/PERFORMANCE_OPTIMIZATION_VERIFICATION.md.
+The repository's actual caster/healer classes are **Arcanist** and **Templar**. Their ordinary Spacebar basic attack now uses a server-authoritative **6.0-tile** class profile and targeted projectile delivery; Arcanist presents Arcane and Templar Radiant. Client targeting/HUD/auto-approach use that same range. Melee classes remain melee. Basic damage, stamina, cooldown, movement speed, tick frequency, progression and rewards are unchanged.
 
-Checkpoint 2 changes no movement speed, authoritative tick cadence, combat balance, rewards, saves, progression, publication, deployment or production infrastructure. The next authorized action is **Checkpoint 3 — Make motion, labels, picking, and clocks consistent**.
+All 15 retained functional acceptance workflows plus **Client performance and motion diagnostics** passed at exact implementation SHA **5dc4d4209361279d534c02529d167f1de4ab2e54**. Exact run IDs, native job/artifact IDs, measurements, and the expected pre-sync documentation rejection are in docs/handoff/MOVEMENT_RANGED_BASIC_VERIFICATION.md and docs/handoff/CURRENT_EVIDENCE.json.
 
----
+The temporary exact-head acceptance dispatcher was removed at **19a582a1bf3d7f4ffb7b4874c8ddcaf7e6dff781**. Checkpoint 2 evidence is archived byte-for-byte at docs/handoff/SMOOTHNESS_CHECKPOINT2_EVIDENCE_2026-09-20.json.
 
-## Historical workstream: Performance/motion diagnostics — Checkpoint 1
+## Remaining human gate
 
-Implementation aa0df594bc8baa9405019b447c3226bc5904c012; delivery efd418c4233802e91f5e0dd861b73119addb850d. Historical ledger: docs/handoff/SMOOTHNESS_CHECKPOINT1_EVIDENCE_2026-09-20.json.
+No post-change owner-machine run is claimed after the user requested that Desktop Commander not be used. Owner live traversal and Arcanist/Templar attack-feel/visual-timing checks remain useful acceptance gates; repository-side implementation and automated acceptance are complete.
 
-## Historical workstream: Smoothness evidence reconciliation — Checkpoint 0
-
-Implementation 7175292ed9521c718c99c9fbbccc80b54374d9af; delivery 6e76af928af21c8ed7e1d14fd9fe59093174d228. Historical ledger: docs/handoff/SMOOTHNESS_CHECKPOINT0_EVIDENCE_2026-09-20.json.
-
-## Historical workstream: Combat feel and encounter presentation
-
-Implementation 06776f6b0de7dbe02cab30a9e236e730c377de2e; delivery bc9561846cd480c1e899190cb9b6f2df75a30176. Historical evidence remains in docs/handoff/COMBAT_EVIDENCE_2026-09-18.json, docs/COMBAT_FEEL.md, and docs/handoff/COMBAT_FEEL_VERIFICATION.md.
-
-## Continuation boundary
-
-Continue with Checkpoint 3 only. Preserve server authority, snapshot coalescing, durable acknowledgements, saves, first-hour progression, Wayfarer assets, combat buffering/target retention, keyboard rebinding, modal blocking, chat typing/focus restoration and DPI support. Keep main as the only persistent branch. Do not release, deploy, tag, rewrite history or delete saves.
-
-No release, publication, deployment, release tag or production-infrastructure change has been authorized or performed. CI packages remain test artifacts.
+Keep **main** as the only persistent branch. Do not release, deploy, tag, rewrite history, delete saves, or alter production infrastructure. No such action was authorized or performed.
