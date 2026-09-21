@@ -1,4 +1,6 @@
-## Active workstream: Movement continuity + ranged caster basic attacks
+## Active workstream: Measured smoothness, performance, camera and gameplay polish
+
+Focused checkpoint: **Movement continuity + ranged caster basic attacks**
 
 Status date: **2026-09-21**
 Repository: danial-maqbool/Kairnfall-RPG
