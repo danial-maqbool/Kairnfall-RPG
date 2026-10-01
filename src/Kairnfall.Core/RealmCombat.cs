@@ -447,7 +447,8 @@ public sealed partial class RealmEngine
             if(def.Boss&&mob.Position.Distance(mob.Home)>25) { ResetBossEncounter(mob,def); continue; }
             if(nearby.Count==0) continue;
             var target=nearby.Where(x=>mob.Threat.ContainsKey(x.Id)).OrderByDescending(x=>mob.Threat.GetValueOrDefault(x.Id)).FirstOrDefault();
-            if(target is null&&def.Ai!="passive") target=nearby.Where(x=>x.Position.Distance(mob.Position)<=def.Aggro&&!x.Statuses.Any(s=>s.Kind=="stealth"&&s.Until>State.Time)&&WorldMap.LineOfSight(zone,mob.Position,x.Position)).OrderBy(x=>x.Position.Distance(mob.Position)).FirstOrDefault();
+            // Peaceful wildlife retaliates through retained threat, not proximity.
+            if(target is null&&def.Ai is not ("passive" or "fleeing")) target=nearby.Where(x=>x.Position.Distance(mob.Position)<=def.Aggro&&!x.Statuses.Any(s=>s.Kind=="stealth"&&s.Until>State.Time)&&WorldMap.LineOfSight(zone,mob.Position,x.Position)).OrderBy(x=>x.Position.Distance(mob.Position)).FirstOrDefault();
             if(mob.Position.Distance(mob.Home)>25)
             {
                 if(def.Boss) { ResetBossEncounter(mob,def); continue; }
