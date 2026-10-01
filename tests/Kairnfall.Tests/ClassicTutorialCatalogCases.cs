@@ -73,12 +73,17 @@ public static class ClassicTutorialCatalogCases
                 data=>data.Recipes.RemoveAll(recipe=>recipe.Id=="classic_make_fire"),
                 data=>data.Recipe("classic_make_pickaxe").Output="bread",
                 data=>data.Zone(ClassicTutorialContent.ZoneId).Furnishings.Clear(),
+                data=>data.Zone(ClassicTutorialContent.ZoneId).Furnishings.First(x=>x.Id=="classic_first_sign").Rise=0,
+                data=>data.Zone(ClassicTutorialContent.ZoneId).Furnishings.First(x=>x.Id=="classic_first_sign").Rise=25,
+                data=>data.Zone(ClassicTutorialContent.ZoneId).Furnishings.First(x=>x.Id=="classic_fountain").Rise=96,
                 data=>data.Zone("wayfarers_rest").Exits.RemoveAll(exit=>exit.Target==ClassicTutorialContent.ZoneId),
                 data=>data.Zones.RemoveAll(zone=>zone.Id==ClassicTutorialContent.ZoneId)})
             {
                 var data=Tutorial();mutate(data);
+                string? before=double.IsFinite(data.ClassicTutorial!.FoodRestore)?Bytes(data):null;
                 Check(data.Validate().Count>0,"Malformed tutorial did not return validation errors.");
                 Reject<InvalidDataException>(()=>ClassicTutorialContent.Enable(data));
+                Check(before is null||Bytes(data)==before,"Rejected runtime reference partly changed the catalog.");
             }
         });
         test("Classic malformed nested collections return errors without escaping validation",()=>

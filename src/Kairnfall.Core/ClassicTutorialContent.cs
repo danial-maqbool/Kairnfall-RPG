@@ -114,7 +114,7 @@ public static class ClassicTutorialContent
         {
             foreach(var site in Sites)
                 if(!zone.Furnishings.Any(x=>x.Id==site.Id&&x.Kind=="classic_"+site.Kind
-                    &&x.X==(int)site.Position.X&&x.Y==(int)site.Position.Y&&x.Width==1&&x.Height==1&&x.Solid))
+                    &&x.X==(int)site.Position.X&&x.Y==(int)site.Position.Y&&x.Width==1&&x.Height==1&&x.Solid&&x.Rise==24))
                     errors.Add("Classic tutorial missing or mismatched interaction site "+site.Id);
             if(!zone.Exits.Any(x=>x.Id=="classic_glade_to_wayfarers"&&x.Target=="wayfarers_rest"))
                 errors.Add("Classic tutorial missing exit to Wayfarer's Rest.");
