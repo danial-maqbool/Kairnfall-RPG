@@ -11,7 +11,8 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 GROUPS=frozenset(('people','equipment','npcs','mobs','motions'))
 SOURCES=('tools/art/characters.py','tools/art/character_motion.py','tools/art/wildlife.py',
-         'tools/art/creature_anatomy.py','tools/art/common.py','atelier/forge/pigment.py')
+         'tools/art/creature_anatomy.py','tools/art/common.py','atelier/forge/pigment.py',
+         'tools/art/optional_equipment.py')
 
 
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()

@@ -14,6 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'));sys.path.insert(0,str(ROOT))
 from art.character_motion import STATES,EXTRA_STATES,rig
 from art.characters import body_frame,hair_frame,armour_frame,npc_frame,_weapon_kind
+from art.optional_equipment import equipment_definitions
 from art.wildlife import frame as creature_frame
 
 
@@ -64,8 +65,7 @@ def main():
     for style in range(6):
         verify(f'people/hair_{style}_3',lambda s,f,d,h=style:hair_frame(h,3,s,f,d),STATES+EXTRA_STATES,moving)
     representatives={}
-    for item in data['items']:
-        if not item.get('slot'):continue
+    for item in equipment_definitions(data):
         tags=item.get('tags',[]);ident=item['id']
         key=(item['slot'],_weapon_kind(item),'heavy' in tags,'light' in tags,int(item.get('tier',1))>=3,
              'shield' in ident,any(word in ident for word in ('book','tome','codex')))

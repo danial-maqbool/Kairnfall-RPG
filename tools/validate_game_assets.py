@@ -37,7 +37,11 @@ def main():
     expected.update('terrain/grass_edge_'+str(mask) for mask in range(1,16))
     expected.update('furnishings/'+f['kind'] for z in catalog['zones'] for f in z.get('furnishings',[]))
     expected.update('items/'+item['id'] for item in catalog['items'])
-    expected.update('equipment/'+item['id'] for item in catalog['items'] if item.get('slot'))
+    from art.optional_equipment import equipment_definitions
+    from art.character_motion import EXTRA_STATES
+    equipped=equipment_definitions(catalog)
+    expected.update('equipment/'+item['id'] for item in equipped)
+    expected.update(f'motions/{state}/equipment/'+item['id'] for state in EXTRA_STATES for item in equipped)
     expected.update('structures/'+item['id'] for item in catalog['items'] if item['type']=='structure')
     expected.update('abilities/'+a['id'] for a in catalog['abilities'])
     expected.update('skills/'+skill['id'] for skill in catalog['skills'])

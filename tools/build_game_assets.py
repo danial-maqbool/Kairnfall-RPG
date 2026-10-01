@@ -20,6 +20,7 @@ from art.common import Pixel,canvas,palette,shade,rgba,seed,sheet,save,STATES,DI
 from art.items import icon
 from art.people import body_frame,hair_frame,equipment_frame,npc_frame
 from art.character_motion import EXTRA_STATES
+from art.optional_equipment import equipment_definitions
 from art.environment_pack import TERRAINS,PROPS,tile,prop,building,chest,resource,structure,crystal
 from art.fauna import frame as creature_frame
 from art.room_art import render as furnishing_image, building, edge as grass_edge
@@ -194,7 +195,7 @@ def main():
         for skin in range(6): emit(sheet(lambda st,n,d:body_frame(body,skin,st,n,d)),f'people/body_{body}_{skin}',True)
     for style in range(6):
         for colour in range(8): emit(sheet(lambda st,n,d:hair_frame(style,colour,st,n,d)),f'people/hair_{style}_{colour}',True)
-    equipment=[i for i in data['items'] if i.get('slot')]
+    equipment=equipment_definitions(data)
     for index,item in enumerate(equipment):
         cached=icon(item)
         emit(sheet(lambda st,n,d:equipment_frame(item,st,n,d,cached)),'equipment/'+item['id'],True)

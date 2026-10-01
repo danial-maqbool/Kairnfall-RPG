@@ -35,12 +35,13 @@
   ],
   "frames": 8,
   "source_sha256": {
-    "tools/art/characters.py": "ddb636d5739fa5a0d89231cac351fc05cdffacdc5f959b99ea192be896b3af2d",
+    "tools/art/characters.py": "1180bf90b823eb5cb9eb1cbc9ad97ee6be90ec70e7e911bde63170eaf5cfd22a",
     "tools/art/character_motion.py": "20bb3513b169d03da28a42502fdf7b11ddcbdcd81df4f192092d337086aec401",
     "tools/art/wildlife.py": "32d9a963a1462490cfb0ee22671aee59ad15a12f1a8e19311caa3b9922d85306",
     "tools/art/creature_anatomy.py": "5ceaeb787f62aff5f0c370007a412871159abe455801e6e89a810ecf606b9e62",
     "tools/art/common.py": "5d29e2038541dbed568ebf51720cc2feb01d610b7a72f6dfac392643babc03d1",
-    "atelier/forge/pigment.py": "585fc5068f63861cf203d77682f999fa652e692187ef99610b865c9e5c6ef44b"
+    "atelier/forge/pigment.py": "585fc5068f63861cf203d77682f999fa652e692187ef99610b865c9e5c6ef44b",
+    "tools/art/optional_equipment.py": "4f84cbd6346cdf8a27cc9d876a19bbeadcbab99e6e80afbf72f3191f37ae1d3c"
   },
   "artistic_approval": false,
   "assets": [
@@ -2381,6 +2382,15 @@
       "height": 1536,
       "sha256": "a5a13a2b8711a368970c6ca94a2e94d52b2f245cdd278ae53a2501cc32890c85",
       "pixel_sha256": "81a1c089ba928cc18e6712311ada02abf6c3cce6f7bd7339b5fe508cfd494c26",
+      "animated": true,
+      "state_count": 6
+    },
+    {
+      "key": "equipment/classic_stone_pickaxe",
+      "width": 512,
+      "height": 1536,
+      "sha256": "f84bfe1e55e732d6d408ec86fdfa75bafbeb584ef0eef4ac4e7f23f040d111fe",
+      "pixel_sha256": "3b3d49a4b4e86677cf2fc2ea86a96e77b7d406e5e80ba2c0e4fbed98d78cf23d",
       "animated": true,
       "state_count": 6
     },
@@ -12816,6 +12826,15 @@
       "state_count": 1
     },
     {
+      "key": "motions/bow_attack/equipment/classic_stone_pickaxe",
+      "width": 512,
+      "height": 256,
+      "sha256": "4d7bd18a262320ac191731f10fb7bec925d4395d644237d30bd685c3dffde9b1",
+      "pixel_sha256": "d1f059bec485ce3ecd0b33d925e75a395316bd1e4ed4bb9e0e3ffe71d8f62e94",
+      "animated": true,
+      "state_count": 1
+    },
+    {
       "key": "motions/bow_attack/equipment/cobalt_axe",
       "width": 512,
       "height": 256,
@@ -22712,6 +22731,15 @@
       "height": 256,
       "sha256": "ab790baaa62e19f9f0b58696066ae47f0ab62fe373286ff0024437e206fe0409",
       "pixel_sha256": "a0f2451ad46781129e5114216ea84f9c574a07a5c3359515d2c3a69fad1d8e35",
+      "animated": true,
+      "state_count": 1
+    },
+    {
+      "key": "motions/craft/equipment/classic_stone_pickaxe",
+      "width": 512,
+      "height": 256,
+      "sha256": "a2638112273f5fccd0349dacb08d663ec1971cd1d4f2b4fe918437a994fbbe3a",
+      "pixel_sha256": "9f19629fec85859ea7d3f206b8f31f21a2017bb730181248227908b7c75ebed6",
       "animated": true,
       "state_count": 1
     },
@@ -32616,6 +32644,15 @@
       "state_count": 1
     },
     {
+      "key": "motions/crossbow_attack/equipment/classic_stone_pickaxe",
+      "width": 512,
+      "height": 256,
+      "sha256": "57c1c99509ca4579e0809cea5143264cb015a9456b3de7520e459014d5dc737c",
+      "pixel_sha256": "cd9be51a5a182c502358b64ac4e87d494e38c0368f4356e37dec7ba412027f41",
+      "animated": true,
+      "state_count": 1
+    },
+    {
       "key": "motions/crossbow_attack/equipment/cobalt_axe",
       "width": 512,
       "height": 256,
@@ -42516,6 +42553,15 @@
       "state_count": 1
     },
     {
+      "key": "motions/interact/equipment/classic_stone_pickaxe",
+      "width": 512,
+      "height": 256,
+      "sha256": "383755e726eb5c34a0a79b1c86676ee6cbc077d5dd10daaf7daf20383f27a38e",
+      "pixel_sha256": "0def00c51b74411ffa444cb77f21c4b420bf5b743f45304be6b03ae65c00a043",
+      "animated": true,
+      "state_count": 1
+    },
+    {
       "key": "motions/interact/equipment/cobalt_axe",
       "width": 512,
       "height": 256,
@@ -52412,6 +52458,15 @@
       "height": 256,
       "sha256": "6ce6c224d8a70dafcbd4fb27369ceaf47feda64c7b94035fbd5d8d9fdcb3842b",
       "pixel_sha256": "929e9948e85a354f89644c873574d75d4fd38e23d9efb64b2a3955a84257c195",
+      "animated": true,
+      "state_count": 1
+    },
+    {
+      "key": "motions/run/equipment/classic_stone_pickaxe",
+      "width": 512,
+      "height": 256,
+      "sha256": "0661021d430f7ff361a3ca8d81024c0997f75275cdf63ee8929d712bbc9f4948",
+      "pixel_sha256": "e785bc682a4fa120f321edcef4eeb16c37a865d0ea7a46675c4684c6bbacf247",
       "animated": true,
       "state_count": 1
     },

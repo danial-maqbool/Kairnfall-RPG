@@ -203,17 +203,90 @@ def clothing_base(item):
 
 def _weapon_kind(item):
     tags=set(item.get('tags',[])); ident=item.get('id','')
-    for kind in ('crossbow','bow','spear','staff','wand','dagger','axe','mace','sword'):
+    for kind in ('crossbow','bow','spear','staff','wand','dagger','pickaxe','axe','mace','sword'):
         if kind in tags or kind in ident: return kind
     return 'sword'
 
 
+def _pickaxe(p,j,item):
+    """An angular stone/metal pick head lashed across a wooden working haft.
+
+    Upright frames use the rig's real grip, including work and interaction.
+    Released equipment is authored flat on the same floor as the collapsing
+    body. No standing raster is rotated or substituted for a death frame.
+    """
+    dropped=j['collapse']>.6
+    if dropped:
+        x,y=(40 if j['sign']>0 else 24),55
+        angle=90*j['sign']; length=16
+    else:
+        x,y=j['hand_r']; angle=j['angle']; length=20
+        if j['state']=='interact': angle=(24,24,28,32,32,28,24,24)[j['frame']]*j['sign']
+        elif j['state']=='craft': angle=(24,24,28,32,160,38,24,24)[j['frame']]*j['sign']
+        elif j['state']=='attack': angle=(24,24,35,175,180,170,24,24)[j['frame']]*j['sign']
+    angle=math.radians(angle)
+    ux,uy=math.sin(angle),-math.cos(angle)
+    # Preserve a mirrored construction around the mirrored west-hand anchor.
+    nx,ny=-uy*j['sign'],ux*j['sign']
+    head=((-2,-9),(1,-6),(2,-2),(2,3),(0,7),(-2,8),(-1,3),(-2,1),(-3,-4))
+    if dropped:
+        # The floor view has separately authored points and a broad central
+        # eye, retaining a transverse pick silhouette at gameplay size.
+        head=((-2,-6),(-1,-3),(2,-1),(2,2),(0,5),(-2,6),(-3,2),(-2,0),(-3,-2))
+    if not dropped:
+        # Bound every head vertex before drawing, rather than clipping a point
+        # at an action cell edge. The shaft still intersects the authored hand.
+        for offset,across in head:
+            for component,origin,normal in ((ux,x,nx),(uy,y,ny)):
+                edge=origin+component*offset+normal*across
+                if component>0: length=min(length,(60-edge)/component)
+                elif component<0: length=min(length,(edge-3)/-component)
+        if length<5: raise ValueError('Pickaxe pose cannot fit its shared grip anchor')
+    def at(along,across=0): return x+ux*along+nx*across,y+uy*along+ny*across
+    # A close working grip shifts up the haft as the head approaches contact.
+    # Preserve the wooden construction instead of turning it into a tiny axe.
+    handle=7 if dropped else 7+20-length
+    for component,origin in ((ux,x),(uy,y)):
+        if component>0: handle=min(handle,(origin-3)/component)
+        elif component<0: handle=min(handle,(60-origin)/-component)
+    haft=palette(WOODS.get(item.get('handle_material','oak'),'97704a'))
+    material=item.get('material','stone')
+    stone=palette('7d8175' if material=='stone' else METALS.get(material,'a5b9c7'))
+    cord=palette('a37a50')
+    p.line([at(-handle),at(length+1)],INK,4)
+    p.line([at(-handle+1),at(length+1)],haft[3],2)
+    p.line([at(-handle+2,-1),at(length-2,-1)],haft[4])
+    p.line([at(-handle),at(-handle+1)],haft[1],3)
+    p.poly([at(length+a,b) for a,b in head],stone[2])
+    if dropped:
+        p.poly([at(length-2,-4),at(length+1,-1),at(length+1,2),
+                at(length-1,4),at(length-2,0)],stone[3],None)
+        p.line([at(length-2,-6),at(length-1,-3),at(length+1,-1)],stone[4])
+        p.line([at(length-2,6),at(length-1,4)],stone[4])
+        lash=(-1,1)
+    else:
+        p.poly([at(length-1,-7),at(length+1,-3),at(length+1,2),
+                at(length-1,5),at(length-2,0)],stone[3],None)
+        # Broken, matte facets avoid a continuous metallic cutting highlight.
+        p.line([at(length-2,-9),at(length,-7)],stone[4])
+        p.line([at(length+1,-5),at(length+2,-2)],stone[4])
+        p.line([at(length-2,-3),at(length-1,-1)],stone[1])
+        p.line([at(length-1,3),at(length-1,5)],stone[1])
+        lash=(-2,2)
+    p.line([at(length-2,lash[0]),at(length+1,lash[1])],cord[1],3)
+    p.line([at(length-2,lash[0]),at(length+1,lash[1])],cord[4])
+
+
 def _weapon(p,j,item):
     j=dict(j)
+    kind=_weapon_kind(item)
+    if kind=='pickaxe':
+        _pickaxe(p,j,item)
+        return
     if j['state'] in ('interact','craft'):
         j['hand_r']=(j['hip'][0]-7*j['sign'],j['hip'][1]-5)
         j['angle']=155*j['sign'] if _weapon_kind(item) not in ('staff','spear','bow','crossbow') else -15*j['sign']
-    kind=_weapon_kind(item); material=item.get('material','iron'); c=palette(METALS.get(material,'a5b9c7'))
+    material=item.get('material','iron'); c=palette(METALS.get(material,'a5b9c7'))
     wood=WOODS.get(material,'896040'); gold=palette('c7a461'); hand=j['hand_r']; x,y=hand
     angle=j['angle']; angle=math.radians(angle)
     ux,uy=math.sin(angle),-math.cos(angle); nx,ny=-uy,ux

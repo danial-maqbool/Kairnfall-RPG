@@ -11,13 +11,16 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'));sys.path.insert(0,str(ROOT))
 from art.character_motion import STATES,EXTRA_STATES,rig
 from art.characters import body_frame,hair_frame,armour_frame,npc_frame,layer_order
+from art.optional_equipment import equipment_definitions
+from integrate_atelier import validate_runtime_provenance
+from integrate_atelier import validate_runtime_provenance
 from art.wildlife import frame as creature_frame
 
 
 def expected(data):
     base={f'people/body_{b}_{s}' for b in range(2) for s in range(6)}
     base.update(f'people/hair_{h}_{c}' for h in range(6) for c in range(8))
-    base.update('equipment/'+i['id'] for i in data['items'] if i.get('slot'))
+    base.update('equipment/'+i['id'] for i in equipment_definitions(data))
     base.update('npcs/'+n['role'] for n in data['npcs'])
     base.update('mobs/'+m['id'] for m in data['mobs'])
     extra={f'motions/{state}/{key}' for state in EXTRA_STATES for key in base if not key.startswith('mobs/')}
@@ -37,6 +40,16 @@ def main():
         if not ok and len(errors)<150:errors.append(message)
     need(manifest.get('motion_order')==list(EXTRA_STATES),'Additional motion order differs from the renderer.')
     report=json.loads((assets/'atelier-integration.json').read_text())
+    try:
+        validate_runtime_provenance(report,[entry['key'] for entry in manifest['assets']],data)
+        need(True,'Exact ordinary and optional actor provenance.')
+    except ValueError as error:
+        need(False,str(error))
+    try:
+        validate_runtime_provenance(report,[entry['key'] for entry in manifest['assets']],data)
+        need(True,'Exact ordinary and optional actor provenance.')
+    except ValueError as error:
+        need(False,str(error))
     need(report.get('actor_runtime_source')=='Wayfarer original joint construction','The active actor source is not Wayfarer.')
     need(report.get('actor_historical_fallbacks')==0,'Historical actor fallback is enabled.')
     need(not any(e['key'].split('/')[0] in {'people','equipment','npcs','mobs'} for e in report.get('assets',[])),'The non-actor library copied an actor.')
@@ -47,7 +60,7 @@ def main():
     for name in old.get('removed_files',[]):need(not (ROOT/name).exists(),'Retired actor artifact reappeared: '+name)
     for group in ('people','equipment','npcs','mobs','gear_worn'):
         need(not list((ROOT/'atelier/Assets'/group).rglob('*.png')),'Historical actor directory is not empty: '+group)
-    equipment={i['id']:i for i in data['items'] if i.get('slot')};normal={m['id'] for m in data['mobs'] if not m['boss'] and not m['elite']}
+    equipment={i['id']:i for i in equipment_definitions(data)};normal={m['id'] for m in data['mobs'] if not m['boss'] and not m['elite']}
     alpha_hashes={};image_hashes={}
     for key in sorted(keys):
         path=assets/(key+'.png')
