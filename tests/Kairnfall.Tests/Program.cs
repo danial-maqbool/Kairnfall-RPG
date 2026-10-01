@@ -44,6 +44,7 @@ CorpseLifecycleCases.Run(Test,data);
 CreatureRespawnCases.Run(Test,data);
 WildlifeHostilityCases.Run(Test,data);
 FirstLootGuidanceCases.Run(Test,data);
+RareRespawnPersistenceCases.Run(Test,data);
 Test("Catalog references and world graph",()=>Check(data.Validate().Count==0,"Catalog validation failed."));
 Test("Required content counts",()=>
 {

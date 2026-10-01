@@ -48,7 +48,10 @@ public sealed partial class RealmEngine
                     }
                     if(def.Elite&&existing.Health<=0)
                     {
-                        bool shortPending=existing.Generation>0&&existing.RespawnAt>=State.Time&&existing.RespawnAt-State.Time<=RareEncounterRules.LegacyEliteRespawnCeiling;
+                        // A current save can legitimately be near the end of its
+                        // accepted cadence. Only historical hunting revisions
+                        // need the legacy short-deadline upgrade.
+                        bool shortPending=migrate&&existing.Generation>0&&existing.RespawnAt>=State.Time&&existing.RespawnAt-State.Time<=RareEncounterRules.LegacyEliteRespawnCeiling;
                         if(shortPending)
                         {
                             existing.RespawnAt=State.Time+RareEncounterRules.RespawnDelay(zone,def,existing.Generation);

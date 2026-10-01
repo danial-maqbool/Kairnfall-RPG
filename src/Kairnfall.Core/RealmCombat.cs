@@ -204,7 +204,9 @@ public sealed partial class RealmEngine
     }
     private void KillCreature(Character killer,Creature mob)
     {
-        var def=Data.Mob(mob.Template); var publicEvent=WorldEventRules.Owner(State,mob.Id); mob.Health=0; mob.RespawnAt=publicEvent is null?State.Time+(def.Boss?300:def.Elite?90:25):double.MaxValue; mob.Generation++;
+        var def=Data.Mob(mob.Template); var publicEvent=WorldEventRules.Owner(State,mob.Id); mob.Health=0; mob.Generation++;
+        mob.RespawnAt=publicEvent is null?State.Time+(def.Elite?RareEncounterRules.RespawnDelay(Data.Zone(mob.Zone),def,mob.Generation):def.Boss?300:25):double.MaxValue;
+        if(publicEvent is null&&def.Elite) rareCadenceGeneration[mob.Id]=mob.Generation;
         mob.Target=""; mob.Statuses.Clear(); State.Telegraphs.RemoveAll(x=>x.Source==mob.Id);
         if(def.Boss) ClearBossEncounterArtifacts(mob);
         var contributors=mob.Threat.Where(x=>x.Value>0&&State.Characters.ContainsKey(x.Key)).Select(x=>Player(x.Key)).Where(x=>x.Zone==mob.Zone&&x.Position.Distance(mob.Position)<=24&&Active.Contains(x.Id)).ToList();
