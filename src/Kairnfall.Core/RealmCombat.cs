@@ -430,7 +430,15 @@ public sealed partial class RealmEngine
             var def=Data.Mob(mob.Template); var zone=Data.Zone(mob.Zone);
             if(mob.Health<=0)
             {
-                if(mob.Owner==""&&mob.RespawnAt<=State.Time&&CanHuntRespawn(mob,live)) { mob.Health=def.Health; mob.Position=mob.Home; mob.Phase=0; mob.AttackStep=0; mob.Threat.Clear(); mob.Statuses.Clear(); }
+                if(mob.Owner==""&&mob.RespawnAt<=State.Time&&CanHuntRespawn(mob,live))
+                {
+                    mob.Health=def.Health; mob.Position=mob.Home; mob.Target=""; mob.Phase=0; mob.AttackStep=0; mob.Threat.Clear(); mob.Statuses.Clear();
+                    // Later respawns and movement in this same AI pass must see
+                    // the newly occupied home, just as they see living actors.
+                    var cell=CreatureCell(mob.Zone,mob.Position);
+                    if(!creatureCells.TryGetValue(cell,out var occupants)) creatureCells[cell]=occupants=[];
+                    occupants.Add(mob);
+                }
                 continue;
             }
             mob.Statuses.RemoveAll(x=>x.Until<=State.Time);
