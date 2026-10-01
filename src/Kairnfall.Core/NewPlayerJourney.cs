@@ -15,6 +15,8 @@ public static class NewPlayerJourney
     public const string Prefix = "onboarding:v1:";
     public const string EligibleKey = Prefix + "eligible";
     public const string PublicScheduledKey = Prefix + "public_scheduled";
+    private const string UrgentFirstLootTitle = "Optional · Ground loot fading";
+    private const double UrgentFirstLootSeconds = 45;
     private static readonly IReadOnlyDictionary<string, string> Hints = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["movement"] = "{move_up}/{move_left}/{move_down}/{move_right} moves. {interact} interacts with a nearby target.",
@@ -78,11 +80,39 @@ public static class NewPlayerJourney
         && player.Inventory.Any(x => x.Id == id && x.Durability > 0 && x.Sockets > x.Runes.Count)
         && Items.Count(player, "rune_embers_1") > 0;
 
+    private static JourneyObjective? UrgentFirstLoot(Catalog data, Snapshot snapshot, IEnumerable<LootPile>? loot)
+    {
+        var player = snapshot.Self;
+        if (loot is null || string.IsNullOrWhiteSpace(player.Id) || !Active(player) || Seen(player, "loot") || player.Discoveries.Contains(MilestoneKey("loot"))
+            || !double.IsFinite(snapshot.Time) || !player.Position.Finite || !double.IsFinite(player.LastCombat)
+            || snapshot.Time - player.LastCombat <= 8
+            || snapshot.Creatures.Any(x => x.Zone == player.Zone && x.Owner == "" && x.Health > 0
+                && (x.Target == player.Id || x.Threat.ContainsKey(player.Id)))) return null;
+        // Match the realm's ordinary local loot visibility. This reminder never
+        // changes expiry, ownership, quest state or the guaranteed opening reward.
+        var pile = loot.Where(x => x is not null && !string.IsNullOrWhiteSpace(x.Id)
+                && x.Gold >= 0 && x.Gold <= Items.GoldCap && x.Items is not null && (x.Gold > 0 || x.Items.Count > 0)
+                && x.Items.All(item => item is not null && !string.IsNullOrWhiteSpace(item.Id) && item.Quantity > 0
+                    && data.Items.Any(def => def.Id == item.Template && item.Quantity <= def.StackMax))
+                && x.Owner == player.Id && x.Zone == player.Zone && x.Position.Finite
+                && x.Position.Distance(player.Position) <= 30 && double.IsFinite(x.Expires)
+                && x.Expires > snapshot.Time && x.Expires - snapshot.Time <= UrgentFirstLootSeconds)
+            .OrderBy(x => x.Expires).ThenBy(x => x.Position.Distance(player.Position)).ThenBy(x => x.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (pile is null) return null;
+        int remaining = (int)Math.Ceiling(pile.Expires - snapshot.Time);
+        return new("loot", UrgentFirstLootTitle, $"Collect your spoils · {remaining}s left",
+            $"Fades in {remaining} seconds. This pickup is optional; your current quest progress stays saved. Choose Got it to return to your objective.",
+            pile.Gold > 0 ? pile.Gold + (pile.Items.Count > 0 ? " gold + dropped items" : " gold") : "Dropped items",
+            player.Zone, pile.Position, "loot", pile.Id, "Inventory");
+    }
+
     public static JourneyObjective Recommend(Catalog data, Snapshot snapshot, IEnumerable<LootPile>? loot = null)
     {
         var player = snapshot.Self;
         if (player.Health <= 0) return new("recovery", "Your journey continues", "Return to safety when ready",
             "Equipment is retained. Resume your current quest after recovery.", "No tutorial penalty", player.Zone, Panel: "");
+        if (UrgentFirstLoot(data, snapshot, loot) is { } urgentLoot) return urgentLoot;
         if (OpeningJourney.Recommend(data,snapshot) is { } opening) return opening;
         bool beginner = Active(player);
         JourneyObjective Offer(QuestDef quest) => AtNpc(data, quest, "quest_offer", "Talk to " + data.Npc(quest.Giver).Name);
@@ -291,6 +321,7 @@ public static class NewPlayerJourney
         var player = snapshot.Self;
         if (!Active(player)) return null;
         string id = player.Health <= 0 ? "recovery"
+            : objective.Stage == "loot" && objective.Title == UrgentFirstLootTitle ? "loot"
             : !FirstHourExperience.Marked(player, "movement") && !Seen(player, "movement") ? "movement"
             : objective.Stage == "public" && !Seen(player, "public") ? "public"
             : Progression.PlayerLevel(player) >= 2 && !Seen(player, "level") ? "level"
