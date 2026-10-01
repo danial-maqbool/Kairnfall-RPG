@@ -43,6 +43,8 @@ public sealed partial class RealmEngine
     private string Gather(Character p,string nodeId)
     {
         Need(State.Nodes.TryGetValue(nodeId,out var node),"Resource not found.");
+        if(nodeId.StartsWith("carcass/",StringComparison.Ordinal))
+            Need(double.IsFinite(node!.ReadyAt)&&State.Time<node.ReadyAt+LootPile.LifetimeSeconds,"These animal remains have decayed.");
         Near(p,node!.Zone,node.Position);
         Need(node.ReadyAt<=State.Time,"This resource has not recovered yet.");
         bool crop=node.Template=="crop_wheat";
@@ -276,6 +278,7 @@ public sealed partial class RealmEngine
     private string CollectLoot(Character p,string id)
     {
         Need(Loot.TryGetValue(id,out var pile),"Loot is no longer available."); Near(p,pile!.Zone,pile.Position);
+        Need(double.IsFinite(pile!.Expires)&&pile.Expires>State.Time,"This ground loot has expired.");
         Need(pile.Owner==p.Id||pile.PublicAt<=State.Time||(pile.Party!=""&&pile.Party==p.Party&&pile.PartyAt<=State.Time),"This loot is reserved for its round-robin owner for a short time.");
         foreach(var item in pile.Items) { Items.Add(p.Inventory,item,Data); Progress(p,"loot",item.Template,item.Quantity); }
         Items.Grant(p,pile.Gold); Loot.Remove(id); return "Loot collected.";
@@ -292,12 +295,21 @@ public sealed partial class RealmEngine
             Items.Consume(p,"lockpick",1); Progression.Train(p,"lockpicking",60,chest.Requirement,Data);
         }
         if(chest.Kind=="runic") Need(Progression.Level(p,"runecasting")>=Math.Max(1,chest.Requirement/2),"Your Runecasting skill is too low.");
-        var candidates=Data.Items.Where(x=>x.Slot!=""&&x.Type!="tool"&&x.Requirement<=Math.Min(100,chest.Requirement+10)&&x.Requirement>=Math.Max(1,chest.Requirement-20)).ToArray();
-        if(candidates.Length>0) Items.Add(p.Inventory,Items.Create(Data,candidates[RandomNumberGenerator.GetInt32(candidates.Length)].Id,1,Items.RollRarity(300)),Data);
+        var found=new List<string>();
+        var candidates=ChestRewardRules.EquipmentCandidates(Data,chest.Requirement).ToArray();
+        if(candidates.Length>0)
+        {
+            var reward=Items.Create(Data,candidates[RandomNumberGenerator.GetInt32(candidates.Length)].Id,1,Items.RollRarity(300));
+            Items.Add(p.Inventory,reward,Data); found.Add(reward.Rarity+" "+Data.Item(reward.Template).Name);
+        }
         if(chest.Kind=="runic")
         {
             var runes=Data.Items.Where(x=>x.Type=="rune"&&x.Tier<=1+chest.Requirement/25).ToArray();
-            if(runes.Length>0) Items.Add(p.Inventory,Items.Create(Data,runes[RandomNumberGenerator.GetInt32(runes.Length)].Id),Data);
+            if(runes.Length>0)
+            {
+                var rune=Items.Create(Data,runes[RandomNumberGenerator.GetInt32(runes.Length)].Id);
+                Items.Add(p.Inventory,rune,Data); found.Add(Data.Item(rune.Template).Name);
+            }
             Progression.Train(p,"runecasting",50,chest.Requirement,Data);
         }
         long chestGold=(long)Math.Ceiling((10+chest.Requirement*3)*WorldEventRules.TreasureGoldMultiplier(State,p.Zone,State.Time));
@@ -311,7 +323,8 @@ public sealed partial class RealmEngine
             exploration="\nFIRST CACHE · This region's hidden cache is now recorded in your exploration journal.";
         }
         string mastery=ExplorationRewards.TryGrantRegionalReward(p,chestZone,Data);
-        return "Chest opened."+exploration+mastery+(ExplorationRewards.Eligible(chestZone)?"\n"+ExplorationRewards.ProgressSummary(p,chestZone):"");
+        found.Add(chestGold+" gold");
+        return "Chest opened.\nFound: "+string.Join(" · ",found)+exploration+mastery+(ExplorationRewards.Eligible(chestZone)?"\n"+ExplorationRewards.ProgressSummary(p,chestZone):"");
     }
     private string AuctionList(Character p,string id,int quantity,string priceText)
     {

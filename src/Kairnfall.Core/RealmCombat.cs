@@ -543,7 +543,19 @@ public sealed partial class RealmEngine
                 if(mob.Health<=0) { KillCreature(source,mob); break; }
             }
         }
-        foreach(var pair in State.Nodes.Where(x=>x.Key.StartsWith("carcass/",StringComparison.Ordinal)&&x.Value.ReadyAt>State.Time).ToList()) State.Nodes.Remove(pair.Key);
+        // Unharvested carcasses retain their creation time in ReadyAt; skinning
+        // advances it into the future. Reuse that historical save field so both
+        // spent remains and untouched remains decay without resetting their age.
+        // The three-minute opportunity matches ordinary ground-loot lifetime.
+        foreach(var pair in State.Nodes.Where(x=>x.Key.StartsWith("carcass/",StringComparison.Ordinal)
+            && (!double.IsFinite(x.Value.ReadyAt)||x.Value.ReadyAt>State.Time
+                ||State.Time>=x.Value.ReadyAt+LootPile.LifetimeSeconds)).ToList()) State.Nodes.Remove(pair.Key);
+        // KillPlayer ends companion ownership with a permanent death marker and
+        // clears the owner's Pet reference. Retain its death presentation during
+        // the owner's return countdown, then discard only that finished state.
+        foreach(var companion in State.Creatures.Values.Where(x=>x.Owner!=""&&x.Health<=0
+            &&x.RespawnAt==double.MaxValue&&State.Characters.TryGetValue(x.Owner,out var owner)
+            &&owner.Pet!=x.Id&&owner.DeadUntil<=State.Time).ToList()) State.Creatures.Remove(companion.Id);
         foreach(var c in State.Creatures.Values.Where(x=>x.Id.Contains("/add/",StringComparison.Ordinal)&&x.Health<=0).ToList()) State.Creatures.Remove(c.Id);
         EconomicDirty=true;
     }
