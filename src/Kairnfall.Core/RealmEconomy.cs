@@ -46,6 +46,8 @@ public sealed partial class RealmEngine
         if(nodeId.StartsWith("carcass/",StringComparison.Ordinal))
             Need(double.IsFinite(node!.ReadyAt)&&State.Time<node.ReadyAt+LootPile.LifetimeSeconds,"These animal remains have decayed.");
         Near(p,node!.Zone,node.Position);
+        if(node.Template.StartsWith("classic_",StringComparison.Ordinal))
+            Need(ClassicTutorialContent.FacingAdjacent(p,node.Position),"Face the adjacent resource and use Space.");
         Need(node.ReadyAt<=State.Time,"This resource has not recovered yet.");
         bool crop=node.Template=="crop_wheat";
         Need(!crop||node.Owner==p.Id,"This crop belongs to another player.");
@@ -207,7 +209,7 @@ public sealed partial class RealmEngine
     private string CompleteTransition(Character p,ZoneDef source,ExitDef exit)
     {
         var target=Data.Zone(exit.Target);
-        CancelTradesFor(p.Id);inputs.Remove(p.Id);transitionReady[p.Id]=State.Time+0.55;
+        CancelTradesFor(p.Id);inputs.Remove(p.Id); gridInputs.Remove(p.Id);transitionReady[p.Id]=State.Time+0.55;
         p.Zone=target.Id;p.Position=MapTransitionRules.ArrivalPoint(Data,source,exit);
         FirstHourExperience.ObserveTransition(p,source,target);
         if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Zone=p.Zone;pet.Position=p.Position;pet.Home=p.Position; }
@@ -235,7 +237,7 @@ public sealed partial class RealmEngine
         Need(State.Time-p.LastCombat>10,"You cannot travel during combat.");
         Need(dest.Kind is "city" or "settlement","Invalid fast-travel destination.");
         Need(dest.Id!=p.Zone,"You are already here."); long price=EconomyServices.TravelPrice(Data,p,source,dest);Items.Spend(p,price);
-        CancelTradesFor(p.Id); inputs.Remove(p.Id); p.Zone=dest.Id; p.Position=dest.Spawn;
+        CancelTradesFor(p.Id); inputs.Remove(p.Id); gridInputs.Remove(p.Id); p.Zone=dest.Id; p.Position=dest.Spawn;
         FirstHourExperience.ObserveTransition(p,source,dest);
         if(p.Pet!=""&&State.Creatures.TryGetValue(p.Pet,out var pet)) { pet.Zone=p.Zone; pet.Position=p.Position; }
         return $"Arrived at {dest.Name} for {price} gold.";
@@ -248,7 +250,11 @@ public sealed partial class RealmEngine
         {
             case "heal": Need(p.Health<stats.Health,"Your health is full."); Ready(p,"potion",5); p.Health=Math.Min(stats.Health,p.Health+Math.Max(25,def.Power)); break;
             case "mana": Need(p.Mana<stats.Mana,"Your mana is full."); Ready(p,"potion",5); p.Mana=Math.Min(stats.Mana,p.Mana+Math.Max(25,def.Power)); break;
-            case "food": Need(p.Health<stats.Health||p.Stamina<stats.Stamina,"You do not need food yet."); Ready(p,"food",8); ApplyStatus(p.Statuses,"regeneration",Element.Nature,12,Math.Max(2,def.Power/12),p.Id); p.Stamina=Math.Min(stats.Stamina,p.Stamina+20); break;
+            case "food":
+                Need(p.ClassicTutorial is { Food: <100 } || p.Health<stats.Health || p.Stamina<stats.Stamina,"You do not need food yet.");
+                Ready(p,"food",8);
+                if(p.ClassicTutorial is { } classic)classic.Food=Math.Min(100,classic.Food+Data.ClassicTutorial!.FoodRestore);
+                ApplyStatus(p.Statuses,"regeneration",Element.Nature,12,Math.Max(2,def.Power/12),p.Id);p.Stamina=Math.Min(stats.Stamina,p.Stamina+20);break;
             case "purge": Need(p.Statuses.Any(x=>x.Kind is "poison" or "burn" or "curse"),"No harmful condition to remove."); Ready(p,"potion",5); p.Statuses.RemoveAll(x=>x.Kind is "poison" or "burn" or "curse"); break;
             default: throw new RuleException("This consumable effect is unavailable.");
         }
@@ -278,7 +284,7 @@ public sealed partial class RealmEngine
     private string CollectLoot(Character p,string id)
     {
         Need(Loot.TryGetValue(id,out var pile),"Loot is no longer available."); Near(p,pile!.Zone,pile.Position);
-        Need(double.IsFinite(pile!.Expires)&&pile.Expires>State.Time,"This ground loot has expired.");
+        Need(double.IsFinite(pile.Expires)&&pile.Expires>State.Time,"This ground loot has expired.");
         Need(pile.Owner==p.Id||pile.PublicAt<=State.Time||(pile.Party!=""&&pile.Party==p.Party&&pile.PartyAt<=State.Time),"This loot is reserved for its round-robin owner for a short time.");
         foreach(var item in pile.Items) { Items.Add(p.Inventory,item,Data); Progress(p,"loot",item.Template,item.Quantity); }
         Items.Grant(p,pile.Gold); Loot.Remove(id); return "Loot collected.";

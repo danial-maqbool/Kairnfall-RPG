@@ -270,6 +270,8 @@ public sealed class QuestProgress
 public sealed class Character
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ClassicTutorialProgress? ClassicTutorial { get; set; }
     public string Account { get; set; } = "";
     public string Name { get; set; } = "";
     public string Class { get; set; } = "vanguard";
@@ -452,6 +454,8 @@ public sealed class Telegraph
 }
 public sealed class RealmState
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ClassicTutorialEnabled { get; set; }
     public int Schema { get; set; } = 1;
     public int HuntingRevision { get; set; }
     public long Revision { get; set; }

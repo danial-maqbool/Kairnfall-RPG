@@ -113,6 +113,10 @@ public sealed class GameConnection : IAsyncDisposable
         finally { sendGate.Release(); }
     }
     public Task MoveAsync(double x, double y, CancellationToken cancel = default) => SendObjectAsync(new GameCommand { Kind = "move", X = x, Y = y }, cancel);
+    public Task GridMoveAsync(double x, double y, bool cancelStep = false, CancellationToken cancel = default)
+        => SendObjectAsync(new GameCommand { Kind = "move", X = x, Y = y, Arg = cancelStep ? GridMovementRules.Cancel : GridMovementRules.Intent }, cancel);
+    public Task GridStepAsync(double x, double y, CancellationToken cancel = default)
+        => SendObjectAsync(new GameCommand { Kind = "move", X = x, Y = y, Arg = GridMovementRules.Step }, cancel);
     public async Task<CommandResult> ActAsync(GameCommand command, CancellationToken cancel = default)
     {
         if (command.Kind == "move") throw new ArgumentException("Use MoveAsync for movement intents.", nameof(command));

@@ -48,6 +48,7 @@ public static class WorldMap
     private static Terrain TileAt(ZoneDef z,int x,int y,bool legacy)
     {
         if(x<1||y<1||x>=z.Width-1||y>=z.Height-1) return Terrain.Wall;
+        if(z.Id==ClassicTutorialContent.ZoneId) return ClassicTutorialContent.Ground(x,y);
         if(legacy && OnRoad(z,x,y,true)) return z.Layer=="Surface" ? Terrain.Dirt : Terrain.Stone;
         foreach(var b in z.Buildings)
         {

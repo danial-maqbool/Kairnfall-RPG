@@ -40,7 +40,24 @@ builder.Services.AddSingleton<RealmStore>();
 builder.Services.AddSingleton<AccountStore>();
 string catalogPath=Environment.GetEnvironmentVariable("KAIRNFALL_CATALOG")??Path.Combine(AppContext.BaseDirectory,"content","catalog.json");
 if(!File.Exists(catalogPath)) catalogPath=Path.GetFullPath("content/catalog.json");
-builder.Services.AddSingleton(Catalog.Load(catalogPath));
+var loadedCatalog=Catalog.Load(catalogPath);
+bool classicRequested=Environment.GetEnvironmentVariable("KAIRNFALL_CLASSIC_TUTORIAL")=="1";
+if(classicRequested||loadedCatalog.ClassicTutorial is not null)
+{
+    // Inspect effective bindings, including --urls/configuration overrides and
+    // explicit Kestrel endpoints; an innocuous environment URL cannot conceal
+    // a public listener. Implicit wildcard/default ports are not authorized.
+    string urls=builder.Configuration["urls"]??builder.WebHost.GetSetting("urls")
+        ??Environment.GetEnvironmentVariable("ASPNETCORE_URLS")??"";
+    var addresses=(urls==""?Enumerable.Empty<string>():urls.Split(';'))
+        .Concat(builder.Configuration.GetSection("Kestrel:Endpoints").GetChildren().Select(endpoint=>endpoint["Url"]??""));
+    ClassicTutorialContent.RequireLocalStartup(classicRequested,loadedCatalog.ClassicTutorial is not null,
+        builder.Environment.IsEnvironment("Testing"),Environment.GetEnvironmentVariable("KAIRNFALL_ALLOW_LOCAL_HTTP")=="1",addresses);
+    string? tuningPath=Environment.GetEnvironmentVariable("KAIRNFALL_CLASSIC_TUNING");
+    var tuning=tuningPath is null?null:JsonSerializer.Deserialize<ClassicTutorialTuning>(File.ReadAllText(tuningPath),Wire.Json)??throw new InvalidDataException("Empty classic tuning.");
+    ClassicTutorialContent.Enable(loadedCatalog,tuning);
+}
+builder.Services.AddSingleton(loadedCatalog);
 builder.Services.AddSingleton<RealmHost>();
 builder.Services.AddHostedService(provider=>provider.GetRequiredService<RealmHost>());
 var app=builder.Build();

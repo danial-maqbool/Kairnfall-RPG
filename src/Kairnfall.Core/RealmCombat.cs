@@ -121,7 +121,7 @@ public sealed partial class RealmEngine
                 ApplyStatus(p.Statuses,"guard",Element.Physical,ability.Duration,0.35,p.Id); break;
             case "projectile":
                 Need(selected is not null&&selected.Health>0&&selected.Owner=="","Select a living hostile creature.");
-                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Direction=p.Facing,Shape="projectile",Skill=ability.Skill,Element=castElement,Radius=Math.Max(0.8,ability.Radius),Power=basePower,Resolves=State.Time+Math.Clamp(p.Position.Distance(aim)/12,0.1,0.8)}); break;
+                State.Telegraphs.Add(new(){Zone=p.Zone,Source=p.Id,Position=aim,Direction=p.Facing,Shape="projectile",Skill=ability.Skill,Element=castElement,Radius=Math.Max(0.8,ability.Radius),Power=basePower,Started=State.Time,Resolves=State.Time+Math.Clamp(p.Position.Distance(aim)/12,0.1,0.8)}); break;
             case "area": case "cone": case "line": case "field":
             {
                 string shape=ability.Kind=="area"?"circle":ability.Kind=="field"?"circle":ability.Kind;
@@ -345,7 +345,7 @@ public sealed partial class RealmEngine
         double power=definition.Power*EnemyCombatRules.PowerMultiplier(definition,mob)*WorldEventRules.EnemyPowerMultiplier(State,mob.Zone,State.Time);
         var facing=mob.Position.Direction(target.Position);if(facing.Distance(new(0,0))>.01)mob.Facing=facing;
         void Telegraph(string shape,Point position,double radius,double multiplier,double delay,Element? element=null)
-            =>State.Telegraphs.Add(new(){Zone=mob.Zone,Source=mob.Id,Position=position,Direction=mob.Facing,Shape=shape,Skill=attack,Element=element??definition.Element,Radius=radius,Power=power*multiplier,Resolves=State.Time+delay});
+            =>State.Telegraphs.Add(new(){Zone=mob.Zone,Source=mob.Id,Position=position,Direction=mob.Facing,Shape=shape,Skill=attack,Element=element??definition.Element,Radius=radius,Power=power*multiplier,Started=State.Time,Resolves=State.Time+delay});
         switch(attack)
         {
             case "strike": HitPlayer(target,mob,power,definition.Element); break;
@@ -385,6 +385,8 @@ public sealed partial class RealmEngine
                 if(player.Health<=0||player.Zone!=t.Zone||!Data.Skills.Any(skill=>skill.Id==t.Skill)) continue;
                 if(t.Shape=="projectile"&&t.Target!="")
                 {
+                    // Targeted basic projectiles resolve exactly once against the
+                    // server-selected creature. Presentation never owns damage.
                     if(State.Creatures.TryGetValue(t.Target,out var target)&&target.Health>0&&target.Owner==""&&target.Zone==t.Zone
                         &&InTelegraph(t,target.Position)&&t.Origin.Finite&&WorldMap.LineOfSight(Data.Zone(t.Zone),t.Origin,target.Position))
                         HitCreature(player,target,t.Power,t.Element,t.Skill);

@@ -19,7 +19,14 @@ public sealed partial class RealmEngine
     private long lastEventCycle=-1;
     public RealmEngine(Catalog data,RealmState? state=null)
     {
-        Data=data; State=state??new();
+        Data=data; State=state??new(){ClassicTutorialEnabled=data.ClassicTutorial is not null};
+        if(State.ClassicTutorialEnabled != (data.ClassicTutorial is not null))
+            throw new InvalidDataException("World mode mismatch. Classic tutorial is opt-in for a separate new world; retained worlds are not converted.");
+        foreach(var player in State.Characters.Values)
+            if((player.ClassicTutorial is not null)!=State.ClassicTutorialEnabled
+                || player.ClassicTutorial is { } classic && (!double.IsFinite(classic.Food) || classic.Food is <0 or >100
+                    || classic.Completed.Any(x=>!ClassicTutorialContent.Milestones.Contains(x)) || classic.NoticeId<0))
+                throw new InvalidDataException("Invalid persisted classic tutorial progress.");
         if(State.Schema!=1) throw new InvalidDataException("Unsupported realm schema.");
         if(state is not null) RecoverLegacyRoadPositions();
         SeedWorld();
@@ -95,7 +102,7 @@ public sealed partial class RealmEngine
     }
     public Character CreateCharacter(string account,string name,string classId,Appearance appearance)
     {
-        Need(Regex.IsMatch((name??"").Trim(),@"\A[A-Za-z][A-Za-z0-9_ ]{2,19}\z"),"Use 3–20 letters, digits, spaces, or underscores. Start with a letter.");
+        Need(Regex.IsMatch((name??"").Trim(),@"\A[A-Za-z][A-Za-z0-9_ ]{2,19}\z"),"Use 3-20 letters, digits, spaces, or underscores. Start with a letter.");
         name=name!.Trim();
         Need(!new[]{"admin","moderator","system","gamemaster"}.Contains(name.ToLowerInvariant()),"That name is reserved.");
         Need(State.Characters.Values.Count(x=>x.Account==account)<4,"This account already has four characters.");
@@ -107,12 +114,18 @@ public sealed partial class RealmEngine
         var weapon=Items.Create(Data,cls.Weapon); weapon.Sockets=1;
         Items.Add(p.Inventory,weapon,Data); p.Equipment["weapon"]=weapon.Id;
         var armor=Items.Create(Data,cls.Armor); Items.Add(p.Inventory,armor,Data); p.Equipment[Data.Item(cls.Armor).Slot]=armor.Id;
-        foreach(var id in new[]{"copper_pickaxe","woodcutters_axe","field_rod","sickle","shovel","skinning_knife","crafting_hammer","lockpick"}) Items.Add(p.Inventory,Items.Create(Data,id),Data);
+        if(!State.ClassicTutorialEnabled) foreach(var id in new[]{"copper_pickaxe","woodcutters_axe","field_rod","sickle","shovel","skinning_knife","crafting_hammer","lockpick"}) Items.Add(p.Inventory,Items.Create(Data,id),Data);
         Items.Add(p.Inventory,Items.Create(Data,"healing_potion",5),Data);
-        Items.Add(p.Inventory,Items.Create(Data,"wheat_seed",3),Data);
-        Items.Add(p.Inventory,Items.Create(Data,"rune_embers_1"),Data);
+        if(!State.ClassicTutorialEnabled)
+        {
+            Items.Add(p.Inventory,Items.Create(Data,"wheat_seed",3),Data);
+            Items.Add(p.Inventory,Items.Create(Data,"rune_embers_1"),Data);
+        }
+        InitializeClassicTutorial(p);
         var stats=CombatMath.Stats(p,Data); p.Health=stats.Health; p.Mana=stats.Mana; p.Stamina=stats.Stamina;
-        p.Discoveries.Add(p.Zone); p.Discoveries.Add(NewPlayerJourney.EligibleKey); p.Discoveries.Add(OpeningJourney.EligibleKey); State.Characters.Add(p.Id,p); EconomicDirty=true;
+        p.Discoveries.Add(p.Zone);
+        if(!State.ClassicTutorialEnabled){p.Discoveries.Add(NewPlayerJourney.EligibleKey);p.Discoveries.Add(OpeningJourney.EligibleKey);}
+        State.Characters.Add(p.Id,p); EconomicDirty=true;
         return p;
     }
     public CommandResult Execute(string character,GameCommand command)
@@ -130,7 +143,9 @@ public sealed partial class RealmEngine
             if(Math.Abs(command.X)>1||Math.Abs(command.Y)>1) return Result(false,"Invalid movement direction.");
             var dir=new Point(command.X,command.Y); double length=Math.Sqrt(dir.X*dir.X+dir.Y*dir.Y);
             if(length>1) dir=dir.Scale(1/length);
-            inputs[p.Id]=(dir,State.Time+0.35);
+            if(command.Arg==GridMovementRules.Cancel) { inputs.Remove(p.Id); gridInputs.Remove(p.Id); }
+            else if(command.Arg is GridMovementRules.Intent or GridMovementRules.Step) SetGridMovement(p,dir,command.Arg==GridMovementRules.Step);
+            else { gridInputs.Remove(p.Id); inputs[p.Id]=(dir,State.Time+0.35); }
             return Result(true,"");
         }
         var prior=p.Receipts.FirstOrDefault(x=>x.RequestId==command.RequestId);
@@ -142,6 +157,7 @@ public sealed partial class RealmEngine
         {
             if(command.Kind!="respawn") Alive(p);
             string message=Dispatch(p,command);
+            if(command.Kind is "dash" or "travel" or "recall" or "respawn") gridInputs.Remove(p.Id);
             FirstHourExperience.ObserveCommand(p,command);
             NewPlayerJourney.Observe(Data,backup.Characters[p.Id],p,command);
             OpeningJourney.ObserveCommand(Data,p,command);
@@ -173,11 +189,13 @@ public sealed partial class RealmEngine
     {
         switch(c.Kind)
         {
+            case "classic_interact": return InteractClassicTutorial(p,c.Target);
             case "guide_ack": return AcknowledgeGuidance(p,c);
             case "dash": return Dash(p,c);
             case "equip": Items.Equip(p,c.Item,Data); Progress(p,"equip",Data.Item(Items.Owned(p,c.Item).Template).Type); return "Equipment changed.";
             case "unequip": Items.Unequip(p,c.Arg,Data); return "Item unequipped.";
             case "split": return SplitStack(p,c.Item,c.Amount);
+            case "drop": return DropItem(p,c.Item,c.Amount);
             case "gather": return Gather(p,c.Target);
             case "attack": return Attack(p,c.Target);
             case "cast": return Cast(p,c.Item,c.Target,new(c.X,c.Y));
@@ -257,8 +275,15 @@ public sealed partial class RealmEngine
         State.Time+=dt;
         foreach(var id in Active.ToList())
         {
-            if(!State.Characters.TryGetValue(id,out var p)||p.Health<=0) continue;
+            if(!State.Characters.TryGetValue(id,out var p)||p.Health<=0) { gridInputs.Remove(id); continue; }
             var stats=CombatMath.Stats(p,Data); var zone=Data.Zone(p.Zone);
+            if(gridInputs.ContainsKey(id))
+            {
+                double slow=Math.Clamp(1-CombatMath.StatusPower(p.Statuses,"chill",State.Time),0.25,1);
+                if(CombatMath.StatusPower(p.Statuses,"root",State.Time)>0||CombatMath.StatusPower(p.Statuses,"stun",State.Time)>0) slow=0;
+                TickGridMovement(p,zone,stats.MoveSpeed*slow*WorldEventRules.MovementMultiplier(State,p.Zone,State.Time),dt);
+                zone=Data.Zone(p.Zone);
+            }
             if(inputs.TryGetValue(id,out var input)&&input.Until>=State.Time)
             {
                 var direction=input.Direction;
@@ -275,6 +300,7 @@ public sealed partial class RealmEngine
                     zone=Data.Zone(p.Zone);
                 }
             }
+            TickClassicTutorial(p,dt);
             p.Stamina=Math.Min(stats.Stamina,p.Stamina+dt*(8+Progression.Level(p,"endurance")*0.08+WorldEventRules.StaminaRegenBonus(State,p.Zone,State.Time)));
             double manaRegen=2+Progression.Level(p,"meditation")*0.04+WorldEventRules.ManaRegenBonus(State,p.Zone,State.Time);
             if(p.Statuses.Any(x=>x.Kind=="meditate"&&x.Until>State.Time)) manaRegen*=4;
@@ -339,7 +365,7 @@ public sealed partial class RealmEngine
     }
     public void Disconnect(string id)
     {
-        Active.Remove(id); inputs.Remove(id); playerTargets.Remove(id); transitionReady.Remove(id); presentationCues.Remove(id);
+        Active.Remove(id); inputs.Remove(id); gridInputs.Remove(id); playerTargets.Remove(id); transitionReady.Remove(id); presentationCues.Remove(id);
         if(State.Characters.TryGetValue(id,out var player)) ClearLfg(player);
         foreach(var t in State.Trades.Values.Where(x=>x.A.Character==id||x.B.Character==id).ToList()) State.Trades.Remove(t.Id);
         EconomicDirty=true;
@@ -348,6 +374,7 @@ public sealed partial class RealmEngine
     {
         foreach(var zone in Data.Zones)
         {
+            if(zone.Id==ClassicTutorialContent.ZoneId)continue;
             int n=0;
             foreach(var species in zone.Species)
             {
@@ -378,7 +405,7 @@ public sealed partial class RealmEngine
                 State.Chests[id]=new(){Id=id,Zone=zone.Id,Position=p,Kind=i==0?"weathered":i==1?"locked":zone.Layer=="Surface"?"runic":"ancient",Requirement=Math.Clamp(zone.Level,1,100),Hidden=i==2};
             }
         }
-        SeedHuntingWorld();
+        SeedHuntingWorld(); SeedClassicTutorial();
         if(State.NextRestock==0) Restock();
     }
     private void Restock()
@@ -400,6 +427,7 @@ public sealed partial class RealmEngine
     private void Progress(Character p,string action,string target,int amount=1)
     {
         if(amount<1) return;
+        ObserveClassicTutorial(p,action,target);
         OpeningJourney.ObserveActivity(p,action,target,amount);
         if(action=="kill"&&Data.Mobs.FirstOrDefault(x=>x.Id==target)?.Elite==true) FirstHourExperience.Mark(p,"miniboss");
         AdvanceGuildProject(p,action,amount);

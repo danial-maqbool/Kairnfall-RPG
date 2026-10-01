@@ -4,6 +4,7 @@ namespace Kairnfall.Core;
 
 public sealed class Catalog
 {
+    public ClassicTutorialTuning? ClassicTutorial { get; set; }
     public List<SkillDef> Skills { get; set; } = [];
     public List<ClassDef> Classes { get; set; } = [];
     public List<ItemDef> Items { get; set; } = [];
@@ -35,6 +36,22 @@ public sealed class Catalog
     public List<string> Validate()
     {
         var errors=new List<string>();
+        bool Missing<T>(IEnumerable<T>? values)=>values is null||values.Any(value=>value is null);
+        if(Missing(Skills)||Missing(Classes)||Missing(Items)||Missing(EquipmentTiers)||Missing(Abilities)
+            ||Missing(Recipes)||Missing(Zones)||Missing(Mobs)||Missing(Resources)||Missing(Npcs)||Missing(Quests))
+        {
+            errors.Add("Catalog contains a missing collection or null definition.");return errors;
+        }
+        if(Items.Any(x=>x.Id is null||x.Tags is null||x.Stats is null)
+            ||Classes.Any(x=>x.Stats is null||x.Affinity is null||x.Abilities is null)
+            ||EquipmentTiers.Any(x=>x.Entries is null||x.Entries.Any(entry=>entry.Value is null))
+            ||Recipes.Any(x=>x.Ingredients is null)||Mobs.Any(x=>x.Drops is null)
+            ||Npcs.Any(x=>x.Stock is null)||Quests.Any(x=>Missing(x.Objectives))
+            ||Zones.Any(x=>Missing(x.Furnishings)||Missing(x.Buildings)||Missing(x.Exits)||x.Species is null))
+        {
+            errors.Add("Catalog contains missing nested definitions or collections.");return errors;
+        }
+        ClassicTutorialContent.ValidateCatalog(this,errors);
         void Unique(IEnumerable<string> ids,string group)
         {
             var seen=new HashSet<string>();

@@ -26,6 +26,7 @@ public sealed partial class RealmEngine
         }
         foreach(var zone in Data.Zones)
         {
+            if(zone.Id==ClassicTutorialContent.ZoneId)continue;
             var plan=HuntingGrounds.For(Data,zone); huntPlans[zone.Id]=plan;
             foreach(var spawn in plan.Spawns)
             {

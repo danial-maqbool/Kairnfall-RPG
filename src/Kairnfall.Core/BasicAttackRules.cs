@@ -11,6 +11,15 @@ public static class BasicAttackRules
     // Six tiles sits inside the authored 5-8 tile caster/support spell band;
     // dedicated 8-tile projectiles still outrange this ordinary basic attack.
     public const double CasterRange = 6.0;
+    // Older optional local controls use these range/delivery names. Keep them
+    // delegated to the authoritative profile rather than duplicating its rules.
+    public const double CasterBasicRange = CasterRange;
+
+    public static bool UsesClassRangedBasic(string classId)
+        => classId is "arcanist" or "templar";
+
+    public static BasicAttackProfile For(Character player, ItemDef? weapon)
+        => Profile(player, weapon, weapon?.Element ?? Element.Physical);
 
     public static BasicAttackProfile Profile(Character player, ItemDef? weapon, Element damageElement)
     {

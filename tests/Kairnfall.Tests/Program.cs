@@ -37,14 +37,40 @@ Creature RangedTarget(RealmEngine r,Character p,string id,double distance)
     target.Home=target.Position; target.Statuses.Add(new(){Kind="root",Until=1000,Power=1,Source=p.Id});
     r.State.Creatures[id]=target; return target;
 }
+Creature PlaceCombatTarget(RealmEngine r,Character p,double distance)
+{
+    var zone=data.Zone(p.Zone);
+    var mob=r.State.Creatures.Values.First(x=>x.Zone==p.Zone&&x.Owner==""&&x.Health>0);
+    var definition=data.Mob(mob.Template);
+    mob.Health=definition.Health; mob.Target=""; mob.Threat.Clear(); mob.Statuses.Clear();
+    mob.Statuses.Add(new(){Kind="root",Until=r.State.Time+30,Power=1,Source=p.Id});
+    for(int i=0;i<72;i++)
+    {
+        double angle=i*Math.PI/36;
+        var candidate=new Point(mob.Position.X+Math.Cos(angle)*distance,mob.Position.Y+Math.Sin(angle)*distance);
+        if(WorldMap.Fits(zone,candidate)&&WorldMap.LineOfSight(zone,candidate,mob.Position))
+        {
+            p.Position=candidate; p.Zone=mob.Zone; return mob;
+        }
+    }
+    throw new Exception($"No clear {distance:0.0}-tile combat fixture lane in {p.Zone}.");
+}
+void ResolveQueuedProjectile(RealmEngine r,Telegraph projectile)
+{
+    for(int i=0;i<20&&r.State.Telegraphs.Any(x=>x.Id==projectile.Id);i++) r.Tick(.05);
+}
 
 CreatureMotionCases.Run(Test,data);
+GridMovementCases.Run(Test,data);
+ItemDropCases.Run(Test,data);
 ChestLootCases.Run(Test,data);
 CorpseLifecycleCases.Run(Test,data);
 CreatureRespawnCases.Run(Test,data);
 WildlifeHostilityCases.Run(Test,data);
 FirstLootGuidanceCases.Run(Test,data);
 RareRespawnPersistenceCases.Run(Test,data);
+ClassicTutorialCatalogCases.Run(Test,data);
+ClassicTutorialMilestoneCases.Run(Test,data);
 Test("Catalog references and world graph",()=>Check(data.Validate().Count==0,"Catalog validation failed."));
 Test("Required content counts",()=>
 {
@@ -347,6 +373,78 @@ Test("Basic combat can kill, award skills, and create owned loot",()=>
     var r=NewRealm(); var p=NewPlayer(r); var mob=r.State.Creatures.Values.First(x=>x.Zone==p.Zone); p.Position=mob.Position; mob.Health=1;
     var result=Send(r,p,"attack",mob.Id); Check(result.Ok,result.Message);
     Check(mob.Health==0&&r.Loot.Values.Any(x=>x.Owner==p.Id)&&p.SkillXp["slayer"]>0,"Combat reward chain failed.");
+});
+Test("Arcanist and Templar basic attacks are authoritative ranged projectiles",()=>
+{
+    foreach(string classId in new[]{"arcanist","templar"})
+    {
+        var r=NewRealm(); var p=NewPlayer(r,"Ranged "+classId,classId);
+        var weapon=DataWeapon(p);
+        var profile=BasicAttackRules.Profile(p,weapon,Element.Physical);
+        Check(Math.Abs(profile.Range-BasicAttackRules.CasterRange)<.000001&&profile.Projectile,
+            classId+" basic profile is not the shared ranged projectile profile.");
+
+        var mob=PlaceCombatTarget(r,p,5.2);
+        double before=mob.Health;
+        var first=Send(r,p,"attack",mob.Id);
+        Check(first.Ok,classId+" ranged basic was rejected: "+first.Message);
+        var projectile=r.State.Telegraphs.Single(x=>x.Source==p.Id&&x.Target==mob.Id&&x.Shape=="projectile");
+        Check(mob.Health==before,"Ranged basic applied client/immediate damage before the server projectile resolved.");
+        Check(projectile.Started==r.State.Time&&projectile.Resolves>projectile.Started,
+            "Ranged basic projectile timing is not authoritative.");
+        Check(!Send(r,p,"attack",mob.Id).Ok,"Ranged basic bypassed the existing attack cooldown.");
+        // Rejected actions restore a copied state; observe the authoritative instance.
+        mob=r.State.Creatures[mob.Id];
+        ResolveQueuedProjectile(r,projectile);
+        Check(mob.Health<before,"Authoritative ranged projectile did not resolve damage.");
+        double after=mob.Health; r.Tick(.05); r.Tick(.05);
+        Check(Math.Abs(mob.Health-after)<.000001,"Projectile presentation/resolution duplicated basic-attack damage.");
+    }
+
+    ItemDef? DataWeapon(Character player)
+    {
+        if(!player.Equipment.TryGetValue("weapon",out var id)) return null;
+        return data.Item(Items.Owned(player,id).Template);
+    }
+});
+Test("Ranged basic limits preserve invalid-target and melee validation",()=>
+{
+    var r=NewRealm(); var caster=NewPlayer(r,"Ranged Limits","arcanist");
+    var beyond=PlaceCombatTarget(r,caster,BasicAttackRules.CasterRange+.35);
+    Check(!Send(r,caster,"attack",beyond.Id).Ok,"Caster basic hit beyond its ranged maximum.");
+
+    caster=r.Player(caster.Id);
+    caster.Cooldowns.Clear();
+    var dead=PlaceCombatTarget(r,caster,5.2); dead.Health=0;
+    Check(!Send(r,caster,"attack",dead.Id).Ok,"Caster basic accepted a dead target.");
+
+    caster=r.Player(caster.Id); dead=r.State.Creatures[dead.Id];
+    dead.Health=data.Mob(dead.Template).Health; dead.Zone=data.Zones.First(x=>x.Id!=caster.Zone).Id;
+    caster.Cooldowns.Clear();
+    Check(!Send(r,caster,"attack",dead.Id).Ok,"Caster basic accepted a cross-zone target.");
+
+    var meleeRealm=NewRealm(); var melee=NewPlayer(meleeRealm,"Melee Limits","vanguard");
+    var meleeWeapon=data.Item(Items.Owned(melee,melee.Equipment["weapon"]).Template);
+    var meleeProfile=BasicAttackRules.Profile(melee,meleeWeapon,Element.Physical);
+    Check(!meleeProfile.Projectile&&Math.Abs(meleeProfile.Range-meleeWeapon.Range)<.000001,
+        "Melee class basic profile was converted to ranged.");
+    var farMelee=PlaceCombatTarget(meleeRealm,melee,5.2);
+    Check(!Send(meleeRealm,melee,"attack",farMelee.Id).Ok,"Melee class attacked from caster basic range.");
+});
+Test("Arcanist special projectile remains distinct from the basic attack",()=>
+{
+    var r=NewRealm(); var p=NewPlayer(r,"Special Projectile","arcanist");
+    var ability=data.Abilities.First(x=>x.Class=="arcanist"&&x.Kind=="projectile"&&x.Range>BasicAttackRules.CasterRange);
+    p.SkillXp[ability.Skill]=Progression.Threshold(ability.Requirement);
+    p.Mana=1000; p.Stamina=1000;
+    double distance=Math.Min(ability.Range-.25,BasicAttackRules.CasterRange+.75);
+    var mob=PlaceCombatTarget(r,p,distance);
+    Check(!Send(r,p,"attack",mob.Id).Ok,"Basic attack incorrectly inherited the special projectile's longer range.");
+    p.Cooldowns.Clear();
+    var cast=Send(r,p,"cast",mob.Id,ability.Id);
+    Check(cast.Ok,"Existing special projectile stopped working: "+cast.Message);
+    Check(r.State.Telegraphs.Any(x=>x.Source==p.Id&&x.Skill==ability.Skill&&x.Shape=="projectile"&&x.Target==""),
+        "Special projectile was collapsed into the targeted basic-attack delivery path.");
 });
 Test("Simulation survives ten seconds of active creature behavior",()=>
 {
