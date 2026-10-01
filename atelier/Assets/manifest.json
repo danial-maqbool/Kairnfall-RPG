@@ -2300,7 +2300,7 @@
       "width": 224,
       "height": 224,
       "animated": false,
-      "sha256": "bacb112036ee0c96ad948c3af21f5279c1f59f49f7ddec8563848d7347aaee36"
+      "sha256": "4fa920cdef7aba531bf0014f3a51b758f94141af6a710c5649291d4483053d6f"
     },
     {
       "key": "buildings/wayfarers_rest/starter_building_1",
@@ -2308,7 +2308,7 @@
       "width": 224,
       "height": 224,
       "animated": false,
-      "sha256": "bacb112036ee0c96ad948c3af21f5279c1f59f49f7ddec8563848d7347aaee36"
+      "sha256": "7d470d86485af63db50a027e02d023f4827d6bc5910c11a85a137b3eec4aff32"
     },
     {
       "key": "buildings/wayfarers_rest/starter_building_2",
@@ -2316,7 +2316,7 @@
       "width": 224,
       "height": 224,
       "animated": false,
-      "sha256": "bacb112036ee0c96ad948c3af21f5279c1f59f49f7ddec8563848d7347aaee36"
+      "sha256": "2a709c10cf93d25e9646bd9823897fa8c5e7388caccb254784a031cf819ac775"
     },
     {
       "key": "buildings/wayfarers_rest/starter_building_3",
@@ -2324,7 +2324,7 @@
       "width": 224,
       "height": 224,
       "animated": false,
-      "sha256": "bacb112036ee0c96ad948c3af21f5279c1f59f49f7ddec8563848d7347aaee36"
+      "sha256": "fde0a96df3e9d50eb7d7785e248bb152c3c677e96443d1e47bb9230ff70367c2"
     },
     {
       "key": "buildings/westfarms/westfarms_camp",
@@ -14988,7 +14988,7 @@
       "width": 32,
       "height": 32,
       "animated": false,
-      "sha256": "5bf9bd4c0238840d73e7716d60123c19c3e70504e7dd752b2a1f038805522e4c"
+      "sha256": "f0d6ab0c1b180b309b997302e61bb0fb7bd50ff15b890ce5326a232cb2e975a8"
     },
     {
       "key": "items/rune_bulwark_2",
@@ -15036,7 +15036,7 @@
       "width": 32,
       "height": 32,
       "animated": false,
-      "sha256": "fee3842c94b13bfef07b96085804d47660097c4940cc9f673c3d8443900b6095"
+      "sha256": "3ffb0b76b6e508d597e1e2ff326c7335eb8759e78919ec49e4aabf2ebc54482b"
     },
     {
       "key": "items/rune_echoes_2",
@@ -15076,7 +15076,7 @@
       "width": 32,
       "height": 32,
       "animated": false,
-      "sha256": "b302c762280c5d3eb8aa87d2a937836f935440bb06ecf724feaec4f60a79f476"
+      "sha256": "ed165e69bc4ba5bde16d86147429da2b6cb18e1f878734bfe26ce0db4dd5f5e5"
     },
     {
       "key": "items/rune_embers_2",
@@ -15116,7 +15116,7 @@
       "width": 32,
       "height": 32,
       "animated": false,
-      "sha256": "2e5a2815f11a26a982181d013395769bc79edefb2dfa476e7211a2d9a4ddc345"
+      "sha256": "e7241854d220776877e1a466f3dfa1997143cda6cbfc9081e1dfee120d86341c"
     },
     {
       "key": "items/rune_leeching_2",
@@ -15156,7 +15156,7 @@
       "width": 32,
       "height": 32,
       "animated": false,
-      "sha256": "265b4e9b7b264cde226f03516f3ab0eac0025b1c24ddf640da600f5be114ea69"
+      "sha256": "cc9e797f3ffead264438d4f5e5cb5c8060c9e84c6c3b3ad5a7293e507100523e"
     },
     {
       "key": "items/rune_precision_2",

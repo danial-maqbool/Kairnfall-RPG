@@ -172,13 +172,14 @@ class ImprovementEvidenceTests(unittest.TestCase):
         for path in ('../src/a.cs', '/src/a.cs', 'C:/src/a.cs', 'src\\a.cs', 'src//a.cs',
                      './src/a.cs', 'src/./a.cs', 'src/../a.cs', 'client/.godot/a.dll',
                      'src/bin/a.dll', 'src/.env', 'docs/backups/a.sql', 'saves/owner.json',
+                     'atelier/backups/old.png', 'atelier/credentials/token.json',
                      'src/newline\nfile.cs', 'src/nul\0file.cs',
                      'artifacts/result.json', '.github/workflows/acceptance-dispatch.yml',
                      'production/server.yml', 'unknown/file.txt'):
             with self.subTest(path=path), self.assertRaises(RuntimeError):
                 contract.validate_path(path)
         for path in ('client/Scripts/GameRoot.cs', 'src/Kairnfall.Server/Program.cs',
-                     'content_src/opening_journey.py', 'art/original.png',
+                     'content_src/opening_journey.py', 'art/original.png', 'atelier/forge/lands.py',
                      'docs/handoff/IMPROVEMENT_VERIFICATION.md', 'HANDOFF.md'):
             contract.validate_path(path)
         for paths in ([], ['src/a.cs', 'src/a.cs'], ['tools/a.py', 'src/a.cs']):

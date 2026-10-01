@@ -882,11 +882,127 @@ STYLE_LOOK = {
 }
 
 
+OPENING_FACADE_ROLES = {
+    'starter_building_0': 'inn',
+    'starter_building_1': 'forge',
+    'starter_building_2': 'shop',
+    'starter_building_3': 'workshop',
+}
+
+OPENING_FACADE_LOOKS = {
+    'inn': dict(wall='#b9a684', roof='#8a5a45'),
+    'forge': dict(wall='#a49e92', roof='#62665f'),
+    'shop': dict(wall='#c3b598', roof='#65765c'),
+    'workshop': dict(wall='#b29776', roof='#785643'),
+}
+
+
+def opening_door_box(size):
+    """The existing opening door, frame and ground anchor stay pixel-identical."""
+    width, height = size
+    return (width // 2 - 19, height - 55, width // 2 + 20, height)
+
+
+def _opening_facade(image, baseline, role):
+    """Readable trade details inside the established common house silhouette."""
+    sketch = Sketch(image.size)
+    sketch.overlay(image)
+    width, height = image.size
+    cx, base = width / 2, height - 4
+    roof_base = min(height * .46, 2.05 * TILE)
+    window_y = roof_base - 4 + (base - roof_base + 4) * .34
+    slots = max(1, int((width - 60) // 44))
+    window_x = [22 + index * ((width - 44) / slots) + 10 for index in range(slots)]
+    window_x = [x for x in window_x if abs(x - cx) >= 26]
+
+    if role == 'shop':
+        # Small fabric shades sit above the glass; the door remains unobstructed.
+        cloth = sketch.piece(ramp('#617b70'))
+        for x in window_x:
+            cloth.rect((x - 18, window_y - 21, x + 18, window_y - 14), 3)
+            for offset in range(-14, 16, 8):
+                cloth.rect((x + offset, window_y - 20, x + offset + 3, window_y - 14), '#d4c5a1')
+        sketch.stamp(cloth, rim=.8, occlude=.5)
+    elif role == 'forge':
+        # Stone courses reinforce the lower timber bays without widening them.
+        stone = sketch.piece(ramp('#8e8a7e'))
+        for left, right in ((10, cx - 28), (cx + 28, width - 11)):
+            stone.rect((left, base - 31, right, base - 5), 3)
+            for row in range(3):
+                y = base - 29 + row * 9
+                stone.line([(left, y), (right, y)], 1, 1)
+                for x in range(round(left + (12 if row % 2 else 0)), round(right), 24):
+                    stone.line([(x, y), (x, y + 8)], 1, 1)
+        sketch.stamp(stone, rim=.75, occlude=.55)
+
+    # A suspended board and a large physical symbol identify the service at
+    # native scale, even when its name is outside the label distance.
+    top = base - 86
+    hooks = sketch.piece(ramp('#686764'))
+    hooks.line([(cx - 16, top - 7), (cx - 16, top + 2)], 2, 2)
+    hooks.line([(cx + 16, top - 7), (cx + 16, top + 2)], 2, 2)
+    sketch.stamp(hooks, rim=.7, occlude=.5)
+    board = sketch.piece(ramp('#654c36'))
+    board.rect((cx - 25, top, cx + 25, top + 27), 3)
+    board.line([(cx - 21, top + 4), (cx + 21, top + 4)], 4, 1)
+    sketch.stamp(board, rim=.85, occlude=.65)
+    symbol = sketch.piece(ramp('#d2bd89'))
+    cy = top + 15
+    if role == 'inn':
+        # Mug: open rim, bowl, handle and a stable flat base.
+        symbol.rect((cx - 8, cy - 6, cx + 2, cy + 7), 3)
+        symbol.line([(cx - 8, cy - 6), (cx + 2, cy - 6)], 5, 2)
+        symbol.line([(cx + 3, cy - 4), (cx + 8, cy - 4), (cx + 8, cy + 3), (cx + 3, cy + 3)], 3, 2)
+        symbol.line([(cx - 6, cy - 3), (cx - 6, cy + 4)], 5, 2)
+    elif role == 'forge':
+        # Anvil: horn, face, waist and foot, rather than a generic cross.
+        symbol.poly([(cx - 12, cy - 6), (cx + 10, cy - 6), (cx + 10, cy - 2),
+                     (cx + 4, cy), (cx + 3, cy + 5), (cx + 9, cy + 7),
+                     (cx + 9, cy + 9), (cx - 7, cy + 9), (cx - 7, cy + 7),
+                     (cx - 2, cy + 5), (cx - 3, cy), (cx - 9, cy - 2)], 3)
+        symbol.line([(cx - 9, cy - 5), (cx + 8, cy - 5)], 5, 2)
+    elif role == 'shop':
+        # A tied grain sack beside a corked jar reads as everyday goods.
+        symbol.poly([(cx - 11, cy - 3), (cx - 8, cy - 6), (cx - 4, cy - 6),
+                     (cx - 2, cy - 2), (cx, cy + 7), (cx - 11, cy + 7)], 3)
+        symbol.line([(cx - 9, cy - 3), (cx - 3, cy - 3)], 1, 2)
+        symbol.rect((cx + 5, cy - 6, cx + 9, cy - 3), 4)
+        symbol.poly([(cx + 4, cy - 2), (cx + 10, cy - 2), (cx + 12, cy + 6), (cx + 2, cy + 6)], 3)
+        symbol.line([(cx + 5, cy), (cx + 5, cy + 4)], 5, 1)
+    else:
+        # A rim, hub and four spokes give Mara's workshop a wheelwright mark.
+        symbol.ellipse((cx - 9, cy - 9, cx + 9, cy + 9), 2)
+        symbol.disc(cx, cy, 6, '#654c36')
+        symbol.line([(cx - 7, cy), (cx + 7, cy)], 4, 2)
+        symbol.line([(cx, cy - 7), (cx, cy + 7)], 4, 2)
+        symbol.disc(cx, cy, 2, 5)
+    sketch.stamp(symbol, outline=False, rim=.7, occlude=.4)
+    output = sketch.result()
+    output.putalpha(baseline.getchannel('A'))
+    door_box = opening_door_box(image.size)
+    output.paste(baseline.crop(door_box), door_box[:2])
+    return output
+
+
 def building(zone, definition):
+    role = OPENING_FACADE_ROLES.get(definition.get('id')) if zone.get('id') == 'wayfarers_rest' else None
+    if role is None:
+        return _building_shell(zone, definition)
+    # These four shipped houses share the cottage shell. Changing their role
+    # must not move a chimney, doorway, roof edge or the sprite's ground anchor.
+    shell = dict(definition, style='cottage', station=None)
+    baseline = _building_shell(zone, shell)
+    image = _building_shell(zone, shell, OPENING_FACADE_LOOKS[role])
+    return _opening_facade(image, baseline, role)
+
+
+def _building_shell(zone, definition, look_override=None):
     width = int(definition.get('width', 5)) * TILE
     height = (int(definition.get('height', 4)) + 2) * TILE
     style = definition.get('style', 'cottage')
     look = STYLE_LOOK.get(style, STYLE_LOOK['cottage'])
+    if look_override is not None:
+        look = dict(look, **look_override)
     r = _rng(zone.get('id', 'zone'), definition.get('id', 'building'))
     sketch = Sketch((width, height))
     wall_tone = ramp(look['wall'])

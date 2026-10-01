@@ -1561,6 +1561,34 @@ def _gem_icon(item):
     return sketch.result()
 
 
+OPENING_RUNE_GLYPHS = frozenset({
+    'rune_bulwark_1', 'rune_echoes_1', 'rune_embers_1',
+    'rune_leeching_1', 'rune_precision_1',
+})
+
+
+def _opening_rune_glyph(mark, ident):
+    """Five early runes carry deliberate two-pixel engravings, not ID noise."""
+    if ident == 'rune_bulwark_1':
+        mark.line([(11, 10), (21, 10), (20, 18), (16, 23), (12, 18), (11, 10)], 5, 2)
+        mark.line([(16, 12), (16, 19)], 4, 2)
+    elif ident == 'rune_echoes_1':
+        mark.arc((10, 9, 23, 23), 285, 75, 5, 2)
+        mark.arc((12, 12, 20, 20), 285, 75, 4, 2)
+        mark.disc(12, 16, 1, 5)
+    elif ident == 'rune_embers_1':
+        mark.poly([(12, 23), (10, 18), (13, 11), (16, 16), (19, 9),
+                   (22, 17), (20, 23), (16, 25)], 4)
+        mark.poly([(14, 22), (15, 17), (18, 19), (19, 16), (19, 22), (16, 24)], 5)
+    elif ident == 'rune_leeching_1':
+        mark.line([(20, 10), (14, 10), (11, 14), (11, 19), (14, 22), (19, 22), (21, 18)], 5, 2)
+        mark.line([(21, 18), (18, 18)], 4, 2)
+        mark.poly([(17, 12), (15, 16), (17, 18), (19, 16)], 5)
+    else:
+        mark.line([(16, 9), (22, 16), (16, 23), (10, 16), (16, 9)], 5, 2)
+        mark.rect((15, 15, 17, 17), 4)
+
+
 def _rune_icon(item):
     stone = ramp('#7b6f96')
     glyph = pigment.element_ramp(item.get('element', 'Arcane'))
@@ -1574,16 +1602,21 @@ def _rune_icon(item):
     grain.clip(piece)
     sketch.overlay(grain)
     mark = sketch.piece(glyph)
-    seed = pigment.keyed(item.get('id', 'rune'))
+    ident = item.get('id', 'rune')
+    seed = pigment.keyed(ident)
     strokes = [
         [(13, 10), (19, 10)], [(16, 9), (16, 23)], [(12, 15), (20, 13)],
         [(13, 22), (19, 19)], [(12, 12), (19, 21)], [(20, 12), (13, 20)],
         [(13, 12), (13, 21)], [(19, 11), (19, 22)],
     ]
-    for index, stroke in enumerate(strokes):
-        if (seed >> index) & 1:
-            mark.line(stroke, 4, 1)
-    mark.line([(16, 9), (16, 23)], 4, 1)
+    if ident in OPENING_RUNE_GLYPHS:
+        _opening_rune_glyph(mark, ident)
+        mark.clip(piece)
+    else:
+        for index, stroke in enumerate(strokes):
+            if (seed >> index) & 1:
+                mark.line(stroke, 4, 1)
+        mark.line([(16, 9), (16, 23)], 4, 1)
     sketch.stamp(mark, outline=False, rim=0, occlude=0)
     sketch.glow(pigment.ELEMENTS.get(item.get('element', 'Arcane'), '#a98fd0'), 2, 0.4)
     return sketch.result()

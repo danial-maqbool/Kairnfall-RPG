@@ -60,7 +60,7 @@ NATIVE_JOBS = {
     'Client performance and motion diagnostics': {
         'diagnostics (ubuntu-latest, linux)', 'diagnostics (windows-latest, windows)'},
 }
-ALLOWED_SCOPES = ('client/', 'src/', 'tests/', 'tools/', 'content_src/', 'content/', 'art/', 'docs/')
+ALLOWED_SCOPES = ('client/', 'src/', 'tests/', 'tools/', 'content_src/', 'content/', 'art/', 'atelier/', 'docs/')
 ALLOWED_ROOT_FILES = frozenset({
     'HANDOFF.md', 'README.md', 'AGENTS.md', '.gitignore', '.env.example',
     'Directory.Build.props', 'Directory.Packages.props', 'global.json',
