@@ -17,6 +17,73 @@ public partial class CharacterPresentationContract : Node
     private async Task Frame() => await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     private static (int State, int Direction, int Frame, Point Position) Pose(WorldView world, string id, Point at)
         => ((int, int, int, Point))typeof(WorldView).GetMethod("Pose", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(world, [id, at])!;
+    private static Point SnapshotVelocity(WorldView world, string id)
+    {
+        var tracks = (System.Collections.IDictionary)typeof(WorldView).GetField("tracks", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(world)!;
+        var track = tracks[id]!;
+        return (Point)track.GetType().GetField("SnapshotVelocity")!.GetValue(track)!;
+    }
+    private void CheckAuthoritativeMotion(WorldView world, Snapshot initial)
+    {
+        world.ClearSession(); var sample = Wire.Copy(initial); sample.Time = 10;
+        sample.Creatures = [new Creature { Id = "native-stop-resume-mob", Template = "field_rat", Zone = sample.Self.Zone,
+            Position = sample.Self.Position.Add(new Point(1, 1)), Health = 20 }];
+        string remoteId = sample.Players.First().Id, mobId = sample.Creatures[0].Id;
+        string[] actors = [sample.Self.Id, remoteId, mobId];
+        void MoveActors(Snapshot snapshot)
+        {
+            var step = new Point(.3, 0);
+            snapshot.Self.Position = snapshot.Self.Position.Add(step);
+            foreach (var player in snapshot.Players) player.Position = player.Position.Add(step);
+            foreach (var creature in snapshot.Creatures) creature.Position = creature.Position.Add(step);
+        }
+        world.Accept(new TransportPacket { Snapshot = sample }); world.SetLocalMovementIntent(new Vector2(1, 0));
+        sample = Wire.Copy(sample); sample.Time = 10.1; MoveActors(sample);
+        world.Accept(new TransportPacket { Snapshot = sample });
+        var velocity = SnapshotVelocity(world, sample.Self.Id);
+        Check(velocity.X > 1 && Math.Abs(velocity.Y) < .001,
+            "Coalesced snapshots estimate local velocity from authoritative sample time even without a renderer clock advance");
+        sample = Wire.Copy(sample); sample.Time = 10.2; world.Accept(new TransportPacket { Snapshot = sample });
+        Check(SnapshotVelocity(world, sample.Self.Id) == velocity,
+            "One unchanged authoritative sample preserves visual travel across an interstitial packet");
+        world.Accept(new TransportPacket { Snapshot = sample });
+        Check(SnapshotVelocity(world, sample.Self.Id) == velocity,
+            "A duplicate authoritative timestamp cannot count as a second unchanged movement sample");
+        Check(actors.All(id => SnapshotVelocity(world, id).X > 1),
+            "Remote players and creatures also retain velocity through one interstitial sample and its duplicate");
+        sample = Wire.Copy(sample); sample.Time = 10.3; world.Accept(new TransportPacket { Snapshot = sample });
+        Check(SnapshotVelocity(world, sample.Self.Id) == default(Point),
+            "Two genuinely newer unchanged authoritative samples clear stale local velocity");
+        Check(actors.All(id => SnapshotVelocity(world, id) == default(Point)),
+            "The same two-sample stationary contract clears remote-player and creature estimates");
+        sample = Wire.Copy(sample); sample.Time = 10.4; MoveActors(sample);
+        world.Accept(new TransportPacket { Snapshot = sample });
+        Check(SnapshotVelocity(world, sample.Self.Id).X > 1, "A new authoritative position change restores the visual movement estimate");
+        Check(actors.All(id => SnapshotVelocity(world, id).X > 1),
+            "The first resumed step uses the confirmed stationary baseline for every actor type");
+        double unchangedRenderClock = world.Clock;
+        for (int i = 5; i <= 15; i++)
+        {
+            sample = Wire.Copy(sample); sample.Time = 10 + i * .1;
+            world.Accept(new TransportPacket { Snapshot = sample });
+        }
+        Check(world.Clock == unchangedRenderClock && actors.All(id => SnapshotVelocity(world, id) == default(Point)),
+            "Coalesced authoritative snapshots can confirm a long stop without advancing the renderer clock");
+        sample = Wire.Copy(sample); sample.Time = 11.6; MoveActors(sample);
+        world.Accept(new TransportPacket { Snapshot = sample });
+        Check(actors.All(id => SnapshotVelocity(world, id).X > 1),
+            "Movement resumes on its first authoritative step after a long stop even with no render-clock advance");
+        world.SetLocalMovementIntent(Vector2.Zero); world.SetLocalMovementIntent(new Vector2(1, 0));
+        Check(SnapshotVelocity(world, sample.Self.Id) == default(Point),
+            "A release and immediate tap cannot reuse the previous local velocity before a new authoritative sample");
+        world.SetLocalMovementIntent(new Vector2(float.NaN, 1));
+        var intent = (Vector2)typeof(WorldView).GetField("localMovementIntent", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(world)!;
+        Check(intent == Vector2.Zero, "Malformed local intent resets to the definitive zero movement vector");
+        world.SetLocalMovementIntent(new Vector2(3, 4));
+        intent = (Vector2)typeof(WorldView).GetField("localMovementIntent", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(world)!;
+        Check(Math.Abs(intent.Length() - 1) < .000001, "Local presentation intent normalizes oversized input without changing server positions");
+        world.ClearSession(); world.Accept(new TransportPacket { Snapshot = initial });
+    }
     private async Task Capture(string name)
     {
         await Frame(); await Frame();
@@ -63,6 +130,7 @@ public partial class CharacterPresentationContract : Node
             world.Accept(new TransportPacket { Snapshot = snapshot });
             foreach (var mob in snapshot.Creatures)
                 Check(Pose(world, mob.Id, mob.Position).State == 0, "Spawn cooldown does not invent an attack: " + mob.Id);
+            CheckAuthoritativeMotion(world, snapshot);
             var remote = snapshot.Players.Single(p => p.Id == other.Id);
             snapshot.ActorCues.Add(new ActorPresentationCue { Actor = other.Id, Sequence = 1, State = 6, Started = snapshot.Time, Duration = .8, Facing = new(-1, 0) });
             world.Accept(new TransportPacket { Snapshot = snapshot });

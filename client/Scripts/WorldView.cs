@@ -174,7 +174,12 @@ public partial class WorldView : Control
             if (track.UnchangedAuthoritativeSamples >= 2)
             {
                 track.SnapshotVelocity = new Point(0, 0);
-                track.LastSnapshotAt = Clock;
+                // A confirmed stationary sample becomes the next motion estimate's
+                // baseline. Counting idle time since the last moving target makes
+                // the first resumed step artificially slow, or zero after a long stop.
+                // The first interstitial sample still leaves the motion phase intact.
+                track.LastTargetAt = track.LastSnapshotAt = Clock;
+                track.LastTargetAuthoritativeTime = authoritativeTime;
             }
         }
         if (newerAuthoritative) track.LastAuthoritativeTime = authoritativeTime;
