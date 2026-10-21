@@ -73,7 +73,7 @@ public partial class PlayerExperienceContract : Node
                 "A selected enemy inside the short approach grace is not silently replaced by a nearer target");
             Require(ExperienceRules.TargetProblem(self, sticky, data, weaponReach).Contains("reach", StringComparison.Ordinal),
                 "Out-of-range explicit targets get an actionable range explanation");
-            Require(ExperienceRules.BasicAttackBufferSeconds is >= .2 and <= .35,
+            Require(ExperienceRules.BasicAttackBufferSeconds >= .2 && ExperienceRules.BasicAttackBufferSeconds <= .35,
                 "Basic attack buffering remains short enough to improve input timing without predicting combat");
             var pet = Wire.Copy(target); pet.Id = "pet"; pet.Owner = self.Id;
             Require(ExperienceRules.ChooseTarget(self, [pet], data, pet.Id, 2) is null, "Owned companions cannot be attack targets");

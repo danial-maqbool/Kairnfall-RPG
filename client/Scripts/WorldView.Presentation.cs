@@ -91,7 +91,7 @@ public partial class WorldView
 
     private void DrawFurnishing(FurnishingDef furnishing)
     {
-        var texture = Assets.Texture("furnishings/" + furnishing.Kind);
+        var texture = ClassicTutorialFurnishing(furnishing) ?? Assets.Texture("furnishings/" + furnishing.Kind);
         if (texture is null) return;
         // One source pixel per logical world pixel. Do not stretch the floor footprint.
         DrawTexture(texture, new Vector2(furnishing.X * Tile, furnishing.Y * Tile - furnishing.Rise));

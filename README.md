@@ -1,4 +1,16 @@
+## October 1 verified portable offline folder
+
+[Latest portable checkpoint](docs/NATIVE_CLASSIC_PORTABLE_CHECKPOINT_2026_10_01.md): client/server/native launcher/PostgreSQL are bundled without saved data or secrets. Run `deliverables/Kairnfall-Offline-Windows-2026-10-01/Play-Kairnfall.cmd` in MysteraLegacyLocal; no Python/installed .NET/editor/Docker/dev checkout is needed at runtime. A clean relocated C: copy passed cold startup, 101 headless account checks, 14 exact restart checks, 15 graphical saved reload and 15 more after saved-folder relocation. All owned endpoints stopped. Human full graphical/input/art/audio/load and measured reference fidelity remain open; [concrete gaps](docs/NATIVE_REFERENCE_FIDELITY_GAPS_2026_10_01.md) distinguish missing mechanics from subjective taste. Local/uncommitted only; no public release.
+
+## October 1 verified local Windows client checkpoint
+
+[Latest local Windows checkpoint](docs/NATIVE_CLASSIC_WINDOWS_CHECKPOINT_2026_10_01.md): approved runtime packs verified; standard self-contained client export, native main startup/normal close and 134 packaged graphical checks passed. Packaged normal-account headless gameplay/restart passed 100/14, with 15 real graphical saved-realm checks. Compact progression feedback now leaves the avatar clear. Use `Play-Classic-Windows-Package.cmd` in MysteraLegacyLocal for the retained separate offline preview realm. Full uninterrupted graphical/human play, original art, audio/load and portable server packaging remain open. Source, IDs, protocol and personal saves are preserved; this is local, uncommitted work and no public release is approved.
+
 # Kairnfall
+
+Latest native follow-up: [October 1 original presentation, route repair and verified limits](docs/NATIVE_CLASSIC_VISUAL_ROUTE_FOLLOWUP_2026_10_01.md). The optional classic mode adds dense grass, layered crowns, a circular Action control and authoritative step-by-step routes. Updated offline play/reload passed 100/14 checks, with 15 graphical saved-realm checks. Uninterrupted graphical acceptance and Windows packaging remain open; the retained source preview is the usable local launch route.
+
+Local classic controls and playable-loop update: [October 1 implementation, verification and remaining gaps](docs/NATIVE_CLASSIC_PLAYABLE_CHECKPOINT_2026_10_01.md). Settings > Use classic local presentation enables tile movement, selected adjacent attacks, repeat gathering, compact inventory/crafting and quick consumables. A separate offline PostgreSQL realm passed 79 normal-account gameplay checks and 14 checks after server restart, preserving possessions, progress and owned building data. Native graphical fixtures passed separately. Personal saves and existing changes are retained; human play, artwork, audio/load and packaging gates remain open.
 
 Final merchant repair: [compact panels, signed comparisons, exact stack sales and reconnect verification](docs/handoff/MERCHANT_BOUNDARIES_2026-09-09.md). Actual source is integrated at `51b575323969da9c9b0fab5f3c23a7a5f0c4147e`. Large sale totals stay visible, comparisons refresh when equipped data changes, and completed sales require deliberate selection of another stack. The full retained and graphical workflows passed. Independent visual and Windows acceptance remain separate.
 

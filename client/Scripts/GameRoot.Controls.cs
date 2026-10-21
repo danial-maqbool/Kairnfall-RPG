@@ -36,7 +36,7 @@ public partial class GameRoot
             }
             if (key.PhysicalKeycode == Key.Escape)
             {
-                StopCombatInput(); route.Clear(); pendingInteraction = null;
+                StopCombatInput(); ClearRoute(); pendingInteraction = null;
                 if (Typing) GetViewport().GuiReleaseFocus();
                 else if (placement != "") { placement = ""; Notify("Placement cancelled."); }
                 else if (gameWindow is not null) ClosePage();
@@ -47,13 +47,13 @@ public partial class GameRoot
             if (key.PhysicalKeycode == Key.Enter)
             {
                 if (gameWindow is not null) { GetViewport().SetInputAsHandled(); return; }
-                StopCombatInput(); route.Clear(); pendingInteraction = null;
+                StopCombatInput(); ClearRoute(); pendingInteraction = null;
                 ShowChat(true); chatInput.GrabFocus(); GetViewport().SetInputAsHandled(); return;
             }
             foreach (string action in new[] { "inventory", "character", "skills", "quests", "map", "abilities", "crafting", "social", "hunting" })
             {
                 if (!key.IsActionPressed(action)) continue;
-                StopCombatInput(); route.Clear(); pendingInteraction = null;
+                StopCombatInput(); ClearRoute(); pendingInteraction = null;
                 string name = Ui.Words(action);
                 if (currentPage == name) ClosePage(); else OpenPage(name);
                 GetViewport().SetInputAsHandled(); return;
@@ -63,9 +63,13 @@ public partial class GameRoot
             {
                 RequestDash(); GetViewport().SetInputAsHandled(); return;
             }
+            if (key.IsActionPressed("pickup"))
+            {
+                PickupUnderfoot(); GetViewport().SetInputAsHandled(); return;
+            }
             if (key.IsActionPressed("basic_attack"))
             {
-                BeginBasicAttack(true); GetViewport().SetInputAsHandled(); return;
+                PrimaryAction(true); GetViewport().SetInputAsHandled(); return;
             }
             if (key.IsActionPressed("interact"))
             {
@@ -105,10 +109,17 @@ public partial class GameRoot
         SelectTarget(hit.Kind, hit.Id);
         if (hit.Kind == "creature")
         {
-            // A single click selects. Only a deliberate attack input sends an attack.
-            if (mouse.DoubleClick) BeginBasicAttack(false);
+            // Classic selection repeats only against this target once the player moves into range.
+            if (ClassicControls) ArmClassicTarget(hit.Id);
+            else if (mouse.DoubleClick) BeginBasicAttack(false);
         }
         else if (hit.Kind == "player") OpenPage("Social");
+        else if (hit.Kind == "classic_site")
+        {
+            // Select and explain the authoritative adjacency/facing requirement.
+            // Do not walk into a solid site or invent a facing change locally.
+            pendingInteraction = null; ClearRoute(); Activate(hit);
+        }
         else if (Snapshot!.Self.Position.Distance(hit.Position) <= 2.15
             && WorldMap.LineOfSight(Data.Zone(Snapshot.Self.Zone), Snapshot.Self.Position, hit.Position)) Activate(hit);
         else

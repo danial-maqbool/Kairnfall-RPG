@@ -63,6 +63,7 @@ public partial class WorldView : Control
         public double StateStart;
         public double StateUntil;
         public int State;
+        public bool WitnessedDeath;
         public Point DiagnosticPreviousPosition;
         public bool DiagnosticPositionReady;
     }
@@ -129,6 +130,7 @@ public partial class WorldView : Control
             }
         }
         AcceptPresentation(snapshot);
+        UpdateWorldProjection(); RefreshInteractionTargets();
         Diagnostics.RecordDuration(ClientPerfPhase.SnapshotAccept, performanceStarted);
     }
 
@@ -145,7 +147,11 @@ public partial class WorldView : Control
                 LastAuthoritativeTime = authoritativeTime, LastTargetAuthoritativeTime = authoritativeTime
             };
             tracks[id] = track;
-            if (health <= 0) { track.State = 5; track.StateStart = Clock - ActorMotion.CorpseCollapseSeconds; track.StateUntil = Clock + 6; }
+            // Dead creatures can be pending initial spawns or old deaths first
+            // encountered after reconnect. Only an observed living-to-dead
+            // transition establishes their temporary corpse presentation.
+            // Preserve the existing dead-player presentation separately.
+            if (player && health <= 0) { track.State = 5; track.StateStart = Clock - ActorMotion.CorpseCollapseSeconds; track.StateUntil = Clock + 6; }
         }
 
         double targetShift = track.Target.Distance(position);
@@ -187,12 +193,12 @@ public partial class WorldView : Control
         if (Math.Abs(track.Health - health) >= .8)
         {
             bool hurt = health < track.Health;
-            numbers.Add(new FloatingNumber(position, (hurt ? "−" : "+") + Math.Abs(Math.Round(health - track.Health)).ToString(), hurt ? new Color("edb08a") : Ui.Success, Clock));
-            if (hurt) Animate(id, health <= 0 ? 5 : 4, health <= 0 ? 6 : .3);
+            numbers.Add(new FloatingNumber(position, (hurt ? "−" : "+") + Math.Abs(Math.Round(health - track.Health)).ToString(), hurt ? ClassicPresentation ? player ? new Color("e17162") : Colors.White : new Color("edb08a") : Ui.Success, Clock));
+            if (hurt && track.Health > 0) Animate(id, health <= 0 ? 5 : 4, health <= 0 ? 6 : .3);
         }
-        if (track.Health > 0 && health <= 0) { Animate(id, 5, 6); track.SnapshotVelocity = new Point(0, 0); }
+        if (track.Health > 0 && health <= 0) { track.WitnessedDeath = true; Animate(id, 5, 6); track.SnapshotVelocity = new Point(0, 0); }
         track.FacingDirection = SpritePoseRules.Direction(facing, track.FacingDirection);
-        if (track.Health <= 0 && health > 0) { track.StateUntil = 0; track.State = 0; track.SnapshotVelocity = new Point(0, 0); }
+        if (track.Health <= 0 && health > 0) { track.WitnessedDeath = false; track.StateUntil = 0; track.State = 0; track.SnapshotVelocity = new Point(0, 0); }
         track.Target = position; track.Facing = facing; track.Health = health; track.Player = player || track.Player; track.Local = local || track.Local;
         return track;
     }
@@ -255,6 +261,7 @@ public partial class WorldView : Control
         {
             double errorTotal = 0, errorMax = 0;
             int reversals = 0, actorCount = 0;
+            bool falseRenderedStop = false;
             foreach (var track in tracks.Values)
             {
                 double error = track.Position.Distance(track.Target);
@@ -266,16 +273,26 @@ public partial class WorldView : Control
                     double travelled = Math.Sqrt(dx * dx + dy * dy);
                     double speed = track.SnapshotVelocity.Distance(new Point(0, 0));
                     if (track.Local) Diagnostics.RecordLocalMotion(travelled / delta, LocalMovementExpected, delta);
-                    if (travelled > .0005 && speed > .05)
+                    Point referenceVelocity = track.SnapshotVelocity;
+                    double intentLength = localMovementIntent.Length();
+                    if (track.Local)
+                        referenceVelocity = intentLength > .05 && speed > .05
+                            ? new Point(localMovementIntent.X * speed / intentLength, localMovementIntent.Y * speed / intentLength) : new Point(0, 0);
+                    double referenceSpeed = referenceVelocity.Distance(new Point(0, 0));
+                    if (travelled > .0005 && referenceSpeed > .05)
                     {
-                        double cosine = (dx * track.SnapshotVelocity.X + dy * track.SnapshotVelocity.Y) / (travelled * speed);
+                        double cosine = (dx * referenceVelocity.X + dy * referenceVelocity.Y) / (travelled * referenceSpeed);
                         if (cosine < -.25) reversals++;
                     }
+                    if (track.Local && intentLength > .05 && speed > .2
+                        && travelled / Math.Max(delta, .0001) < Math.Max(.05, speed * .25))
+                        falseRenderedStop = true;
                 }
                 track.DiagnosticPreviousPosition = track.Position;
                 track.DiagnosticPositionReady = true;
             }
-            Diagnostics.RecordMotion(actorCount == 0 ? 0 : errorTotal / actorCount, errorMax, reversals, actorCount);
+            Diagnostics.RecordMotion(actorCount == 0 ? 0 : errorTotal / actorCount, errorMax, reversals, actorCount,
+                falseRenderedStop, delta);
         }
         if (Snapshot is { } snapshot && tracks.TryGetValue(snapshot.Self.Id, out var self)) Camera = self.Position;
         numbers.RemoveAll(x => Clock - x.Started > 1.3);
@@ -284,6 +301,7 @@ public partial class WorldView : Control
         double day = WorldTime.DayFraction(RealmTime);
         float darkness = zone.Kind == "interior" ? 0 : zone.Layer != "Surface" ? .1f : (float)Math.Clamp((Math.Cos(day * Math.Tau) - .1) * .23, 0, .22);
         SelfModulate = PresentationTint(zone).Lerp(new Color("61758d"), darkness);
+        UpdateWorldProjection(); RefreshInteractionTargets();
         QueueRedraw();
     }
 
@@ -325,26 +343,22 @@ public partial class WorldView : Control
         Diagnostics.BeginDrawFrame();
         var zone = Data.Zone(ZoneId);
         PrepareSurface(zone);
-        Zoom = Math.Clamp(Zoom, 1, 3);
-        Vector2 shake = Vector2.Zero;
-        if (Clock < impactUntil)
-        {
-            float fade = (float)Math.Clamp((impactUntil - Clock) / .16, 0, 1);
-            shake = new Vector2(MathF.Sin((float)Clock * 93f), MathF.Cos((float)Clock * 117f)) * impactStrength * fade;
-        }
-        origin = (Size / 2 - Pixels(Camera) * Zoom + shake).Round();
+        UpdateWorldProjection();
         DrawSetTransform(origin, 0, new Vector2(Zoom, Zoom));
         int minX = Math.Max(-1, (int)(Camera.X - Size.X / Zoom / Tile / 2) - 4);
         int maxX = Math.Min(zone.Width + 1, (int)(Camera.X + Size.X / Zoom / Tile / 2) + 4);
         int minY = Math.Max(-1, (int)(Camera.Y - Size.Y / Zoom / Tile / 2) - 7);
         int maxY = Math.Min(zone.Height + 1, (int)(Camera.Y + Size.Y / Zoom / Tile / 2) + 7);
-        visuals.Clear(); interactions.Clear();
+        visuals.Clear();
         for (int y = minY; y <= maxY; y++) for (int x = minX; x <= maxX; x++)
         {
             var terrain = SurfaceAt(zone, x, y);
             uint hash = WorldMap.Hash(x, y, zone.Seed);
             int variant = terrain is Terrain.Water or Terrain.Lava ? (int)(Clock * 3) % 4 : (int)(hash % 4);
-            var texture = Assets.Texture("terrain/" + terrain.ToString().ToLowerInvariant() + "_" + variant);
+            bool openingGrass = ClassicPresentation && terrain == Terrain.Grass && ClassicTerrainRules.IsOpeningRegion(zone);
+            if (openingGrass) variant = ClassicTerrainRules.GrassVariant(zone, x, y);
+            var texture = ClassicPresentation && terrain == Terrain.Grass ? ClassicGrass(variant, openingGrass)
+                : Assets.Texture("terrain/" + terrain.ToString().ToLowerInvariant() + "_" + variant);
             if (texture is not null)
             {
                 DrawTextureRect(texture, new Rect2(x * Tile, y * Tile, Tile, Tile), false);
@@ -373,54 +387,45 @@ public partial class WorldView : Control
             if (IsWithinCameraBounds(at, building.Width + building.Height))
             {
                 visuals.Add(new Visual((float)at.Y, "building", building.Id, at, building));
-                if(JourneyProgression.IsLandmark(zone,building))
-                    interactions.Add(new WorldTarget("landmark",building.Id,building.Name,JourneyProgression.LandmarkPoint(building)));
             }
         }
         foreach (var npc in Data.Npcs.Where(x => x.Zone == zone.Id))
         {
             if (!IsWithinCameraBounds(npc.Position, 5)) continue;
             visuals.Add(new Visual((float)npc.Position.Y, "npc", npc.Id, npc.Position, npc));
-            interactions.Add(new WorldTarget("npc", npc.Id, npc.Name, npc.Position));
         }
         if (Snapshot is { } snapshot)
         {
             foreach (var worldEvent in snapshot.Events.Where(x => x.Zone == zone.Id && IsWithinCameraBounds(x.Position, 8)))
             {
                 visuals.Add(new Visual((float)worldEvent.Position.Y + .03f, "event", worldEvent.Id, worldEvent.Position, worldEvent));
-                if (WorldEventRules.SupportsInteraction(worldEvent)) interactions.Add(new WorldTarget("event", worldEvent.Id, worldEvent.Name, worldEvent.Position));
             }
             foreach (var node in snapshot.Nodes)
             {
                 if (!IsWithinCameraBounds(node.Position, 5)) continue;
                 visuals.Add(new Visual((float)node.Position.Y, "node", node.Id, node.Position, node));
-                string name = Data.Resources.FirstOrDefault(x => x.Id == node.Template)?.Name ?? Ui.Words(node.Template);
-                interactions.Add(new WorldTarget("node", node.Id, name, node.Position));
             }
             foreach (var chest in snapshot.Chests)
             {
                 visuals.Add(new Visual((float)chest.Position.Y, "chest", chest.Id, chest.Position, chest));
-                interactions.Add(new WorldTarget("chest", chest.Id, Ui.Words(chest.Kind) + " Chest", chest.Position));
             }
             foreach (var pile in Loot)
             {
                 if (!double.IsFinite(pile.Expires) || pile.Expires <= RealmTime) continue;
                 visuals.Add(new Visual((float)pile.Position.Y, "loot", pile.Id, pile.Position, pile));
-                interactions.Add(new WorldTarget("loot", pile.Id, "Dropped loot", pile.Position));
             }
             foreach (var mob in snapshot.Creatures)
             {
                 if (!IsWithinCameraBounds(mob.Position, 5)) continue;
-                if (mob.Health <= 0 && tracks.TryGetValue(mob.Id, out var dead) && Clock > dead.StateUntil) continue;
+                if (mob.Health <= 0 && (!tracks.TryGetValue(mob.Id, out var dead)
+                    || !dead.WitnessedDeath || Clock >= dead.StateUntil)) continue;
                 var pose = Pose(mob.Id, mob.Position);
                 visuals.Add(new Visual((float)pose.Position.Y, "creature", mob.Id, pose.Position, mob));
-                if (mob.Health > 0) interactions.Add(new WorldTarget("creature", mob.Id, Data.Mob(mob.Template).Name, mob.Position));
             }
             foreach (var player in snapshot.Players)
             {
                 var pose = Pose(player.Id, player.Position);
                 visuals.Add(new Visual((float)pose.Position.Y, "player", player.Id, pose.Position, player));
-                interactions.Add(new WorldTarget("player", player.Id, player.Name, player.Position));
             }
             var localPose = Pose(snapshot.Self.Id, snapshot.Self.Position);
             visuals.Add(new Visual((float)localPose.Position.Y, "self", snapshot.Self.Id, localPose.Position, snapshot.Self));
@@ -434,7 +439,8 @@ public partial class WorldView : Control
             float progress = Math.Clamp(elapsed / .65f, 0, 1);
             float radius = 7 + progress * 22 * burst.Strength / 3.4f;
             Color color = burst.Color; color.A = 1 - progress;
-            DrawArc(SnappedPixels(burst.At), radius, 0, MathF.Tau, 28, color, 1.5f);
+            if (ClassicPresentation) DrawClassicImpact(burst);
+            else DrawArc(SnappedPixels(burst.At), radius, 0, MathF.Tau, 28, color, 1.5f);
         }
         foreach (var number in numbers)
         {
@@ -483,7 +489,7 @@ public partial class WorldView : Control
         if (visual.Id == TargetId)
         {
             Color targetColor = Ui.Gold;
-            if (visual.Kind == "creature" && Snapshot is { } targetSnapshot)
+            if (!ClassicPresentation && visual.Kind == "creature" && Snapshot is { } targetSnapshot)
             {
                 double reach = ExperienceRules.BasicAttackRange(targetSnapshot.Self, Data);
                 double distance = targetSnapshot.Self.Position.Distance(visual.At);
@@ -523,7 +529,9 @@ public partial class WorldView : Control
                 DrawFurnishing((FurnishingDef)visual.Value!);
                 break;
             case "decoration":
-                DrawProp("props/" + visual.Id, visual.At, visual.Id.Contains("tree", StringComparison.Ordinal) || visual.Id.Contains("oak", StringComparison.Ordinal) || visual.Id.Contains("pine", StringComparison.Ordinal) ? CanopyTint(visual.At) : Colors.White);
+                if (ClassicPresentation && visual.Id is "oak" or "tree" or "ancient_oak")
+                    DrawClassicCrown(visual.At, WorldMap.Hash((int)visual.At.X, (int)visual.At.Y, zone.Seed) % 9 == 0);
+                else DrawProp("props/" + visual.Id, visual.At, visual.Id.Contains("tree", StringComparison.Ordinal) || visual.Id.Contains("oak", StringComparison.Ordinal) || visual.Id.Contains("pine", StringComparison.Ordinal) ? CanopyTint(visual.At) : Colors.White);
                 break;
             case "building":
                 var building = (BuildingDef)visual.Value!;
@@ -551,9 +559,10 @@ public partial class WorldView : Control
             case "node":
                 var node = (WorldNode)visual.Value!;
                 bool depleted = node.ReadyAt > RealmTime;
-                string key = node.Template.StartsWith("structure_", StringComparison.Ordinal) ? "structures/" + node.Template : "resources/" + node.Template;
+                string key = ResourceSpriteKey(node.Template);
                 if (depleted && Data.Resources.FirstOrDefault(x => x.Id == node.Template)?.Skill == "woodcutting") key = "props/stump";
-                DrawProp(key, node.Position, depleted ? new Color(1, 1, 1, .55f) : Colors.White);
+                if (ClassicPresentation && !depleted && key == "resources/oak_tree") DrawClassicCrown(node.Position);
+                else DrawProp(key, node.Position, depleted ? new Color(1, 1, 1, .55f) : Colors.White);
                 if (visual.Id == TargetId) Nameplate(node.Position, depleted ? "Ready in " + Math.Ceiling(node.ReadyAt - RealmTime) + "s" : Data.Resources.FirstOrDefault(x => x.Id == node.Template)?.Name ?? "Structure", Ui.Text, -50);
                 break;
             case "chest":
@@ -572,7 +581,7 @@ public partial class WorldView : Control
                 if (mob.Health > 0 && (mob.Id == TargetId || mob.Health < def.Health || def.Boss || def.Elite))
                 {
                     float height = def.Boss ? -105 : def.Elite ? -72 : -57;
-                    Color frameColor=def.Boss?new Color("ba7b5b"):def.Elite?new Color("c69b58"):new Color("a65052");
+                    Color frameColor=ClassicPresentation ? new Color("d5b760") : def.Boss?new Color("ba7b5b"):def.Elite?new Color("c69b58"):new Color("a65052");
                     HealthBar(feet + new Vector2(-16, height), mob.Health / def.Health, frameColor);
                     Nameplate(mob.Position, (def.Elite?"RARE · ":"") + def.Name + " · " + def.Level, def.Boss||def.Elite ? Ui.Gold : Ui.Text, height - 5, 9);
                 }
@@ -581,16 +590,33 @@ public partial class WorldView : Control
             case "player":
                 var player = (PublicPlayer)visual.Value!; var pp = Pose(player.Id, player.Position);
                 if(player.Health>0) Shadow(feet);
-                Assets.DrawPerson(this, player.Appearance, player.Equipment, feet, pp.State, pp.Direction, pp.Frame, LocomotionFrame(player.Id), Running(player.Id));
+                Assets.DrawPerson(this, player.Appearance, player.Equipment, feet, pp.State, pp.Direction, pp.Frame, LocomotionFrame(player.Id), Running(player.Id), SpritePoseRules.CharacterScale(Data, Snapshot?.Self));
                 if (ShowNames) Nameplate(player.Position, (player.Health<=0?"DOWNED · ":"")+player.Name + " · " + player.Level, player.Health<=0?Ui.Danger:new Color("a3c9df"), -61, 10);
                 break;
             case "self":
                 var character = (Character)visual.Value!; var self = Pose(character.Id, character.Position);
                 if (character.Health > 0) Shadow(feet);
-                Assets.DrawPerson(this, character.Appearance, selfVisibleEquipment, feet, self.State, self.Direction, self.Frame, LocomotionFrame(character.Id), Running(character.Id));
+                Assets.DrawPerson(this, character.Appearance, selfVisibleEquipment, feet, self.State, self.Direction, self.Frame, LocomotionFrame(character.Id), Running(character.Id), SpritePoseRules.CharacterScale(Data, character));
                 foreach (var status in character.Statuses.Where(x => x.Until > RealmTime)) DrawStatus(feet, status);
                 break;
         }
+    }
+
+    private string ResourceSpriteKey(string template)
+    {
+        if (template.StartsWith("structure_", StringComparison.Ordinal)) return "structures/" + template;
+        // Ordinary catalog Sprite fields contain historical names absent from the
+        // shipped pack. Retain their established template keys. Only accepted
+        // tutorial resources use their declared existing non-actor sprite alias.
+        if (Data.ClassicTutorial is null || ZoneId != ClassicTutorialContent.ZoneId
+            || template is not ("classic_tree" or "classic_stone_node" or "classic_tinder_node" or "classic_flint_node"))
+            return "resources/" + template;
+        string sprite = Data.Resource(template).Sprite;
+        if (sprite.EndsWith(".png", StringComparison.Ordinal)) sprite = sprite[..^4];
+        string key = sprite.StartsWith("resources/", StringComparison.Ordinal) ? sprite : "resources/" + sprite;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(key, @"\Aresources/[a-zA-Z0-9_-]+\z"))
+            throw new InvalidDataException("Unsafe tutorial resource sprite identifier.");
+        return key;
     }
 
     private Color CanopyTint(Point at)
@@ -652,6 +678,24 @@ public partial class WorldView : Control
         float outline = 1.5f + pulse;
         color.A = .35f + urgency * .25f;
         float radius = (float)effect.Radius * Tile;
+        if (effect.Shape == "projectile")
+        {
+            string sourceClass = Snapshot?.Self.Id == effect.Source ? Snapshot.Self.Class
+                : Snapshot?.Players.FirstOrDefault(x => x.Id == effect.Source)?.Class ?? "";
+            color = ElementColor(ProjectilePresentationRules.VisualElement(sourceClass, effect.Element));
+            color.A = .92f;
+            Vector2 source = center - new Vector2((float)effect.Direction.X, (float)effect.Direction.Y) * Tile * 2;
+            if (tracks.TryGetValue(effect.Source, out var sourceTrack))
+                source = SnappedPixels(sourceTrack.Position) + new Vector2(0, -14);
+            float progress = (float)ProjectilePresentationRules.IntervalProgress(effect, RealmTime);
+            Vector2 bolt = source.Lerp(center, progress);
+            Vector2 tail = source.Lerp(center, Math.Max(0, progress - .16f));
+            DrawLine(tail, bolt, new Color(color, .55f), 2.5f);
+            DrawCircle(bolt, sourceClass is "arcanist" or "templar" ? 4.5f : 3.5f, color);
+            DrawCircle(bolt, 1.5f, new Color(1, 1, 1, .9f));
+            DrawArc(center, 6.5f, 0, MathF.Tau, 20, new Color(color, .45f), 1.25f);
+            return;
+        }
         if (effect.Shape == "line")
         {
             var direction = new Vector2((float)effect.Direction.X, (float)effect.Direction.Y).Normalized();

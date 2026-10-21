@@ -111,8 +111,8 @@ public partial class GameRoot
             }
         }
         pendingGuidance.RemoveWhere(id => NewPlayerJourney.Seen(self, id));
-        journeyObjective = NewPlayerJourney.Recommend(Data, snapshot, World.Loot);
-        journeyHint = NewPlayerJourney.NextHint(Data, snapshot, journeyObjective);
+        journeyObjective = SessionJourneyObjective(snapshot);
+        journeyHint = ClassicTutorialJourneyRules.IsObjective(journeyObjective) ? null : NewPlayerJourney.NextHint(Data, snapshot, journeyObjective);
         var navigation = NewPlayerJourney.Navigation(Data, self, journeyObjective);
         objectiveText.SetMeta("journey_stage", journeyObjective.Stage);
         objectiveText.SetMeta("journey_target", journeyObjective.TargetId);
@@ -140,7 +140,7 @@ public partial class GameRoot
         firstHourText.Visible = objectiveText.Visible && journeyHint is not null;
         journeyActions.Visible = objectiveText.Visible;
         bool distant = navigation.Position is { } point && point.Distance(snapshot.Self.Position) > 2.5;
-        journeyAction.Text = self.Health <= 0 ? "Recovery shown below"
+        journeyAction.Text = ClassicJourneyAction(journeyObjective) ?? (self.Health <= 0 ? "Recovery shown below"
             : journeyObjective.Zone != self.Zone && navigation.Position is null ? "View entry requirements"
             : distant || navigation.TargetKind == "exit" ? "Walk to objective"
             : journeyObjective.TargetKind == "equipment" ? "Review upgrade"
@@ -149,7 +149,7 @@ public partial class GameRoot
             : journeyObjective.TargetKind == "loot" ? "Collect loot"
             : journeyObjective.TargetKind == "chest" ? "Open event cache"
             : journeyObjective.Panel == "Crafting" ? "Open crafting"
-            : journeyObjective.Panel == "Inventory" ? "Open backpack" : "Open " + journeyObjective.Panel;
+            : journeyObjective.Panel == "Inventory" ? "Open backpack" : "Open " + journeyObjective.Panel);
         journeyAction.TooltipText = objectiveText.TooltipText;
         journeyAction.Disabled = !Online || self.Health <= 0 || actionBusy;
         journeyUnderstood.Visible = journeyHint is not null || journeyObjective.Stage == "public";
@@ -270,7 +270,8 @@ public partial class GameRoot
         if (!GameplayInputAllowed || Snapshot is not { } snapshot) return;
         // Recompute on click: a stale pickup, dead creature, completed quest or expired
         // event cannot turn an old HUD button into an action for the wrong target.
-        var objective = NewPlayerJourney.Recommend(Data, snapshot, World.Loot);
+        var objective = SessionJourneyObjective(snapshot);
+        if (FollowClassicJourneyObjective(snapshot, objective)) return;
         var navigation = NewPlayerJourney.Navigation(Data, snapshot.Self, objective);
         if (objective.Zone != snapshot.Self.Zone && navigation.Position is null) { OpenPage("Map"); return; }
         if (navigation.Position is { } point && (point.Distance(snapshot.Self.Position) > 2.5 || navigation.TargetKind == "exit"))
@@ -321,6 +322,11 @@ public partial class GameRoot
             progressionBanner.TooltipText = moment.Title + "\n" + moment.Detail;
             progressionBanner.SetMeta("progression_kind", moment.Kind);
             progressionUntil = now + 6;
+        }
+        if (FitClassicProgressionFeedback())
+        {
+            progressionBanner.Visible = Snapshot is not null && !frontend.Visible;
+            return;
         }
         float left = journeyHome.GetGlobalRect().End.X + 12;
         float right = (compactJourneyLayout ? journeyPanel.GetGlobalRect().Position.X : hud.Size.X - 306) - 12;

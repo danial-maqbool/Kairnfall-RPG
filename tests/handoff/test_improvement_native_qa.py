@@ -75,11 +75,16 @@ class ImprovementNativeQaTests(unittest.TestCase):
 
     def test_environment_overrides_child_paths_without_changing_input_or_process_environment(self):
         original = dict(os.environ)
-        supplied = {'APPDATA': 'personal-data', 'XDG_DATA_HOME': 'personal-xdg', 'UNCHANGED': 'value'}
+        supplied = {'APPDATA': 'personal-data', 'XDG_DATA_HOME': 'personal-xdg', 'UNCHANGED': 'value',
+                    'DOTNET_GENERATE_ASPNET_CERTIFICATE': 'true', 'DOTNET_ADD_GLOBAL_TOOLS_TO_PATH': 'true'}
         isolated = qa.isolated_environment(supplied)
         self.assertEqual(supplied['APPDATA'], 'personal-data')
         self.assertEqual(dict(os.environ), original)
         self.assertEqual(isolated['UNCHANGED'], 'value')
+        self.assertEqual(supplied['DOTNET_GENERATE_ASPNET_CERTIFICATE'], 'true')
+        self.assertEqual(supplied['DOTNET_ADD_GLOBAL_TOOLS_TO_PATH'], 'true')
+        self.assertEqual(isolated['DOTNET_GENERATE_ASPNET_CERTIFICATE'], 'false')
+        self.assertEqual(isolated['DOTNET_ADD_GLOBAL_TOOLS_TO_PATH'], 'false')
         for name in ('APPDATA', 'LOCALAPPDATA', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME'):
             path = Path(isolated[name])
             self.assertTrue(path.is_relative_to(self.root))

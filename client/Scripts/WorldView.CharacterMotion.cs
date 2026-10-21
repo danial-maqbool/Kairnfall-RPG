@@ -4,31 +4,14 @@ using Point = Kairnfall.Core.Point;
 
 namespace Kairnfall.Client;
 
-public static class ProjectilePresentationRules
-{
-    public static bool Travels(Telegraph effect)
-        => effect.Shape == "projectile" && effect.Target != "" && effect.Origin.Finite && effect.Position.Finite
-            && double.IsFinite(effect.Started) && double.IsFinite(effect.Resolves) && effect.Resolves > effect.Started;
-
-    public static double Progress(Telegraph effect, double realmTime)
-        => !Travels(effect) || !double.IsFinite(realmTime) ? 0
-            : Math.Clamp((realmTime - effect.Started) / (effect.Resolves - effect.Started), 0, 1);
-
-    public static Point Position(Telegraph effect, double realmTime)
-    {
-        double progress = Progress(effect, realmTime);
-        return new Point(
-            effect.Origin.X + (effect.Position.X - effect.Origin.X) * progress,
-            effect.Origin.Y + (effect.Position.Y - effect.Origin.Y) * progress);
-    }
-}
-
 public static class MotionPresentationRules
 {
     public const double SnapshotLeadSeconds = .20;
     public const double SnapshotFreshSeconds = .20;
     public const double SnapshotStaleSeconds = .30;
     public const double MaxLeadTiles = .45;
+    public const double LocalIntentLeadSeconds = .12;
+    public const double LocalIntentMaxLeadTiles = .45;
     public const double TeleportDistance = 6;
 
     public static Point EstimateVelocity(Point previousTarget, Point target, double sampleSeconds, Point previousVelocity)
@@ -57,14 +40,34 @@ public static class MotionPresentationRules
     }
 
     public static Point VisualTarget(Point authoritative, Point velocity, double snapshotAge)
+        => VisualTarget(authoritative, velocity, snapshotAge, snapshotAge);
+
+    public static Point VisualTarget(Point authoritative, Point velocity, double snapshotAge,
+        double motionSampleAge, Point? localIntent = null)
     {
-        if (!authoritative.Finite || !velocity.Finite || !double.IsFinite(snapshotAge)) return authoritative;
+        if (!authoritative.Finite || !velocity.Finite || !double.IsFinite(snapshotAge)
+            || !double.IsFinite(motionSampleAge)) return authoritative;
         double speed = velocity.Distance(new Point(0, 0));
         double freshness = SnapshotFreshness(snapshotAge);
         if (speed < .02 || speed > 12 || freshness <= 0) return authoritative;
+
+        Point extrapolationVelocity = velocity;
         double seconds = Math.Clamp(snapshotAge, 0, SnapshotLeadSeconds);
-        double lead = Math.Min(MaxLeadTiles, speed * seconds) * freshness;
-        return authoritative.Add(velocity.Scale(lead / speed));
+        double leadCap = MaxLeadTiles;
+        if (localIntent is { } intent)
+        {
+            double intentLength = intent.Distance(new Point(0, 0));
+            // Input affects presentation only; the server remains the sole position authority.
+            if (intentLength <= .05) return authoritative;
+            extrapolationVelocity = intent.Scale(speed / intentLength);
+            // An unchanged interstitial packet does not reset LastTargetAt, so it cannot
+            // collapse the bounded extrapolation phase back to the authoritative sample.
+            seconds = Math.Clamp(motionSampleAge, 0, LocalIntentLeadSeconds);
+            leadCap = LocalIntentMaxLeadTiles;
+        }
+
+        double lead = Math.Min(leadCap, speed * seconds) * freshness;
+        return authoritative.Add(extrapolationVelocity.Scale(lead / speed));
     }
 
     public static double SmoothingWeight(double delta)
@@ -101,15 +104,14 @@ public partial class WorldView
             return;
         }
 
-        double snapshotAge = Clock - track.LastSnapshotAt;
-        bool localExpected = track.Local && LocalMovementExpected;
-        double sourceSpeed = track.SnapshotVelocity.Distance(new Point(0, 0)) * MotionPresentationRules.SnapshotFreshness(snapshotAge);
-        var visualTarget = MotionPresentationRules.VisualTarget(track.Target, track.SnapshotVelocity, snapshotAge);
-        if (track.Local && !localExpected)
-        {
-            sourceSpeed = 0;
-            visualTarget = track.Target;
-        }
+        double snapshotAge = Math.Max(0, Clock - track.LastSnapshotAt);
+        double motionSampleAge = Math.Max(0, Clock - track.LastTargetAt);
+        double velocitySpeed = track.SnapshotVelocity.Distance(new Point(0, 0));
+        Point? localIntent = track.Local ? new Point(localMovementIntent.X, localMovementIntent.Y) : null;
+        double sourceSpeed = velocitySpeed * MotionPresentationRules.SnapshotFreshness(snapshotAge);
+        if (track.Local && !LocalMovementExpected) sourceSpeed = 0;
+        var visualTarget = MotionPresentationRules.VisualTarget(
+            track.Target, track.SnapshotVelocity, snapshotAge, motionSampleAge, localIntent);
         double visualRemaining = previous.Distance(visualTarget);
         if (authoritativeRemaining < .006 && sourceSpeed < .06)
         {
@@ -121,6 +123,15 @@ public partial class WorldView
         track.Position = visualRemaining < .003 ? visualTarget : new Point(
             previous.X + (visualTarget.X - previous.X) * weight,
             previous.Y + (visualTarget.Y - previous.Y) * weight);
+        if (track.Local)
+        {
+            double authoritativeOffset = track.Position.Distance(track.Target);
+            if (authoritativeOffset > MotionPresentationRules.LocalIntentMaxLeadTiles)
+            {
+                var correction = track.Target.Direction(track.Position);
+                track.Position = track.Target.Add(correction.Scale(MotionPresentationRules.LocalIntentMaxLeadTiles));
+            }
+        }
         double travelled = previous.Distance(track.Position);
         double instantSpeed = travelled / delta;
         double speedWeight = 1 - Math.Exp(-12 * Math.Min(delta, .1));

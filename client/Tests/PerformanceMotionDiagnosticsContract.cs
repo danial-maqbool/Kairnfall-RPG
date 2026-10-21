@@ -204,29 +204,42 @@ public partial class PerformanceMotionDiagnosticsContract : Node
         double nextPacket = 0;
         int packet = 0;
 
-        await RunForSeconds(2.8, elapsed =>
+        try
         {
-            if (elapsed + 1e-6 < nextPacket) return;
-            double phase = elapsed < .7 ? elapsed / .7
-                : elapsed < 1.15 ? 1
-                : elapsed < 1.85 ? 1 - (elapsed - 1.15) / .7
-                : elapsed < 2.25 ? 0
-                : -(elapsed - 2.25) / .55;
-            var desired = origin.Add(new Point(phase * 1.8, phase * .7));
-            var moved = WorldMap.Move(zone, origin, new Point(desired.X - origin.X, desired.Y - origin.Y));
-            snapshot.Time += .1;
-            snapshot.Revision++;
-            snapshot.Self.Position = moved;
-            snapshot.Self.Facing = origin.Direction(moved);
-            foreach (var creature in snapshot.Creatures.Take(8))
+            await RunForSeconds(2.8, elapsed =>
             {
-                double wobble = Math.Sin(snapshot.Time * 2 + creature.Id.GetHashCode() * .01) * .3;
-                creature.Position = creature.Home.Add(new Point(wobble, 0));
-            }
-            game.World.Accept(new TransportPacket { Snapshot = Wire.Copy(snapshot) });
-            nextPacket += .1;
-            packet++;
-        });
+                Vector2 intent = elapsed < .7 ? new Vector2(1.8f, .7f).Normalized()
+                    : elapsed < 1.15 ? Vector2.Zero
+                    : elapsed < 1.85 ? new Vector2(-1.8f, -.7f).Normalized()
+                    : elapsed < 2.25 ? Vector2.Zero
+                    : new Vector2(-1.8f, -.7f).Normalized();
+                game.World.SetLocalMovementIntent(intent);
+                if (elapsed + 1e-6 < nextPacket) return;
+                double phase = elapsed < .7 ? elapsed / .7
+                    : elapsed < 1.15 ? 1
+                    : elapsed < 1.85 ? 1 - (elapsed - 1.15) / .7
+                    : elapsed < 2.25 ? 0
+                    : -(elapsed - 2.25) / .55;
+                var desired = origin.Add(new Point(phase * 1.8, phase * .7));
+                var moved = WorldMap.Move(zone, origin, new Point(desired.X - origin.X, desired.Y - origin.Y));
+                snapshot.Time += .1;
+                snapshot.Revision++;
+                snapshot.Self.Position = moved;
+                snapshot.Self.Facing = origin.Direction(moved);
+                foreach (var creature in snapshot.Creatures.Take(8))
+                {
+                    double wobble = Math.Sin(snapshot.Time * 2 + creature.Id.GetHashCode() * .01) * .3;
+                    creature.Position = creature.Home.Add(new Point(wobble, 0));
+                }
+                game.World.Accept(new TransportPacket { Snapshot = Wire.Copy(snapshot) });
+                nextPacket += .1;
+                packet++;
+            });
+        }
+        finally
+        {
+            game.World.SetLocalMovementIntent(Vector2.Zero);
+        }
         Require(packet >= 20, "Native motion fixture delivered at least twenty 10 Hz-style snapshots");
         return Capture(game, "motion-start-stop-reversal");
     }
@@ -733,8 +746,11 @@ public partial class PerformanceMotionDiagnosticsContract : Node
             Require(matrix.Where(x => x.Scenario is "continuous-straight" or "continuous-diagonal" or "interstitial")
                     .All(x => x.LongestFalseStopMs <= 40),
                 "Continuous and interstitial motion avoid perceptible false-stop runs");
-            Require(matrix.All(x => double.IsFinite(x.MaxErrorTiles) && double.IsFinite(x.FinalErrorTiles)),
+            Require(matrix.All(x => double.IsFinite(x.MaxErrorTiles) && double.IsFinite(x.FinalErrorTiles)
+                && double.IsFinite(x.LongestFalseStopMs)),
                 "Synthetic matrix remains finite across continuous, long-idle, irregular, duplicate, coalesced and stalled delivery");
+            var peakLead = matrix.OrderByDescending(x => x.MaxForwardLeadTiles).First();
+            GD.Print($"MOTION_PEAK_LEAD: {peakLead.Scenario} @{peakLead.RenderFps}fps {peakLead.MaxForwardLeadTiles:0.000000} tiles");
             Require(matrix.All(x => x.MaxForwardLeadTiles <= MotionPresentationRules.MaxLeadTiles + .02),
                 "Synthetic schedules keep forward visual lead within the configured cap");
             Require(matrix.Where(x => x.Scenario == "stall").All(x => x.FinalErrorTiles < .03),

@@ -30,9 +30,10 @@ public partial class GameRoot
     private void ShowLogin(string message = "")
     {
         authenticationBusy = false;
-        var column = FrontPage("Enter a persistent realm");
-        column.AddChild(Ui.Label("Server", 14, Ui.Muted));
-        var address = Ui.Edit("https://your-realm.example", settings.GetValue("connection", "address", "http://127.0.0.1:5077").AsString()); column.AddChild(address);
+        var column = FrontPage("Enter your local realm");
+        column.AddChild(Ui.Label("Local server", 14, Ui.Muted));
+        string savedAddress = settings.GetValue("connection", "address", LocalRealmAddressRules.Default).AsString();
+        var address = Ui.Edit(LocalRealmAddressRules.Default, LocalRealmAddressRules.Allowed(savedAddress) ? savedAddress : LocalRealmAddressRules.Default); column.AddChild(address);
         column.AddChild(Ui.Label("Account name", 14, Ui.Muted));
         var username = Ui.Edit("Account name", settings.GetValue("connection", "username", "").AsString()); column.AddChild(username);
         column.AddChild(Ui.Label("Password", 14, Ui.Muted));
@@ -44,6 +45,7 @@ public partial class GameRoot
         async void Authenticate(bool create)
         {
             if (authenticationBusy) return;
+            if (!LocalRealmAddressRules.Allowed(address.Text.Trim())) { status.Text = "Use a localhost address. This client connects only to your local realm."; return; }
             if (create && password.Text != repeat.Text) { status.Text = "The passwords do not match."; return; }
             authenticationBusy = true; login.Disabled = true; register.Disabled = true; status.Text = "Connecting to the realm…";
             try
@@ -69,7 +71,7 @@ public partial class GameRoot
         register = Ui.Button("Create account", () => Authenticate(true)); register.SizeFlagsHorizontal = SizeFlags.ExpandFill; buttons.AddChild(register);
         password.TextSubmitted += _ => Authenticate(false);
         repeat.TextSubmitted += _ => Authenticate(true);
-        column.AddChild(Ui.Label("A realm server must be running. For a local realm, run Run-Kairnfall-Dev.ps1. Remote connections require HTTPS.", 14, Ui.Muted, true));
+        column.AddChild(Ui.Label("Start your local realm with the included launcher. Your accounts and world stay on this computer; no Internet game server is required.", 14, Ui.Muted, true));
         column.AddChild(Ui.Label("Passwords and session tokens are not saved in client settings.", 13, Ui.Muted, true));
         var footer = Ui.Row(column); footer.AddChild(Ui.Button("Settings", () => OpenPage("Settings"))); footer.AddChild(Ui.Button("Exit", () => _ = ShutdownAsync()));
     }
@@ -90,7 +92,7 @@ public partial class GameRoot
             details.AddChild(Ui.Label(cls.Name + "  ·  Level " + character.Level + "  ·  " + Data.Zone(character.Zone).Name, 14, Ui.Muted));
             var enter = Ui.Button("Enter world", () => EnterWorld(character.Id)); card.AddChild(enter);
         }
-        if (characters.Count == 0) column.AddChild(Ui.Label("Create a character to begin at Wayfarer's Rest.", 17, Ui.Text, true));
+        if (characters.Count == 0) column.AddChild(Ui.Label("Create a character to begin at " + CharacterStartName + ".", 17, Ui.Text, true));
         var buttons = Ui.Row(column);
         buttons.AddChild(Ui.Button("Create character", ShowCharacterCreation, characters.Count >= 4));
         buttons.AddChild(Ui.Button("Sign out", Logout));
@@ -111,8 +113,9 @@ public partial class GameRoot
                 World.Accept(packet); invitations = packet.Invitations ?? []; friendInvitations = packet.FriendInvitations ?? [];
                 lfgListings = packet.Lfg ?? []; socialProfiles = packet.SocialProfiles ?? [];
             }
-            frontend.Visible = false; SetInitialHotbar(); ClosePage();
-            Notify("Move: WASD or arrows. Interact: E. Hold Space to attack. Use your first class ability with 1.");
+            frontend.Visible = false; SetInitialHotbar(); ClosePage(); ApplyFocusHud();
+            Notify(ClassicSessionActive ? "Move one tile: WASD or arrows. Face an adjacent object and use Space. Shift picks up owned loot underfoot."
+                : "Move: WASD or arrows. Interact: E. Hold Space to attack. Use your first class ability with 1.");
         }
         catch (Exception error) { Notify(error.Message, true); ShowLogin(error.Message); }
         finally { authenticationBusy = false; }
@@ -140,7 +143,7 @@ public partial class GameRoot
         cls.ItemSelected += _ => RefreshClass(); RefreshClass();
         var status = Ui.Label("", 14, Ui.Danger, true); column.AddChild(status);
         var buttons = Ui.Row(column);
-        buttons.AddChild(Ui.Button("Begin at Wayfarer's Rest", async () =>
+        buttons.AddChild(Ui.Button("Begin at " + CharacterStartName, async () =>
         {
             if (Connection is null || authenticationBusy) return;
             authenticationBusy = true;

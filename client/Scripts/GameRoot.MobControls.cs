@@ -19,7 +19,7 @@ public partial class GameRoot
         if (!dashGate.TryTake(now, snapshot.Time, snapshot.Self.Cooldowns.GetValueOrDefault("dash"), true, DashRules.Cooldown)) return;
         var vector = Input.GetVector("move_left", "move_right", "move_up", "move_down");
         var direction = DashRules.Direction(new Point(vector.X, vector.Y), snapshot.Self.Facing);
-        StopCombatInput(); route.Clear(); pendingInteraction = null;
+        StopCombatInput(); ClearRoute(); pendingInteraction = null;
         _ = SendAsync(new GameCommand { Kind = "dash", X = direction.X, Y = direction.Y }, true);
     }
 
@@ -60,7 +60,13 @@ public partial class GameRoot
             bool queued = BasicAttackBuffered(local) && attackLeft > .02;
             basicAttackButton.Text = queued ? $"Attack · QUEUED {attackLeft:0.0}s"
                 : attackLeft > .04 ? $"Attack {attackLeft:0.0}s" : "Attack [" + bindings["basic_attack"] + "]";
-            basicAttackButton.TooltipText = $"Server-authoritative basic attack · {reach:0.0} tile reach · {cadence:0.00}s recovery.\nHold the attack key to repeat. A tap up to {ExperienceRules.BasicAttackBufferSeconds:0.00}s before recovery queues one attack; the server still confirms every hit.";
+            if (classicGatherTarget != "")
+                basicAttackButton.Text = "Gathering · stop [" + bindings["basic_attack"] + "]";
+            else if (ClassicControls && classicAttackTarget != "")
+                basicAttackButton.Text = "Target armed [" + bindings["basic_attack"] + "]";
+            else if (ClassicControls && selectedTargetKind != "creature" && ContextTarget() is { } context)
+                basicAttackButton.Text = ContextVerb(context) + " [" + bindings["basic_attack"] + "]";
+            basicAttackButton.TooltipText = (ClassicControls ? "Click a creature, then move within reach to repeat attacks. Space uses a nearby object when no creature is selected.\n" : "") + $"Server-authoritative basic attack · {reach:0.0} tile reach · {cadence:0.00}s recovery.\nHold the attack key to repeat. A tap up to {ExperienceRules.BasicAttackBufferSeconds:0.00}s before recovery queues one attack; the server still confirms every hit.";
         }
 
         targetNextButton.Disabled = !GameplayInputAllowed;

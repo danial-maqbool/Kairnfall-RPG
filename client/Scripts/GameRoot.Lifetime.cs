@@ -11,8 +11,9 @@ public partial class GameRoot
     {
         if (closing) return;
         closing = true;
+        classicConsumeReadinessTick = null;
         SetProcess(false);
-        StopCombatInput(); route.Clear(); pendingInteraction = null;
+        StopCombatInput(); RetireNavigationSession();
         lifetime.Cancel();
         if (audio is not null && GodotObject.IsInstanceValid(audio)) audio.ReleasePlayback();
         var connection = Connection;
@@ -38,8 +39,10 @@ public partial class GameRoot
     {
         closing = true;
         StopCombatInput();
+        RetireNavigationSession();
         lifetime.Cancel();
         refreshPage = null;
+        classicConsumeReadinessTick = null;
         if (audio is not null && GodotObject.IsInstanceValid(audio)) audio.ReleasePlayback();
         if (Connection is { } connection)
         {

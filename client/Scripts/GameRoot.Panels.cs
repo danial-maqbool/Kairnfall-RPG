@@ -10,7 +10,7 @@ public partial class GameRoot
     {
         if (interfaceRoot is not null)
             foreach (var menu in interfaceRoot.FindChildren("*", "Control", true, false).OfType<EquipmentMenu>()) menu.Close();
-        refreshPage = null; page = null; currentPage = ""; lastPageStamp = "";
+        refreshPage = null; classicConsumeReadinessTick = null; page = null; currentPage = ""; lastPageStamp = "";
         awaitingBinding = "";
         if (gameWindow is not null) { gameWindow.Hide(); gameWindow.QueueFree(); gameWindow = null; }
         ExitModalUx();
@@ -18,7 +18,11 @@ public partial class GameRoot
     private void OpenPage(string name)
     {
         if (Snapshot is null && name != "Settings") return;
+        StopCombatInput(); ClearRoute(); pendingInteraction = null;
+        bool fullPage = classicFullPage; classicFullPage = false;
         ClosePage(); currentPage = name;
+        if (!fullPage && ClassicPanelsEnabled && name is "Inventory" or "Crafting")
+        { StopCombatInput(); ClearRoute(); pendingInteraction = null; OpenClassicPage(name); return; }
         gameWindow = new PanelContainer { Size = new Vector2(Math.Min(1100, Size.X - 80), Math.Min(670, Size.Y - 140)) };
         interfaceRoot.AddChild(gameWindow); gameWindow.Position = (Size - gameWindow.Size) / 2;
         var contents = Ui.Column(gameWindow, true); var header = Ui.Row(contents); header.MouseFilter = MouseFilterEnum.Stop;
@@ -282,6 +286,37 @@ public partial class GameRoot
         var rows = Ui.Column(Ui.Scroll(page, new Vector2(800, 450)));
         rows.AddChild(Ui.Label("Display and sound", 22, Ui.Gold));
         AddPixelPresentationControls(rows);
+        rows.AddChild(Ui.Button("Use classic local presentation", () =>
+        {
+            StopCombatInput(); ClearRoute(); pendingInteraction = null; SendMovement(Vector2.Zero);
+            settings.SetValue("controls", "classic_target_attack", true);
+            settings.SetValue("controls", "classic_grid", true); settings.SetValue("controls", "classic_gather", true);
+            settings.SetValue("hud", "focus_world", true); settings.SetValue("hud", "classic_panels", true);
+            lastInput = new Vector2(99, 99); ApplyFocusHud(); settings.Save("user://settings.cfg");
+            Notify("Classic local controls and compact panels enabled.");
+        }));
+        AddToggle(rows, "Compact world HUD", FocusHudEnabled, value =>
+        {
+            settings.SetValue("hud", "focus_world", value); ApplyFocusHud();
+        });
+        AddToggle(rows, "Compact inventory and crafting panels", settings.GetValue("hud", "classic_panels", true).AsBool(), value => settings.SetValue("hud", "classic_panels", value));
+        var classicTargetSetting = AddToggle(rows, "Classic targeting and contextual action", ClassicControls, value =>
+        {
+            StopCombatInput(); settings.SetValue("controls", "classic_target_attack", value);
+        });
+        var classicGridSetting = AddToggle(rows, "Tile movement (classic mode)", GridControls, value =>
+        {
+            ClearRoute(); pendingInteraction = null; SendMovement(Vector2.Zero);
+            settings.SetValue("controls", "classic_grid", value); lastInput = new Vector2(99, 99);
+        });
+        classicTargetSetting.Disabled = ClassicSessionActive; classicGridSetting.Disabled = ClassicSessionActive;
+        if (ClassicSessionActive) rows.AddChild(Ui.Label("This tutorial world uses tile movement and contextual actions. Your saved control choices apply again in ordinary worlds.", 14, Ui.Muted, true));
+        AddToggle(rows, "Repeat gathering after an accepted action", ClassicGatherEnabled, value =>
+        {
+            StopCombatInput(); settings.SetValue("controls", "classic_gather", value);
+        });
+        rows.AddChild(Ui.Label("Tile mode finishes one step on key release. Gathering continues after the first accepted gather; movement, chat, menus, or Action again stop it. Resource recovery remains the local realm's existing balance.", 14, Ui.Muted, true));
+        rows.AddChild(Ui.Label("Classic: click a creature, then move within reach to attack. Space uses a nearby object when no creature is selected. Escape, menus, chat, and changing targets cancel attacks.", 14, Ui.Muted, true));
         AddToggle(rows, "Weather effects", World.WeatherEnabled, value => { World.WeatherEnabled = value; settings.SetValue("display", "weather", value); });
         AddToggle(rows, "NPC and player names", World.ShowNames, value => { World.ShowNames = value; settings.SetValue("display", "names", value); });
         AddToggle(rows, "Fullscreen", GetWindow().Mode is Window.ModeEnum.Fullscreen or Window.ModeEnum.ExclusiveFullscreen, value =>
@@ -304,14 +339,15 @@ public partial class GameRoot
         var actions = Ui.Row(rows);
         if (Connection is not null)
         {
-            actions.AddChild(Ui.Button("Reconnect", async () => { try { if (Connection is not null && Connection.CharacterId != "") { await Connection.ConnectAsync(Connection.CharacterId); ClosePage(); Notify("Connection restored."); } } catch (Exception e) { ShowLogin(e.Message); } }));
+            actions.AddChild(Ui.Button("Reconnect", async () => { try { if (Connection is not null && Connection.CharacterId != "") { RetireNavigationSession(); await Connection.ConnectAsync(Connection.CharacterId); ClosePage(); Notify("Connection restored."); } } catch (Exception e) { ShowLogin(e.Message); } }));
             actions.AddChild(Ui.Button("Sign out", Logout));
         }
         actions.AddChild(Ui.Button("Exit game", () => _ = ShutdownAsync()));
     }
-    private void AddToggle(Node parent, string text, bool value, Action<bool> changed)
+    private CheckButton AddToggle(Node parent, string text, bool value, Action<bool> changed)
     {
         var button = new CheckButton { Text = text, ButtonPressed = value }; parent.AddChild(button);
         button.Toggled += on => { changed(on); settings.Save("user://settings.cfg"); };
+        return button;
     }
 }

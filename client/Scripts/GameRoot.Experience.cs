@@ -50,6 +50,15 @@ public partial class GameRoot
             if (!targetKey.Echo) CycleHostileTarget(targetKey.ShiftPressed);
             GetViewport().SetInputAsHandled(); return;
         }
+        // Space is a world action while gameplay is active. A restored HUD button
+        // focus must not consume it through Godot's default keyboard activation.
+        if (@event is InputEventKey { Pressed: true } actionKey && GameplayInputAllowed
+            && !actionKey.CtrlPressed && !actionKey.AltPressed && !actionKey.MetaPressed
+            && InputMap.HasAction("basic_attack") && actionKey.IsActionPressed("basic_attack"))
+        {
+            if (!actionKey.Echo) _UnhandledInput(actionKey);
+            GetViewport().SetInputAsHandled(); return;
+        }
         // GUI focus can consume a release after the press reached the world. Keep only
         // the short tap buffer; release must never keep automatic approach movement alive.
         if (InputMap.HasAction("basic_attack") && @event.IsActionReleased("basic_attack")) ReleaseBasicAttack();
@@ -57,7 +66,7 @@ public partial class GameRoot
 
     private void CancelCombatApproach()
     {
-        if (combatApproach) route.Clear();
+        if (combatApproach) ClearRoute();
         combatApproach = false;
     }
     private Kairnfall.Core.Point engagementOrigin;
@@ -77,6 +86,10 @@ public partial class GameRoot
     {
         engagementStarted = false;
         attackKeyHeld = false;
+        // Tutorial gathering is an explicit toggle. Releasing Space while its
+        // first receipt is pending must not undo the start intention. Accepted
+        // progress still comes only from the server; ordinary release stays unchanged.
+        if (!classicGatherConfirmed && !RetainTutorialGatherOnRelease()) classicGatherTarget = "";
         approachUsed = false;
         approachTravelled = 0; nextApproachPlan = 0;
         CancelCombatApproach();
@@ -84,6 +97,7 @@ public partial class GameRoot
 
     private void StopCombatInput()
     {
+        classicAttackTarget = ""; classicGatherTarget = ""; classicGatherConfirmed = false;
         ReleaseBasicAttack();
         ClearBasicAttackBuffer();
     }
@@ -197,7 +211,7 @@ public partial class GameRoot
                     Notify("No short attack route to the selected target.");
                     return;
                 }
-                pendingInteraction = null; route.Clear(); route.AddRange(path);
+                pendingInteraction = null; ClearRoute(); route.AddRange(path);
                 combatApproach = true;
             }
             return;
@@ -217,15 +231,55 @@ public partial class GameRoot
         bool Available(WorldTarget target)
         {
             if (target.Kind == "loot") return World.Loot.Any(x => x.Id == target.Id && ExperienceRules.LootAvailable(snapshot.Self, x, snapshot.Time));
-            if (target.Kind == "node") return snapshot.Nodes.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time);
+            if (target.Kind == "node") return snapshot.Nodes.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time
+                && (!x.Template.StartsWith("classic_", StringComparison.Ordinal)
+                    || ClassicGatherRules.Problem(snapshot.Self, x, Data, snapshot.Time) == ""));
             if (target.Kind == "chest") return snapshot.Chests.Any(x => x.Id == target.Id && x.ReadyAt <= snapshot.Time);
             return true;
         }
-        return ExperienceRules.ChooseInteraction(snapshot.Self, World.Targets.Where(Available), Data);
+        // Preserve a deliberate site selection even when facing or distance
+        // blocks it. Its reason must not silently become another action.
+        if (selectedTargetKind == "classic_site")
+            return ClassicInteractionRules.TutorialSite(snapshot.Self, Data, selectedTarget) is { } selectedSite
+                ? new WorldTarget("classic_site", selectedSite.Id, selectedSite.Name, selectedSite.Position) : null;
+        // Keep a deliberately selected tutorial resource's latest facing and
+        // adjacency reason, including outside reach. Space must not silently
+        // switch that blocked selection to another object or a nearby creature.
+        if (selectedTargetKind == "node" && ClassicInteractionRules.InTutorial(snapshot.Self, Data)
+            && snapshot.Nodes.FirstOrDefault(x => x.Id == selectedTarget && x.Zone == snapshot.Self.Zone) is { } tutorialNode
+            && tutorialNode.Template.StartsWith("classic_", StringComparison.Ordinal))
+        {
+            string name = Data.Resources.FirstOrDefault(x => x.Id == tutorialNode.Template)?.Name ?? Ui.Words(tutorialNode.Template);
+            return new WorldTarget("node", tutorialNode.Id, name, tutorialNode.Position);
+        }
+        // A deliberate blocked chest/loot selection keeps its reason visible
+        // instead of silently switching the action to a nearby resource or NPC.
+        if (selectedTargetKind is "chest" or "loot"
+            && World.Targets.Where(x => x.Kind == selectedTargetKind && x.Id == selectedTarget)
+                .Select(x => (WorldTarget?)x).FirstOrDefault() is { } selectedInteraction
+            && snapshot.Self.Position.Distance(selectedInteraction.Position) <= 2.15
+            && WorldMap.LineOfSight(Data.Zone(snapshot.Self.Zone), snapshot.Self.Position, selectedInteraction.Position))
+            return selectedInteraction;
+        if (ClassicGatherEnabled && selectedTargetKind == "node"
+            && snapshot.Nodes.FirstOrDefault(x => x.Id == selectedTarget) is { } selectedNode
+            && selectedNode.Zone == snapshot.Self.Zone && selectedNode.Position.Distance(snapshot.Self.Position) <= 2.15
+            && WorldMap.LineOfSight(Data.Zone(snapshot.Self.Zone), snapshot.Self.Position, selectedNode.Position))
+        {
+            var definition = Data.Resources.FirstOrDefault(x => x.Id == (selectedNode.Template == "crop_wheat" ? "wheat_crop" : selectedNode.Template));
+            if (definition is not null) return new WorldTarget("node", selectedNode.Id, definition.Name, selectedNode.Position);
+        }
+        var ordinary = GridControls ? ClassicInteractionRules.Choose(snapshot.Self, World.Targets.Where(Available), Data)
+            : ExperienceRules.ChooseInteraction(snapshot.Self, World.Targets.Where(Available), Data);
+        var site = ClassicInteractionRules.ChooseTutorialSite(snapshot.Self, World.Targets, Data, snapshot.Time);
+        return site is { } readySite && (ordinary is null
+            || snapshot.Self.Position.Distance(readySite.Position) < snapshot.Self.Position.Distance(ordinary.Value.Position))
+            ? site : ordinary;
     }
 
     private string ContextVerb(WorldTarget target)
     {
+        if (target.Kind == "classic_site")
+            return ClassicTutorialContent.Sites.FirstOrDefault(x => x.Id == target.Id)?.Kind == "fountain" ? "Visit" : "Read";
         if (target.Kind == "event" && Snapshot?.Events.FirstOrDefault(x => x.Id == target.Id) is { } worldEvent) return WorldEventRules.InteractionVerb(worldEvent);
         if (target.Kind != "node") return ExperienceRules.InteractionVerb(target.Kind);
         string template = Snapshot?.Nodes.FirstOrDefault(x => x.Id == target.Id)?.Template ?? "";
@@ -266,7 +320,7 @@ public partial class GameRoot
             MouseFilter = MouseFilterEnum.Ignore
         };
         hud.AddChild(controls);
-        basicAttackButton = Ui.Button("Attack [Space]", () => BeginBasicAttack(false));
+        basicAttackButton = Ui.Button("Action [Space]", () => PrimaryAction(false));
         basicAttackButton.Name = "BasicAttack";
         basicAttackButton.FocusMode = FocusModeEnum.None;
         basicAttackButton.TooltipText = "Click to attack once. Hold Space to repeat. Click a creature to select it; double-click to attack once.";
@@ -324,20 +378,27 @@ public partial class GameRoot
         if (!GameplayInputAllowed) StopCombatInput();
         if (attackKeyHeld && !Input.IsActionPressed("basic_attack")) ReleaseBasicAttack();
         double combatNow = Time.GetTicksMsec() / 1000.0;
+        TickClassicTargetAttack(); TickClassicGather();
         if (attackKeyHeld || BasicAttackBuffered(combatNow)) TryBasicAttack();
         else if (basicAttackBufferedTarget != "") ClearBasicAttackBuffer();
         TickAbilityBuffer();
         contextClock += delta;
         if (contextClock < .1 || interactionHint is null) return;
         contextClock = 0;
+        classicConsumeReadinessTick?.Invoke();
         double now = Time.GetTicksMsec() / 1000.0;
         var context = GameplayInputAllowed ? ContextTarget() : null;
         UpdateMobControls(); UpdateClassResourceHud(); UpdatePublicEventHud();
-        interactionButton.Disabled = context is null;
+        string contextProblem = context is { } chosen ? InteractionProblem(chosen, false) : "";
+        interactionButton.Disabled = !GameplayInputAllowed || actionBusy || context is null || contextProblem != "";
+        interactionButton.TooltipText = contextProblem;
         basicAttackButton.Disabled = !GameplayInputAllowed;
-        interactionButton.Text = "Interact [" + bindings["interact"] + "]";
-        interactionHint.Text = context is { } target
-            ? "[" + bindings["interact"] + "] " + ContextVerb(target) + " " + target.Name
+        interactionButton.Text = (context is { Kind: "classic_site" } tutorialSite
+            ? ContextVerb(tutorialSite) : "Interact") + " [" + bindings["interact"] + "]";
+        interactionHint.Text = classicGatherTarget != "" && Snapshot?.Nodes.FirstOrDefault(x => x.Id == classicGatherTarget) is { } gathering
+            ? "Gathering " + ContextVerb(new WorldTarget("node", gathering.Id, "", gathering.Position)) + " · " + Math.Max(0, gathering.ReadyAt - Snapshot.Time).ToString("0.0") + "s recovery · Action or movement stops"
+            : context is { } target
+            ? contextProblem != "" ? target.Name + " · " + contextProblem : "[" + bindings["interact"] + "] " + ContextVerb(target) + " " + target.Name
             : GameplayInputAllowed ? "Hold " + bindings["basic_attack"] + " to attack · " + bindings["target_next"] + " cycles targets · " + bindings["dash"] + " dashes (4 mana)" : "";
         if (pickupNotes.RemoveAll(x => now > x.Until) > 0) RenderPickupFeed();
     }
@@ -445,7 +506,7 @@ public partial class GameRoot
         }
         if (previous.Self.Zone != current.Self.Zone)
         {
-            route.Clear(); pendingInteraction = null; lastInput = Vector2.Zero; StopCombatInput();
+            ClearRoute(); pendingInteraction = null; lastInput = Vector2.Zero; StopCombatInput();
             var entered=Data.Zone(current.Self.Zone); Notify("ARRIVED · "+entered.Name+" · "+entered.Layer); audio?.PlayEffect("transition");
         }
         var before = previous.Self.Inventory.GroupBy(x => (x.Template, x.Rarity)).ToDictionary(x => x.Key, x => x.Sum(y => y.Quantity));
@@ -469,15 +530,24 @@ public partial class GameRoot
             var quest=Data.Quests.FirstOrDefault(x=>x.Id==completed); if(quest is null)continue;
             World.ClassBurst(current.Self.Position,Ui.Gold); audio?.PlayEffect("quest_complete");
         }
+        var gainedSkill = Data.Skills.OrderByDescending(x => current.Self.SkillXp.GetValueOrDefault(x.Id) - previous.Self.SkillXp.GetValueOrDefault(x.Id))
+            .FirstOrDefault(x => current.Self.SkillXp.GetValueOrDefault(x.Id) > previous.Self.SkillXp.GetValueOrDefault(x.Id));
         foreach (var skill in Data.Skills)
         {
             long beforeXp=previous.Self.SkillXp.GetValueOrDefault(skill.Id);
             long currentXp=current.Self.SkillXp.GetValueOrDefault(skill.Id);
-            if(currentXp>beforeXp) lastExperienceSkill=skill.Id;
             int beforeLevel=Progression.SkillLevel(beforeXp),afterLevel=Progression.SkillLevel(currentXp);
+            if(skill.Id == gainedSkill?.Id)
+            {
+                lastExperienceSkill=skill.Id;
+                string feedback = afterLevel > beforeLevel ? skill.Name + " up! " + afterLevel + " (+" + (currentXp-beforeXp) + " XP)"
+                    : "+" + (currentXp-beforeXp) + " " + skill.Name + " XP";
+                World.CombatNote(current.Self.Position, feedback, afterLevel > beforeLevel ? Ui.Success : new Color("82b5eb"));
+            }
             if(afterLevel>beforeLevel)
             {
-                World.ClassBurst(current.Self.Position,Ui.Success); audio?.PlayEffect("skill_up");
+                World.ClassBurst(current.Self.Position,Ui.Success);
+                audio?.PlayEffect("skill_up");
             }
         }
         int overall = Progression.PlayerLevel(current.Self);

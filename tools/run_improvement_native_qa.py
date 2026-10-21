@@ -45,6 +45,11 @@ HEADLESS_SUITES = (
     'WindowsScaleContract', 'InputContract', 'CompactItemCardContract',
 )
 SUITE_MARKERS = {
+    'ClassicTutorialPresentationContract': 'CLASSIC_TUTORIAL_PRESENTATION_CONTRACT:',
+    'ClassicTutorialInteractionContract': 'CLASSIC_TUTORIAL_INTERACTION_CONTRACT:',
+    'ClassicTutorialJourneyContract': 'CLASSIC_TUTORIAL_JOURNEY_CONTRACT:',
+    'ClassicTutorialPickaxeContract': 'CLASSIC_TUTORIAL_PICKAXE_CONTRACT:',
+    'GridRouteLifecycleContract': 'GRID_ROUTE_LIFECYCLE_CONTRACT:',
     'ClassicExperienceContract': 'CLASSIC_EXPERIENCE_CONTRACT:',
     'ControlRulesContract': 'CONTROL_RULES_CONTRACT:',
     'PlayerExperienceContract': 'PLAYER_EXPERIENCE_CONTRACT:',
@@ -379,7 +384,10 @@ def isolated_environment(env: dict[str, str]) -> dict[str, str]:
                    'XDG_CACHE_HOME': OUT / 'platform-cache'}
     for directory in set(directories.values()):
         workspace_path(directory).mkdir(parents=True, exist_ok=True)
-    return env | {name: str(directory) for name, directory in directories.items()}
+    # A fresh SDK home can trigger certificate and global-tool setup even with
+    # first-time-experience disabled. Isolated fixture builds need neither.
+    return env | {name: str(directory) for name, directory in directories.items()} | {
+        'DOTNET_GENERATE_ASPNET_CERTIFICATE': 'false', 'DOTNET_ADD_GLOBAL_TOOLS_TO_PATH': 'false'}
 
 
 def isolation_probe(godot: Path, env: dict[str, str], run_dir: Path) -> dict[str, object]:

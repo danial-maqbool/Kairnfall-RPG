@@ -42,6 +42,8 @@ public sealed record ClientPerformanceReport(
     PerfMetric LocalRenderedSpeedTilesPerSecond,
     long FalseLocalStopFrames,
     double LongestFalseLocalStopMs,
+    long FalseRenderedStopFrames,
+    double LongestFalseRenderedStopMs,
     PerfMetric VisibleActors,
     PerfMetric VisualRecords,
     PerfMetric DrawCalls,
@@ -135,6 +137,9 @@ public sealed class ClientPerformanceDiagnostics
     private long falseLocalStopFrames;
     private double currentFalseLocalStopMs;
     private double longestFalseLocalStopMs;
+    private long falseRenderedStopFrames;
+    private double currentFalseRenderedStopMs;
+    private double longestFalseRenderedStopMs;
     private long textureHits;
     private long textureMisses;
     private long negativeTextureHits;
@@ -193,6 +198,9 @@ public sealed class ClientPerformanceDiagnostics
         falseLocalStopFrames = 0;
         currentFalseLocalStopMs = 0;
         longestFalseLocalStopMs = 0;
+        falseRenderedStopFrames = 0;
+        currentFalseRenderedStopMs = 0;
+        longestFalseRenderedStopMs = 0;
         textureHits = textureMisses = negativeTextureHits = 0;
         resourceLoads = missingResources = 0;
         atlasHits = atlasMisses = 0;
@@ -245,7 +253,9 @@ public sealed class ClientPerformanceDiagnostics
         lastAuthoritativeTime = authoritativeTime;
     }
 
-    public void RecordMotion(double meanErrorTiles, double maxErrorTiles, int reversals, int actorCount)
+    /// <summary>Records actor errors and caller-declared severe rendered slowdowns.</summary>
+    public void RecordMotion(double meanErrorTiles, double maxErrorTiles, int reversals, int actorCount,
+        bool falseRenderedStop = false, double deltaSeconds = 0)
     {
         if (!Enabled) return;
         if (actorCount > 0)
@@ -254,8 +264,16 @@ public sealed class ClientPerformanceDiagnostics
             maxPositionError.Add(maxErrorTiles);
         }
         if (reversals > 0) unexpectedRenderedReversals += reversals;
+        if (falseRenderedStop && double.IsFinite(deltaSeconds) && deltaSeconds > 0)
+        {
+            falseRenderedStopFrames++;
+            currentFalseRenderedStopMs += deltaSeconds * 1000;
+            longestFalseRenderedStopMs = Math.Max(longestFalseRenderedStopMs, currentFalseRenderedStopMs);
+        }
+        else currentFalseRenderedStopMs = 0;
     }
 
+    /// <summary>Records local speed and near-zero motion while movement is expected.</summary>
     public void RecordLocalMotion(double speedTilesPerSecond, bool movementExpected, double deltaSeconds)
     {
         if (!Enabled || !double.IsFinite(speedTilesPerSecond) || speedTilesPerSecond < 0
@@ -337,6 +355,8 @@ public sealed class ClientPerformanceDiagnostics
             localRenderedSpeed.Summary(),
             falseLocalStopFrames,
             longestFalseLocalStopMs,
+            falseRenderedStopFrames,
+            longestFalseRenderedStopMs,
             visibleActors.Summary(),
             visualRecords.Summary(),
             drawCalls.Summary(),

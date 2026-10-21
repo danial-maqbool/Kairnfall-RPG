@@ -58,6 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           dotnet run --no-build --project tools/new_player_probe -c Release -- content/catalog.json | tee artifacts/journey/logs/journey.log
+          dotnet run --no-build --project tools/new_player_probe -c Release -- --classic-tutorial-scope-checks content/catalog.json 2>&1 | tee artifacts/journey/logs/classic-scope.log
           dotnet run --no-build --project tests/Kairnfall.Tests/Kairnfall.Tests.csproj -c Release -- content/catalog.json | tee artifacts/journey/logs/core.log
           dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release | tee artifacts/journey/logs/review.log
           dotnet run --project tests/Kairnfall.SecurityTests/Kairnfall.SecurityTests.csproj -c Release -- content/catalog.json | tee artifacts/journey/logs/security.log
@@ -65,6 +66,7 @@ jobs:
           dotnet run --no-build --project tools/world_probe/world_probe.csproj -c Release | tee artifacts/journey/logs/world.log
           dotnet run --no-build --project tests/Kairnfall.Integration/Kairnfall.Integration.csproj -c Release | tee artifacts/journey/logs/network.log
           dotnet run --no-build --project tests/Kairnfall.ReviewTests/Kairnfall.ReviewTests.csproj -c Release -- --database | tee artifacts/journey/logs/database.log
+          timeout 450 dotnet run --no-build --project tools/new_player_probe -c Release -- --classic-tutorial-live content/catalog.json 2>&1 | tee artifacts/journey/logs/classic-live.log
           python -m unittest discover -s tests/handoff -p 'test_*.py' -v 2>&1 | tee artifacts/journey/logs/handoff.log
       - name: Reconstruct assets and verified Godot editor
         run: |
@@ -85,6 +87,31 @@ jobs:
           for log in import signals input experience control-rules xp-hud; do
             if grep -E '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Unhandled exception)' "artifacts/journey/logs/$log.log"; then exit 1; fi
           done
+      - name: Verify isolated optional tutorial presentation, interactions and guidance
+        run: |
+          set -euo pipefail
+          status=0
+          python tools/run_improvement_native_qa.py --headless --skip-build ClassicTutorialPresentationContract ClassicTutorialInteractionContract ClassicTutorialJourneyContract ClassicTutorialPickaxeContract GridRouteLifecycleContract ClassicExperienceContract CompactItemCardContract > artifacts/journey/logs/classic-native.log 2>&1 || status=$?
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          source = Path('artifacts/improvement-pass-2026-10-01/runs')
+          destination = Path('artifacts/journey/optional-native')
+          if source.is_dir():
+              for run in source.iterdir():
+                  if not run.is_dir():
+                      continue
+                  target = destination / run.name
+                  target.mkdir(parents=True, exist_ok=True)
+                  for name in ('native-results.json', 'copy-manifest.json'):
+                      if (run / name).is_file():
+                          shutil.copy2(run / name, target / name)
+                  for name in ('logs', 'results', 'frames'):
+                      if (run / name).is_dir():
+                          shutil.copytree(run / name, target / name)
+          PY
+          cat artifacts/journey/logs/classic-native.log
+          exit "$status"
       - name: Verify native gameplay and persisted guidance against a disposable realm
         env:
           PG_CONTAINER: ${{ job.services.postgres.id }}

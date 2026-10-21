@@ -118,7 +118,10 @@ public partial class LiveExperienceContract : Node
             var created = await connection.CreateCharacterAsync(new CharacterRequest { Name = "Native " + suffix, Class = "vanguard", Appearance = new() });
             await connection.ConnectAsync(created.Id);
             using (var scene = GD.Load<PackedScene>("res://Main.tscn")) game = scene.Instantiate<GameRoot>();
-            AddChild(game); Attach(connection); Field<Control>(game, "frontend").Hide(); GetViewport().GuiReleaseFocus();
+            AddChild(game);
+            Field<ConfigFile>(game, "settings").SetValue("controls", "classic_target_attack", false);
+            Field<ConfigFile>(game, "settings").SetValue("hud", "focus_world", false);
+            Call("ApplyFocusHud"); Attach(connection); Field<Control>(game, "frontend").Hide(); GetViewport().GuiReleaseFocus();
             await Until(() => game.Snapshot is not null, "The graphical client did not receive its first snapshot.");
             await Delay(.3);
             Require(Self.Zone == "wayfarers_rest", "A normal account starts in Wayfarer's Rest");

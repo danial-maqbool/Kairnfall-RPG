@@ -13,12 +13,13 @@ public static class ExperienceRules
 
     public static double WeaponRange(Character self, Catalog data)
     {
+        ItemDef? weapon = null;
         if (self.Equipment.TryGetValue("weapon", out var id))
         {
             var item = self.Inventory.FirstOrDefault(x => x.Id == id);
-            if (item is not null) return data.Item(item.Template).Range;
+            if (item is not null) weapon = data.Item(item.Template);
         }
-        return 1.6;
+        return BasicAttackRules.For(self, weapon).Range;
     }
 
     public static double BasicAttackRange(Character self, Catalog data)
@@ -150,6 +151,7 @@ public static class ExperienceRules
 
     public static bool LootAvailable(Character self, LootPile pile, double serverTime)
         => double.IsFinite(serverTime) && pile.Zone == self.Zone
+            && double.IsFinite(pile.Expires) && pile.Expires > serverTime
             && (pile.Owner == self.Id || pile.PublicAt <= serverTime || (pile.Party != "" && pile.Party == self.Party && pile.PartyAt <= serverTime));
 
     public static WorldTarget? ChooseInteraction(Character self, IEnumerable<WorldTarget> targets, Catalog data)

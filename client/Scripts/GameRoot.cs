@@ -9,7 +9,12 @@ public partial class GameRoot : Control
 {
     public PixelAssets Assets { get; private set; } = new();
     public ClientPerformanceDiagnostics Diagnostics { get; private set; } = ClientPerformanceDiagnostics.FromEnvironment();
-    public Catalog Data { get; private set; } = null!;
+    private Catalog data = null!;
+    public Catalog Data
+    {
+        get => data;
+        private set { data = value; Assets.BindCatalog(value); }
+    }
     public GameConnection? Connection { get; private set; }
     public WorldView World { get; private set; } = null!;
     public Snapshot? Snapshot => World?.Snapshot;
@@ -31,7 +36,7 @@ public partial class GameRoot : Control
     private readonly Dictionary<string, Key> bindings = new()
     {
         ["move_left"] = Key.A, ["move_right"] = Key.D, ["move_up"] = Key.W, ["move_down"] = Key.S,
-        ["basic_attack"] = Key.Space, ["interact"] = Key.E, ["inventory"] = Key.I, ["character"] = Key.C,
+        ["basic_attack"] = Key.Space, ["interact"] = Key.E, ["pickup"] = Key.Shift, ["inventory"] = Key.I, ["character"] = Key.C,
         ["skills"] = Key.K, ["quests"] = Key.J, ["map"] = Key.M, ["abilities"] = Key.B,
         ["crafting"] = Key.F, ["social"] = Key.P, ["target_next"] = Key.Tab, ["dash"] = Key.Q, ["hunting"] = Key.H
     };
@@ -71,7 +76,7 @@ public partial class GameRoot : Control
             AddChild(interfaceRoot); interfaceRoot.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             frontend = new Control { MouseFilter = MouseFilterEnum.Ignore };
             interfaceRoot.AddChild(frontend); frontend.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            BuildHud(); BuildExperienceHud();
+            BuildHud(); BuildExperienceHud(); BuildFocusHud();
             audio = new ClientAudio(); AddChild(audio);
             audio.SetVolumes((float)settings.GetValue("audio", "music", .35).AsDouble(), (float)settings.GetValue("audio", "effects", .65).AsDouble());
             World.WeatherEnabled = settings.GetValue("display", "weather", true).AsBool();
@@ -131,7 +136,7 @@ public partial class GameRoot : Control
                 if (packet.Snapshot is { } snapshot)
                 {
                     var previous = Snapshot;
-                    World.Accept(packet); ObservePlayerChanges(previous, snapshot);
+                    World.Accept(packet); ObserveNavigationContext(connection, snapshot); ObservePlayerChanges(previous, snapshot);
                     invitations = packet.Invitations ?? [];
                     friendInvitations = packet.FriendInvitations ?? [];
                     lfgListings = packet.Lfg ?? [];
@@ -153,10 +158,21 @@ public partial class GameRoot : Control
         if (Online)
         {
             var self = Snapshot!.Self;
+            ObserveNavigationContext(Connection!, Snapshot!);
             bool controls = GameplayInputAllowed;
             Vector2 input = controls ? Input.GetVector("move_left", "move_right", "move_up", "move_down") : Vector2.Zero;
-            if (!controls || input.LengthSquared() > .01f) { route.Clear(); pendingInteraction = null; }
-            if (input.LengthSquared() < .01f && route.Count > 0 && controls)
+            if (!controls || input.LengthSquared() > .01f)
+            {
+                if (route.Count > 0 && System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Testing")
+                    GD.Print($"ROUTE_CANCEL controls={controls} typing={Typing} focused={applicationFocused} modal={gameWindow is not null} input={input} frontend={frontend.Visible}");
+                if (controls) ClearRouteForHeldMovement(); else ClearRoute();
+                pendingInteraction = null;
+            }
+            if (ResolvePendingRouteInteraction(controls)) input = Vector2.Zero;
+            TrySendGridCancellation();
+            bool gridRouting = GridControls && controls && input.LengthSquared() < .01f && route.Count > 0;
+            if (gridRouting) input = TickGridRoute();
+            if (!GridControls && input.LengthSquared() < .01f && route.Count > 0 && controls)
             {
                 while (route.Count > 0 && self.Position.Distance(route[0]) < .32) route.RemoveAt(0);
                 if (route.Count > 0)
@@ -164,25 +180,34 @@ public partial class GameRoot : Control
                     var dir = self.Position.Direction(route[0]); input = new Vector2((float)dir.X, (float)dir.Y);
                 }
             }
-            if (controls && pendingInteraction is { } interaction && self.Position.Distance(interaction.Position) <= 2.15
-                && WorldMap.LineOfSight(Data.Zone(self.Zone), self.Position, interaction.Position))
-            {
-                pendingInteraction = null; route.Clear(); input = Vector2.Zero; Activate(interaction);
-            }
+            if (gridNavigation.BlocksMovement) input = Vector2.Zero;
             // Feed the resolved manual/route intent only to presentation continuity.
             // It is a visual-continuity hint; authoritative displacement still comes
             // exclusively from server simulation and accepted snapshots.
+            if (GridControls && input.LengthSquared() > .01f)
+            {
+                var cardinal = GridMovementRules.Cardinal(new Point(input.X, input.Y));
+                input = new Vector2((float)cardinal.X, (float)cardinal.Y);
+            }
             World.SetLocalMovementIntent(input);
             moveClock += delta;
-            bool changed = (input - lastInput).LengthSquared() > .0001f;
+            bool cancelChanged = GridControls && controls != gridWasAllowed;
+            gridWasAllowed = controls;
+            bool changed = (input - lastInput).LengthSquared() > .0001f || cancelChanged;
             bool moving = input.LengthSquared() > .0001f;
-            if (!movementBusy && (changed || moving && moveClock >= .08))
+            if (!gridRouting && !movementBusy && !gridNavigation.BlocksMovement && (changed || moving && moveClock >= .08))
             {
                 moveClock = 0; lastInput = input; SendMovement(input);
             }
             bool bossAudio=Snapshot.Creatures.Any(x=>Data.Mob(x.Template).Boss&&x.Target==self.Id);
             bool combatAudio=Snapshot.Time-self.LastCombat<7;
             audio?.SetRegion(Data.Zone(self.Zone),bossAudio,combatAudio);
+        }
+        else
+        {
+            if (navigationConnection is not null || route.Count > 0 || pendingInteraction is not null
+                || gridNavigation.Step is not null || gridNavigation.BlocksMovement) RetireNavigationSession();
+            World.SetLocalMovementIntent(Vector2.Zero);
         }
         TickExperience(delta);
         uiClock += delta;
@@ -213,12 +238,40 @@ public partial class GameRoot : Control
 
     private async void SendMovement(Vector2 direction)
     {
-        if (Connection is null || !Connection.Connected || closing) return;
-        movementBusy = true;
-        try { await Connection.MoveAsync(direction.X, direction.Y, lifetime.Token); }
-        catch (Exception error) when (error is not OperationCanceledException) { Notify(error.Message, true); }
+        if (Connection is not { Connected: true } connection || closing || navigationLifetime is null) return;
+        if (gridNavigation.BlocksMovement || movementBusy) { TrySendGridCancellation(); return; }
+        bool grid = GridControls;
+        var manualRequest = grid && Snapshot is { } snapshot
+            ? gridNavigation.BeginManualSend(connection, snapshot, new Point(direction.X, direction.Y), Time.GetTicksMsec() / 1000.0)
+            : null;
+        var operation = BeginNavigationSend();
+        var navigationToken = navigationLifetime.Token;
+        using var cancel = NavigationSendCancellation(navigationToken);
+        Exception? failure = null;
+        try
+        {
+            if (grid) await connection.GridMoveAsync(direction.X, direction.Y, !GameplayInputAllowed, cancel.Token);
+            else await connection.MoveAsync(direction.X, direction.Y, cancel.Token);
+        }
+        catch (Exception error) when (error is not OperationCanceledException) { failure = error; }
+        catch (OperationCanceledException error) when (GridNavigationState.SendCancellationIsTimeout(lifetime.Token, navigationToken))
+        { failure = new TimeoutException("The movement request timed out. Reconnect before walking.", error); }
         catch (OperationCanceledException) { }
-        finally { movementBusy = false; }
+        finally
+        {
+            if (CurrentNavigationSend(operation))
+            {
+                bool currentFailure = manualRequest is not null
+                    ? gridNavigation.CompleteStepSend(manualRequest, failure is not null, Time.GetTicksMsec() / 1000.0)
+                    : failure is not null;
+                if (currentFailure)
+                {
+                    if (manualRequest is not null) { ClearRoute(); pendingInteraction = null; }
+                    Notify(failure!.Message, true);
+                }
+                EndNavigationSend(operation); TrySendGridCancellation();
+            }
+        }
     }
     private async Task<CommandResult?> SendAsync(GameCommand command, bool quiet = false)
     {
@@ -256,11 +309,16 @@ public partial class GameRoot : Control
         var zone = Data.Zone(Snapshot.Self.Zone);
         if (!point.Finite || !WorldMap.Fits(zone, point)) { Notify("That position is blocked.", true); return; }
         if (!keepInteraction) pendingInteraction = null;
-        route.Clear(); route.AddRange(WorldMap.FindPath(zone, Snapshot.Self.Position, point, 16000));
+        ClearRoute(); route.AddRange(WorldMap.FindPath(zone, Snapshot.Self.Position, point, 16000));
         if (route.Count == 0) Notify("No nearby route was found. Use the roads or move closer.", true);
     }
     private async void Activate(WorldTarget target)
     {
+        string readiness = InteractionProblem(target);
+        if (readiness != "") { Notify(readiness, true); return; }
+        ClearRoute(); TrySendGridCancellation();
+        if (gridNavigation.BlocksMovement) { pendingInteraction = target; return; }
+        pendingInteraction = null;
         SelectTarget(target.Kind, target.Id);
         if (target.Kind == "npc")
         {
@@ -274,6 +332,7 @@ public partial class GameRoot : Control
             else Send("gather", target.Id);
         }
         else if (target.Kind == "landmark") Send("inspect", target.Id);
+        else if (target.Kind == "classic_site") Send("classic_interact", target.Id);
         else if (target.Kind == "event") Send("event", target.Id);
         else if (target.Kind == "chest") Send("chest", target.Id);
         else if (target.Kind == "loot") Send("loot", target.Id);
@@ -495,7 +554,7 @@ public partial class GameRoot : Control
     }
     private async void Logout()
     {
-        ClosePage(); StopCombatInput(); route.Clear(); pendingInteraction = null;
+        ClosePage(); StopCombatInput(); RetireNavigationSession();
         try { if (Connection is not null) { await Connection.SignOutAsync(); await Connection.DisposeAsync(); } }
         catch (Exception error) { GD.PushWarning(error.Message); }
         if (closing || !IsInsideTree()) return;
@@ -507,7 +566,8 @@ public partial class GameRoot : Control
     {
         if (what == NotificationApplicationFocusOut)
         {
-            applicationFocused = false; StopCombatInput(); route.Clear(); pendingInteraction = null;
+            if (route.Count > 0 && System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Testing") GD.Print("ROUTE_CANCEL application focus lost");
+            applicationFocused = false; StopCombatInput(); ClearRoute(); pendingInteraction = null;
             if (!movementBusy && Connection?.Connected == true) { lastInput = Vector2.Zero; SendMovement(Vector2.Zero); }
         }
         if (what == NotificationApplicationFocusIn) applicationFocused = true;

@@ -20,6 +20,22 @@ public static class SpritePoseRules
     public static IReadOnlyList<string> Layers(int direction) => ReadOnlyOrders[Math.Clamp(direction, 0, 3)];
     public static Vector2 Anchor(int size) => new(size / 2f, MathF.Round(size * .86f));
 
+    public static float CharacterScale(Catalog data, Character? character)
+    {
+        if (data.ClassicTutorial is not { } tuning || character?.ClassicTutorial is null) return 1;
+        double scale = tuning.AvatarScale;
+        return double.IsFinite(scale) && scale is >= .5 and <= 1 ? (float)scale : 1;
+    }
+
+    public static Rect2 FrameDestination(Vector2 feet, int size, int top, int bottom, float scale = 1)
+    {
+        if (!float.IsFinite(scale) || scale is < .5f or > 1) scale = 1;
+        // Scale every composited layer and action slice around the same authored
+        // floor point. Source rows, hit geometry and world positions stay intact.
+        return new Rect2(feet - Anchor(size) * scale + new Vector2(0, top * scale),
+            new Vector2(size * scale, (bottom - top) * scale));
+    }
+
     public static int Direction(Point facing, int previous)
     {
         previous = Math.Clamp(previous, 0, 3);

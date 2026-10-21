@@ -185,6 +185,31 @@ public partial class ControlRulesContract : Node
 
             string species = data.Mobs.First(x => x.Ai is not "passive" and not "fleeing").Id;
             Creature Target(string id, double x, double y) => new() { Id = id, Template = species, Health = 10, Zone = self.Zone, Position = self.Position.Add(new Point(x, y)) };
+            Point ClearPoint(Character actor, double distance)
+            {
+                var zone = data.Zone(actor.Zone);
+                for (int i = 0; i < 72; i++)
+                {
+                    double angle = i * Math.PI / 36;
+                    var point = actor.Position.Add(new Point(Math.Cos(angle) * distance, Math.Sin(angle) * distance));
+                    if (WorldMap.Fits(zone, point) && WorldMap.LineOfSight(zone, actor.Position, point)) return point;
+                }
+                throw new InvalidOperationException("No clear ranged-basic fixture lane.");
+            }
+            foreach (string classId in new[] { "arcanist", "templar" })
+            {
+                var caster = realm.CreateCharacter("range-control-" + classId, "Range " + classId, classId, new());
+                double casterReach = ExperienceRules.WeaponRange(caster, data);
+                Require(Math.Abs(casterReach - BasicAttackRules.CasterBasicRange) < .000001,
+                    classId + " client basic range matches the shared server profile");
+                var inRange = new Creature { Id = classId + "-ranged", Template = species, Health = 10, Zone = caster.Zone, Position = ClearPoint(caster, 5.2) };
+                Require(ExperienceRules.ApproachPath(caster, inRange, data).Count == 0,
+                    classId + " does not auto-approach into melee when already in ranged-basic range");
+                var justOutside = new Creature { Id = classId + "-approach", Template = species, Health = 10, Zone = caster.Zone, Position = ClearPoint(caster, casterReach + .65) };
+                var casterApproach = ExperienceRules.ApproachPath(caster, justOutside, data);
+                Require(casterApproach.Count > 0 && casterApproach[^1].Distance(justOutside.Position) <= casterReach,
+                    classId + " auto-approach stops at ranged-basic distance");
+            }
             self.Facing = new Point(1, 0);
             var front = Target("front", 1, 0); var back = Target("back", -1, 0);
             Require(ExperienceRules.ChooseTarget(self, [back, front], data, "", 2)?.Id == "front", "Facing breaks equal-distance automatic target choices");
@@ -215,7 +240,7 @@ public partial class ControlRulesContract : Node
             var pickup = new WorldTarget("loot", "z-pickup", "Supplies", carcass.Position);
             Require(ExperienceRules.ChooseInteraction(self, [carcass, pickup], data)?.Id == pickup.Id, "Overlapping loot has priority over a carcass regardless of its identifier");
             Require(ExperienceRules.ChooseInteraction(self, [pickup, closeNpc], data)?.Id == closeNpc.Id, "Loot priority does not override a nearer NPC");
-            var pile = new LootPile { Zone = self.Zone, Owner = "foreign", PublicAt = 100, Party = "" };
+            var pile = new LootPile { Zone = self.Zone, Owner = "foreign", PublicAt = 100, Party = "", Expires = 180 };
             Require(!ExperienceRules.LootAvailable(self, pile, 10), "Private foreign loot does not promise a pickup action");
             pile.Owner = self.Id;
             Require(ExperienceRules.LootAvailable(self, pile, 10), "Owned loot remains eligible");

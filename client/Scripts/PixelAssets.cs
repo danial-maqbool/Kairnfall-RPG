@@ -11,6 +11,7 @@ public sealed class PixelAssets
     private readonly Dictionary<string, Texture2D> textures = [];
     private readonly Dictionary<string, AtlasTexture> frames = [];
     private readonly HashSet<string> missing = [];
+    private Dictionary<string, string> iconKeys = [];
     public IReadOnlyCollection<string> Missing => missing;
     public const int Frames = 8;
     public static readonly string[] LayerOrder = ["cloak", "body", "legs", "boots", "chest", "belt", "hair", "helmet", "necklace", "charm", "trinket", "gloves", "offhand", "weapon"];
@@ -45,7 +46,19 @@ public sealed class PixelAssets
         return texture;
     }
 
-    public Texture2D? Icon(string item) => Texture("items/" + item);
+    public void BindCatalog(Catalog data)
+    {
+        // Existing packs declare items/name.png; optional packs can declare a
+        // bare alias. Texture retains its strict asset identifier validation.
+        iconKeys = data.Items.ToDictionary(x => x.Id, x =>
+        {
+            string key = string.IsNullOrWhiteSpace(x.Icon) ? "items/" + x.Id : x.Icon;
+            if (key.EndsWith(".png", StringComparison.Ordinal)) key = key[..^4];
+            return key.StartsWith("items/", StringComparison.Ordinal) ? key : "items/" + key;
+        }, StringComparer.Ordinal);
+    }
+
+    public Texture2D? Icon(string item) => Texture(iconKeys.GetValueOrDefault(item, "items/" + item));
     public Texture2D? AbilityIcon(string ability) => Texture("abilities/" + ability);
 
     public AtlasTexture? Frame(string key, int state, int direction, int frame)
@@ -66,11 +79,11 @@ public sealed class PixelAssets
         return result;
     }
 
-    public void DrawFrame(CanvasItem canvas, string key, Vector2 feet, int state, int direction, int frame, Color? tint = null)
-        => DrawSlice(canvas, key, feet, state, direction, frame, 0, int.MaxValue, tint);
+    public void DrawFrame(CanvasItem canvas, string key, Vector2 feet, int state, int direction, int frame, Color? tint = null, float scale = 1)
+        => DrawSlice(canvas, key, feet, state, direction, frame, 0, int.MaxValue, tint, scale);
 
     private void DrawSlice(CanvasItem canvas, string key, Vector2 feet, int state, int direction, int frame,
-        int fromY, int toY, Color? tint = null)
+        int fromY, int toY, Color? tint = null, float scale = 1)
     {
         var address = SpritePoseRules.SheetAddress(key, state);
         var texture = Texture(address.Key);
@@ -80,14 +93,14 @@ public sealed class PixelAssets
         if (top == bottom) return;
         var source = new Rect2(Math.Clamp(frame, 0, Frames - 1) * size,
             (address.State * 4 + Math.Clamp(direction, 0, 3)) * size + top, size, bottom - top);
-        var destination = new Rect2(feet - SpritePoseRules.Anchor(size) + new Vector2(0, top), new Vector2(size, bottom - top));
+        var destination = SpritePoseRules.FrameDestination(feet, size, top, bottom, scale);
         canvas.DrawTextureRectRegion(texture, destination, source, tint ?? Colors.White);
         Diagnostics.RecordDrawCall();
     }
 
     // Upper-body actions and grounded locomotion are independent presentation tracks.
     public void DrawPerson(CanvasItem canvas, Appearance appearance, IReadOnlyDictionary<string, string> equipment,
-        Vector2 feet, int state, int direction, int frame, int locomotionFrame = -1, bool running = false)
+        Vector2 feet, int state, int direction, int frame, int locomotionFrame = -1, bool running = false, float scale = 1)
     {
         state = SpritePoseRules.WeaponPose(state, equipment);
         bool contextAction = state is 6 or 7;
@@ -96,7 +109,7 @@ public sealed class PixelAssets
         if (contextAction)
             foreach (string carried in new[] { "weapon", "offhand" })
                 if (equipment.TryGetValue(carried, out var item))
-                    DrawFrame(canvas, "equipment/" + item, feet, state, direction, frame);
+                    DrawFrame(canvas, "equipment/" + item, feet, state, direction, frame, scale: scale);
         foreach (string layer in SpritePoseRules.Layers(direction))
         {
             if (contextAction && layer is "weapon" or "offhand") continue;
@@ -108,13 +121,13 @@ public sealed class PixelAssets
             };
             if (key is null) continue;
             if (movingAction && layer is "legs" or "boots")
-                DrawFrame(canvas, key, feet, movingState, direction, locomotionFrame);
+                DrawFrame(canvas, key, feet, movingState, direction, locomotionFrame, scale: scale);
             else if (movingAction && layer is "body" or "chest" or "cloak")
             {
-                DrawSlice(canvas, key, feet, state, direction, frame, 0, SpritePoseRules.WaistCut);
-                DrawSlice(canvas, key, feet, movingState, direction, locomotionFrame, SpritePoseRules.WaistCut, SpritePoseRules.ActorSize);
+                DrawSlice(canvas, key, feet, state, direction, frame, 0, SpritePoseRules.WaistCut, scale: scale);
+                DrawSlice(canvas, key, feet, movingState, direction, locomotionFrame, SpritePoseRules.WaistCut, SpritePoseRules.ActorSize, scale: scale);
             }
-            else DrawFrame(canvas, key, feet, state, direction, frame);
+            else DrawFrame(canvas, key, feet, state, direction, frame, scale: scale);
         }
     }
 

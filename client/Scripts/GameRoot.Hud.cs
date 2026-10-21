@@ -35,6 +35,7 @@ public partial class GameRoot
         healthText = Ui.Label("", 13); column.AddChild(healthText); health = Ui.Bar(new Color("a94c46"), 262); column.AddChild(health);
         manaText = Ui.Label("", 13); column.AddChild(manaText); mana = Ui.Bar(new Color("587db7"), 262); column.AddChild(mana);
         staminaText = Ui.Label("", 13); column.AddChild(staminaText); stamina = Ui.Bar(new Color("899955"), 262); column.AddChild(stamina);
+        classicFoodExpanded = BuildClassicFoodLabel(column, "ClassicFoodExpanded");
         var title = new VBoxContainer
         {
             AnchorLeft = .5f, AnchorRight = .5f, OffsetLeft = -260, OffsetRight = 260, OffsetTop = 16,
@@ -187,6 +188,7 @@ public partial class GameRoot
         }
         hud.Visible = Snapshot is not null;
         if (Snapshot is not { } snap) return;
+        UpdateClassicSessionPresentation(snap);
         var self = snap.Self; var stats = CombatMath.Stats(self, Data);
         characterTitle.Text = self.Name + " · Level " + Progression.PlayerLevel(self);
         characterTitle.TooltipText = Data.Class(self.Class).Name + " · " + self.Gold + " gold";
@@ -239,7 +241,7 @@ public partial class GameRoot
             deathText.Text = "Your equipment remains yours. Repair damaged equipment after returning to a settlement.\nRespawn in " + Math.Max(0, Math.Ceiling(self.DeadUntil - snap.Time)) + " seconds.";
             respawnButton.Disabled = self.DeadUntil > snap.Time;
         }
-        UpdateNewPlayerHud(snap);
+        UpdateNewPlayerHud(snap); UpdateFocusHud();
         for (int i = 0; i < hotbar.Length; i++)
         {
             string id = hotbar[i]; var button = (AbilitySlot)hotbarButtons[i]; string key = (i == 9 ? 0 : i + 1).ToString();

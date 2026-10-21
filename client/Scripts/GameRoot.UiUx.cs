@@ -119,6 +119,13 @@ public partial class GameRoot
         if (viewport.X <= 0 || viewport.Y <= 0) viewport = GetViewport().GetVisibleRect().Size;
         if (viewport.X <= 0 || viewport.Y <= 0) return;
 
+        if (gameWindow.HasMeta("classic_overlay"))
+        {
+            gameWindow.Size = new Vector2(414, Math.Min(426, viewport.Y - 24));
+            gameWindow.Position = new Vector2(Math.Max(8, viewport.X - gameWindow.Size.X - 12), Math.Max(8, Math.Min(64, viewport.Y - gameWindow.Size.Y - 12)));
+            gameWindow.TooltipText = "Compact item panel. Escape closes it; world input is paused while choosing an action.";
+            return;
+        }
         var profile = PageLayoutProfiles.For(currentPage);
         var desired = PageLayoutProfiles.SizeFor(currentPage, viewport);
         gameWindow.Size = desired;
